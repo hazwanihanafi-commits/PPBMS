@@ -4,11 +4,10 @@ import dotenv from "dotenv";
 import cors from "cors";
 
 import apiRouter from "./routes/api.js";
-import studentRouter from "./routes/student.js";
-app.use("/student", studentRouter);
+import authRouter from "./routes/auth.js";
+import indexRouter from "./routes/index.js";
 
 dotenv.config();
-
 const app = express();
 
 // ---------- MIDDLEWARE ----------
@@ -26,12 +25,9 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ---------- ROUTES ----------
-app.get("/", (req, res) => {
-  res.send("AMDI Student Progress API is running");
-});
-
+app.use("/", indexRouter);
 app.use("/api", apiRouter);
-app.use("/student", studentRouter);
+app.use("/auth", authRouter);
 
 // ---------- 404 ----------
 app.use((req, res) => {
