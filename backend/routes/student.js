@@ -1,25 +1,29 @@
 import express from "express";
-import { readMasterTracking } from "../services/googleSheets.js";
+import jwt from "jsonwebtoken";
+import { readAllRows } from "../services/sheetsClient.js";
 
 const router = express.Router();
 
-router.get("/:matric", async (req, res) => {
+function auth(req, res, next) {
   try {
-    const matric = String(req.params.matric).trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const student = rows.find(
-      (r) => String(r["Matric"]).trim() === matric
-    );
-
-    if (!student) return res.status(404).send("Student not found");
-
-    res.json(student);
-
-  } catch (e) {
-    console.error(e);
-    res.status(500).send("Internal Server Error");
+    const token = (req.headers.authorization || "").replace("Bearer ", "");
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = user;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Unauthorized" });
   }
+}
+
+router.get("/me", auth, async (req, res) => {
+  const rows = await readAllRows(process.env.SHEET_ID, "MasterTracking!A1:ZZ");
+  const found = rows.find(
+    (s) => (s.student_email || "").toLowerCase() === req.user.email.toLowerCase()
+  );
+
+  if (!found) return res.status(404).json({ error: "Student not found" });
+
+  res.json({ row: found });
 });
 
 export default router;
