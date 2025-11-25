@@ -26,7 +26,7 @@ app.get("/", (req, res) => {
 
 // Routers
 app.use("/api", apiRouter);
-app.use("/student", studentRouter);
+app.use("/api/student", studentRouter);
 app.use("/auth", authRouter);   // <-- REGISTER AUTH API
 
 // 404
