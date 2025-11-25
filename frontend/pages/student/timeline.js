@@ -4,7 +4,7 @@ import { Chart } from 'react-google-charts';
 const fetcher = url => fetch(url, { headers: { Authorization: 'Bearer ' + localStorage.getItem('ppbms_token') } }).then(r=>r.json());
 
 export default function Timeline(){
-  const { data, error } = useSWR('/api/student/me', fetcher);
+  const { data, error } = useSWR('/student/me', fetcher);
   if(error) return <div>Error loading: {error.message}</div>;
   if(!data) return <div>Loading...</div>;
   const row = data.row;
