@@ -5,6 +5,7 @@ import cors from "cors";
 
 import apiRouter from "./routes/api.js";
 import studentRouter from "./routes/student.js";
+app.use("/student", studentRouter);
 
 dotenv.config();
 
