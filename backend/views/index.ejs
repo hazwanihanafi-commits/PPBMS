@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AMDI Progress System</title>
+</head>
+<body>
+  <h2>Welcome to AMDI Student Progress</h2>
+
+  <form action="/student" method="GET" onsubmit="event.preventDefault(); window.location='/student/' + document.getElementById('matric').value;">
+    <input id="matric" type="text" placeholder="Enter Matric" />
+    <button type="submit">Check</button>
+  </form>
+
+  <p><a href="/api/all">View All Students (API)</a></p>
+</body>
+</html>
