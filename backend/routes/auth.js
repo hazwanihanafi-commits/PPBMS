@@ -8,28 +8,23 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 router.post("/verify", async (req, res) => {
   try {
     const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ error: "Missing idToken" });
-    }
+    if (!idToken) return res.status(400).json({ error: "Missing ID token" });
 
-    // Verify token
     const ticket = await client.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    const email = payload.email;
 
-    // USM email check
-    if (!email || !email.toLowerCase().endsWith("@usm.my")) {
+    if (!payload.email.endsWith("@usm.my")) {
       return res.status(403).json({ error: "Only USM accounts allowed" });
     }
 
-    // Create JWT
     const token = jwt.sign(
       {
-        email,
+        email: payload.email,
+        name: payload.name,
         role: "student",
       },
       process.env.JWT_SECRET,
@@ -37,10 +32,9 @@ router.post("/verify", async (req, res) => {
     );
 
     return res.json({ token });
-
   } catch (err) {
-    console.error("AUTH ERROR:", err);
-    return res.status(500).json({ error: "Auth failed" });
+    console.error("Google Verify Error:", err);
+    return res.status(500).json({ error: "Failed to verify Google login" });
   }
 });
 
