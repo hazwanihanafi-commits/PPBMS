@@ -1,0 +1,4 @@
+body{ font-family: Arial, sans-serif; padding: 20px; }
+.header{ display:flex; gap:20px; align-items:center; margin-bottom:20px;}
+.card{ padding:12px; border:1px solid #ddd; border-radius:8px; margin-bottom:12px;}
+.status-dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px;}
