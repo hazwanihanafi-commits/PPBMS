@@ -1,7 +1,7 @@
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
 export default function LoginPage() {
-  const API = process.env.NEXT_PUBLIC_API_BASE;
+  const api = process.env.NEXT_PUBLIC_API_BASE;
 
   const handleSuccess = async (res) => {
     const idToken = res.credential;
