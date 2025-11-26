@@ -1,17 +1,6 @@
 import { useEffect, useState } from "react";
-import CircularMilestoneChart from "../../components/CircularMilestoneChart";
-import GanttTimeline from "../../components/GanttTimeline";
-import ProfileCard from "../../components/ProfileCard";
-import StatCard from "../../components/StatCard";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
-
-const DUE = {
-  "P1 Submitted": "2024-08-31",
-  "P3 Submitted": "2025-01-31",
-  "P4 Submitted": "2025-02-15",
-  "P5 Submitted": "2025-10-01",
-};
 
 export default function StudentDashboard() {
   const [token, setToken] = useState(null);
@@ -19,14 +8,17 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  /* ---------------- LOAD TOKEN ---------------- */
+  // Load token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
-    if (!t) window.location.href = "/login";
+    if (!t) {
+      window.location.href = "/login";
+      return;
+    }
     setToken(t);
   }, []);
 
-  /* ---------------- FETCH STUDENT DATA -------- */
+  // Fetch student data
   useEffect(() => {
     if (!token) return;
 
@@ -41,7 +33,6 @@ export default function StudentDashboard() {
         const data = await r.json();
         setRow(data.row);
       } catch (err) {
-        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -50,18 +41,18 @@ export default function StudentDashboard() {
   }, [token]);
 
   if (loading)
-    return <div className="p-8 text-center text-gray-600">Loading…</div>;
+    return <div className="p-10 text-center text-gray-500 text-lg">Loading…</div>;
 
   if (error)
     return (
-      <div className="p-8 text-center text-red-600">
-        Failed: {error}
+      <div className="p-10 text-center text-red-500 text-lg">
+        Failed to load data<br />{error}
       </div>
     );
 
-  if (!row || !row.raw) return null;
+  if (!row) return null;
 
-  /* ---------------- CALCULATE PROGRESS -------- */
+  // Progress calculation
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
@@ -69,82 +60,82 @@ export default function StudentDashboard() {
     row.raw["P5 Submitted"],
   ].filter(Boolean).length;
 
-  const percentage = Math.round((completed / 4) * 100);
-
-  /* ---------------- SEND EMAIL BUTTON -------- */
-  const sendReminder = async () => {
-    alert("Reminder sent! (frontend only demo)");
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* HEADER */}
-      <header className="max-w-6xl mx-auto mb-6">
-        <h1 className="text-3xl font-extrabold text-purple-700">
+      <header className="mb-10 max-w-3xl mx-auto text-center">
+        <h1 className="text-4xl font-bold text-purple-700 mb-2">
           Student Dashboard
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 text-lg">
           {row.student_name} — {row.programme}
         </p>
       </header>
 
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* LEFT: Profile */}
-        <div className="lg:col-span-1">
-          <ProfileCard
-            name={row.student_name}
-            programme={row.programme}
-            supervisor={row.main_supervisor}
-            email={row.student_email}
-          />
+      <div className="max-w-3xl mx-auto space-y-10">
+        
+        {/* PROFILE CARD */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Profile</h2>
+
+          <div className="space-y-2 text-gray-700">
+            <p><strong>Supervisor:</strong> {row.main_supervisor}</p>
+            <p><strong>Email:</strong> {row.student_email}</p>
+            <p><strong>Status:</strong> {row.raw["Status P"] || "On Track"}</p>
+          </div>
         </div>
 
-        {/* RIGHT SIDE */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* SUMMARY CARD */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Summary</h2>
 
-          {/* STAT CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard title="Milestones Completed" value={`${completed} / 4`} />
-            <StatCard
-              title="Last Submission"
-              value={
-                row.raw["P5 Submitted"] ||
+          <div className="space-y-2 text-gray-700">
+            <p><strong>Milestones Completed:</strong> {completed} / 4</p>
+
+            <p>
+              <strong>Last Submission:</strong>{" "}
+              {row.raw["P5 Submitted"] ||
                 row.raw["P4 Submitted"] ||
-                "—"
-              }
-            />
-            <StatCard
-              title="Overall Status"
-              value={row.raw["Status P"] || "—"}
-            />
+                row.raw["P3 Submitted"] ||
+                row.raw["P1 Submitted"] ||
+                "—"}
+            </p>
+
+            <p><strong>Overall Status:</strong> {row.raw["Status P"] || "—"}</p>
           </div>
-
-          {/* CIRCULAR PROGRESS */}
-          <section className="bg-white p-6 rounded-xl shadow">
-            <h2 className="text-xl font-semibold mb-3">Milestone Progress</h2>
-            <CircularMilestoneChart completed={completed} total={4} />
-          </section>
-
-          {/* GANTT TIMELINE */}
-          <section className="bg-white p-6 rounded-xl shadow">
-            <h2 className="text-xl font-semibold mb-3">Gantt Timeline</h2>
-
-            {/* FIX: prevent crash */}
-            <GanttTimeline raw={row.raw || {}} due={DUE} />
-          </section>
-
-          {/* EMAIL REMINDER */}
-          <div className="pt-4">
-            <button
-              onClick={sendReminder}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-            >
-              Send Reminder
-            </button>
-          </div>
-
         </div>
-      </main>
+
+        {/* MILESTONE LIST */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+            Milestone Status
+          </h2>
+
+          <div className="space-y-2 text-gray-700">
+            <p><strong>P1 Submitted:</strong> {row.raw["P1 Submitted"] || "—"}</p>
+            <p><strong>P1 Approved:</strong> {row.raw["P1 Approved"] || "—"}</p>
+
+            <p><strong>P3 Submitted:</strong> {row.raw["P3 Submitted"] || "—"}</p>
+            <p><strong>P3 Approved:</strong> {row.raw["P3 Approved"] || "—"}</p>
+
+            <p><strong>P4 Submitted:</strong> {row.raw["P4 Submitted"] || "—"}</p>
+            <p><strong>P4 Approved:</strong> {row.raw["P4 Approved"] || "—"}</p>
+
+            <p><strong>P5 Submitted:</strong> {row.raw["P5 Submitted"] || "—"}</p>
+            <p><strong>P5 Approved:</strong> {row.raw["P5 Approved"] || "—"}</p>
+          </div>
+        </div>
+
+        {/* REMINDER BUTTON */}
+        <div className="text-center">
+          <button
+            onClick={() => alert("Reminder sent!")}
+            className="px-6 py-3 bg-purple-600 text-white rounded-full shadow hover:bg-purple-700"
+          >
+            Send Reminder
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
