@@ -1,2 +1,19 @@
-import '../styles.css';
-export default function App({ Component, pageProps}){ return <Component {...pageProps} />; }
+import { useEffect } from "react";
+
+function MyApp({ Component, pageProps }) {
+  useEffect(() => {
+    // Do not run on login page
+    if (window.location.pathname === "/login") return;
+
+    const token = localStorage.getItem("ppbms_token");
+
+    // If no token, redirect to login
+    if (!token) {
+      window.location.href = "/login";
+    }
+  }, []);
+
+  return <Component {...pageProps} />;
+}
+
+export default MyApp;
