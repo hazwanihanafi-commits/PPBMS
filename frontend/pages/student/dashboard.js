@@ -50,10 +50,8 @@ export default function StudentDashboard() {
   }, [token]);
 
   if (loading) return <div className="p-8 text-center">Loading dashboard…</div>;
-
   if (error)
     return <div className="p-8 text-center text-red-600">Failed to load: {error}</div>;
-
   if (!row) return null;
 
   const completed = [
@@ -77,6 +75,7 @@ export default function StudentDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
         {/* Profile */}
         <div className="lg:col-span-1">
           <ProfileCard
@@ -89,7 +88,14 @@ export default function StudentDashboard() {
 
         {/* Stats + Timeline */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard title="Milestones Completed" value={`${completed} / 4`} />
+
+          <StatCard
+            title="Milestones Completed"
+            value={`${completed} / 4`}
+            icon="success"
+            color="green"
+          />
+
           <StatCard
             title="Last Submission"
             value={
@@ -97,16 +103,25 @@ export default function StudentDashboard() {
               row.raw["P4 Submitted"] ||
               "—"
             }
+            icon="progress"
+            color="purple"
           />
-          <StatCard title="Overall Status" value={row.raw["Status P"] || "—"} />
+
+          <StatCard
+            title="Overall Status"
+            value={row.raw["Status P"] || "—"}
+            icon="stats"
+            color="blue"
+          />
 
           {/* Timeline */}
           <div className="md:col-span-3">
             <AnimatedVerticalTimeline raw={row.raw} dueDates={DUE_MAP} />
           </div>
+          
         </div>
+        
       </main>
     </div>
   );
 }
-
