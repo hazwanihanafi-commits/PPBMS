@@ -1,57 +1,34 @@
-// frontend/pages/student/me.js
 import { useEffect, useState } from "react";
-import ProfileCard from "../../components/ProfileCard.jsx";
-import StatCard from "../../components/StatCard.jsx";
-import CircularMilestoneChart from "../../components/CircularMilestoneChart.jsx";
-import GanttTimeline from "../../components/GanttTimeline.jsx";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
-const DUE_MAP = {
-  "P1 Submitted": "2024-08-31",
-  "P3 Submitted": "2025-01-31",
-  "P4 Submitted": "2025-02-15",
-  "P5 Submitted": "2025-10-01",
-};
-
-export default function StudentMe() {
+export default function StudentCleanView() {
   const [token, setToken] = useState(null);
   const [row, setRow] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const t = typeof window !== "undefined" && localStorage.getItem("ppbms_token");
-    if (!t) {
-      // keep behaviour same as before
-      if (typeof window !== "undefined") window.location.href = "/login";
-      return;
-    }
+    const t = localStorage.getItem("ppbms_token");
+    if (!t) return (window.location.href = "/login");
     setToken(t);
   }, []);
 
   useEffect(() => {
     if (!token) return;
     (async () => {
-      try {
-        const r = await fetch(`${API}/api/student/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!r.ok) throw new Error(await r.text());
-        const data = await r.json();
-        setRow(data.row);
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "Failed to fetch");
-      } finally {
-        setLoading(false);
-      }
+      const r = await fetch(`${API}/api/student/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await r.json();
+      setRow(data.row);
     })();
   }, [token]);
 
-  if (loading) return <div className="p-8 text-center">Loading dashboard…</div>;
-  if (error) return <div className="p-8 text-center text-red-600">Error: {error}</div>;
-  if (!row) return null;
+  if (!row)
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-600 text-lg">
+        Loading…
+      </div>
+    );
 
   const milestones = [
     "P1 Submitted",
@@ -64,98 +41,58 @@ export default function StudentMe() {
     "P5 Approved",
   ];
 
-  const completed = [
-    row.raw["P1 Submitted"],
-    row.raw["P3 Submitted"],
-    row.raw["P4 Submitted"],
-    row.raw["P5 Submitted"],
-  ].filter(Boolean).length;
-  const percentage = Math.round((completed / 4) * 100);
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <header className="max-w-6xl mx-auto mb-6">
-        <h1 className="text-4xl font-extrabold text-purple-700">Student Dashboard</h1>
-        <p className="text-gray-600 mt-1">{row.student_name} — {row.programme}</p>
-      </header>
+    <div className="min-h-screen bg-gray-100 flex justify-center px-4 py-12">
+      <div className="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-8">
+        
+        {/* Header */}
+        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-2">
+          Student Progress Overview
+        </h1>
 
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* LEFT */}
-        <aside className="lg:col-span-1">
-          <ProfileCard
-            name={row.student_name}
-            programme={row.programme}
-            supervisor={row.main_supervisor}
-            email={row.student_email}
-          />
-        </aside>
+        <p className="text-center text-gray-600 mb-6">
+          {row.student_name} — {row.programme}
+        </p>
 
-        {/* RIGHT */}
-        <section className="lg:col-span-3 space-y-6">
-          {/* Top stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard title="Milestones Completed" value={`${completed} / 4`} color="green" />
-            <StatCard title="Last Submission" value={row.raw["P5 Submitted"] || row.raw["P4 Submitted"] || "—"} color="purple" />
-            <StatCard title="Overall Status" value={row.raw["Status P"] || "—"} color="blue" />
-          </div>
+        {/* Supervisor */}
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-8">
+          <p className="text-sm text-gray-500">Supervisor</p>
+          <p className="text-lg font-medium text-purple-700">
+            {row.main_supervisor}
+          </p>
+        </div>
 
-          {/* Charts + timeline */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="col-span-1 bg-white p-6 rounded-2xl shadow">
-              <h3 className="text-lg font-semibold mb-3">Milestone Progress</h3>
-              <CircularMilestoneChart percentage={percentage} />
-              <div className="mt-4 text-sm text-gray-600">{percentage}% complete</div>
-            </div>
+        {/* Milestones */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Milestone Status
+          </h2>
 
-            <div className="col-span-2 bg-white p-6 rounded-2xl shadow">
-              <h3 className="text-lg font-semibold mb-3">Milestones & Actions</h3>
-              <div className="space-y-3">
-                {["P1 Submitted","P3 Submitted","P4 Submitted","P5 Submitted"].map((k) => {
-                  const val = row.raw[k];
-                  const due = DUE_MAP[k] || null;
-                  const overdue = !val && due && (new Date() > new Date(due));
-                  return (
-                    <div key={k} className="flex items-center justify-between border-b py-2">
-                      <div>
-                        <div className="font-medium">{k.replace(" Submitted","")}</div>
-                        <div className="text-sm text-gray-500">{val ? `Date: ${val}` : (due ? `Due: ${due}` : "No date")}</div>
-                      </div>
-                      <div className="text-right">
-                        {val ? (
-                          <span className="inline-flex items-center text-green-700 font-medium">
-                            <svg className="w-5 h-5 mr-1" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            Completed
-                          </span>
-                        ) : overdue ? (
-                          <span className="inline-flex items-center text-red-600 font-medium">Overdue</span>
-                        ) : (
-                          <span className="inline-flex items-center text-gray-600">Pending</span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+          <div className="space-y-3">
+            {milestones.map((m) => (
+              <div
+                key={m}
+                className="flex justify-between bg-gray-50 p-3 rounded-lg border"
+              >
+                <span>{m}</span>
+                <span className="font-medium text-gray-700">
+                  {row.raw[m] || "—"}
+                </span>
               </div>
-
-              <div className="mt-4 flex items-center gap-3">
-                <button
-                  onClick={() => alert("Reminder sent! (frontend demo)")}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Send Reminder
-                </button>
-                <div className="text-sm text-gray-500">Click to notify supervisor about late milestones</div>
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Full Gantt-like timeline */}
-          <div className="bg-white p-6 rounded-2xl shadow">
-            <h3 className="text-lg font-semibold mb-3">Gantt Timeline</h3>
-            <GanttTimeline raw={row.raw} due={DUE_MAP} />
-          </div>
-        </section>
-      </main>
+        {/* Footer */}
+        <div className="mt-10 text-center">
+          <button
+            onClick={() => (window.location.href = "/student/dashboard")}
+            className="px-6 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
+          >
+            Open Full Dashboard
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
