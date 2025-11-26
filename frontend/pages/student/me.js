@@ -1,8 +1,9 @@
+// frontend/pages/student/me.js
 import { useEffect, useState } from "react";
 
-/* ----------------------------- CONFIG ----------------------------- */
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
+// Expected due dates
 const DUE = {
   P1: "2024-08-31",
   P3: "2025-01-31",
@@ -10,166 +11,222 @@ const DUE = {
   P5: "2025-10-01",
 };
 
-/* ----------------------------- MAIN PAGE ----------------------------- */
+// ---------- Status Calculation ----------
+function computeStatus(expected, actual) {
+  if (!expected) return "No Data";
+  if (!actual) {
+    const today = new Date();
+    if (today > new Date(expected)) return "Overdue";
+    return "Pending";
+  }
+  return new Date(actual) <= new Date(expected) ? "On Time" : "Late";
+}
 
-export default function StudentDashboard() {
+// ---------- Milestone progress value (0–100%) ----------
+function milestoneProgress(expected, actual) {
+  if (!actual) return 0;
+  return 100;
+}
+
+export default function StudentMe() {
   const [token, setToken] = useState(null);
-  const [data, setData] = useState(null);
+  const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* Load token */
+  // Load token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) window.location.href = "/login";
     else setToken(t);
   }, []);
 
-  /* Fetch student row */
+  // Fetch user data
   useEffect(() => {
     if (!token) return;
     (async () => {
       const r = await fetch(`${API}/api/student/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const j = await r.json();
-      setData(j.row);
+      const data = await r.json();
+      setRow(data.row);
       setLoading(false);
     })();
   }, [token]);
 
-  if (loading || !data)
-    return <div className="p-6 text-center text-lg">Loading…</div>;
+  if (loading) return <div className="p-10 text-center">Loading…</div>;
+  if (!row) return null;
 
-  const row = data;
   const raw = row.raw;
 
-  /* Progress */
-  const submitted = [
-    raw["P1 Submitted"],
-    raw["P3 Submitted"],
-    raw["P4 Submitted"],
-    raw["P5 Submitted"],
-  ].filter(Boolean).length;
-
-  const percentage = Math.round((submitted / 4) * 100);
-
-  /* Status color */
-  const STATUS_COLOR = {
-    Completed: "bg-green-600",
-    "In Progress": "bg-blue-600",
-    Pending: "bg-gray-500",
-    Overdue: "bg-red-600",
-  };
-
-  const currentStatus = row.raw["Status P"] || "Pending";
-
-  /* Expected vs Actual Helper */
-  const getStatus = (milestone) => {
-    const due = new Date(DUE[milestone]);
-    const today = new Date();
-    const actual = raw[`${milestone} Submitted`];
-
-    if (!actual && today < due) return "Pending";
-    if (!actual && today > due) return "Overdue";
-
-    const diff = (new Date(actual) - due) / (1000 * 3600 * 24);
-    return diff > 0 ? `Late (${diff.toFixed(0)} days)` : `On Time`;
-  };
-
-  /* ------------------------------- UI ------------------------------- */
+  // Completed %
+  const completed = ["P1", "P3", "P4", "P5"].filter(
+    p => raw[`${p} Submitted`]
+  ).length;
+  const percentage = Math.round((completed / 4) * 100);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
 
-      {/* TOP GRADIENT HEADER */}
-      <div className="w-full py-10 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white shadow-lg">
-        <div className="max-w-5xl mx-auto px-6">
-          <h1 className="text-4xl font-extrabold">PPBMS Student Progress</h1>
-          <p className="text-lg opacity-90 mt-1">{row.student_name} — {row.programme}</p>
+      {/* HEADER GRADIENT */}
+      <div
+        className="text-center text-white py-10 font-bold text-3xl"
+        style={{
+          background: "linear-gradient(to right, #6A0DAD, #C13584, #E65C00)",
+        }}
+      >
+        PPBMS Student Progress
+      </div>
+
+      {/* PROFILE CARD */}
+      <div className="mx-4 mt-4 bg-white rounded-3xl shadow-xl p-6">
+        <div className="text-2xl font-bold">
+          {row.student_name} — {row.programme}
+        </div>
+
+        <div className="text-purple-700 mt-2 font-semibold">
+          Status: {row.raw["Status P"] || "—"}
+        </div>
+
+        <div className="mt-3">
+          <div className="font-semibold">Supervisor:</div>
+          <div>{row.main_supervisor}</div>
+
+          <div className="font-semibold mt-2">Email:</div>
+          <div>{row.student_email}</div>
         </div>
       </div>
 
-      {/* MAIN WRAPPER */}
-      <div className="max-w-5xl mx-auto p-6 space-y-8">
+      {/* SUMMARY */}
+      <div className="mx-4 mt-6 bg-white rounded-3xl shadow-xl p-6">
+        <h2 className="text-2xl font-bold text-purple-700 mb-4">Summary</h2>
 
-        {/* STATUS BADGE */}
-        <div className="flex justify-end">
-          <div className={`px-4 py-2 rounded-full text-white text-sm font-semibold shadow ${STATUS_COLOR[currentStatus]}`}>
-            {currentStatus}
-          </div>
+        <div className="font-semibold text-lg">
+          Milestones Completed:{" "}
+          <span className="text-purple-700">{completed} / 4</span>
         </div>
 
-        {/* SUMMARY CARD */}
-        <div className="bg-white rounded-3xl p-6 shadow-xl">
-          <h2 className="text-2xl font-bold text-purple-700 mb-2">Summary</h2>
-          <p className="text-gray-700"><strong>Supervisor:</strong> {row.main_supervisor}</p>
-          <p className="text-gray-700 mt-1"><strong>Email:</strong> {row.student_email}</p>
-
-          {/* Progress circle */}
-          <div className="mt-6 flex items-center justify-center">
-            <div className="relative w-32 h-32">
-              <svg className="w-full h-full -rotate-90">
-                <circle cx="64" cy="64" r="54" stroke="#e5e7eb" strokeWidth="12" fill="none" />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="54"
-                  stroke="url(#grad)"
-                  strokeWidth="12"
-                  fill="none"
-                  strokeDasharray={339.292}
-                  strokeDashoffset={339.292 - (339.292 * percentage) / 100}
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#9333ea" />
-                    <stop offset="50%" stopColor="#ec4899" />
-                    <stop offset="100%" stopColor="#f97316" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center font-bold text-lg text-purple-700">
-                {percentage}%
-              </div>
-            </div>
-          </div>
+        <div className="font-semibold text-lg mt-2">
+          Last Submission:{" "}
+          <span className="text-purple-700">
+            {raw["P5 Submitted"] ||
+              raw["P4 Submitted"] ||
+              raw["P3 Submitted"] ||
+              raw["P1 Submitted"] ||
+              "—"}
+          </span>
         </div>
 
-        {/* EXPECTED vs ACTUAL */}
-        <div className="bg-white rounded-3xl p-6 shadow-xl">
-          <h2 className="text-xl font-bold text-purple-700 mb-4">Expected vs Actual Timeline</h2>
-
-          {["P1", "P3", "P4", "P5"].map((p) => (
-            <div key={p} className="border-b pb-3 mb-3">
-              <p className="font-bold text-gray-900">{p}</p>
-              <p className="text-gray-700">Expected: {DUE[p]}</p>
-              <p className="text-gray-700">Actual: {raw[`${p} Submitted`] || "—"}</p>
-              <p className="text-gray-700 font-semibold">Status: {getStatus(p)}</p>
-            </div>
-          ))}
+        {/* Circular Progress Chart */}
+        <div className="flex justify-center mt-6">
+          <svg width="140" height="140">
+            <circle
+              cx="70"
+              cy="70"
+              r="60"
+              stroke="#EEE"
+              strokeWidth="12"
+              fill="none"
+            />
+            <circle
+              cx="70"
+              cy="70"
+              r="60"
+              stroke="url(#grad)"
+              strokeWidth="12"
+              fill="none"
+              strokeDasharray={`${(percentage / 100) * 377} 377`}
+              strokeLinecap="round"
+              transform="rotate(-90 70 70)"
+            />
+            <defs>
+              <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#6A0DAD" />
+                <stop offset="50%" stopColor="#C13584" />
+                <stop offset="100%" stopColor="#E65C00" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
 
-        {/* GANTT CHART */}
-        <div className="bg-white rounded-3xl p-6 shadow-xl">
-          <h2 className="text-xl font-bold text-purple-700 mb-4">Timeline Gantt Chart</h2>
-
-          {["P1", "P3", "P4", "P5"].map((p) => (
-            <div key={p} className="mb-6">
-              <p className="font-semibold text-gray-800 mb-1">{p}</p>
-
-              <div className="h-3 rounded-full bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 w-full"></div>
-
-              {raw[`${p} Submitted`] ? (
-                <div className="h-3 rounded-full bg-black mt-1 w-full opacity-60"></div>
-              ) : (
-                <p className="text-xs text-gray-600 mt-1">Not submitted</p>
-              )}
-            </div>
-          ))}
+        <div className="text-center text-purple-700 font-bold text-xl mt-2">
+          {percentage}%
         </div>
-
       </div>
+
+      {/* EXPECTED VS ACTUAL TABLE */}
+      <div className="mx-4 mt-6 bg-white rounded-3xl shadow-xl p-6">
+        <h2 className="text-2xl font-bold text-purple-700 mb-4">
+          Expected vs Actual Timeline
+        </h2>
+
+        <div className="overflow-x-auto rounded-2xl border border-gray-200">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr
+                className="text-white"
+                style={{
+                  background:
+                    "linear-gradient(to right, #6A0DAD, #C13584, #E65C00)",
+                }}
+              >
+                <th className="p-3 text-left font-semibold">Milestone</th>
+                <th className="p-3 text-left font-semibold">Expected</th>
+                <th className="p-3 text-left font-semibold">Actual</th>
+                <th className="p-3 text-left font-semibold">Status</th>
+                <th className="p-3 text-left font-semibold">Progress</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {["P1", "P3", "P4", "P5"].map(p => {
+                const expected = DUE[p];
+                const actual = raw[`${p} Submitted`] || "—";
+                const status = computeStatus(expected, raw[`${p} Submitted`]);
+                const prog = milestoneProgress(expected, raw[`${p} Submitted`]);
+
+                const badgeColor =
+                  status === "On Time"
+                    ? "bg-green-100 text-green-700"
+                    : status === "Late"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : status === "Overdue"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-gray-200 text-gray-700";
+
+                return (
+                  <tr key={p} className="border-b border-gray-200">
+                    <td className="p-3 font-semibold text-gray-800">{p}</td>
+                    <td className="p-3">{expected}</td>
+                    <td className="p-3">{actual}</td>
+
+                    <td className="p-3">
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeColor}`}
+                      >
+                        {status}
+                      </span>
+                    </td>
+
+                    <td className="p-3 w-32">
+                      <div className="h-3 bg-gray-200 rounded-full">
+                        <div
+                          className="h-3 rounded-full"
+                          style={{
+                            width: `${prog}%`,
+                            background:
+                              "linear-gradient(to right, #6A0DAD, #C13584, #E65C00)",
+                          }}
+                        ></div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 }
