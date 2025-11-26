@@ -1,8 +1,14 @@
-// frontend/pages/student/dashboard.js
 import { useEffect, useState } from "react";
 import ProfileCard from "../../components/ProfileCard";
 import StatCard from "../../components/StatCard";
-import TimelineStrip from "../../components/TimelineStrip";
+import AnimatedVerticalTimeline from "../../components/AnimatedTimeline";
+
+const DUE_MAP = {
+  "P1 Submitted": "2024-08-31",
+  "P3 Submitted": "2025-01-31",
+  "P4 Submitted": "2025-02-15",
+  "P5 Submitted": "2025-10-01",
+};
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -44,15 +50,12 @@ export default function StudentDashboard() {
   }, [token]);
 
   if (loading) return <div className="p-8 text-center">Loading dashboard…</div>;
+
   if (error)
-    return (
-      <div className="p-8 text-center text-red-600">
-        Failed to load: {error}
-      </div>
-    );
+    return <div className="p-8 text-center text-red-600">Failed to load: {error}</div>;
+
   if (!row) return null;
 
-  // derived stats example
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
@@ -74,7 +77,7 @@ export default function StudentDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left column: profile */}
+        {/* Profile */}
         <div className="lg:col-span-1">
           <ProfileCard
             name={row.student_name}
@@ -84,19 +87,26 @@ export default function StudentDashboard() {
           />
         </div>
 
-        {/* Center & right: stats and timeline */}
+        {/* Stats + Timeline */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard title="Milestones Completed" value={`${completed} / 4`} />
-          <StatCard title="Last Submission" value={row.raw["P5 Submitted"] || row.raw["P4 Submitted"] || "—"} />
+          <StatCard
+            title="Last Submission"
+            value={
+              row.raw["P5 Submitted"] ||
+              row.raw["P4 Submitted"] ||
+              "—"
+            }
+          />
           <StatCard title="Overall Status" value={row.raw["Status P"] || "—"} />
 
-          {/* Full width timeline strip */}
+          {/* Timeline */}
           <div className="md:col-span-3">
-            <h2 className="text-xl font-semibold mb-3">Milestone Timeline</h2>
-            <TimelineStrip raw={row.raw} />
+            <AnimatedVerticalTimeline raw={row.raw} dueDates={DUE_MAP} />
           </div>
         </div>
       </main>
     </div>
   );
 }
+
