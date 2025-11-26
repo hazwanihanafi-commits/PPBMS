@@ -36,9 +36,7 @@ export default function StudentDashboard() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!r.ok) {
-          throw new Error(await r.text());
-        }
+        if (!r.ok) throw new Error(await r.text());
 
         const data = await r.json();
         setRow(data.row);
@@ -61,7 +59,7 @@ export default function StudentDashboard() {
       </div>
     );
 
-  if (!row) return null;
+  if (!row || !row.raw) return null;
 
   /* ---------------- CALCULATE PROGRESS -------- */
   const completed = [
@@ -85,14 +83,15 @@ export default function StudentDashboard() {
         <h1 className="text-3xl font-extrabold text-purple-700">
           Student Dashboard
         </h1>
-        <p className="text-gray-600">{row.student_name} — {row.programme}</p>
+        <p className="text-gray-600">
+          {row.student_name} — {row.programme}
+        </p>
       </header>
 
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
         {/* LEFT: Profile */}
         <div className="lg:col-span-1">
-          <ProfileCard 
+          <ProfileCard
             name={row.student_name}
             programme={row.programme}
             supervisor={row.main_supervisor}
@@ -100,28 +99,38 @@ export default function StudentDashboard() {
           />
         </div>
 
-        {/* RIGHT: Stats + Gantt + Circular */}
+        {/* RIGHT SIDE */}
         <div className="lg:col-span-3 space-y-6">
 
           {/* STAT CARDS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard title="Milestones Completed" value={`${completed} / 4`} />
-            <StatCard title="Last Submission" value={
-              row.raw["P5 Submitted"] || row.raw["P4 Submitted"] || "—"
-            } />
-            <StatCard title="Overall Status" value={row.raw["Status P"] || "—"} />
+            <StatCard
+              title="Last Submission"
+              value={
+                row.raw["P5 Submitted"] ||
+                row.raw["P4 Submitted"] ||
+                "—"
+              }
+            />
+            <StatCard
+              title="Overall Status"
+              value={row.raw["Status P"] || "—"}
+            />
           </div>
 
           {/* CIRCULAR PROGRESS */}
-          <section>
+          <section className="bg-white p-6 rounded-xl shadow">
             <h2 className="text-xl font-semibold mb-3">Milestone Progress</h2>
-            <CircularMilestoneChart percentage={percentage} />
+            <CircularMilestoneChart completed={completed} total={4} />
           </section>
 
           {/* GANTT TIMELINE */}
-          <section>
+          <section className="bg-white p-6 rounded-xl shadow">
             <h2 className="text-xl font-semibold mb-3">Gantt Timeline</h2>
-            <GanttTimeline raw={row.raw} due={DUE} />
+
+            {/* FIX: prevent crash */}
+            <GanttTimeline raw={row.raw || {}} due={DUE} />
           </section>
 
           {/* EMAIL REMINDER */}
