@@ -1,10 +1,10 @@
 // pages/student/me.js
 import { useEffect, useState } from "react";
-import Sidebar from "../../components/Sidebar";
-import GradientCard from "../../components/GradientCard";
-import DonutChart from "../../components/DonutChart";
-import TimelineTable from "../../components/TimelineTable";
-import ActivityMapping from "../../components/ActivityMapping";
+import Sidebar from "../../components/Sidebar.jsx";
+import GradientCard from "../../components/GradientCard.jsx";
+import DonutChart from "../../components/DonutChart.jsx";
+import TimelineTable from "../../components/TimelineTable.jsx";
+import ActivityMapping from "../../components/ActivityMapping.jsx";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
