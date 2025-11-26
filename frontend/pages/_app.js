@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import "../styles/dashboard.css";
 
 function MyApp({ Component, pageProps }) {
   useEffect(() => {
