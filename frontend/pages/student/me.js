@@ -1,98 +1,88 @@
+// frontend/pages/student/me.js
 import { useEffect, useState } from "react";
+import ProfileCard from "../../components/ProfileCard";
+import StatCard from "../../components/StatCard";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function StudentCleanView() {
+export default function StudentDashboard() {
   const [token, setToken] = useState(null);
   const [row, setRow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
-    if (!t) return (window.location.href = "/login");
+    if (!t) window.location.href = "/login";
     setToken(t);
   }, []);
 
   useEffect(() => {
     if (!token) return;
+
     (async () => {
-      const r = await fetch(`${API}/api/student/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await r.json();
-      setRow(data.row);
+      try {
+        const r = await fetch(`${API}/api/student/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+        setRow(data.row);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [token]);
 
-  if (!row)
-    return (
-      <div className="flex justify-center items-center min-h-screen text-gray-600 text-lg">
-        Loading…
-      </div>
-    );
+  if (loading) return <div className="p-10 text-center">Loading…</div>;
+  if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
+  if (!row) return null;
 
-  const milestones = [
-    "P1 Submitted",
-    "P1 Approved",
-    "P3 Submitted",
-    "P3 Approved",
-    "P4 Submitted",
-    "P4 Approved",
-    "P5 Submitted",
-    "P5 Approved",
-  ];
+  const completed = [
+    row.raw["P1 Submitted"],
+    row.raw["P3 Submitted"],
+    row.raw["P4 Submitted"],
+    row.raw["P5 Submitted"],
+  ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center px-4 py-12">
-      <div className="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-8">
-        
-        {/* Header */}
-        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-2">
-          Student Progress Overview
-        </h1>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <header className="max-w-6xl mx-auto mb-6">
+        <h1 className="text-3xl font-extrabold text-purple-700">Student Dashboard</h1>
+        <p className="text-gray-600">{row.student_name} — {row.programme}</p>
+      </header>
 
-        <p className="text-center text-gray-600 mb-6">
-          {row.student_name} — {row.programme}
-        </p>
+      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-        {/* Supervisor */}
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-8">
-          <p className="text-sm text-gray-500">Supervisor</p>
-          <p className="text-lg font-medium text-purple-700">
-            {row.main_supervisor}
-          </p>
+        {/* LEFT: PROFILE */}
+        <div className="lg:col-span-1">
+          <ProfileCard
+            name={row.student_name}
+            programme={row.programme}
+            supervisor={row.main_supervisor}
+            email={row.student_email}
+          />
         </div>
 
-        {/* Milestones */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Milestone Status
-          </h2>
-
-          <div className="space-y-3">
-            {milestones.map((m) => (
-              <div
-                key={m}
-                className="flex justify-between bg-gray-50 p-3 rounded-lg border"
-              >
-                <span>{m}</span>
-                <span className="font-medium text-gray-700">
-                  {row.raw[m] || "—"}
-                </span>
-              </div>
-            ))}
-          </div>
+        {/* RIGHT: STATS */}
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard title="Milestones Completed" value={`${completed} / 4`} icon="success" />
+          <StatCard
+            title="Last Submission"
+            value={
+              row.raw["P5 Submitted"] ||
+              row.raw["P4 Submitted"] ||
+              row.raw["P3 Submitted"] ||
+              row.raw["P1 Submitted"] ||
+              "—"
+            }
+            icon="progress"
+          />
+          <StatCard title="Overall Status" value={row.raw["Status P"] || "—"} icon="stats" />
         </div>
-
-        {/* Footer */}
-        <div className="mt-10 text-center">
-          <button
-            onClick={() => (window.location.href = "/student/dashboard")}
-            className="px-6 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
-          >
-            Open Full Dashboard
-          </button>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
