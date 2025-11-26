@@ -1,122 +1,79 @@
 // frontend/components/AnimatedTimeline.js
-import React from "react";
+import CircularMilestoneProgress from "./CircularMilestoneProgress";
+import EmailReminderButton from "./EmailReminderButton";
+import GanttTimeline from "./GanttTimeline";
 
-/**
- * AnimatedVerticalTimeline
- * Props:
- *   raw: object (spreadsheet row), e.g. raw["P1 Submitted"] = "2025-01-05"
- *   dueDates: optional map { "P4 Submitted": "2025-02-15", ... } to detect lateness
- *
- * Usage:
- *  <AnimatedVerticalTimeline raw={row.raw} dueDates={DUE_MAP} />
- */
+export default function AnimatedTimeline({ raw = {}, dueDates = {} }) {
+  const milestones = [
+    { key: "P1 Submitted", label: "P1" },
+    { key: "P3 Submitted", label: "P3" },
+    { key: "P4 Submitted", label: "P4" },
+    { key: "P5 Submitted", label: "P5" },
+  ];
 
-const ICONS = {
-  "P1 Submitted": "📝",
-  "P1 Approved": "✅",
-  "P3 Submitted": "📝",
-  "P3 Approved": "✅",
-  "P4 Submitted": "📝",
-  "P4 Approved": "✅",
-  "P5 Submitted": "📤",
-  "P5 Approved": "✅",
-};
+  const completed = milestones.filter(m => raw[m.key]).length;
 
-const ORDER = [
-  "P1 Submitted",
-  "P1 Approved",
-  "P3 Submitted",
-  "P3 Approved",
-  "P4 Submitted",
-  "P4 Approved",
-  "P5 Submitted",
-  "P5 Approved",
-];
+  const now = new Date();
 
-function isLate(dateStr, dueStr) {
-  if (!dateStr || !dueStr) return false;
-  try {
-    const d = new Date(dateStr);
-    const due = new Date(dueStr);
-    return d > due;
-  } catch {
-    return false;
-  }
-}
+  const statusFor = (m) => {
+    const due = dueDates[m.key] ? new Date(dueDates[m.key]) : null;
+    const submitted = raw[m.key] ? new Date(raw[m.key]) : null;
 
-export default function AnimatedVerticalTimeline({ raw = {}, dueDates = {} }) {
+    if (submitted) {
+      // submitted; check if late
+      if (due && submitted > due) {
+        return { color: "red", label: `Late by ${Math.round((submitted - due) / (1000*60*60*24))}d` };
+      }
+      return { color: "green", label: "Completed" };
+    } else {
+      if (due) {
+        const daysLeft = Math.ceil((due - now) / (1000*60*60*24));
+        if (daysLeft < 0) return { color: "red", label: `Overdue ${Math.abs(daysLeft)}d` };
+        if (daysLeft <= 7) return { color: "yellow", label: `Due in ${daysLeft}d` };
+        return { color: "gray", label: `Due ${due.toLocaleDateString()}` };
+      }
+      return { color: "gray", label: "Pending" };
+    }
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow p-6">
-      <h3 className="text-xl font-semibold mb-4">Milestone Timeline</h3>
-
-      <div className="relative pl-8">
-        {/* vertical line */}
-        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-
-        <div className="flex flex-col gap-6">
-          {ORDER.map((key, i) => {
-            const val = raw[key];
-            const done = !!(val && String(val).trim().length);
-            const due = dueDates[key];
-            const late = done && isLate(val, due);
-            return (
-              <div key={key} className="relative">
-                {/* dot + icon */}
-                <div
-                  className={`absolute -left-8 top-0 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow ${
-                    done ? "bg-green-500 text-white" : "bg-white text-gray-600 border"
-                  } transition-transform transform hover:scale-110`}
-                  style={{ boxShadow: "0 6px 18px rgba(16,24,40,0.08)" }}
-                >
-                  <span>{ICONS[key] || "🔹"}</span>
-                </div>
-
-                {/* content box */}
-                <div
-                  className={`ml-6 pl-4 pr-4 py-2 rounded-lg border ${done ? "bg-green-50 border-green-100" : "bg-white border-gray-100"}`}
-                  style={{ transition: "all .25s ease" }}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-md font-semibold">{key}</div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        {done ? (
-                          <span className="font-medium text-gray-800">Date: {val}</span>
-                        ) : (
-                          <span className="italic text-gray-400">Not completed</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      {done ? (
-                        <>
-                          <div className="text-sm text-green-700 font-semibold">Completed</div>
-                          {late && (
-                            <div className="mt-1 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-                              Late
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {/* show due date if available */}
-                          {due ? (
-                            <div className="text-sm text-gray-500">
-                              Due: <span className="font-medium">{due}</span>
-                            </div>
-                          ) : (
-                            <div className="text-sm text-gray-400">No date</div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold">Milestone Progress</h2>
+          <p className="text-sm text-gray-500">Overview of milestones & due status</p>
         </div>
+
+        <CircularMilestoneProgress completed={completed} total={milestones.length} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {milestones.map(m => {
+          const s = statusFor(m);
+          return (
+            <div key={m.key} className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+              <div>
+                <div className="text-lg font-medium">{m.label} <span className="text-sm text-gray-500">({m.key})</span></div>
+                <div className="text-sm text-gray-600">Date: {raw[m.key] || "No date"}</div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className={`px-3 py-1 rounded-full text-sm ${s.color === 'green' ? 'bg-green-100 text-green-700' : s.color==='red' ? 'bg-red-100 text-red-700' : s.color==='yellow' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}`}>{s.label}</div>
+
+                {
+                  s.color === 'red' && (
+                    <EmailReminderButton supervisorEmail={raw["Main Supervisor's Email"] || raw.main_supervisor || ""} studentName={raw["Student Name"] || raw.student_name || 'Student'} milestone={m.label} />
+                  )
+                }
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="pt-4">
+        <h3 className="text-lg font-semibold mb-3">Gantt Timeline</h3>
+        <GanttTimeline raw={raw} dueMap={dueDates} />
       </div>
     </div>
   );
