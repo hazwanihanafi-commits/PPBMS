@@ -16,7 +16,7 @@ export default function LoginPage() {
 
     if (data.token) {
       localStorage.setItem("ppbms_token", data.token);
-      window.location.href = "/student/me";
+      window.location.href = "/";
     } else {
       alert("Login failed: " + (data.error || "Unknown error"));
     }
