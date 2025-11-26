@@ -25,7 +25,15 @@ router.get("/me", auth, async (req, res) => {
 
   if (!found) return res.status(404).json({ error: "Student not found" });
 
-  res.json({ row: found });
+  res.json({
+    row: {
+      student_name: found["Student Name"],
+      programme: found["Programme"],
+      main_supervisor: found["Main Supervisor's Email"],
+      student_email: found["Student's Email"],
+      raw: found, // optional for debugging
+    },
+  });
 });
 
 export default router;
