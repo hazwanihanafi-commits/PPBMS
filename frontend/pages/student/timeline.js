@@ -25,7 +25,7 @@ export default function Timeline() {
       return r.json();
     });
 
-  const { data, error } = useSWR(token ? `${API}/student/me` : null, fetcher);
+  const { data, error } = useSWR(token ? `${API}/api/student/me` : null, fetcher);
 
   if (!token) return <div>Loading token...</div>;
   if (error) return <div>Error: {error.message}</div>;
