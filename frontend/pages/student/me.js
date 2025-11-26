@@ -1,193 +1,157 @@
-// frontend/pages/student/me.js
-
+// pages/student/me.js
 import { useEffect, useState } from "react";
-import { Chart } from "react-google-charts";
+import Sidebar from "../../components/Sidebar";
+import GradientCard from "../../components/GradientCard";
+import DonutChart from "../../components/DonutChart";
+import TimelineTable from "../../components/TimelineTable";
+import ActivityMapping from "../../components/ActivityMapping";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-// Expected milestone dates
-const EXPECTED = {
-  P1: "2024-08-31",
-  P3: "2025-01-31",
-  P4: "2025-02-15",
-  P5: "2025-10-01",
+// milestone due map (example)
+const DUE = {
+  "P1 Submitted": "2024-08-31",
+  "P3 Submitted": "2025-01-31",
+  "P4 Submitted": "2025-02-15",
+  "P5 Submitted": "2025-10-01",
 };
 
-// Activity → Milestone mapping
-const ACTIVITY_MAP = [
-  ["Registration", "P1"],
-  ["Literature", "P3"],
-  ["Proposal", "P3"],
-  ["Ethics", "P3"],
-  ["Pilot", "P4"],
-  ["Implementation", "P4"],
-  ["Mid-Candidature", "P5"],
-  ["Seminar", "P5"],
-  ["Publication", "P4"],
-  ["Dissemination", "P4"],
-  ["Thesis", "P5"],
-  ["Pre-Submission", "P5"],
-  ["Examination", "P5"],
-];
-
-export default function StudentProgress() {
+export default function MePage() {
   const [token, setToken] = useState(null);
   const [row, setRow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // load token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
-    if (!t) window.location.href = "/login";
+    if (!t) {
+      // if unauthenticated you may want to redirect to /login
+      setLoading(false);
+      setError("Not logged in");
+      return;
+    }
     setToken(t);
   }, []);
 
-  // Load student data
+  // fetch student
   useEffect(() => {
     if (!token) return;
-
     (async () => {
       try {
         const r = await fetch(`${API}/api/student/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (!r.ok) throw new Error(await r.text());
         const data = await r.json();
         setRow(data.row);
       } catch (err) {
         console.error(err);
+        setError(err.message || "Failed to load");
+      } finally {
+        setLoading(false);
       }
     })();
   }, [token]);
 
-  if (!row)
-    return <div className="p-6 text-center text-gray-500">Loading…</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
+  if (error) return <div className="min-h-screen p-8">Error: {error}</div>;
+  if (!row) return null;
 
-  // Calculate progress
+  // compute progress
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
     row.raw["P4 Submitted"],
     row.raw["P5 Submitted"],
   ].filter(Boolean).length;
-
   const percentage = Math.round((completed / 4) * 100);
 
-  // Donut chart data
-  const donutData = [
-    ["Task", "Completed"],
-    ["Completed", completed],
-    ["Remaining", 4 - completed],
-  ];
-
-  const donutOptions = {
-    pieHole: 0.65,
-    legend: "none",
-    pieSliceText: "none",
-    colors: ["#9C27B0", "#E0E0E0"],
-  };
+  // prepare timeline rows (expected from DUE, actual from sheet rows)
+  const milestones = [
+    { key: "P1 Submitted", label: "P1" },
+    { key: "P3 Submitted", label: "P3" },
+    { key: "P4 Submitted", label: "P4" },
+    { key: "P5 Submitted", label: "P5" },
+  ].map((m) => ({
+    label: m.label,
+    expected: DUE[m.key] || null,
+    actual: row.raw[m.key] || null,
+  }));
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
+    <div className="min-h-screen bg-gray-50 text-slate-900">
+      <div className="lg:flex lg:min-h-screen">
+        {/* Sidebar */}
+        <aside className="hidden lg:block lg:w-72 bg-gradient-to-b from-purple-600 to-purple-400 p-6">
+          <Sidebar />
+        </aside>
 
-      {/* Gradient Header */}
-      <div className="w-full py-6 px-6 text-white bg-gradient-to-r from-purple-600 via-purple-500 to-pink-400 shadow-md">
-        <h1 className="text-3xl font-extrabold tracking-tight">
-          PPBMS Student Progress
-        </h1>
-        <p className="text-lg mt-1 font-medium opacity-90">
-          {row.student_name} — {row.programme}
-        </p>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 mt-6 space-y-6">
-
-        {/* Summary card */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-          <h2 className="text-2xl font-bold text-purple-700 mb-3">Summary</h2>
-
-          <p><strong>Supervisor:</strong> {row.main_supervisor}</p>
-          <p><strong>Email:</strong> {row.student_email}</p>
-
-          <div className="flex items-center gap-6 mt-4">
-            {/* Donut chart */}
-            <div className="w-32 h-32">
-              <Chart
-                chartType="PieChart"
-                data={donutData}
-                options={donutOptions}
-                width="100%"
-                height="100%"
-              />
+        {/* Main */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-12 py-6">
+          {/* Header */}
+          <div className="max-w-4xl mx-auto">
+            <div className="rounded-lg p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg mb-6">
+              <h1 className="text-3xl font-extrabold">PPBMS Student Progress</h1>
+              <div className="mt-2 text-sm opacity-90">{row.student_name} — {row.programme}</div>
             </div>
 
-            <div className="text-2xl font-bold text-purple-600">
-              {percentage}%  
-              <p className="text-sm text-gray-600 font-medium">
-                {completed} / 4 milestones
-              </p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left column: profile + summary card */}
+              <div className="lg:col-span-1 space-y-6">
+                <GradientCard>
+                  <h2 className="text-2xl font-bold text-purple-700 mb-2">Profile</h2>
+                  <div className="text-lg font-semibold">{row.student_name}</div>
+                  <div className="mt-2 text-sm text-gray-700">{row.programme}</div>
+                  <div className="mt-3">
+                    <div><strong>Supervisor:</strong> {row.main_supervisor}</div>
+                    <div className="mt-1"><strong>Email:</strong> {row.student_email}</div>
+                    <div className="mt-2"><strong>Status:</strong> {row.raw["Status P"] || "—"}</div>
+                  </div>
+                </GradientCard>
+
+                <GradientCard>
+                  <h3 className="text-2xl font-bold text-purple-700">Summary</h3>
+                  <div className="mt-3">
+                    <div><strong>Milestones Completed:</strong> {completed} / 4</div>
+                    <div className="mt-2"><strong>Last Submission:</strong> {row.raw["P5 Submitted"] || row.raw["P4 Submitted"] || "—"}</div>
+                    <div className="mt-2"><strong>Overall Status:</strong> {row.raw["Status P"] || "—"}</div>
+                  </div>
+                </GradientCard>
+              </div>
+
+              {/* Middle: donut */}
+              <div className="lg:col-span-2 space-y-6">
+                <GradientCard>
+                  <div className="flex items-start gap-6">
+                    <div className="w-48">
+                      <DonutChart percentage={percentage} size={160} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-purple-700">Progress</h3>
+                      <p className="mt-2 text-gray-700">Overview of milestones completed</p>
+                      <div className="mt-4 text-2xl font-semibold">{percentage}%</div>
+                    </div>
+                  </div>
+                </GradientCard>
+
+                {/* Timeline Table */}
+                <GradientCard>
+                  <h3 className="text-2xl font-bold text-purple-700 mb-3">Expected vs Actual Timeline</h3>
+                  <TimelineTable rows={milestones} supervisor={row.main_supervisor} />
+                </GradientCard>
+
+                {/* Activity mapping */}
+                <GradientCard>
+                  <h3 className="text-2xl font-bold text-purple-700 mb-3">Activity → Milestone mapping</h3>
+                  <ActivityMapping />
+                </GradientCard>
+
+              </div>
             </div>
+
           </div>
-        </div>
-
-        {/* Expected vs Actual */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-          <h2 className="text-2xl font-bold text-purple-700 mb-4">
-            Expected vs Actual Timeline
-          </h2>
-
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gradient-to-r from-purple-600 via-purple-500 to-pink-400 text-white">
-              <tr>
-                <th className="p-3">Milestone</th>
-                <th className="p-3">Expected</th>
-                <th className="p-3">Actual</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Supervisor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {["P1","P3","P4","P5"].map((m) => {
-                const submitted = row.raw[`${m} Submitted`] || "—";
-                const expected = EXPECTED[m];
-                const status =
-                  submitted === "—" ? "Pending" : "On Time";
-
-                return (
-                  <tr key={m} className="border-b">
-                    <td className="p-3 font-semibold">{m}</td>
-                    <td className="p-3">{expected}</td>
-                    <td className="p-3">{submitted}</td>
-                    <td className="p-3">{status}</td>
-                    <td className="p-3">{row.main_supervisor}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Activity Mapping */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-          <h2 className="text-2xl font-bold text-purple-700 mb-4">
-            Activity → Milestone Mapping
-          </h2>
-
-          <table className="w-full border-collapse text-left">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3 font-semibold">Activity</th>
-                <th className="p-3 font-semibold">Milestone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ACTIVITY_MAP.map(([act, m]) => (
-                <tr key={act} className="border-b">
-                  <td className="p-3">{act}</td>
-                  <td className="p-3 font-semibold text-purple-600">{m}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
+        </main>
       </div>
     </div>
   );
