@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 // Components
 import ProfileCard from "../../components/ProfileCard";
 import StatCard from "../../components/StatCard";
-import AnimatedTimeline from "../../components/AnimatedTimeline";
 
-// Milestone due dates (customize anytime)
+// Milestone due dates
 const DUE_MAP = {
   "P1 Submitted": "2024-08-31",
   "P3 Submitted": "2025-01-31",
@@ -55,10 +54,9 @@ export default function StudentDashboard() {
     })();
   }, [token]);
 
-  // Loading state
-  if (loading) return <div className="p-10 text-center text-lg">Loading dashboard…</div>;
+  if (loading)
+    return <div className="p-10 text-center text-lg">Loading dashboard…</div>;
 
-  // Error state
   if (error)
     return (
       <div className="p-10 text-center text-red-600 text-lg">
@@ -68,7 +66,6 @@ export default function StudentDashboard() {
 
   if (!row) return null;
 
-  // Calculate progress %
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
@@ -78,7 +75,6 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
       <header className="mb-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-3xl font-extrabold text-purple-700">
@@ -90,10 +86,8 @@ export default function StudentDashboard() {
         </div>
       </header>
 
-      {/* Main layout */}
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-
-        {/* LEFT — Profile */}
+        {/* Profile */}
         <div className="lg:col-span-1">
           <ProfileCard
             name={row.student_name}
@@ -103,10 +97,9 @@ export default function StudentDashboard() {
           />
         </div>
 
-        {/* RIGHT — Stats + Timeline */}
+        {/* Stats */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          {/* Stat cards */}
           <StatCard
             title="Milestones Completed"
             value={`${completed} / 4`}
@@ -133,11 +126,6 @@ export default function StudentDashboard() {
             icon="stats"
             color="blue"
           />
-
-          {/* FULL-WIDTH Animated Timeline */}
-          <div className="md:col-span-3">
-            <AnimatedTimeline raw={row.raw} dueDates={DUE_MAP} />
-          </div>
 
         </div>
       </main>
