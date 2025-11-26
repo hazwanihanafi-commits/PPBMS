@@ -1,56 +1,67 @@
-// components/GanttTimeline.jsx
-import React from "react";
 import { parseISO, differenceInDays } from "date-fns";
 
-export default function GanttTimeline({ raw, dueDates }) {
-  const milestones = Object.keys(dueDates).map((label) => {
-    const due = parseISO(dueDates[label]);
-    const submitted = raw[label];
+export default function GanttTimeline({ raw = {} }) {
+  // raw defaults to {} so Object.keys will NEVER crash
+
+  if (!raw || Object.keys(raw).length === 0) {
+    return (
+      <div className="p-4 text-gray-500 italic">
+        Loading timeline…
+      </div>
+    );
+  }
+
+  const milestones = [
+    { key: "P1 Submitted", label: "P1 Submitted" },
+    { key: "P1 Approved", label: "P1 Approved" },
+    { key: "P3 Submitted", label: "P3 Submitted" },
+    { key: "P3 Approved", label: "P3 Approved" },
+    { key: "P4 Submitted", label: "P4 Submitted" },
+    { key: "P4 Approved", label: "P4 Approved" },
+    { key: "P5 Submitted", label: "P5 Submitted" },
+    { key: "P5 Approved", label: "P5 Approved" },
+  ];
+
+  // Convert raw values into usable chart data
+  const data = milestones.map(m => {
+    const date = raw[m.key] ? parseISO(raw[m.key]) : null;
 
     return {
-      label,
-      due,
-      submitted: submitted ? parseISO(submitted) : null,
-      late:
-        submitted && differenceInDays(submitted, due) > 0
-          ? differenceInDays(submitted, due)
-          : 0,
+      ...m,
+      date,
+      completed: Boolean(raw[m.key]),
     };
   });
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow">
+    <div className="p-4 bg-white border rounded-xl shadow">
       <h3 className="text-xl font-semibold mb-4">Gantt Timeline</h3>
 
-      <div className="space-y-4">
-        {milestones.map((m) => (
-          <div key={m.label}>
-            <div className="flex justify-between text-sm mb-1">
-              <span>{m.label}</span>
-              <span className="text-gray-500">
-                Due: {m.due.toISOString().slice(0, 10)}
+      {data.map((m, idx) => (
+        <div key={idx} className="mb-4">
+          <div className="font-medium">{m.label}</div>
+
+          {m.completed ? (
+            <div className="h-3 w-full bg-purple-200 rounded relative">
+              <div
+                className="h-3 bg-purple-600 rounded"
+                style={{ width: "100%" }}
+              ></div>
+              <span className="text-xs text-gray-600">
+                {raw[m.key]}
               </span>
             </div>
-
-            <div className="w-full h-3 bg-gray-200 rounded-lg relative">
+          ) : (
+            <div className="h-3 w-full bg-gray-200 rounded relative">
               <div
-                className={`h-3 rounded-lg ${
-                  m.submitted ? "bg-purple-500" : "bg-gray-400"
-                }`}
-                style={{
-                  width: `${m.submitted ? 100 : 40}%`,
-                }}
-              />
-
-              {m.late > 0 && (
-                <span className="absolute right-0 top-[-20px] text-xs text-red-600">
-                  +{m.late} days late
-                </span>
-              )}
+                className="h-3 bg-gray-400 rounded"
+                style={{ width: "10%" }}
+              ></div>
+              <span className="text-xs text-gray-500">Pending</span>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
