@@ -18,7 +18,7 @@ function auth(req, res, next) {
 router.get("/me", auth, async (req, res) => {
   const rows = await readAllRows(process.env.SHEET_ID, "MasterTracking!A1:ZZ");
   const found = rows.find(
-    (s) => (s.student_email || "").toLowerCase() === req.user.email.toLowerCase()
+    (s) => (s.Student's Email|| "").toLowerCase() === req.user.email.toLowerCase()
   );
 
   if (!found) return res.status(404).json({ error: "Student not found" });
