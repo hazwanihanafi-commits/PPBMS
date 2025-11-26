@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 // Components
 import ProfileCard from "../../components/ProfileCard";
 import StatCard from "../../components/StatCard";
+import CircularMilestoneChart from "../../components/CircularMilestoneChart";
+import GanttTimeline from "../../components/GanttTimeline";
 
-// Milestone due dates
-const DUE_MAP = {
+// Due dates
+const DUE = {
   "P1 Submitted": "2024-08-31",
   "P3 Submitted": "2025-01-31",
   "P4 Submitted": "2025-02-15",
@@ -31,7 +33,7 @@ export default function StudentDashboard() {
     setToken(t);
   }, []);
 
-  // Load student data
+  // Fetch student data
   useEffect(() => {
     if (!token) return;
 
@@ -66,6 +68,7 @@ export default function StudentDashboard() {
 
   if (!row) return null;
 
+  // Progress calculation
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
@@ -73,21 +76,23 @@ export default function StudentDashboard() {
     row.raw["P5 Submitted"],
   ].filter(Boolean).length;
 
+  const percentage = Math.round((completed / 4) * 100);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <header className="mb-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <h1 className="text-3xl font-extrabold text-purple-700">
-            Student Dashboard
-          </h1>
-          <div className="text-sm text-gray-600 font-medium">
-            {row.student_name} — {row.programme}
-          </div>
-        </div>
+      {/* Header */}
+      <header className="max-w-6xl mx-auto mb-6">
+        <h1 className="text-3xl font-extrabold text-purple-700">
+          Student Dashboard
+        </h1>
+        <p className="text-gray-600 font-medium">
+          {row.student_name} — {row.programme}
+        </p>
       </header>
 
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Profile */}
+        
+        {/* LEFT: Profile */}
         <div className="lg:col-span-1">
           <ProfileCard
             name={row.student_name}
@@ -97,36 +102,50 @@ export default function StudentDashboard() {
           />
         </div>
 
-        {/* Stats */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* RIGHT: Stats + Progress + Gantt */}
+        <div className="lg:col-span-3 space-y-6">
 
-          <StatCard
-            title="Milestones Completed"
-            value={`${completed} / 4`}
-            icon="success"
-            color="green"
-          />
+          {/* Stat cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatCard
+              title="Milestones Completed"
+              value={`${completed} / 4`}
+              icon="success"
+              color="green"
+            />
 
-          <StatCard
-            title="Last Submission"
-            value={
-              row.raw["P5 Submitted"] ||
-              row.raw["P4 Submitted"] ||
-              row.raw["P3 Submitted"] ||
-              row.raw["P1 Submitted"] ||
-              "—"
-            }
-            icon="progress"
-            color="purple"
-          />
+            <StatCard
+              title="Last Submission"
+              value={
+                row.raw["P5 Submitted"] ||
+                row.raw["P4 Submitted"] ||
+                row.raw["P3 Submitted"] ||
+                row.raw["P1 Submitted"] ||
+                "—"
+              }
+              icon="progress"
+              color="purple"
+            />
 
-          <StatCard
-            title="Overall Status"
-            value={row.raw["Status P"] || "—"}
-            icon="stats"
-            color="blue"
-          />
+            <StatCard
+              title="Overall Status"
+              value={row.raw["Status P"] || "—"}
+              icon="stats"
+              color="blue"
+            />
+          </div>
 
+          {/* Circular Progress */}
+          <section>
+            <h2 className="text-xl font-semibold mb-3">Milestone Progress</h2>
+            <CircularMilestoneChart percentage={percentage} />
+          </section>
+
+          {/* Gantt Timeline */}
+          <section>
+            <h2 className="text-xl font-semibold mb-3">Gantt Timeline</h2>
+            <GanttTimeline raw={row.raw} due={DUE} />
+          </section>
         </div>
       </main>
     </div>
