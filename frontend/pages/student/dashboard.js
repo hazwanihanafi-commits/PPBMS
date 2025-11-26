@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import ProfileCard from "../../components/ProfileCard";
 import StatCard from "../../components/StatCard";
-import AnimatedVerticalTimeline from "../../components/AnimatedTimeline";
+import AnimatedTimeline from "../../components/AnimatedTimeline";   // ✅ Correct import
 
 const DUE_MAP = {
   "P1 Submitted": "2024-08-31",
@@ -18,6 +18,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Check login
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -27,31 +28,39 @@ export default function StudentDashboard() {
     setToken(t);
   }, []);
 
+  // Fetch data
   useEffect(() => {
     if (!token) return;
+
     (async () => {
       try {
         const r = await fetch(`${API}/api/student/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!r.ok) {
-          const txt = await r.text();
-          throw new Error(txt || r.statusText);
-        }
+
+        if (!r.ok) throw new Error(await r.text());
+
         const data = await r.json();
         setRow(data.row);
       } catch (err) {
-        console.error("Failed to load student:", err);
-        setError(err.message || "Failed to load");
+        console.error(err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     })();
   }, [token]);
 
-  if (loading) return <div className="p-8 text-center">Loading dashboard…</div>;
+  if (loading)
+    return <div className="p-8 text-center">Loading dashboard…</div>;
+
   if (error)
-    return <div className="p-8 text-center text-red-600">Failed to load: {error}</div>;
+    return (
+      <div className="p-8 text-center text-red-600">
+        Failed to load: {error}
+      </div>
+    );
+
   if (!row) return null;
 
   const completed = [
@@ -63,6 +72,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* HEADER */}
       <header className="mb-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-3xl font-extrabold text-purple-700">
@@ -74,9 +84,10 @@ export default function StudentDashboard() {
         </div>
       </header>
 
+      {/* MAIN GRID */}
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
-        {/* Profile */}
+
+        {/* LEFT COLUMN */}
         <div className="lg:col-span-1">
           <ProfileCard
             name={row.student_name}
@@ -86,9 +97,10 @@ export default function StudentDashboard() {
           />
         </div>
 
-        {/* Stats + Timeline */}
+        {/* RIGHT COLUMN */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
 
+          {/* Enhanced Stat Cards */}
           <StatCard
             title="Milestones Completed"
             value={`${completed} / 4`}
@@ -114,13 +126,12 @@ export default function StudentDashboard() {
             color="blue"
           />
 
-          {/* Timeline */}
+          {/* TIMELINE */}
           <div className="md:col-span-3">
-            <AnimatedVerticalTimeline raw={row.raw} dueDates={DUE_MAP} />
+            <AnimatedTimeline raw={row.raw} dueDates={DUE_MAP} />
           </div>
-          
+
         </div>
-        
       </main>
     </div>
   );
