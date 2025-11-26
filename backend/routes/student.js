@@ -17,9 +17,11 @@ function auth(req, res, next) {
 
 router.get("/me", auth, async (req, res) => {
   const rows = await readAllRows(process.env.SHEET_ID, "MasterTracking!A1:ZZ");
-  const found = rows.find(
-    (s) => (s.Student's Email|| "").toLowerCase() === req.user.email.toLowerCase()
-  );
+
+  const found = rows.find((s) => {
+    const email = (s["Student's Email"] || "").trim().toLowerCase();
+    return email === req.user.email.toLowerCase();
+  });
 
   if (!found) return res.status(404).json({ error: "Student not found" });
 
