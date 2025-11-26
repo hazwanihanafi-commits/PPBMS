@@ -6,7 +6,7 @@ export default function LoginPage() {
   const handleSuccess = async (res) => {
     const idToken = res.credential;
 
-    const r = await fetch(`${API}/auth/verify`, {
+    const r = await fetch(`${api}/auth/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken }),
