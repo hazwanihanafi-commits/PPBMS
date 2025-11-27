@@ -1,14 +1,13 @@
 // pages/student/me.js
 import { useEffect, useState } from "react";
-import GradientCard from "../../components/GradientCard";
-import ProfileCard from "../../components/ProfileCard";
 import DonutChart from "../../components/DonutChart";
-import TimelineTable from "../../components/TimelineTable";
 import ActivityMapping from "../../components/ActivityMapping";
+import TimelineTable from "../../components/TimelineTable";
+import "../../styles/dashboard.css"; // <-- B2 STYLE
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-// example DUE map
+// Expected timeline
 const DUE = {
   "P1 Submitted": "2024-08-31",
   "P3 Submitted": "2025-01-31",
@@ -22,114 +21,151 @@ export default function MePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // load token
+  /* ---------------- LOAD TOKEN ---------------- */
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
+      setError("Not logged in");
       setLoading(false);
-      setError("Not authenticated");
       return;
     }
     setToken(t);
   }, []);
 
+  /* ---------------- FETCH STUDENT DATA -------- */
   useEffect(() => {
     if (!token) return;
+
     (async () => {
       try {
         const r = await fetch(`${API}/api/student/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (!r.ok) throw new Error(await r.text());
         const data = await r.json();
         setRow(data.row);
       } catch (err) {
         console.error(err);
-        setError(err.message || "Failed to load student");
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     })();
   }, [token]);
 
-  if (loading) return <div style={{padding:40}}>Loading…</div>;
-  if (error) return <div style={{padding:40}}>Error: {error}</div>;
+  if (loading)
+    return <div className="min-h-screen flex items-center justify-center text-lg">Loading…</div>;
+
+  if (error)
+    return <div className="min-h-screen p-10 text-red-600 text-lg">Error: {error}</div>;
+
   if (!row) return null;
 
-  // progress calculation
+  /* ---------------- CALCULATE PROGRESS -------- */
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
     row.raw["P4 Submitted"],
     row.raw["P5 Submitted"],
   ].filter(Boolean).length;
+
   const percentage = Math.round((completed / 4) * 100);
 
+  /* ---------------- PREPARE TIMELINE TABLE -------- */
   const milestones = [
-    { key: "P1 Submitted", label: "P1", expected: DUE["P1 Submitted"] },
-    { key: "P3 Submitted", label: "P3", expected: DUE["P3 Submitted"] },
-    { key: "P4 Submitted", label: "P4", expected: DUE["P4 Submitted"] },
-    { key: "P5 Submitted", label: "P5", expected: DUE["P5 Submitted"] },
-  ].map(m => ({
-    label: m.label,
-    expected: m.expected,
-    actual: row.raw[m.key] || null
+    { key: "P1 Submitted", label: "P1" },
+    { key: "P3 Submitted", label: "P3" },
+    { key: "P4 Submitted", label: "P4" },
+    { key: "P5 Submitted", label: "P5" },
+  ].map((m) => ({
+    milestone: m.label,
+    expected: DUE[m.key] || "—",
+    actual: row.raw[m.key] || "—",
   }));
 
+  const initials = (row.student_name || "NA")
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
-    <div style={{padding:20}}>
-      <div className="ppbms-header">
-        <div style={{maxWidth:1100, margin:'0 auto'}}>
-          <h1 style={{fontSize:32, margin:0, fontWeight:800}}>PPBMS Student Progress</h1>
-          <div style={{marginTop:8, opacity:0.95}}>{row.student_name} — {row.programme}</div>
+    <div className="dashboard-container">
+      
+      {/* --------------------------------------------- */}
+      {/* LEFT PANEL */}
+      {/* --------------------------------------------- */}
+      <div className="left-panel">
+
+        {/* Gradient Header */}
+        <div className="gradient-header">
+          <h1 className="text-2xl font-bold">Student Progress</h1>
+          <div className="mt-1 text-sm opacity-90">
+            {row.student_name} — {row.programme}
+          </div>
         </div>
+
+        {/* Profile Card */}
+        <div className="ppbms-card">
+          <div className="flex items-center gap-4">
+            <div className="profile-avatar">{initials}</div>
+            <div>
+              <div className="text-lg font-bold">{row.student_name}</div>
+              <div className="ppbms-sub">{row.programme}</div>
+            </div>
+          </div>
+
+          <div className="mt-5 text-sm">
+            <div className="info-item">
+              <strong>Supervisor:</strong> {row.main_supervisor}
+            </div>
+            <div className="info-item">
+              <strong>Email:</strong>{" "}
+              <a href={`mailto:${row.student_email}`} className="text-purple-700">
+                {row.student_email}
+              </a>
+            </div>
+            <div className="info-item">
+              <strong>Status:</strong> {row.raw["Status P"] || "—"}
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <div style={{maxWidth:1100, margin:'22px auto'}} className="dashboard-grid">
-        {/* left column */}
-        <div style={{display:'flex', flexDirection:'column', gap:18}}>
-          <ProfileCard
-            name={row.student_name}
-            programme={row.programme}
-            supervisor={row.main_supervisor}
-            email={row.student_email}
-            status={row.raw["Status P"]}
-          />
+      {/* --------------------------------------------- */}
+      {/* RIGHT PANEL */}
+      {/* --------------------------------------------- */}
+      <div className="right-panel">
 
-          <GradientCard>
+        {/* Donut Progress */}
+        <div className="ppbms-card">
+          <div className="section-title">Overall Progress</div>
+          <div className="donut-wrapper">
+            <DonutChart percentage={percentage} size={170} />
             <div>
-              <div className="section-heading">Summary</div>
-              <div style={{marginTop:6}}>
-                <div><strong>Milestones Completed:</strong> {completed} / 4</div>
-                <div style={{marginTop:6}}><strong>Last Submission:</strong> {row.raw["P5 Submitted"] || row.raw["P4 Submitted"] || '—'}</div>
-                <div style={{marginTop:6}}><strong>Overall Status:</strong> {row.raw["Status P"] || '—'}</div>
-              </div>
-
-              <div style={{marginTop:14}} className="donut-wrap">
-                <div style={{width:180,height:180}}><DonutChart percentage={percentage} size={180} /></div>
-                <div>
-                  <div style={{fontWeight:700, color:'#5e2a84'}}>Progress</div>
-                  <div className="muted small" style={{marginTop:6}}>Overview of milestones completed</div>
-                  <div style={{marginTop:14, fontWeight:700, fontSize:20}}>{percentage}%</div>
-                </div>
+              <div className="text-4xl font-semibold">{percentage}%</div>
+              <div className="mt-1 text-sm text-gray-600">
+                {completed} of 4 milestones submitted
               </div>
             </div>
-          </GradientCard>
+          </div>
         </div>
 
-        {/* right column */}
-        <div style={{display:'flex', flexDirection:'column', gap:18}}>
-          <GradientCard>
-            <div className="section-heading">Expected vs Actual Timeline</div>
-            <TimelineTable rows={milestones} supervisor={row.main_supervisor} />
-          </GradientCard>
-
-          <GradientCard>
-            <div className="section-heading">Activity → Milestone mapping</div>
-            <ActivityMapping />
-          </GradientCard>
-
+        {/* Timeline Table */}
+        <div className="ppbms-card">
+          <div className="section-title">Expected vs Actual Timeline</div>
+          <TimelineTable rows={milestones} />
         </div>
+
+        {/* Activity Mapping Table */}
+        <div className="ppbms-card">
+          <div className="section-title">Activity → Milestone Mapping</div>
+          <ActivityMapping />
+        </div>
+
       </div>
     </div>
   );
