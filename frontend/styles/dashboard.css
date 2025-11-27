@@ -58,3 +58,8 @@
 @media (max-width: 1024px) {
   .dashboard-container { grid-template-columns: 1fr; padding: 16px; }
 }
+
+.remaining { font-weight:600; padding:6px 8px; border-radius:999px; font-size:0.85rem; }
+.remaining.ontime { background:linear-gradient(90deg,#7c3aed,#f97316); color:white; }
+.remaining.overdue { background:#fee2e2; color:#b91c1c; }
+
