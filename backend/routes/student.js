@@ -15,7 +15,7 @@ function auth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // contains email + name
+    req.user = decoded; 
     next();
   } catch (e) {
     return res.status(401).json({ error: "Invalid token" });
@@ -25,14 +25,13 @@ function auth(req, res, next) {
 /* ---------------------------------------------
    GET STUDENT DASHBOARD DATA
 ----------------------------------------------*/
-// backend/routes/student.js
-
 router.get("/me", auth, async (req, res) => {
   try {
     const email = (req.user.email || "").toLowerCase().trim();
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
+    // Find row by email
     const raw = rows.find(
       (r) =>
         ((r["Student's Email"] || "").toLowerCase().trim() === email)
@@ -42,23 +41,24 @@ router.get("/me", auth, async (req, res) => {
       return res.status(404).json({ error: "Student not found in sheet" });
     }
 
-    // Normalize for frontend
+    // -------- NORMALIZE DATA FOR FRONTEND --------
     const row = {
-      student_name: raw["Student's Name"] || "",
+      student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
-      supervisor: raw["Supervisor"] || "",
+      supervisor: raw["Main Supervisor's Email"] || "",
       start_date: raw["Start Date"] || "",
-      raw,  // keep the original object for milestones
+      status: raw["Status P"] || "",
+      field: raw["Field"] || "",
+      department: raw["Department"] || "",
+      raw, // Keep all sheet columns for milestones
     };
 
     return res.json({ row });
-
   } catch (err) {
-    console.error("GET /student/me ERROR:", err.message);
+    console.log("GET /student/me ERROR:", err.message);
     return res.status(500).json({ error: "Server error" });
   }
 });
-
 
 export default router;
