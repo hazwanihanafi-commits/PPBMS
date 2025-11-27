@@ -25,23 +25,28 @@ function auth(req, res, next) {
 /* ---------------------------------------------
    GET STUDENT DASHBOARD DATA
 ----------------------------------------------*/
+// backend/routes/student.js
+
 router.get("/me", auth, async (req, res) => {
   try {
-    const email = req.user.email.toLowerCase().trim();
+    const email = (req.user.email || "").toLowerCase().trim();
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const row = rows.find(
       (r) =>
-        (r["Student's Email"] || "").toLowerCase().trim() === email
+        ((r["Student's Email"] || "").toLowerCase().trim() === email)
     );
 
-    if (!row)
+    if (!row) {
       return res.status(404).json({ error: "Student not found in sheet" });
+    }
 
     return res.json({ row });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.error("GET /student/me ERROR:", err.message);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
