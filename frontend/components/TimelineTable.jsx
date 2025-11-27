@@ -22,7 +22,7 @@ export default function TimelineTable({ rows = [] }) {
               <tr key={r.milestone}>
                 <td>{r.milestone}</td>
                 <td>{r.expected || '—'}</td>
-                <td>{r.actual || '—'}</td>
+                <td>{r.actual}</td> 
                 <td>{status}</td>
                 <td><RemainingDaysBadge due={r.expected} /></td>
               </tr>
