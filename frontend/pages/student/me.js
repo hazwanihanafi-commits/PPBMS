@@ -1,8 +1,12 @@
-// pages/student/me.js
-import { useEffect, useState } from "react";
-import DonutChart from "../../components/DonutChart";
-import ActivityMapping from "../../components/ActivityMapping";
-import TimelineTable from "../../components/TimelineTable";
+// pages/student/me.js (short snippet showing integration)
+import DonutChart from '../../components/DonutChart';
+import TimelineTable from '../../components/TimelineTable';
+import MilestoneGantt from '../../components/MilestoneGantt';
+...
+// prepare `milestones` as earlier (array of {milestone, start, expected, actual})
+...
+<MilestoneGantt rows={milestones} width={800} />
+<TimelineTable rows={milestones} />
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
