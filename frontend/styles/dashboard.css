@@ -1,130 +1,94 @@
-/* ------------------------------------------------------ */
-/* CLOGENERATOR THEME V2 (PPBMS Student Dashboard)        */
-/* ------------------------------------------------------ */
+/* styles/dashboard.css - visual polish for B2 */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* ------------------ GLOBAL FONT ------------------ */
-body {
-  @apply bg-gray-50 text-slate-900 font-sans;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, 
-               "Helvetica Neue", Arial !important;
+:root{
+  --purple-600: #5e2a84;
+  --purple-500: #7a39a6;
+  --orange-400: #ff7a3d;
+  --bg: #f6fafc;
+  --card-shadow: 0 10px 30px rgba(16,24,40,0.08);
 }
 
-/* ------------------ BRAND COLORS ------------------ */
-:root {
-  --ppbms-purple: #6A1B9A;
-  --ppbms-pink: #EC4899;
-  --ppbms-orange: #FB923C;
-}
+/* page base */
+body { background: var(--bg); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
 
-/* ------------------ GRADIENTS ------------------ */
-.ppbms-gradient {
-  background: linear-gradient(135deg, var(--ppbms-purple), var(--ppbms-pink));
-}
-
-.ppbms-card-gradient {
-  background: linear-gradient(145deg, #ffffff 0%, #f7f7f9 100%);
-}
-
-.ppbms-header-gradient {
-  background: linear-gradient(to right, var(--ppbms-purple), var(--ppbms-orange));
-}
-
-/* ------------------ GLASS CARD STYLE ------------------ */
-.glass-card {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: 18px;
-  box-shadow: 0 8px 30px rgba(80, 36, 109, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-/* ------------------ PREMIUM CARD ------------------ */
-.premium-card {
-  @apply rounded-2xl shadow-lg p-6;
-  background: linear-gradient(125deg, #ffffff 0%, #fafafa 100%);
-}
-
-/* ------------------ TITLE STYLES ------------------ */
-.ppbms-title {
-  @apply text-3xl font-extrabold tracking-tight;
-  color: var(--ppbms-purple);
-}
-
-.ppbms-subtitle {
-  @apply font-medium text-gray-600 text-sm;
-}
-
-/* ------------------ TABLE STYLING ------------------ */
-.ppbms-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.ppbms-table thead th {
-  padding: 12px;
-  text-align: left;
-  font-weight: 700;
+/* header gradient */
+.ppbms-header {
+  background: linear-gradient(90deg, var(--purple-600) 0%, #8833b0 40%, var(--orange-400) 100%);
   color: white;
-  background: linear-gradient(to right, var(--ppbms-purple), var(--ppbms-pink));
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
 }
 
-.ppbms-table tbody tr td {
-  padding: 14px 12px;
-  border-bottom: 1px solid #e5e7eb;
+/* Gradient card container used to wrap content within gradient-top look */
+.gradient-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  padding: 18px;
+  overflow: hidden;
 }
 
-.ppbms-table tbody tr:nth-child(even) {
-  background: #fafafa;
+/* small purple heading style */
+.section-heading {
+  color: var(--purple-600);
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 10px;
 }
 
-.ppbms-table tbody tr:hover {
-  background: #f3e8ff66;
-}
+/* donut container spacing */
+.donut-wrap { display:flex; align-items:center; gap:20px; }
 
-/* ------------------ FLOATING REMAINING DAYS BADGE ------------------ */
+/* timeline table styles */
+.timeline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.timeline-table thead th {
+  text-align: left;
+  color: var(--purple-600);
+  padding: 12px 10px;
+  font-weight: 700;
+}
+.timeline-table tbody tr:nth-child(odd) { background: #ffffff; }
+.timeline-table td { padding: 10px; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+
+/* remaining pill */
 .remaining-pill {
-  position: absolute;
-  top: -12px;
-  right: -12px;
-  background: linear-gradient(to right, var(--ppbms-purple), var(--ppbms-pink));
-  @apply text-white px-4 py-1 rounded-full text-xs font-bold shadow-md;
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:600;
+  font-size:0.85rem;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+.remaining-pill.upcoming { background: linear-gradient(90deg,#10b981,#34d399); color:white; }
+.remaining-pill.soon { background: linear-gradient(90deg,#f59e0b,#fb923c); color:white; }
+.remaining-pill.overdue { background: linear-gradient(90deg,#ef4444,#f97316); color:white; }
+
+/* responsive two-column */
+.dashboard-grid {
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:20px;
+}
+@media(min-width:1024px){
+  .dashboard-grid { grid-template-columns: 360px 1fr; align-items:start; }
 }
 
-/* ------------------ DONUT CHART CENTER ------------------ */
-.donut-center-number {
-  font-size: 26px;
-  font-weight: 800;
-  fill: var(--ppbms-purple);
+/* profile avatar */
+.avatar {
+  width:72px; height:72px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  color:white; font-weight:700; font-size:22px;
 }
 
-/* ------------------ LAYOUT FIXES ------------------ */
-.ppbms-container {
-  @apply max-w-6xl mx-auto px-4 lg:px-12;
+/* pill icons row small */
+.pill {
+  display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:8px 12px; font-weight:600; background:#fafafa; border:1px solid #eee;
 }
 
-.ppbms-section {
-  @apply mt-6 mb-10;
-}
-
-/* ------------------ BUTTON STYLES ------------------ */
-.ppbms-btn {
-  @apply px-4 py-2 rounded-lg font-medium text-white shadow;
-  background: linear-gradient(to right, var(--ppbms-purple), var(--ppbms-pink));
-}
-
-.ppbms-btn:hover {
-  filter: brightness(1.1);
-}
-
-/* ------------------ REMOVE ALL OLD CSS OVERRIDES ------------------ */
-.header,
-.card,
-.status-dot {
-  all: unset;
-}
+/* small helpers */
+.muted { color:#6b7280; }
+.small { font-size:0.95rem; }
