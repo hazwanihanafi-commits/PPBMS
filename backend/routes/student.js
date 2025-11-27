@@ -12,8 +12,10 @@ router.get("/me", auth, async (req, res) => {
     const rows = await readMasterTracking(process.env.SHEET_ID);
     
     const student = rows.find(
-      r => String(r["Matric"]).trim() === String(matric).trim()
-    );
+  (r) =>
+    (r["Student's Email"] || "").toLowerCase().trim() ===
+    req.user.email.toLowerCase().trim()
+);
 
     if (!student) {
       return res.status(404).json({ error: "Student not found in sheet" });
