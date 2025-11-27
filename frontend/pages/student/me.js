@@ -83,16 +83,17 @@ export default function MePage() {
 
   // -------- TIMELINE TABLE DATA ----------
   const milestones = [
-    { key: "P1 Submitted", milestone: "P1" },
-    { key: "P3 Submitted", milestone: "P3" },
-    { key: "P4 Submitted", milestone: "P4" },
-    { key: "P5 Submitted", milestone: "P5" },
-  ].map((m) => ({
-    milestone: m.milestone,
-    expected: DUE[m.key] || "—",
-    actual: row?.raw?.[m.key] || "—",
-    start: row?.start_date || "—",
-  }));
+  { key: "P1 Submitted", label: "P1" },
+  { key: "P3 Submitted", label: "P3" },
+  { key: "P4 Submitted", label: "P4" },
+  { key: "P5 Submitted", label: "P5" },
+].map(m => ({
+  milestone: m.label,
+  expected: DUE[m.key] || "—",
+  actual: row?.raw?.[m.key] || "—",   // submission date
+  status: row?.status || "—",
+  start: row.start_date || "—",
+}));
 
   const initials = (row?.student_name || "NA")
     .split(" ")
