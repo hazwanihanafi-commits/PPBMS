@@ -1,51 +1,59 @@
 // components/DonutChart.jsx
-// Simple SVG donut chart with gradient stroke
+import { useMemo } from "react";
+
 export default function DonutChart({ percentage = 0, size = 140 }) {
-  const strokeWidth = 14;
-  const radius = (size - strokeWidth) / 2;
+  const stroke = size * 0.12;
+  const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - Math.max(0, Math.min(percentage, 100)) / 100);
+  const offset = useMemo(() => circumference * (1 - percentage / 100), [circumference, percentage]);
 
+  // gradient id must be unique per page (but one is fine)
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <defs>
-          <linearGradient id="g1" x1="0%" x2="100%">
-            <stop offset="0%" stopColor="#7c3aed" />
-            <stop offset="50%" stopColor="#ec4899" />
-            <stop offset="100%" stopColor="#fb923c" />
-          </linearGradient>
-        </defs>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block">
+      <defs>
+        <linearGradient id="donutGrad" x1="0" x2="1">
+          <stop offset="0%" stopColor="#7b2ff7" />
+          <stop offset="40%" stopColor="#b03ad6" />
+          <stop offset="70%" stopColor="#ff6b3d" />
+        </linearGradient>
+      </defs>
 
-        {/* Track */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#eef2f6"
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
+      {/* background track */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke="#eef2f5"
+        strokeWidth={stroke}
+        fill="none"
+      />
 
-        {/* Progress */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="url(#g1)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
+      {/* progress arc */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke="url(#donutGrad)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        fill="none"
+      />
 
-      {/* centre text */}
-      <div className="absolute text-xl font-semibold text-slate-800">
+      {/* center percentage */}
+      <text
+        x="50%"
+        y="50%"
+        dominantBaseline="middle"
+        textAnchor="middle"
+        className="font-semibold"
+        style={{ fontSize: Math.round(size / 6) }}
+        fill="#1f2937"
+      >
         {percentage}%
-      </div>
-    </div>
+      </text>
+    </svg>
   );
 }
