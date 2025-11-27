@@ -1,25 +1,11 @@
 // components/TimelineTable.jsx
-function daysBetween(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return null;
-  const today = new Date();
-  const diff = Math.floor((today - d) / (1000*60*60*24)); // positive = overdue
-  return diff;
-}
+import React from 'react';
+import RemainingDaysBadge from './RemainingDaysBadge';
 
-function remainingLabel(days) {
-  if (days == null) return {text: '—', cls: ''};
-  if (days <= 0) return {text: `${Math.abs(days)}d`, cls:'upcoming'}; // in future
-  if (days <= 14) return {text: `${days}d`, cls:'soon'};
-  return {text: `${days}d`, cls:'overdue'};
-}
-
-export default function TimelineTable({ rows = [], supervisor = '' }) {
-  // rows: [{label, expected, actual}]
+export default function TimelineTable({ rows = [] }) {
   return (
-    <div>
-      <table className="timeline-table">
+    <div className="timeline-table">
+      <table className="ppbms-table">
         <thead>
           <tr>
             <th>Milestone</th>
@@ -27,45 +13,28 @@ export default function TimelineTable({ rows = [], supervisor = '' }) {
             <th>Actual</th>
             <th>Status</th>
             <th>Remaining</th>
-            <th>Supervisor</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => {
-            const exp = r.expected ? (new Date(r.expected)).toLocaleDateString('en-GB') : '—';
-            const actual = r.actual || '—';
-            // compute remaining as days until expected (negative -> overdue)
-            let remainingDays = null;
-            if (r.expected) {
-              const expectedDate = new Date(r.expected);
-              if (!Number.isNaN(expectedDate.getTime())) {
-                const today = new Date();
-                const diff = Math.ceil((expectedDate - today) / (1000*60*60*24));
-                remainingDays = -diff; // positive = overdue count
-                // we report overdue as positive days (for visual parity with earlier examples)
-                remainingDays = Math.max(-diff, 0) ? Math.abs(Math.floor((today - expectedDate)/(1000*60*60*24))) : Math.abs(diff)*-1;
-              }
-            }
-            const days = daysBetween(r.expected);
-            const label = remainingLabel(days);
-            const statusText = r.actual ? 'Submitted' : 'Pending';
+          {rows.map(r => {
+            const status = r.actual ? 'Submitted' : (new Date(r.expected + 'T00:00:00') < new Date() ? 'Overdue' : 'Pending');
             return (
-              <tr key={r.label}>
-                <td>{r.label}</td>
-                <td>{r.expected ? (new Date(r.expected)).toLocaleDateString('en-GB') : '—'}</td>
-                <td>{actual}</td>
-                <td>{statusText}</td>
-                <td>
-                  {label.text !== '—' ? (
-                    <span className={`remaining-pill ${label.cls}`}>{label.text} {label.cls === 'overdue' ? 'overdue':''}</span>
-                  ) : '—'}
-                </td>
-                <td className="muted">{supervisor}</td>
+              <tr key={r.milestone}>
+                <td>{r.milestone}</td>
+                <td>{r.expected || '—'}</td>
+                <td>{r.actual || '—'}</td>
+                <td>{status}</td>
+                <td><RemainingDaysBadge due={r.expected} /></td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      <style jsx>{`
+        .ppbms-table { width:100%; border-collapse:collapse; }
+        .ppbms-table th { background:linear-gradient(90deg,#7c3aed,#a78bfa); color:white; padding:10px; text-align:left; border-radius:6px; }
+        .ppbms-table td { padding:12px; border-bottom:1px solid #eee; vertical-align:middle; }
+      `}</style>
     </div>
   );
 }
