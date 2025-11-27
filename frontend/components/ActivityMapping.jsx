@@ -17,35 +17,22 @@ const MAP = [
 
 export default function ActivityMapping() {
   return (
-    <div className="overflow-x-auto rounded-xl shadow-sm bg-white">
-      <table className="min-w-full border-collapse">
-        
-        {/* Header */}
+    <div>
+      <table style={{width:'100%', borderCollapse:'collapse'}}>
         <thead>
-          <tr className="bg-gradient-to-r from-purple-600 to-purple-400 text-white">
-            <th className="py-3 px-4 text-left font-semibold">Activity</th>
-            <th className="py-3 px-4 text-left font-semibold">Milestone</th>
+          <tr>
+            <th style={{textAlign:'left', padding:'8px 6px', color:'#5e2a84', fontWeight:700}}>Activity</th>
+            <th style={{textAlign:'left', padding:'8px 6px', color:'#5e2a84', fontWeight:700}}>Milestone</th>
           </tr>
         </thead>
-
-        {/* Rows */}
         <tbody>
-          {MAP.map(([act, code], idx) => (
-            <tr
-              key={act}
-              className={`
-                ${idx % 2 === 0 ? "bg-purple-50/40" : "bg-white"}
-                hover:bg-purple-100 transition
-              `}
-            >
-              <td className="py-3 px-4 text-slate-800 font-medium">
-                {act}
-              </td>
-              <td className="py-3 px-4 text-slate-700">{code}</td>
+          {MAP.map(([act, code]) => (
+            <tr key={act} style={{borderTop:'1px solid #f1f5f9'}}>
+              <td style={{padding:'10px 6px'}}>{act}</td>
+              <td style={{padding:'10px 6px'}}>{code}</td>
             </tr>
           ))}
         </tbody>
-
       </table>
     </div>
   );
