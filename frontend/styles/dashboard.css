@@ -63,3 +63,41 @@
 .remaining.ontime { background:linear-gradient(90deg,#7c3aed,#f97316); color:white; }
 .remaining.overdue { background:#fee2e2; color:#b91c1c; }
 
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 28px;
+  padding: 28px;
+  background: #f7fafc;
+}
+
+.left-panel { }
+.right-panel { }
+
+.ppbms-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 6px 20px rgba(16,24,40,0.06);
+  margin-bottom: 18px;
+}
+
+.gradient-header {
+  background: linear-gradient(90deg,#7c3aed,#fb923c);
+  color:white;
+  padding:18px;
+  border-radius:12px;
+  margin-bottom:18px;
+}
+
+.profile-avatar {
+  width:64px;height:64px;border-radius:12px;background:linear-gradient(90deg,#5E2A84,#A78BFA);
+  display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:22px;
+}
+
+.section-title { font-size:18px; font-weight:700; color:#5E2A84; }
+
+.donut-wrapper { display:flex; gap:14px; align-items:center; }
+
+.ppbms-table th { padding:12px; text-align:left; font-weight:700; border-radius:8px; }
+
