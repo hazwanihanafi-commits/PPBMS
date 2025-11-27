@@ -1,6 +1,6 @@
 // components/ActivityMapping.jsx
 export default function ActivityMapping() {
-  const mapping = [
+  const items = [
     ["Registration", "P1"],
     ["Literature", "P3"],
     ["Proposal", "P3"],
@@ -17,12 +17,12 @@ export default function ActivityMapping() {
   ];
 
   return (
-    <div className="text-sm text-gray-700">
-      <ul className="list-disc pl-5 space-y-1">
-        {mapping.map(([act, code]) => (
-          <li key={act}>
-            <div className="font-medium">{act}</div>
-            <div className="text-xs text-gray-500">{code}</div>
+    <div className="space-y-2">
+      <ul className="list-disc pl-5 text-sm text-slate-800">
+        {items.map(([act, code]) => (
+          <li key={act} className="mb-1">
+            <span className="font-medium">{act}</span>
+            <div className="text-xs text-slate-600 mt-0.5">{code}</div>
           </li>
         ))}
       </ul>
