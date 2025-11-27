@@ -1,14 +1,13 @@
 // pages/student/me.js
 import { useEffect, useState } from "react";
-import Sidebar from "../../components/Sidebar.jsx";
-import GradientCard from "../../components/GradientCard.jsx";
-import DonutChart from "../../components/DonutChart.jsx";
-import TimelineTable from "../../components/TimelineTable.jsx";
-import ActivityMapping from "../../components/ActivityMapping.jsx";
+import Sidebar from "../../components/Sidebar";
+import GradientCard from "../../components/GradientCard";
+import DonutChart from "../../components/DonutChart";
+import TimelineTable from "../../components/TimelineTable";
+import ActivityMapping from "../../components/ActivityMapping";
 
-const API = process.env.NEXT_PUBLIC_API_BASE;
+const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
-// milestone due map (example)
 const DUE = {
   "P1 Submitted": "2024-08-31",
   "P3 Submitted": "2025-01-31",
@@ -26,9 +25,9 @@ export default function MePage() {
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
-      // if unauthenticated you may want to redirect to /login
+      // for demo show error; in real app redirect to /login
+      setError("Not logged in (demo). Add ppbms_token to localStorage to test.");
       setLoading(false);
-      setError("Not logged in");
       return;
     }
     setToken(t);
@@ -55,7 +54,7 @@ export default function MePage() {
   }, [token]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
-  if (error) return <div className="min-h-screen p-8">Error: {error}</div>;
+  if (error) return <div className="min-h-screen p-8 text-red-600">Error: {error}</div>;
   if (!row) return null;
 
   // compute progress
@@ -67,7 +66,7 @@ export default function MePage() {
   ].filter(Boolean).length;
   const percentage = Math.round((completed / 4) * 100);
 
-  // prepare timeline rows (expected from DUE, actual from sheet rows)
+  // prepare timeline rows
   const milestones = [
     { key: "P1 Submitted", label: "P1" },
     { key: "P3 Submitted", label: "P3" },
@@ -83,36 +82,37 @@ export default function MePage() {
     <div className="min-h-screen bg-gray-50 text-slate-900">
       <div className="lg:flex lg:min-h-screen">
         {/* Sidebar */}
-        <aside className="hidden lg:block lg:w-72 bg-gradient-to-b from-purple-600 to-purple-400 p-6">
+        <aside className="hidden lg:block lg:w-72">
           <Sidebar />
         </aside>
 
         {/* Main */}
         <main className="flex-1 px-4 sm:px-6 lg:px-12 py-6">
-          {/* Header */}
-          <div className="max-w-4xl mx-auto">
-            <div className="rounded-lg p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg mb-6">
-              <h1 className="text-3xl font-extrabold">PPBMS Student Progress</h1>
+          <div className="max-w-5xl mx-auto">
+
+            {/* BIG GRADIENT HEADER BOX (option B) */}
+            <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-orange-400 text-white shadow-lg mb-6">
+              <h1 className="text-4xl font-extrabold">PPBMS Student Progress</h1>
               <div className="mt-2 text-sm opacity-90">{row.student_name} — {row.programme}</div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left column: profile + summary card */}
-              <div className="lg:col-span-1 space-y-6">
+              {/* Left: profile & summary */}
+              <div className="space-y-6 lg:col-span-1">
                 <GradientCard>
-                  <h2 className="text-2xl font-bold text-purple-700 mb-2">Profile</h2>
+                  <h2 className="text-2xl font-bold text-purple-800 mb-2">Profile</h2>
                   <div className="text-lg font-semibold">{row.student_name}</div>
                   <div className="mt-2 text-sm text-gray-700">{row.programme}</div>
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-1 text-sm">
                     <div><strong>Supervisor:</strong> {row.main_supervisor}</div>
-                    <div className="mt-1"><strong>Email:</strong> {row.student_email}</div>
-                    <div className="mt-2"><strong>Status:</strong> {row.raw["Status P"] || "—"}</div>
+                    <div><strong>Email:</strong> {row.student_email}</div>
+                    <div><strong>Status:</strong> {row.raw["Status P"] || "—"}</div>
                   </div>
                 </GradientCard>
 
                 <GradientCard>
-                  <h3 className="text-2xl font-bold text-purple-700">Summary</h3>
-                  <div className="mt-3">
+                  <h3 className="text-2xl font-bold text-purple-800">Summary</h3>
+                  <div className="mt-3 text-sm text-gray-700">
                     <div><strong>Milestones Completed:</strong> {completed} / 4</div>
                     <div className="mt-2"><strong>Last Submission:</strong> {row.raw["P5 Submitted"] || row.raw["P4 Submitted"] || "—"}</div>
                     <div className="mt-2"><strong>Overall Status:</strong> {row.raw["Status P"] || "—"}</div>
@@ -120,36 +120,32 @@ export default function MePage() {
                 </GradientCard>
               </div>
 
-              {/* Middle: donut */}
+              {/* Right: progress, timeline and mapping */}
               <div className="lg:col-span-2 space-y-6">
                 <GradientCard>
-                  <div className="flex items-start gap-6">
+                  <div className="flex items-center gap-6">
                     <div className="w-48">
                       <DonutChart percentage={percentage} size={160} />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-purple-700">Progress</h3>
-                      <p className="mt-2 text-gray-700">Overview of milestones completed</p>
+                      <h3 className="text-2xl font-bold text-purple-800">Progress</h3>
+                      <p className="mt-2 text-sm text-gray-700">Overview of milestones completed</p>
                       <div className="mt-4 text-2xl font-semibold">{percentage}%</div>
                     </div>
                   </div>
                 </GradientCard>
 
-                {/* Timeline Table */}
                 <GradientCard>
-                  <h3 className="text-2xl font-bold text-purple-700 mb-3">Expected vs Actual Timeline</h3>
+                  <h3 className="text-2xl font-bold text-purple-800 mb-4">Expected vs Actual Timeline</h3>
                   <TimelineTable rows={milestones} supervisor={row.main_supervisor} />
                 </GradientCard>
 
-                {/* Activity mapping */}
                 <GradientCard>
-                  <h3 className="text-2xl font-bold text-purple-700 mb-3">Activity → Milestone mapping</h3>
+                  <h3 className="text-2xl font-bold text-purple-800 mb-3">Activity → Milestone mapping</h3>
                   <ActivityMapping />
                 </GradientCard>
-
               </div>
             </div>
-
           </div>
         </main>
       </div>
