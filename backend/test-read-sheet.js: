@@ -1,0 +1,13 @@
+import { readMasterTracking } from "./services/googleSheets.js";
+
+(async () => {
+  try {
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+    console.log("ROWS COUNT:", rows.length);
+    console.log("SAMPLE ROW 0:", rows[0] || "no rows");
+    process.exit(0);
+  } catch (err) {
+    console.error("TEST READ ERROR:", err);
+    process.exit(1);
+  }
+})();
