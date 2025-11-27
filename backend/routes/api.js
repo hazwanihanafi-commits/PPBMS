@@ -1,12 +1,12 @@
 import express from "express";
 import { readMasterTracking } from "../services/googleSheets.js";
-import studentRouter from "./student.js";   // ✅ ADD THIS
+import studentRouter from "./student.js";
 
 const router = express.Router();
 
-// -------------------------
-// PUBLIC STATUS LOOKUP
-// -------------------------
+/* ---------------------------------------------
+   PUBLIC LOOKUP: /api/status?matric=xxxx
+--------------------------------------------- */
 router.get("/status", async (req, res) => {
   try {
     const matric = (req.query.matric || "").trim();
@@ -32,14 +32,14 @@ router.get("/status", async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Status lookup error:", err);
     res.status(500).json({ error: "Server Error" });
   }
 });
 
-// -------------------------
-// ADD YOUR STUDENT ROUTES
-// -------------------------
-router.use("/student", studentRouter);   // ✅ THIS FIXES /api/student/me
+/* ---------------------------------------------
+   STUDENT ENDPOINTS (Private)
+--------------------------------------------- */
+router.use("/student", studentRouter); // ✅ makes /api/student/me work
 
 export default router;
