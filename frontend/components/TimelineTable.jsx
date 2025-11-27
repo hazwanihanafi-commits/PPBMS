@@ -1,50 +1,66 @@
 // components/TimelineTable.jsx
-function formatDate(d) {
-  if (!d) return "—";
-  try {
-    const dt = new Date(d);
-    if (isNaN(dt)) return d;
-    return dt.toLocaleDateString();
-  } catch (e) {
-    return d;
-  }
+function daysBetween(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date();
+  const diff = Math.floor((today - d) / (1000*60*60*24)); // positive = overdue
+  return diff;
 }
 
-function remainingDaysStr(expected) {
-  if (!expected) return "—";
-  const now = new Date();
-  const e = new Date(expected);
-  if (isNaN(e)) return "—";
-  const diff = Math.ceil((e - now) / (1000 * 60 * 60 * 24));
-  if (diff > 0) return `${Math.abs(diff)}d remaining`;
-  return `${Math.abs(diff)}d overdue`;
+function remainingLabel(days) {
+  if (days == null) return {text: '—', cls: ''};
+  if (days <= 0) return {text: `${Math.abs(days)}d`, cls:'upcoming'}; // in future
+  if (days <= 14) return {text: `${days}d`, cls:'soon'};
+  return {text: `${days}d`, cls:'overdue'};
 }
 
-export default function TimelineTable({ rows = [] }) {
+export default function TimelineTable({ rows = [], supervisor = '' }) {
+  // rows: [{label, expected, actual}]
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full table-auto">
+    <div>
+      <table className="timeline-table">
         <thead>
-          <tr className="text-left text-sm text-slate-700">
-            <th className="py-2 pr-4">Milestone</th>
-            <th className="py-2 pr-4">Expected</th>
-            <th className="py-2 pr-4">Actual</th>
-            <th className="py-2 pr-4">Status</th>
-            <th className="py-2 pr-4">Remaining</th>
-            <th className="py-2 pr-4">Supervisor</th>
+          <tr>
+            <th>Milestone</th>
+            <th>Expected</th>
+            <th>Actual</th>
+            <th>Status</th>
+            <th>Remaining</th>
+            <th>Supervisor</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => {
-            const actualStatus = r.actual ? "Submitted" : "Pending";
+            const exp = r.expected ? (new Date(r.expected)).toLocaleDateString('en-GB') : '—';
+            const actual = r.actual || '—';
+            // compute remaining as days until expected (negative -> overdue)
+            let remainingDays = null;
+            if (r.expected) {
+              const expectedDate = new Date(r.expected);
+              if (!Number.isNaN(expectedDate.getTime())) {
+                const today = new Date();
+                const diff = Math.ceil((expectedDate - today) / (1000*60*60*24));
+                remainingDays = -diff; // positive = overdue count
+                // we report overdue as positive days (for visual parity with earlier examples)
+                remainingDays = Math.max(-diff, 0) ? Math.abs(Math.floor((today - expectedDate)/(1000*60*60*24))) : Math.abs(diff)*-1;
+              }
+            }
+            const days = daysBetween(r.expected);
+            const label = remainingLabel(days);
+            const statusText = r.actual ? 'Submitted' : 'Pending';
             return (
-              <tr key={r.label} className="border-t border-gray-100">
-                <td className="py-3 text-sm">{r.label}</td>
-                <td className="py-3 text-sm">{formatDate(r.expected)}</td>
-                <td className="py-3 text-sm">{r.actual || "—"}</td>
-                <td className="py-3 text-sm">{actualStatus}</td>
-                <td className="py-3 text-sm">{remainingDaysStr(r.expected)}</td>
-                <td className="py-3 text-sm">{r.supervisor || "—"}</td>
+              <tr key={r.label}>
+                <td>{r.label}</td>
+                <td>{r.expected ? (new Date(r.expected)).toLocaleDateString('en-GB') : '—'}</td>
+                <td>{actual}</td>
+                <td>{statusText}</td>
+                <td>
+                  {label.text !== '—' ? (
+                    <span className={`remaining-pill ${label.cls}`}>{label.text} {label.cls === 'overdue' ? 'overdue':''}</span>
+                  ) : '—'}
+                </td>
+                <td className="muted">{supervisor}</td>
               </tr>
             );
           })}
