@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import DonutChart from "../../components/DonutChart";
 import ActivityMapping from "../../components/ActivityMapping";
 import TimelineTable from "../../components/TimelineTable";
-import "../../styles/dashboard.css"; // <-- B2 STYLE
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
