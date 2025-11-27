@@ -1,50 +1,28 @@
 import { google } from "googleapis";
-import fs from "fs";
 
-const SCOPES = [
-  "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive.readonly",
-];
-
-// Load service-account JSON
-function getKey() {
-  const p = process.env.SERVICE_ACCOUNT_PATH || "./service-account.json";
-  if (!fs.existsSync(p)) {
-    throw new Error("Service account JSON not found at " + p);
-  }
-  return JSON.parse(fs.readFileSync(p, "utf8"));
-}
-
-export function getAuth() {
-  const key = getKey();
-  return new google.auth.GoogleAuth({
-    credentials: key,
-    scopes: SCOPES,
+export async function readMasterTracking(sheetId) {
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
   });
-}
 
-export async function getSheetsClient() {
-  const auth = getAuth();
   const client = await auth.getClient();
-  return google.sheets({ version: "v4", auth: client });
-}
-
-// Reads MasterTracking sheet and returns array of objects
-export async function readMasterTracking(spreadsheetId, range = "MasterTracking!A:ZZ") {
-  const sheets = await getSheetsClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
 
   const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range,
+    spreadsheetId: sheetId,
+    range: "MasterTracking!A1:ZZ999",
   });
 
-  const rows = res.data.values || [];
-  if (!rows.length) return [];
+  const rows = res.data.values;
+  if (!rows || rows.length === 0) return [];
 
   const header = rows[0];
   return rows.slice(1).map((row) => {
     const obj = {};
-    header.forEach((h, i) => (obj[h] = row[i] || ""));
+    header.forEach((col, idx) => {
+      obj[col] = row[idx] || "";
+    });
     return obj;
   });
 }
