@@ -22,14 +22,14 @@ router.post("/verify", async (req, res) => {
     }
 
     const token = jwt.sign(
-      {
-        email: payload.email,
-        name: payload.name,
-        role: "student",
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+  {
+    email: payload.email.toLowerCase().trim(),
+    name: payload.name,
+    role: "student",
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "7d" }
+);
 
     return res.json({ token });
   } catch (err) {
