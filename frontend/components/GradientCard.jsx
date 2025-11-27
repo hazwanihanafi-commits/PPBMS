@@ -1,7 +1,7 @@
 // components/GradientCard.jsx
-export default function GradientCard({ children }) {
+export default function GradientCard({ children, className = "" }) {
   return (
-    <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-100">
+    <div className={`gradient-card ${className}`}>
       {children}
     </div>
   );
