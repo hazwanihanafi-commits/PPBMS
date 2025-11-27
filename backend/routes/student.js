@@ -33,14 +33,24 @@ router.get("/me", auth, async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const row = rows.find(
+    const raw = rows.find(
       (r) =>
         ((r["Student's Email"] || "").toLowerCase().trim() === email)
     );
 
-    if (!row) {
+    if (!raw) {
       return res.status(404).json({ error: "Student not found in sheet" });
     }
+
+    // Normalize for frontend
+    const row = {
+      student_name: raw["Student's Name"] || "",
+      email: raw["Student's Email"] || "",
+      programme: raw["Programme"] || "",
+      supervisor: raw["Supervisor"] || "",
+      start_date: raw["Start Date"] || "",
+      raw,  // keep the original object for milestones
+    };
 
     return res.json({ row });
 
@@ -49,5 +59,6 @@ router.get("/me", auth, async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 });
+
 
 export default router;
