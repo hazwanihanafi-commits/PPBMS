@@ -20,6 +20,9 @@ export default function ProfileCard({ name, programme, supervisor, email, status
         <div style={{marginTop:8}}><strong>Status:</strong> <span style={{marginLeft:8,fontWeight:700}}>{status || '—'}</span></div>
       </div>
 
+      <div><strong>Field:</strong> {row.field || "—"}</div>
+      <div><strong>Department:</strong> {row.department || "—"}</div>
+
       <div style={{marginTop:12, display:'flex', gap:10}}>
         <div className="pill">✔ On Track</div>
         <div className="pill">🧾 Profile</div>
