@@ -1,9 +1,16 @@
 // components/ProgressOverview.jsx
+
 export default function ProgressOverview({ students = [] }) {
   const total = students.length;
-  const avg = total ? Math.round(students.reduce((s,x) => s + (x.progressPct ?? 0), 0) / total) : 0;
-  const overdue = students.filter(s => s.status === "overdue").length;
-  const awaiting = students.filter(s => s.awaitingApproval).length;
+
+  const avg = total
+    ? Math.round(
+        students.reduce((sum, s) => sum + (s.progressPct ?? 0), 0) / total
+      )
+    : 0;
+
+  const overdue = students.filter((s) => s.status === "overdue").length;
+  const awaiting = students.filter((s) => s.awaitingApproval).length;
 
   return (
     <div className="grid grid-cols-3 gap-4">
