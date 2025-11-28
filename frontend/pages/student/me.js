@@ -5,6 +5,14 @@ import MilestoneGantt from "../../components/MilestoneGantt";
 import ActivityMapping from "../../components/ActivityMapping";
 import SubmissionFolder from "../../components/SubmissionFolder";
 
+// Milestone definitions (P1–P5)
+const MILESTONE_DEFINITIONS = {
+  P1: "Development Plan & Learning Contract",
+  P3: "Research Logbook (Daily/Weekly)",
+  P4: "Monthly Portfolio Monitoring Form",
+  P5: "Annual Portfolio Review (MSc/PhD)",
+};
+
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
 const DUE = {
@@ -21,6 +29,7 @@ export default function MePage() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("progress");
 
+  // Load login token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -31,6 +40,7 @@ export default function MePage() {
     setToken(t);
   }, []);
 
+  // Load student data
   useEffect(() => {
     if (!token) return;
 
@@ -57,6 +67,7 @@ export default function MePage() {
   if (error) return <div className="p-8 text-red-600">{error}</div>;
   if (!row) return null;
 
+  // Count completed milestones
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
@@ -66,52 +77,49 @@ export default function MePage() {
 
   const percentage = Math.round((completed / 4) * 100);
 
+  // FINAL, CORRECT milestone structure
   const milestones = [
-  {
-    milestone: "P1",
-    definition: "Development Plan & Learning Contract",
-    expected: DUE["P1 Submitted"],
-    actual: row.raw["Submission Date P1"] || "",
-    start: row.start_date
-  },
-  {
-    milestone: "P2A / P2B",
-    definition: "Student Year Plan (MSc & PhD) — Gantt Chart",
-    expected: row.raw["Expected Date P2"] || "",
-    actual: row.raw["Submission Date P2"] || "",
-    start: row.start_date
-  },
-  {
-    milestone: "P3",
-    definition: "Research Logbook (Daily / Weekly)",
-    expected: DUE["P3 Submitted"],
-    actual: row.raw["Submission Date P3"] || "",
-    start: row.start_date
-  },
-  {
-    milestone: "P4",
-    definition: "Monthly Portfolio Monitoring Form",
-    expected: DUE["P4 Submitted"],
-    actual: row.raw["Submission Date P4"] || "",
-    start: row.start_date
-  },
-  {
-    milestone: "P5",
-    definition: "Annual Portfolio Review (MSc / PhD)",
-    expected: DUE["P5 Submitted"],
-    actual: row.raw["Submission Date P5"] || "",
-    start: row.start_date
-  }
-];
+    {
+      milestone: "P1",
+      definition: MILESTONE_DEFINITIONS["P1"],
+      expected: DUE["P1 Submitted"],
+      actual: row.raw["P1 Submitted"] || "",
+      start: row.start_date,
+    },
+    {
+      milestone: "P3",
+      definition: MILESTONE_DEFINITIONS["P3"],
+      expected: DUE["P3 Submitted"],
+      actual: row.raw["P3 Submitted"] || "",
+      start: row.start_date,
+    },
+    {
+      milestone: "P4",
+      definition: MILESTONE_DEFINITIONS["P4"],
+      expected: DUE["P4 Submitted"],
+      actual: row.raw["P4 Submitted"] || "",
+      start: row.start_date,
+    },
+    {
+      milestone: "P5",
+      definition: MILESTONE_DEFINITIONS["P5"],
+      expected: DUE["P5 Submitted"],
+      actual: row.raw["P5 Submitted"] || "",
+      start: row.start_date,
+    },
+  ];
 
-
+  // Profile initials
   const initials = row.student_name
     .split(" ")
-    .map(s => s[0])
+    .map((s) => s[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
 
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       
@@ -155,31 +163,25 @@ export default function MePage() {
           {/* TABS */}
           <div className="rounded-xl bg-white shadow p-4">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button className={tab==="progress" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("progress")}>
-                Progress
-              </button>
-              <button className={tab==="submissions" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("submissions")}>
-                Submissions
-              </button>
-              <button className={tab==="reports" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("reports")}>
-                Reports
-              </button>
-              <button className={tab==="documents" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("documents")}>
-                Documents
-              </button>
+              <button className={tab === "progress" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("progress")}>Progress</button>
+
+              <button className={tab === "submissions" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("submissions")}>Submissions</button>
+
+              <button className={tab === "reports" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("reports")}>Reports</button>
+
+              <button className={tab === "documents" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("documents")}>Documents</button>
             </div>
           </div>
-
         </div>
 
         {/* RIGHT PANEL */}
         <div className="col-span-8 space-y-6">
 
-          {/* TAB: PROGRESS */}
+          {/* -------------------- TAB: PROGRESS -------------------- */}
           {tab === "progress" && (
             <>
               <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
@@ -202,12 +204,12 @@ export default function MePage() {
             </>
           )}
 
-          {/* TAB: SUBMISSIONS */}
+          {/* -------------------- TAB: SUBMISSIONS -------------------- */}
           {tab === "submissions" && (
             <SubmissionFolder raw={row.raw} />
           )}
 
-          {/* TAB: REPORTS */}
+          {/* -------------------- TAB: REPORTS -------------------- */}
           {tab === "reports" && (
             <div className="rounded-xl bg-white p-6 shadow text-gray-600">
               <h3 className="text-xl font-semibold text-purple-700 mb-4">Reports</h3>
@@ -215,7 +217,7 @@ export default function MePage() {
             </div>
           )}
 
-          {/* TAB: DOCUMENTS */}
+          {/* -------------------- TAB: DOCUMENTS -------------------- */}
           {tab === "documents" && (
             <div className="rounded-xl bg-white p-6 shadow space-y-3">
               <h3 className="text-xl font-semibold text-purple-700 mb-4">Documents</h3>
@@ -229,7 +231,6 @@ export default function MePage() {
               </a>
             </div>
           )}
-
         </div>
       </div>
     </div>
