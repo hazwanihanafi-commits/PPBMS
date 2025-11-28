@@ -111,7 +111,7 @@ const percentage = Math.round((completed / 4) * 100);
         <div className="gradient-header">
           <h1 className="text-2xl font-bold text-white">Student Progress</h1>
           <div className="text-sm text-white/90">
-            {row.student_name} — {row.programme}
+            <strong>{row.student_name}</strong> — {row.programme}
           </div>
         </div>
 
