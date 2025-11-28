@@ -1,105 +1,59 @@
-// pages/supervisor/index.js
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import ProgressCard from "../../components/ProgressCard";
-import SupervisorStudentTable from "../../components/SupervisorStudentTable";
+// pages/login.js
+import { useState } from "react";
 import { useRouter } from "next/router";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function SupervisorIndex() {
-  const [students, setStudents] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("ppbms_token");
-    if (!token) {
-      setLoading(false);
-      return;
+  const handleLogin = async () => {
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed");
+
+      // SAVE TOKEN + SUPERVISOR EMAIL
+      localStorage.setItem("ppbms_token", data.token);
+      localStorage.setItem("ppbms_user_email", data.email);
+
+      router.push("/supervisor");  // redirect to dashboard
+    } catch (e) {
+      alert("Login failed: " + e.message);
     }
-
-    // Get supervisor email from token or user context; fallback to query param
-    // If you have a user object in localStorage you can parse it here.
-    const supervisorEmail = localStorage.getItem("ppbms_user_email") || router.query.email;
-
-    if (!supervisorEmail) {
-      // if not available, stop and show empty state
-      setLoading(false);
-      return;
-    }
-
-    fetch(`${API}/api/supervisor/students?email=${encodeURIComponent(supervisorEmail)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (r) => {
-        const txt = await r.text();
-        if (!r.ok) throw new Error(txt);
-        return JSON.parse(txt);
-      })
-      .then((data) => {
-        const list = data.students || [];
-        setStudents(list);
-        setFiltered(list);
-      })
-      .catch((err) => {
-        console.error("Supervisor list fetch error:", err);
-      })
-      .finally(() => setLoading(false));
-  }, [router.query.email]);
-
-  useEffect(() => {
-    if (!search.trim()) {
-      setFiltered(students);
-      return;
-    }
-    const q = search.toLowerCase();
-    setFiltered(students.filter((s) => (s.name || "").toLowerCase().includes(q) || (s.id || "").toLowerCase().includes(q)));
-  }, [search, students]);
-
-  // metrics
-  const counts = {
-    ahead: students.filter((s) => s.status === "Ahead" || s.progress === 100).length,
-    onTrack: students.filter((s) => s.status === "On Track").length,
-    atRisk: students.filter((s) => s.status === "At Risk").length,
-    behind: students.filter((s) => s.status === "Behind").length,
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <header className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow">
-        <h1 className="text-2xl font-bold">Supervisor Dashboard</h1>
-        <p className="mt-1 text-sm opacity-90">Overview of your supervisees</p>
-      </header>
+    <div className="p-10 max-w-md mx-auto">
+      <h1 className="text-xl font-bold mb-4">Login</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <ProgressCard title="Ahead / Completed" value={counts.ahead} />
-        <ProgressCard title="On Track" value={counts.onTrack} />
-        <ProgressCard title="At Risk" value={counts.atRisk} />
-        <ProgressCard title="Behind" value={counts.behind} />
-      </div>
+      <input
+        className="border p-2 w-full mb-3"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
 
-      <div className="flex gap-4 items-center">
-        <input
-          className="flex-1 p-3 rounded border"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <Link href="/supervisor/analytics">
-          <a className="px-4 py-2 rounded bg-purple-600 text-white">Analytics</a>
-        </Link>
-      </div>
+      <input
+        className="border p-2 w-full mb-3"
+        placeholder="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-      <div className="bg-white rounded-lg shadow p-4">
-        {loading ? (
-          <div className="p-6">Loading…</div>
-        ) : (
-          <SupervisorStudentTable students={filtered} />
-        )}
-      </div>
+      <button className="bg-purple-600 text-white p-2 rounded w-full"
+        onClick={handleLogin}
+      >
+        Login
+      </button>
     </div>
   );
 }
