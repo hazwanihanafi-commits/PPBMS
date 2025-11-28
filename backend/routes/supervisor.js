@@ -1,64 +1,51 @@
 import express from "express";
-import { readMasterTracking } from "../services/googleSheets.js";
-import jwt from "jsonwebtoken";
+import { getSheetRows } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-// AUTH MIDDLEWARE
-function auth(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.replace("Bearer ", "");
-
-  if (!token) return res.status(401).json({ error: "No token provided" });
-
+router.get("/students", async (req, res) => {
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-}
+    const email = req.query.email; // supervisor email
+    if (!email) return res.status(400).json({ error: "Missing supervisor email" });
 
-// Get ALL supervised students
-router.get("/students", auth, async (req, res) => {
-  try {
-    const email = req.user.email.toLowerCase();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const rows = await getSheetRows();
 
-    const supervised = rows
-      .filter(r => (r["Main Supervisor's Email"] || "").toLowerCase() === email)
-      .map(r => ({
-        student_name: r["Student Name"],
-        programme: r["Programme"],
-        email: r["Student's Email"],
-        supervisor: r["Main Supervisor's Email"],
-        status: r["Status P"],
-        raw: r
-      }));
-
-    return res.json({ students: supervised });
-
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// Get ONE student by email
-router.get("/student/:email", auth, async (req, res) => {
-  try {
-    const target = req.params.email.toLowerCase();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const match = rows.find(
-      r => (r["Student's Email"] || "").toLowerCase() === target
+    // Filter only students supervised by the supervisor
+    const supervised = rows.filter(
+      (r) => r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase()
     );
 
-    if (!match) return res.status(404).json({ error: "Student not found" });
+    // Build response
+    const result = supervised.map((r) => {
+      const completed = [
+        r["P1 Submitted"],
+        r["P3 Submitted"],
+        r["P4 Submitted"],
+        r["P5 Submitted"]
+      ].filter(Boolean).length;
 
-    return res.json({ row: match });
+      const percentage = Math.round((completed / 4) * 100);
 
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+      // Basic status logic
+      let status = "On Track";
+      if (percentage === 100) status = "Completed";
+      else if (percentage < 50) status = "At Risk";
+
+      return {
+        id: r["Student's Email"],
+        name: r["Student Name"],
+        programme: r["Programme"],
+        supervisor: r["Main Supervisor's Email"],
+        progress: percentage,
+        status,
+      };
+    });
+
+    res.json({ students: result });
+
+  } catch (e) {
+    console.error("Supervisor fetch error:", e);
+    res.status(500).json({ error: e.message });
   }
 });
 
