@@ -5,7 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* You can add small global overrides here */
 html, body, #__next {
   height: 100%;
 }
