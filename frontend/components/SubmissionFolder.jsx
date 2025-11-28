@@ -1,7 +1,7 @@
+// components/SubmissionFolder.jsx
 import React from "react";
 
 export default function SubmissionFolder({ raw = {} }) {
-  // keys used in your sheet (update if different)
   const entries = [
     {
       id: "P1",
@@ -48,13 +48,17 @@ export default function SubmissionFolder({ raw = {} }) {
 
               <div className="flex items-center gap-2">
                 {view ? (
-                  <a href={view} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-purple-50 text-purple-700 rounded">View</a>
+                  <a href={view} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-purple-50 text-purple-700 rounded">
+                    View
+                  </a>
                 ) : (
                   <span className="text-sm text-gray-400 px-3">No file</span>
                 )}
 
                 {edit ? (
-                  <a href={edit} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-gray-50 text-gray-700 rounded">Edit</a>
+                  <a href={edit} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-gray-50 text-gray-700 rounded">
+                    Edit
+                  </a>
                 ) : (
                   <span className="text-sm text-gray-400 px-3">—</span>
                 )}
