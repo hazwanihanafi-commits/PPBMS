@@ -49,4 +49,11 @@ router.get("/students", async (req, res) => {
   }
 });
 
+router.get("/debug-keys", async (req, res) => {
+  const rows = await getSheetRows();
+  const keys = Object.keys(rows[0] || {});
+  return res.json({ keys });
+});
+
+
 export default router;
