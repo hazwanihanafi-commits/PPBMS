@@ -1,56 +1,53 @@
-// components/SupervisorStudentTable.js
+// components/SupervisorStudentTable.jsx
+import Link from "next/link";
 import { useRouter } from "next/router";
 
 export default function SupervisorStudentTable({ students = [] }) {
   const router = useRouter();
 
-  if (!students || students.length === 0) {
-    return (
-      <div className="p-6 text-gray-500 text-center">
-        No students found under your supervision.
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto rounded-xl shadow bg-white">
-      <table className="min-w-full border-collapse">
-        <thead>
-          <tr className="bg-gradient-to-r from-purple-600 to-pink-500 text-white text-left">
-            <th className="p-3">Student</th>
-            <th className="p-3">Programme</th>
-            <th className="p-3">Progress</th>
-            <th className="p-3">Status</th>
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="bg-purple-600 text-white">
+          <th className="p-3 text-left">Student</th>
+          <th className="p-3 text-left">Programme</th>
+          <th className="p-3 text-left">Progress</th>
+          <th className="p-3 text-left">Status</th>
+          <th className="p-3 text-left">View</th>
+        </tr>
+      </thead>
+      <tbody>
+        {students.map((s, i) => (
+          <tr key={i} className="border-b hover:bg-purple-50">
+            <td className="p-3">
+              <div className="font-medium">{s.name}</div>
+              <div className="text-xs text-gray-500">{s.id}</div>
+            </td>
+            <td className="p-3">{s.programme || "—"}</td>
+            <td className="p-3 font-semibold">{s.progress ?? "—"}%</td>
+            <td className="p-3">
+              <span className={`px-2 py-1 rounded text-white font-medium
+                ${s.status === "Ahead" ? "bg-green-600" : ""}
+                ${s.status === "On Track" ? "bg-blue-600" : ""}
+                ${s.status === "At Risk" ? "bg-yellow-500" : ""}
+                ${s.status === "Behind" ? "bg-red-600" : ""}
+              `}>
+                {s.status}
+              </span>
+            </td>
+            <td className="p-3">
+              <Link href={`/supervisor/${encodeURIComponent(s.id)}`}>
+                <a className="text-purple-700 hover:underline font-semibold">View →</a>
+              </Link>
+            </td>
           </tr>
-        </thead>
-
-        <tbody>
-          {students.map((s) => (
-            <tr
-              key={s.email}
-              className="border-b hover:bg-gray-100 cursor-pointer"
-              onClick={() => router.push(`/supervisor/${encodeURIComponent(s.email)}`)}
-            >
-              <td className="p-3 font-medium">{s.student_name}</td>
-              <td className="p-3">{s.programme}</td>
-              <td className="p-3">{s.progress}%</td>
-              <td
-                className={`p-3 font-semibold ${
-                  s.category === "Ahead"
-                    ? "text-green-600"
-                    : s.category === "On Track"
-                    ? "text-blue-600"
-                    : s.category === "At Risk"
-                    ? "text-orange-600"
-                    : "text-red-600"
-                }`}
-              >
-                {s.category}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+        {students.length === 0 && (
+          <tr>
+            <td colSpan={5} className="p-6 text-center text-gray-500">No students found.</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
   );
 }
