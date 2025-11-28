@@ -1,41 +1,46 @@
 import express from "express";
-import { readMasterTracking } from "../services/googleSheets.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-// SIMPLE LOGIN — email only
-router.post("/login", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) return res.status(400).json({ error: "Email required" });
-
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    // Check if email exists in supervisor or student columns
-    const student = rows.find(
-      r => r["Student's Email"]?.toLowerCase() === email.toLowerCase()
-    );
-
-    const supervisor = rows.find(
-      r => r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase()
-    );
-
-    if (!student && !supervisor) {
-      return res.status(401).json({ error: "Email not found" });
-    }
-
-    // token = just the email (no password needed)
-    return res.json({
-      token: email,
-      email,
-      role: supervisor ? "supervisor" : "student",
-    });
-
-  } catch (err) {
-    console.error("LOGIN ERROR:", err);
-    res.status(500).json({ error: "Server error" });
+// TEMP HARD-CODED ACCOUNTS
+const USERS = [
+  {
+    email: "hazwanihanafi@usm.my",
+    role: "supervisor",
+    password: "12345", // temporary
+  },
+  {
+    email: "cao@student.usm.my",
+    role: "student",
+    password: "12345",
   }
+];
+
+// LOGIN ENDPOINT
+router.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  const user = USERS.find(
+    (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+  );
+
+  if (!user) {
+    return res.status(401).json({ error: "Invalid login" });
+  }
+
+  const token = jwt.sign(
+    { email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  return res.json({
+    success: true,
+    email: user.email,
+    role: user.role,
+    token,
+  });
 });
 
 export default router;
