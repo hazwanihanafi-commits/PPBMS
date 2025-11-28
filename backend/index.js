@@ -14,7 +14,10 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: ["https://ppbms-frontend.onrender.com", "http://localhost:3000"],
+    origin: [
+      "https://ppbms-frontend.onrender.com",
+      "http://localhost:3000",
+    ],
     credentials: true,
   })
 );
@@ -22,27 +25,26 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Root check
+// root
 app.get("/", (req, res) => {
   res.send("AMDI Student Progress API is running");
 });
 
-// Routers
+// ROUTES
 app.use("/api", apiRouter);
 app.use("/api/student", studentRouter);
 app.use("/api/supervisor", supervisorRouter);
 app.use("/auth", authRouter);
 
-// Debug check
-app.get("/test-debug", (req, res) => {
-  res.send("NEW BACKEND VERSION LOADED");
-});
+app.get("/test-debug", (req, res) =>
+  res.send("NEW BACKEND VERSION LOADED")
+);
 
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
-// Start server
+// START SERVER
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log("Backend running on port " + PORT)
+);
