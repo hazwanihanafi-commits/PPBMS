@@ -1,21 +1,29 @@
 import express from "express";
-import { getSheetRows } from "../services/googleSheets.js";
+import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
+// GET /api/supervisor/students?email=hazwanihanafi@usm.my
 router.get("/students", async (req, res) => {
   try {
-    const email = req.query.email; // supervisor email
-    if (!email) return res.status(400).json({ error: "Missing supervisor email" });
+    const email = req.query.email;
+    if (!email) {
+      return res.status(400).json({ error: "Missing supervisor email" });
+    }
 
-    const rows = await getSheetRows();
+    // Load rows from MasterTracking sheet
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // Filter only students supervised by the supervisor
+    if (!rows || rows.length === 0) {
+      return res.json({ students: [] });
+    }
+
+    // Filter the supervisor’s students
     const supervised = rows.filter(
-      (r) => r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase()
+      (r) =>
+        r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase()
     );
 
-    // Build response
     const result = supervised.map((r) => {
       const completed = [
         r["P1 Submitted"],
@@ -26,7 +34,6 @@ router.get("/students", async (req, res) => {
 
       const percentage = Math.round((completed / 4) * 100);
 
-      // Basic status logic
       let status = "On Track";
       if (percentage === 100) status = "Completed";
       else if (percentage < 50) status = "At Risk";
@@ -43,17 +50,10 @@ router.get("/students", async (req, res) => {
 
     res.json({ students: result });
 
-  } catch (e) {
-    console.error("Supervisor fetch error:", e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error("Supervisor Route Error:", err.message);
+    res.status(500).json({ error: "Server error" });
   }
 });
-
-router.get("/debug-keys", async (req, res) => {
-  const rows = await getSheetRows();
-  const keys = Object.keys(rows[0] || {});
-  return res.json({ keys });
-});
-
 
 export default router;
