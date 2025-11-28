@@ -1,5 +1,21 @@
 import React from "react";
 
+// treat sheet garbage as not submitted
+function isSubmitted(val) {
+  if (!val) return false;
+  const s = String(val).trim().toLowerCase();
+  if (!s) return false;
+  if (["", "n/a", "#n/a", "—", "-", "na"].includes(s)) return false;
+  return true;
+}
+
+function cleanDisplay(v) {
+  if (!v) return "—";
+  const s = String(v).trim();
+  if (["", "n/a", "#n/a", "—", "-", "na"].includes(s.toLowerCase())) return "—";
+  return s;
+}
+
 export default function SubmissionFolder({ raw }) {
   if (!raw) return null;
 
@@ -7,30 +23,30 @@ export default function SubmissionFolder({ raw }) {
     {
       key: "P1",
       label: "P1 – Development Plan & Learning Contract",
-      date: raw["P1 Submitted"] || "",
-      file: raw["Submission Document P1"] || "",
-      approved: raw["P1 Approved"] || "",
+      date: raw["P1 Submitted"],
+      file: raw["Submission Document P1"],
+      approved: raw["P1 Approved"],
     },
     {
       key: "P3",
       label: "P3 – Research Logbook (Daily/Weekly)",
-      date: raw["P3 Submitted"] || "",
-      file: raw["Submission Document P3"] || "",
-      approved: raw["P3 Approved"] || "",
+      date: raw["P3 Submitted"],
+      file: raw["Submission Document P3"],
+      approved: raw["P3 Approved"],
     },
     {
       key: "P4",
       label: "P4 – Monthly Portfolio Monitoring Form",
-      date: raw["P4 Submitted"] || "",
-      file: raw["Submission Document P4"] || "",
-      approved: raw["P4 Approved"] || "",
+      date: raw["P4 Submitted"],
+      file: raw["Submission Document P4"],
+      approved: raw["P4 Approved"],
     },
     {
       key: "P5",
       label: "P5 – Annual Portfolio Review (MSc/PhD)",
-      date: raw["P5 Submitted"] || "",
-      file: raw["Submission Document P5"] || "",
-      approved: raw["P5 Approved"] || "",
+      date: raw["P5 Submitted"],
+      file: raw["Submission Document P5"],
+      approved: raw["P5 Approved"],
     },
   ];
 
@@ -38,23 +54,24 @@ export default function SubmissionFolder({ raw }) {
     <div className="rounded-xl bg-white p-6 shadow">
       <h3 className="text-xl font-semibold text-purple-700 mb-4">Submission Folder</h3>
 
-      <div className="space-y-4">
-        {submissionMap.map((item) => {
-          const submitted = Boolean(item.date && String(item.date).trim().toLowerCase() !== "n/a");
-
+      <div className="space-y-5">
+        {submissionMap.map(item => {
+          const submitted = isSubmitted(item.date);
           return (
-            <div key={item.key} className="border-b pb-3 flex flex-col md:flex-row md:items-center md:justify-between">
+            <div key={item.key} className="border-b pb-4 flex flex-col md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="font-semibold text-gray-800">{item.label}</div>
-                <div className="text-sm text-gray-600">
+                <div className="font-semibold text-gray-900 text-lg">{item.label}</div>
+
+                <div className="text-sm mt-1">
                   Status: {submitted ? <span className="text-green-600 font-semibold">Submitted</span> : <span className="text-red-500 font-semibold">Not submitted</span>}
                 </div>
-                <div className="text-sm text-gray-600">Date: {item.date || "—"}</div>
-                <div className="text-sm text-gray-600">Approved: {item.approved || "—"}</div>
+
+                <div className="text-sm text-gray-600">Date: {submitted ? String(item.date) : "—"}</div>
+                <div className="text-sm text-gray-600">Approved: {cleanDisplay(item.approved)}</div>
               </div>
 
-              <div className="mt-2 md:mt-0">
-                {item.file ? (
+              <div className="mt-3 md:mt-0">
+                {submitted && item.file ? (
                   <a href={item.file} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline font-medium">
                     📄 View Submission File
                   </a>
