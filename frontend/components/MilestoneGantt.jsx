@@ -2,8 +2,9 @@ import React from "react";
 
 function toTime(d) {
   if (!d) return null;
-  // Try to parse timestamp-like strings (Google Sheets), or date-only
-  const parsed = new Date(d);
+  // Try to handle Google Sheets datetime strings like "2025-11-27 19:50:44"
+  // Date constructor usually parses "YYYY-MM-DD" and "YYYY-MM-DD HH:MM:SS" in modern engines.
+  const parsed = new Date(String(d).replace(/-/g, "-"));
   if (isNaN(parsed.getTime())) return null;
   return parsed.getTime();
 }
@@ -16,7 +17,6 @@ function formatMonthYear(ts) {
 export default function MilestoneGantt({ rows = [], width = 900, rowHeight = 28, gap = 24 }) {
   if (!rows || rows.length === 0) return null;
 
-  // collect all dates
   const times = [];
   rows.forEach(r => {
     const s = toTime(r.start);
@@ -31,18 +31,14 @@ export default function MilestoneGantt({ rows = [], width = 900, rowHeight = 28,
   const minT = Math.min(...times);
   const maxT = Math.max(...times);
 
-  // layout constants
-  const leftLabelWidth = 220;   // room for milestone definition text
-  const topHeader = 34;         // header area for month labels
+  const leftLabelWidth = 240; // bigger so long definitions fit
+  const topHeader = 36;
   const paddingRight = 40;
-  const chartWidth = Math.max(300, width - leftLabelWidth - paddingRight);
+  const chartWidth = Math.max(320, width - leftLabelWidth - paddingRight);
 
-  const scaleX = (t) => {
-    if (!t) return leftLabelWidth;
-    return leftLabelWidth + ((t - minT) / (maxT - minT)) * chartWidth;
-  };
+  const scaleX = (t) => (t == null ? leftLabelWidth : leftLabelWidth + ((t - minT) / (maxT - minT)) * chartWidth);
 
-  // Build month ticks between minT and maxT
+  // Build month ticks
   const months = [];
   const start = new Date(minT);
   start.setDate(1);
@@ -71,20 +67,20 @@ export default function MilestoneGantt({ rows = [], width = 900, rowHeight = 28,
         </linearGradient>
       </defs>
 
-      {/* Month header band */}
-      <rect x={leftLabelWidth} y={4} width={chartWidth} height={topHeader - 8} rx={6} fill="#fff" />
-      {months.map(m => {
+      {/* Month header + gridlines */}
+      <rect x={leftLabelWidth} y={6} width={chartWidth} height={topHeader - 8} rx={6} fill="#fff" />
+      {months.map((m) => {
         const x = scaleX(m);
         return (
           <g key={m}>
-            <line x1={x} x2={x} y1={4} y2={svgHeight - 6} stroke="#eef0f4" strokeWidth="1" />
+            <line x1={x} x2={x} y1={6} y2={svgHeight - 6} stroke="#eef0f4" strokeWidth="1" />
             <text x={x + 6} y={topHeader - 12} fontSize="11" fill="#6b7280">{formatMonthYear(m)}</text>
           </g>
         );
       })}
 
       {rows.map((r, i) => {
-        const rowY = topHeader + i * (rowHeight + gap) + 10;
+        const rowY = topHeader + i * (rowHeight + gap) + 8;
 
         const s = toTime(r.start);
         const e = toTime(r.expected);
@@ -99,7 +95,7 @@ export default function MilestoneGantt({ rows = [], width = 900, rowHeight = 28,
 
         return (
           <g key={r.milestone || i}>
-            {/* Milestone left label — wrap if long by splitting on " — " or showing definition */}
+            {/* left label (definition or milestone code) */}
             <text x={12} y={rowY + 8} fontSize="13" fill="#2c2c2c" fontWeight="600">
               {r.definition || r.milestone}
             </text>
@@ -118,7 +114,7 @@ export default function MilestoneGantt({ rows = [], width = 900, rowHeight = 28,
             {/* actual marker */}
             {ax && <rect x={ax - 5} y={barY - 4} width={10} height={barHeight + 8} rx={3} fill="#7c3aed" />}
 
-            {/* date labels positioned to right of markers */}
+            {/* small date labels */}
             {e && <text x={ex + 8} y={barY + barHeight/2 + 4} fontSize="11" fill="#6b7280">{r.expected ? String(r.expected).split('T')[0] : '—'}</text>}
             {a && ax && <text x={ax + 8} y={barY + barHeight/2 + 4} fontSize="11" fill="#111827">{String(r.actual).split('T')[0]}</text>}
           </g>
