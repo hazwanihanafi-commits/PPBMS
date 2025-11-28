@@ -3,7 +3,8 @@ import React from "react";
 function isSubmittedValue(val) {
   if (val === null || val === undefined) return false;
   const s = String(val).trim().toLowerCase();
-  if (s === "" || s === "n/a" || s === "#n/a" || s === "—" || s === "-") return false;
+  if (!s) return false;
+  if (["", "n/a", "#n/a", "—", "-", "na"].includes(s)) return false;
   return true;
 }
 
@@ -23,7 +24,7 @@ export default function TimelineTable({ rows = [] }) {
     <table className="w-full border-collapse mt-3">
       <thead>
         <tr className="bg-gradient-to-r from-purple-600 to-pink-500 text-white">
-          <th className="p-3 text-left">Milestone</th>
+          <th className="p-3 text-left">Activity</th>
           <th className="p-3 text-left">Expected</th>
           <th className="p-3 text-left">Actual</th>
           <th className="p-3 text-left">Status</th>
@@ -32,18 +33,18 @@ export default function TimelineTable({ rows = [] }) {
       </thead>
 
       <tbody>
-        {rows.map((r) => {
+        {rows.map((r, idx) => {
           const submitted = isSubmittedValue(r.actual);
           const remainingText = r.expected ? daysOverdue(r.expected) : null;
 
           return (
-            <tr key={r.milestone} className="border-b">
+            <tr key={`${r.activity}-${idx}`} className="border-b">
               <td className="p-3 align-top">
-                <div className="font-semibold">{r.definition || r.milestone}</div>
+                <div className="font-semibold">{r.activity}</div>
                 <div className="text-xs text-gray-500">{r.milestone}</div>
               </td>
 
-              <td className="p-3 align-top">{r.expected ? String(r.expected).split('T')[0] : "—"}</td>
+              <td className="p-3 align-top">{r.expected ? String(r.expected).split("T")[0] : "—"}</td>
               <td className="p-3 align-top">{submitted ? String(r.actual) : "—"}</td>
 
               <td className="p-3 align-top">
@@ -59,9 +60,7 @@ export default function TimelineTable({ rows = [] }) {
                   <span className={`text-sm px-3 py-1 rounded ${remainingText.includes("overdue") ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
                     {remainingText}
                   </span>
-                ) : (
-                  "—"
-                )}
+                ) : "—"}
               </td>
             </tr>
           );
