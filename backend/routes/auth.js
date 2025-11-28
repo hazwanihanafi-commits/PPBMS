@@ -1,40 +1,40 @@
 import express from "express";
-import jwt from "jsonwebtoken";
-import { OAuth2Client } from "google-auth-library";
+import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-router.post("/verify", async (req, res) => {
+// SIMPLE LOGIN — email only
+router.post("/login", async (req, res) => {
   try {
-    const { idToken } = req.body;
-    if (!idToken) return res.status(400).json({ error: "Missing ID token" });
+    const { email } = req.body;
 
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    if (!email) return res.status(400).json({ error: "Email required" });
 
-    const payload = ticket.getPayload();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    if (!payload.email.endsWith("@usm.my")) {
-      return res.status(403).json({ error: "Only USM accounts allowed" });
+    // Check if email exists in supervisor or student columns
+    const student = rows.find(
+      r => r["Student's Email"]?.toLowerCase() === email.toLowerCase()
+    );
+
+    const supervisor = rows.find(
+      r => r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase()
+    );
+
+    if (!student && !supervisor) {
+      return res.status(401).json({ error: "Email not found" });
     }
 
-    const token = jwt.sign(
-  {
-    email: payload.email.toLowerCase().trim(),
-    name: payload.name,
-    role: "student",
-  },
-  process.env.JWT_SECRET,
-  { expiresIn: "7d" }
-);
+    // token = just the email (no password needed)
+    return res.json({
+      token: email,
+      email,
+      role: supervisor ? "supervisor" : "student",
+    });
 
-    return res.json({ token });
   } catch (err) {
-    console.error("Google Verify Error:", err);
-    return res.status(500).json({ error: "Failed to verify Google login" });
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
