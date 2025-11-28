@@ -71,15 +71,16 @@ export default function MePage() {
 
   if (!row) return <div className="p-10">No data found.</div>;
 
-  // -------- CALCULATE PROGRESS ----------
-  const completed = [
-    row?.raw?.["P1 Submitted"],
-    row?.raw?.["P3 Submitted"],
-    row?.raw?.["P4 Submitted"],
-    row?.raw?.["P5 Submitted"],
-  ].filter(Boolean).length;
+  // ---------------------- CALCULATE PROGRESS ----------------------
+const completed = [
+  row?.raw?.["P1 Submitted"],
+  row?.raw?.["P3 Submitted"],
+  row?.raw?.["P4 Submitted"],
+  row?.raw?.["P5 Submitted"],
+].filter(x => x && x.trim() !== "").length;
 
-  const percentage = Math.round((completed / 4) * 100);
+const percentage = Math.round((completed / 4) * 100);
+
 
   // -------- TIMELINE TABLE DATA ----------
   const milestones = [
