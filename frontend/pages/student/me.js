@@ -22,6 +22,14 @@ const DUE = {
   "P5 Submitted": "2025-10-01",
 };
 
+// helper to treat #N/A or empty as not submitted
+function isSubmittedValue(val) {
+  if (val === null || val === undefined) return false;
+  const s = String(val).trim().toLowerCase();
+  if (s === "" || s === "n/a" || s === "#n/a" || s === "—" || s === "-") return false;
+  return true;
+}
+
 export default function MePage() {
   const [token, setToken] = useState(null);
   const [row, setRow] = useState(null);
@@ -29,7 +37,6 @@ export default function MePage() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("progress");
 
-  // Load login token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -40,7 +47,6 @@ export default function MePage() {
     setToken(t);
   }, []);
 
-  // Load student data
   useEffect(() => {
     if (!token) return;
 
@@ -67,17 +73,7 @@ export default function MePage() {
   if (error) return <div className="p-8 text-red-600">{error}</div>;
   if (!row) return null;
 
-  // Count completed milestones
-  const completed = [
-    row.raw["P1 Submitted"],
-    row.raw["P3 Submitted"],
-    row.raw["P4 Submitted"],
-    row.raw["P5 Submitted"],
-  ].filter(Boolean).length;
-
-  const percentage = Math.round((completed / 4) * 100);
-
-  // FINAL, CORRECT milestone structure
+  // Build canonical milestones using actual sheet keys (P1 Submitted, etc.)
   const milestones = [
     {
       milestone: "P1",
@@ -109,20 +105,19 @@ export default function MePage() {
     },
   ];
 
-  // Profile initials
-  const initials = row.student_name
+  const totalMilestones = milestones.length;
+  const completedCount = milestones.filter((m) => isSubmittedValue(m.actual)).length;
+  const percentage = totalMilestones > 0 ? Math.round((completedCount / totalMilestones) * 100) : 0;
+
+  const initials = (row.student_name || "NA")
     .split(" ")
     .map((s) => s[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
 
-  // -----------------------------
-  // UI
-  // -----------------------------
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      
       {/* HEADER */}
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
         <h1 className="text-4xl font-bold">Student Progress</h1>
@@ -133,11 +128,8 @@ export default function MePage() {
 
       {/* GRID */}
       <div className="grid grid-cols-12 gap-6">
-
-        {/* LEFT PANEL */}
+        {/* LEFT */}
         <div className="col-span-4 space-y-6">
-
-          {/* PROFILE CARD */}
           <div className="rounded-xl bg-white p-6 shadow space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center
@@ -153,48 +145,38 @@ export default function MePage() {
             <div className="text-sm space-y-1">
               <div><strong>Supervisor:</strong> {row.supervisor}</div>
               <div><strong>Email:</strong> {row.email}</div>
-              <div><strong>Start Date:</strong> {row.start_date}</div>
+              <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
               <div><strong>Field:</strong> {row.field || "—"}</div>
               <div><strong>Department:</strong> {row.department || "—"}</div>
-              <div><strong>Status:</strong> {row.raw["Status P"]}</div>
+              <div><strong>Status:</strong> {row.raw["Status P"] || "—"}</div>
             </div>
           </div>
 
-          {/* TABS */}
           <div className="rounded-xl bg-white shadow p-4">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button className={tab === "progress" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("progress")}>Progress</button>
-
-              <button className={tab === "submissions" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("submissions")}>Submissions</button>
-
-              <button className={tab === "reports" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("reports")}>Reports</button>
-
-              <button className={tab === "documents" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("documents")}>Documents</button>
+              <button className={tab === "progress" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("progress")}>Progress</button>
+              <button className={tab === "submissions" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("submissions")}>Submissions</button>
+              <button className={tab === "reports" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("reports")}>Reports</button>
+              <button className={tab === "documents" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("documents")}>Documents</button>
             </div>
           </div>
         </div>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT */}
         <div className="col-span-8 space-y-6">
-
-          {/* -------------------- TAB: PROGRESS -------------------- */}
           {tab === "progress" && (
             <>
               <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
                 <DonutChart percentage={percentage} size={150} />
                 <div>
                   <div className="text-4xl font-bold">{percentage}%</div>
-                  <div className="text-gray-600">{completed} of 4 milestones completed</div>
+                  <div className="text-gray-600">{completedCount} of {totalMilestones} milestones completed</div>
                 </div>
               </div>
 
               <div className="rounded-xl bg-white p-6 shadow">
                 <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
-                <MilestoneGantt rows={milestones} width={900} />
+                <MilestoneGantt rows={milestones} width={1100} />
               </div>
 
               <div className="rounded-xl bg-white p-6 shadow">
@@ -204,12 +186,10 @@ export default function MePage() {
             </>
           )}
 
-          {/* -------------------- TAB: SUBMISSIONS -------------------- */}
           {tab === "submissions" && (
             <SubmissionFolder raw={row.raw} />
           )}
 
-          {/* -------------------- TAB: REPORTS -------------------- */}
           {tab === "reports" && (
             <div className="rounded-xl bg-white p-6 shadow text-gray-600">
               <h3 className="text-xl font-semibold text-purple-700 mb-4">Reports</h3>
@@ -217,16 +197,10 @@ export default function MePage() {
             </div>
           )}
 
-          {/* -------------------- TAB: DOCUMENTS -------------------- */}
           {tab === "documents" && (
             <div className="rounded-xl bg-white p-6 shadow space-y-3">
               <h3 className="text-xl font-semibold text-purple-700 mb-4">Documents</h3>
-
-              <a
-                target="_blank"
-                href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc"
-                className="text-purple-600 hover:underline block"
-              >
+              <a target="_blank" rel="noreferrer" href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc" className="text-purple-600 hover:underline block">
                 PPBMS Student Progress Dashboard (Doc)
               </a>
             </div>
