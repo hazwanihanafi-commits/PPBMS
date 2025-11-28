@@ -1,101 +1,111 @@
 import express from "express";
-import jwt from "jsonwebtoken";
-import { readMasterTracking } from "../services/googleSheets.js";
+import { getSheetRows } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/* ---------------------------
-   AUTH MIDDLEWARE
-----------------------------*/
-function auth(req, res, next) {
-  try {
-    const token = (req.headers.authorization || "").replace("Bearer ", "");
-    if (!token) return res.status(401).json({ error: "No token provided" });
+/* -----------------------------------------------------------
+   Helpers
+----------------------------------------------------------- */
 
-    req.user = jwt.verify(token, process.env.JWT_SECRET); // contains email + name
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
+// Check submission and compute progress
+function computeStudentProgress(row) {
+  const tasks = [
+    row["P1 Submitted"],
+    row["P3 Submitted"],
+    row["P4 Submitted"],
+    row["P5 Submitted"]
+  ];
+
+  const completed = tasks.filter(v => v && v !== "#N/A").length;
+  const percent = Math.round((completed / 4) * 100);
+
+  return {
+    completed,
+    percent
+  };
 }
 
-/* ---------------------------
-   GET ALL STUDENTS UNDER SUPERVISOR
-----------------------------*/
-router.get("/dashboard", auth, async (req, res) => {
+// Compute status
+function determineStatus(percent) {
+  if (percent >= 90) return "Ahead";
+  if (percent >= 70) return "On Track";
+  if (percent >= 40) return "At Risk";
+  return "Behind";
+}
+
+/* -----------------------------------------------------------
+   GET ALL STUDENTS FOR SUPERVISOR
+----------------------------------------------------------- */
+router.get("/:supervisorEmail", async (req, res) => {
   try {
-    const email = req.user.email.toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const email = req.params.supervisorEmail.toLowerCase();
+    const rows = await getSheetRows();
 
-    // Students under this supervisor
-    const list = rows
-      .filter((r) => (r["Main Supervisor's Email"] || "").toLowerCase().trim() === email)
-      .map((r) => {
-        const completed = [
-          r["P1 Submitted"],
-          r["P3 Submitted"],
-          r["P4 Submitted"],
-          r["P5 Submitted"],
-        ].filter(Boolean).length;
+    const filtered = rows.filter(r =>
+      r["Supervisor"] &&
+      r["Supervisor"].toLowerCase().includes(email)
+    );
 
-        const progress = Math.round((completed / 4) * 100);
+    const response = filtered.map(r => {
+      const p = computeStudentProgress(r);
+      return {
+        student_name: r["Student Name"],
+        programme: r["Programme"],
+        supervisor: r["Supervisor"],
+        email: r["Email"],
+        department: r["Department"],
+        field: r["Field"],
+        start_date: r["Start Date"],
+        progress: p.percent,
+        status: determineStatus(p.percent)
+      };
+    });
 
-        let category = "Behind";
-        if (progress === 100) category = "Ahead";
-        else if (progress >= 50) category = "On Track";
-        else if (progress >= 25) category = "At Risk";
+    res.json({ students: response });
 
-        return {
-          student_name: r["Student's Name"],
-          email: r["Student's Email"],
-          supervisor: r["Main Supervisor's Email"],
-          programme: r["Programme"],
-          progress,
-          category,
-          raw: r,
-        };
-      });
-
-    return res.json({ students: list });
   } catch (err) {
-    console.error("SUPERVISOR DASHBOARD ERROR:", err);
-    return res.status(500).json({ error: "Server error" });
+    console.error("Supervisor fetch error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-/* ---------------------------
-   GET SPECIFIC STUDENT DETAILS
-----------------------------*/
-router.get("/student/:email", auth, async (req, res) => {
+/* -----------------------------------------------------------
+   GET SINGLE STUDENT DETAILS
+   (For /supervisor/[id])
+----------------------------------------------------------- */
+router.get("/student/:studentEmail", async (req, res) => {
   try {
-    const target = req.params.email.toLowerCase().trim();
-    const supEmail = req.user.email.toLowerCase().trim();
+    const email = req.params.studentEmail.toLowerCase();
+    const rows = await getSheetRows();
 
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const row = rows.find(
-      (r) =>
-        (r["Student's Email"] || "").toLowerCase().trim() === target &&
-        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === supEmail
+    const student = rows.find(
+      r => r["Email"] && r["Email"].toLowerCase() === email
     );
 
-    if (!row) return res.status(404).json({ error: "Student not found or not under your supervision" });
+    if (!student) return res.status(404).json({ error: "Student not found" });
 
-    return res.json({
-      row: {
-        student_name: row["Student's Name"],
-        email: row["Student's Email"],
-        programme: row["Programme"],
-        supervisor: row["Main Supervisor's Email"],
-        start_date: row["Start Date"],
-        field: row["Field"],
-        department: row["Department"],
-        raw: row,
-      },
+    const progress = computeStudentProgress(student);
+    const status = determineStatus(progress.percent);
+
+    res.json({
+      student: {
+        name: student["Student Name"],
+        programme: student["Programme"],
+        supervisor: student["Supervisor"],
+        email: student["Email"],
+        field: student["Field"],
+        department: student["Department"],
+        start_date: student["Start Date"],
+
+        progress: progress.percent,
+        status,
+        raw: student
+      }
     });
+
   } catch (err) {
-    console.error("SUPERVISOR STUDENT ERROR:", err);
-    return res.status(500).json({ error: "Server error" });
+    console.error("Student detail error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
