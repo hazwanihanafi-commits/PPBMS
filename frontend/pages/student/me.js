@@ -1,4 +1,3 @@
-// pages/student/me.js
 import { useEffect, useState } from "react";
 import DonutChart from "../../components/DonutChart";
 import TimelineTable from "../../components/TimelineTable";
@@ -20,8 +19,8 @@ export default function MePage() {
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [tab, setTab] = useState("progress");
 
-  // Load token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -32,7 +31,6 @@ export default function MePage() {
     setToken(t);
   }, []);
 
-  // Fetch student data
   useEffect(() => {
     if (!token) return;
 
@@ -47,29 +45,27 @@ export default function MePage() {
 
         const data = JSON.parse(txt);
         setRow(data.row);
-      } catch (e) {
-        setError(e.message);
+      } catch (err) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     })();
   }, [token]);
 
-  if (loading) return <div className="p-10">Loading…</div>;
-  if (error) return <div className="p-10 text-red-600">{error}</div>;
+  if (loading) return <div className="p-8">Loading…</div>;
+  if (error) return <div className="p-8 text-red-600">{error}</div>;
   if (!row) return null;
 
-  // Progress
   const completed = [
     row.raw["P1 Submitted"],
     row.raw["P3 Submitted"],
     row.raw["P4 Submitted"],
     row.raw["P5 Submitted"],
-  ].filter(x => x && x.trim() !== "").length;
+  ].filter(Boolean).length;
 
   const percentage = Math.round((completed / 4) * 100);
 
-  // Milestone rows
   const milestones = [
     { key: "P1 Submitted", milestone: "P1" },
     { key: "P3 Submitted", milestone: "P3" },
@@ -85,13 +81,13 @@ export default function MePage() {
 
   const initials = row.student_name
     .split(" ")
-    .map(w => w[0])
-    .join("")
+    .map(s => s[0])
     .slice(0, 2)
+    .join("")
     .toUpperCase();
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       
       {/* HEADER */}
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
@@ -101,7 +97,7 @@ export default function MePage() {
         </p>
       </div>
 
-      {/* GRID LAYOUT */}
+      {/* GRID */}
       <div className="grid grid-cols-12 gap-6">
 
         {/* LEFT PANEL */}
@@ -111,11 +107,9 @@ export default function MePage() {
           <div className="rounded-xl bg-white p-6 shadow space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center
-                              bg-gradient-to-br from-purple-600 to-pink-500 
-                              text-white text-xl font-bold">
+                bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
                 {initials}
               </div>
-
               <div>
                 <div className="font-semibold text-lg">{row.student_name}</div>
                 <div className="text-gray-600 text-sm">{row.programme}</div>
@@ -123,25 +117,35 @@ export default function MePage() {
             </div>
 
             <div className="text-sm space-y-1">
-              <div><strong>Supervisor:</strong> {row.supervisor || "—"}</div>
+              <div><strong>Supervisor:</strong> {row.supervisor}</div>
               <div><strong>Email:</strong> {row.email}</div>
-              <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
+              <div><strong>Start Date:</strong> {row.start_date}</div>
               <div><strong>Field:</strong> {row.field || "—"}</div>
               <div><strong>Department:</strong> {row.department || "—"}</div>
               <div><strong>Status:</strong> {row.raw["Status P"]}</div>
             </div>
           </div>
 
-          {/* SUBMISSION FOLDER */}
-          <SubmissionFolder raw={row.raw} />
-
-          {/* RESOURCES */}
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h3 className="text-lg font-semibold mb-2">Resources</h3>
-            <a className="text-purple-600 hover:underline" target="_blank" 
-               href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc">
-              PPBMS Student Progress Dashboard (Doc)
-            </a>
+          {/* TABS */}
+          <div className="rounded-xl bg-white shadow p-4">
+            <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
+              <button className={tab==="progress" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("progress")}>
+                Progress
+              </button>
+              <button className={tab==="submissions" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("submissions")}>
+                Submissions
+              </button>
+              <button className={tab==="reports" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("reports")}>
+                Reports
+              </button>
+              <button className={tab==="documents" ? "text-purple-700 font-bold" : ""}
+                onClick={() => setTab("documents")}>
+                Documents
+              </button>
+            </div>
           </div>
 
         </div>
@@ -149,32 +153,56 @@ export default function MePage() {
         {/* RIGHT PANEL */}
         <div className="col-span-8 space-y-6">
 
-          {/* DONUT PROGRESS */}
-          <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
-            <DonutChart percentage={percentage} size={150} />
-            <div>
-              <div className="text-4xl font-bold">{percentage}%</div>
-              <div className="text-gray-600">{completed} of 4 milestones completed</div>
+          {/* TAB: PROGRESS */}
+          {tab === "progress" && (
+            <>
+              <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
+                <DonutChart percentage={percentage} size={150} />
+                <div>
+                  <div className="text-4xl font-bold">{percentage}%</div>
+                  <div className="text-gray-600">{completed} of 4 milestones completed</div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white p-6 shadow">
+                <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
+                <MilestoneGantt rows={milestones} width={900} />
+              </div>
+
+              <div className="rounded-xl bg-white p-6 shadow">
+                <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual Timeline</h3>
+                <TimelineTable rows={milestones} />
+              </div>
+            </>
+          )}
+
+          {/* TAB: SUBMISSIONS */}
+          {tab === "submissions" && (
+            <SubmissionFolder raw={row.raw} />
+          )}
+
+          {/* TAB: REPORTS */}
+          {tab === "reports" && (
+            <div className="rounded-xl bg-white p-6 shadow text-gray-600">
+              <h3 className="text-xl font-semibold text-purple-700 mb-4">Reports</h3>
+              <p>No reports available yet.</p>
             </div>
-          </div>
+          )}
 
-          {/* GANTT */}
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
-            <MilestoneGantt rows={milestones} width={900} />
-          </div>
+          {/* TAB: DOCUMENTS */}
+          {tab === "documents" && (
+            <div className="rounded-xl bg-white p-6 shadow space-y-3">
+              <h3 className="text-xl font-semibold text-purple-700 mb-4">Documents</h3>
 
-          {/* TIMELINE TABLE */}
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual Timeline</h3>
-            <TimelineTable rows={milestones} />
-          </div>
-
-          {/* ACTIVITY MAP */}
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h3 className="text-xl font-semibold text-purple-700 mb-4">Activity → Milestone Mapping</h3>
-            <ActivityMapping />
-          </div>
+              <a
+                target="_blank"
+                href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc"
+                className="text-purple-600 hover:underline block"
+              >
+                PPBMS Student Progress Dashboard (Doc)
+              </a>
+            </div>
+          )}
 
         </div>
       </div>
