@@ -30,6 +30,9 @@ app.use("/api", apiRouter);
 app.use("/api/student", studentRouter);
 app.use("/api/supervisor", supervisorRouter);   // <--- MOUNT SUPERVISOR ROUTES
 app.use("/auth", authRouter);
+app.get("/test-debug", (req, res) => {
+  res.send("NEW BACKEND VERSION LOADED");
+});
 
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
