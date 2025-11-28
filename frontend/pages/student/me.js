@@ -148,7 +148,6 @@ export default function MePage() {
               <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
               <div><strong>Field:</strong> {row.field || "—"}</div>
               <div><strong>Department:</strong> {row.department || "—"}</div>
-              <div><strong>Status:</strong> {row.raw["Status P"] || "—"}</div>
             </div>
           </div>
 
