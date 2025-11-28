@@ -5,17 +5,19 @@ import cors from "cors";
 
 import apiRouter from "./routes/api.js";
 import studentRouter from "./routes/student.js";
-import supervisorRouter from "./routes/supervisor.js";   // <--- ADD THIS
-import authRouter from "./routes/auth.js"; 
+import supervisorRouter from "./routes/supervisor.js";
+import authRouter from "./routes/auth.js";
 
 dotenv.config();
 const app = express();
 
 // CORS
-app.use(cors({
-  origin: ["https://ppbms-frontend.onrender.com", "http://localhost:3000"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ["https://ppbms-frontend.onrender.com", "http://localhost:3000"],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -28,8 +30,10 @@ app.get("/", (req, res) => {
 // Routers
 app.use("/api", apiRouter);
 app.use("/api/student", studentRouter);
-app.use("/api/supervisor", supervisorRouter);   // <--- MOUNT SUPERVISOR ROUTES
+app.use("/api/supervisor", supervisorRouter);
 app.use("/auth", authRouter);
+
+// Debug check
 app.get("/test-debug", (req, res) => {
   res.send("NEW BACKEND VERSION LOADED");
 });
@@ -37,8 +41,8 @@ app.get("/test-debug", (req, res) => {
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
-// Start Server
+// Start server
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
