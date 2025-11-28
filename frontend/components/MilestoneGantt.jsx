@@ -23,7 +23,11 @@ export default function MilestoneGantt({ rows = [], width = 700, rowHeight = 22,
       : ((t - minT) / (maxT - minT)) * (width - 120) + 100;
 
   return (
-    <svg width="100%" viewBox={`0 0 ${width} ${rows.length * (rowHeight + gap)}`} style={{ maxWidth: "100%" }}>
+    <svg
+      width="100%"
+      viewBox={`0 0 ${width} ${rows.length * (rowHeight + gap)}`}
+      style={{ maxWidth: "100%" }}
+    >
       <defs>
         <linearGradient id="grad-bar" x1="0" x2="1">
           <stop offset="0%" stopColor="#7c3aed" />
@@ -52,9 +56,9 @@ export default function MilestoneGantt({ rows = [], width = 700, rowHeight = 22,
 
         return (
           <g key={r.milestone}>
-            {/* Milestone label */}
+            {/* Milestone definition label */}
             <text x="10" y={y} fontSize="12" fill="#333">
-              {`${r.milestone} — ${r.expected || "—"}`}
+              {r.definition}
             </text>
 
             {/* background bar */}
@@ -80,10 +84,26 @@ export default function MilestoneGantt({ rows = [], width = 700, rowHeight = 22,
             )}
 
             {/* expected marker */}
-            <circle cx={ex} cy={barY + 5} r={5} fill="#fff" stroke="#999" strokeWidth="1" />
+            <circle
+              cx={ex}
+              cy={barY + 5}
+              r={5}
+              fill="#fff"
+              stroke="#999"
+              strokeWidth="1"
+            />
 
             {/* actual marker */}
-            {a && <rect x={ax - 4} y={barY - 6} width={8} height={12} rx={2} fill="#7c3aed" />}
+            {a && (
+              <rect
+                x={ax - 4}
+                y={barY - 6}
+                width={8}
+                height={12}
+                rx={2}
+                fill="#7c3aed"
+              />
+            )}
 
             {/* expected date */}
             <text x={ex + 8} y={barY + 4} fontSize="11" fill="#666">
