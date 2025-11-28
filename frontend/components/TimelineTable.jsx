@@ -1,40 +1,59 @@
-// components/TimelineTable.jsx
-import React from 'react';
-import RemainingDaysBadge from './RemainingDaysBadge';
+import React from "react";
 
 export default function TimelineTable({ rows = [] }) {
+  if (!rows || rows.length === 0) return null;
+
+  function daysOverdue(expected) {
+    if (!expected) return null;
+    const today = new Date();
+    const exp = new Date(expected);
+    const diff = Math.floor((today - exp) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? `${diff}d overdue` : `${Math.abs(diff)}d remaining`;
+  }
+
   return (
-    <div className="timeline-table">
-      <table className="ppbms-table">
-        <thead>
-          <tr>
-            <th>Milestone</th>
-            <th>Expected</th>
-            <th>Actual</th>
-            <th>Status</th>
-            <th>Remaining</th>
+    <table className="w-full border-collapse mt-3">
+      <thead>
+        <tr className="bg-purple-500 text-white">
+          <th className="p-2 text-left">Milestone</th>
+          <th className="p-2 text-left">Expected</th>
+          <th className="p-2 text-left">Actual</th>
+          <th className="p-2 text-left">Status</th>
+          <th className="p-2 text-left">Remaining</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.milestone} className="border-b">
+            <td className="p-2">{r.milestone}</td>
+            <td className="p-2">{r.expected}</td>
+            <td className="p-2">{r.actual || "—"}</td>
+
+            <td className="p-2">
+              {r.actual ? (
+                <span className="text-green-600 font-semibold">Submitted</span>
+              ) : (
+                <span className="text-red-500 font-semibold">Pending</span>
+              )}
+            </td>
+
+            <td className="p-2">
+              {r.expected && (
+                <span
+                  className={`text-sm px-2 py-1 rounded ${
+                    daysOverdue(r.expected).includes("overdue")
+                      ? "bg-red-200 text-red-700"
+                      : "bg-green-200 text-green-700"
+                  }`}
+                >
+                  {daysOverdue(r.expected)}
+                </span>
+              )}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map(r => {
-            const status = r.actual ? 'Submitted' : (new Date(r.expected + 'T00:00:00') < new Date() ? 'Overdue' : 'Pending');
-            return (
-              <tr key={r.milestone}>
-                <td>{r.milestone}</td>
-                <td>{r.expected || '—'}</td>
-                <td>{r.actual}</td> 
-                <td>{status}</td>
-                <td><RemainingDaysBadge due={r.expected} /></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <style jsx>{`
-        .ppbms-table { width:100%; border-collapse:collapse; }
-        .ppbms-table th { background:linear-gradient(90deg,#7c3aed,#a78bfa); color:white; padding:10px; text-align:left; border-radius:6px; }
-        .ppbms-table td { padding:12px; border-bottom:1px solid #eee; vertical-align:middle; }
-      `}</style>
-    </div>
+        ))}
+      </tbody>
+    </table>
   );
 }
