@@ -1,117 +1,90 @@
-// pages/supervisor/index.js
+// frontend/pages/supervisor/index.js
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import SupervisorStudentTable from "../../components/SupervisorStudentTable";
+import ProgressCard from "../../components/ProgressCard";
+import { useRouter } from "next/router";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function SupervisorDashboard() {
+export default function SupervisorIndex() {
   const [students, setStudents] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
-    const supervisorEmail = localStorage.getItem("ppbms_user_email");
-
-    if (!token || !supervisorEmail) {
+    if (!token) {
       setLoading(false);
       return;
     }
 
-    fetch(
-      `${API}/api/supervisor/students?email=${encodeURIComponent(supervisorEmail)}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-      .then(async (res) => {
-        const txt = await res.text();
-        if (!res.ok) throw new Error(txt);
-        return JSON.parse(txt);
-      })
-      .then((data) => {
-        const list = data.students || [];
-        setStudents(list);
-        setFiltered(list);
-      })
-      .catch((e) => console.error("Supervisee fetch error:", e))
-      .finally(() => setLoading(false));
-  }, []);
+    const supervisorEmail =
+      localStorage.getItem("ppbms_user_email") || router.query.email;
 
-  // SEARCH
+    if (!supervisorEmail) {
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API}/api/supervisor/students?email=${encodeURIComponent(supervisorEmail)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        setStudents(data.students || []);
+        setFiltered(data.students || []);
+      })
+      .catch(err => {
+        console.error("Supervisor list fetch error:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [router.query.email]);
+
   useEffect(() => {
-    if (!search.trim()) return setFiltered(students);
+    if (!search) return setFiltered(students);
     const q = search.toLowerCase();
-    setFiltered(
-      students.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.id.toLowerCase().includes(q)
-      )
-    );
+    setFiltered(students.filter(s =>
+      (s.name || "").toLowerCase().includes(q) ||
+      (s.id || "").toLowerCase().includes(q)
+    ));
   }, [search, students]);
 
+  const counts = {
+    ahead: students.filter(s => s.status === "Ahead" || s.progress === 100).length,
+    onTrack: students.filter(s => s.status === "On Track").length,
+    atRisk: students.filter(s => s.status === "At Risk").length,
+    behind: students.filter(s => s.status === "Behind").length,
+  };
+
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       <header className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow">
         <h1 className="text-3xl font-bold">Supervisor Dashboard</h1>
-        <p className="opacity-90 text-sm">Overview of your supervisees</p>
+        <p className="mt-1 text-sm">Overview of your supervisees</p>
       </header>
 
-      {/* SEARCH BAR */}
-      <input
-        className="w-full p-3 border rounded"
-        placeholder="Search student..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <ProgressCard title="Ahead / Completed" value={counts.ahead} />
+        <ProgressCard title="On Track" value={counts.onTrack} />
+        <ProgressCard title="At Risk" value={counts.atRisk} />
+        <ProgressCard title="Behind" value={counts.behind} />
+      </div>
 
-      {/* STUDENT TABLE */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-purple-600 text-white">
-              <th className="p-2">Student</th>
-              <th className="p-2">Programme</th>
-              <th className="p-2">Progress</th>
-              <th className="p-2">Status</th>
-              <th className="p-2">View</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td className="p-3 text-center" colSpan="5">
-                  Loading…
-                </td>
-              </tr>
-            )}
+      <div className="flex gap-4 items-center">
+        <input
+          className="flex-1 p-3 rounded border"
+          placeholder="Search by name or email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Link href="/supervisor/analytics" legacyBehavior><a className="px-4 py-2 rounded bg-purple-600 text-white">Analytics</a></Link>
+      </div>
 
-            {!loading && filtered.length === 0 && (
-              <tr>
-                <td className="p-3 text-center" colSpan="5">
-                  No students found.
-                </td>
-              </tr>
-            )}
-
-            {!loading &&
-              filtered.map((s, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-2">{s.name}</td>
-                  <td className="p-2">{s.programme}</td>
-                  <td className="p-2">{s.progress}%</td>
-                  <td className="p-2">{s.status}</td>
-                  <td className="p-2">
-                    <Link href={`/supervisor/${s.id}`}>
-                      <span className="text-purple-600 underline cursor-pointer">
-                        View
-                      </span>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+      <div className="bg-white rounded-lg shadow p-4">
+        {loading ? <div className="p-6">Loading…</div> : <SupervisorStudentTable students={filtered} />}
       </div>
     </div>
   );
