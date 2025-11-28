@@ -1,39 +1,38 @@
 // components/ActivityMapping.jsx
-const MAP = [
-  ["Registration", "P1"],
-  ["Literature", "P3"],
-  ["Proposal", "P3"],
-  ["Ethics", "P3"],
-  ["Pilot", "P4"],
-  ["Implementation", "P4"],
-  ["Mid-Candidature", "P5"],
-  ["Seminar", "P5"],
-  ["Publication", "P4"],
-  ["Dissemination", "P4"],
-  ["Thesis", "P5"],
-  ["Pre-Submission", "P5"],
-  ["Examination", "P5"],
-];
-
 export default function ActivityMapping() {
+  const mapping = [
+    { activity: "Registration", milestone: "P1" },
+    { activity: "Literature Review", milestone: "P3" },
+    { activity: "Proposal Writing", milestone: "P3" },
+    { activity: "Ethics Application", milestone: "P3" },
+    { activity: "Pilot Study", milestone: "P4" },
+    { activity: "Implementation / Data Collection", milestone: "P4" },
+    { activity: "Publication", milestone: "P4" },
+    { activity: "Dissemination", milestone: "P4" },
+    { activity: "Mid-Candidature Review", milestone: "P5" },
+    { activity: "Seminar", milestone: "P5" },
+    { activity: "Thesis Writing", milestone: "P5" },
+    { activity: "Pre-Submission", milestone: "P5" },
+    { activity: "Examination & Viva", milestone: "P5" },
+  ];
+
   return (
-    <div>
-      <table style={{width:'100%', borderCollapse:'collapse'}}>
-        <thead>
-          <tr>
-            <th style={{textAlign:'left', padding:'8px 6px', color:'#5e2a84', fontWeight:700}}>Activity</th>
-            <th style={{textAlign:'left', padding:'8px 6px', color:'#5e2a84', fontWeight:700}}>Milestone</th>
+    <table className="w-full text-sm border-collapse">
+      <thead>
+        <tr className="bg-gradient-to-r from-purple-600 to-pink-500 text-white">
+          <th className="p-2 text-left">Activity</th>
+          <th className="p-2 text-left">Milestone</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {mapping.map((row, i) => (
+          <tr key={i} className="border-b">
+            <td className="p-2">{row.activity}</td>
+            <td className="p-2 font-semibold text-purple-700">{row.milestone}</td>
           </tr>
-        </thead>
-        <tbody>
-          {MAP.map(([act, code]) => (
-            <tr key={act} style={{borderTop:'1px solid #f1f5f9'}}>
-              <td style={{padding:'10px 6px'}}>{act}</td>
-              <td style={{padding:'10px 6px'}}>{code}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   );
 }
