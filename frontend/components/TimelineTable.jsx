@@ -26,10 +26,19 @@ export default function TimelineTable({ rows = [] }) {
       <tbody>
         {rows.map((r) => (
           <tr key={r.milestone} className="border-b">
-            <td className="p-2">{r.milestone}</td>
+            
+            {/* Milestone definition */}
+            <td className="p-2">
+              {r.definition || r.milestone}
+            </td>
+
+            {/* Expected */}
             <td className="p-2">{r.expected}</td>
+
+            {/* Actual */}
             <td className="p-2">{r.actual || "—"}</td>
 
+            {/* Status */}
             <td className="p-2">
               {r.actual ? (
                 <span className="text-green-600 font-semibold">Submitted</span>
@@ -38,6 +47,7 @@ export default function TimelineTable({ rows = [] }) {
               )}
             </td>
 
+            {/* Remaining/Overdue Badge */}
             <td className="p-2">
               {r.expected && (
                 <span
@@ -51,6 +61,7 @@ export default function TimelineTable({ rows = [] }) {
                 </span>
               )}
             </td>
+
           </tr>
         ))}
       </tbody>
