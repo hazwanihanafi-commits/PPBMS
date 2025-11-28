@@ -67,17 +67,43 @@ export default function MePage() {
   const percentage = Math.round((completed / 4) * 100);
 
   const milestones = [
-    { key: "P1 Submitted", milestone: "P1" },
-    { key: "P3 Submitted", milestone: "P3" },
-    { key: "P4 Submitted", milestone: "P4" },
-    { key: "P5 Submitted", milestone: "P5" },
-  ].map(m => ({
-    milestone: m.milestone,
-    expected: DUE[m.key],
-    actual: row.raw[m.key] || "",
-    start: row.start_date,
-    definition: `${m.milestone} — ${DUE[m.key]}`,
-  }));
+  {
+    milestone: "P1",
+    definition: "Development Plan & Learning Contract",
+    expected: DUE["P1 Submitted"],
+    actual: row.raw["Submission Date P1"] || "",
+    start: row.start_date
+  },
+  {
+    milestone: "P2A / P2B",
+    definition: "Student Year Plan (MSc & PhD) — Gantt Chart",
+    expected: row.raw["Expected Date P2"] || "",
+    actual: row.raw["Submission Date P2"] || "",
+    start: row.start_date
+  },
+  {
+    milestone: "P3",
+    definition: "Research Logbook (Daily / Weekly)",
+    expected: DUE["P3 Submitted"],
+    actual: row.raw["Submission Date P3"] || "",
+    start: row.start_date
+  },
+  {
+    milestone: "P4",
+    definition: "Monthly Portfolio Monitoring Form",
+    expected: DUE["P4 Submitted"],
+    actual: row.raw["Submission Date P4"] || "",
+    start: row.start_date
+  },
+  {
+    milestone: "P5",
+    definition: "Annual Portfolio Review (MSc / PhD)",
+    expected: DUE["P5 Submitted"],
+    actual: row.raw["Submission Date P5"] || "",
+    start: row.start_date
+  }
+];
+
 
   const initials = row.student_name
     .split(" ")
