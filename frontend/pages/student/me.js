@@ -21,6 +21,7 @@ export default function MePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Load token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -31,37 +32,44 @@ export default function MePage() {
     setToken(t);
   }, []);
 
+  // Fetch student data
   useEffect(() => {
     if (!token) return;
+
     (async () => {
       try {
-        const r = await fetch(`${API}/api/student/me`, { headers: { Authorization: `Bearer ${token}` } });
-        const text = await r.text();
-        if (!r.ok) throw new Error(text);
-        const data = JSON.parse(text);
-        if (!data.row) throw new Error("No student record found");
+        const res = await fetch(`${API}/api/student/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const txt = await res.text();
+        if (!res.ok) throw new Error(txt);
+
+        const data = JSON.parse(txt);
         setRow(data.row);
-      } catch (err) {
-        setError(err.message.replace(/["{}]/g, ""));
+      } catch (e) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
     })();
   }, [token]);
 
-  if (loading) return <div className="p-8">Loading…</div>;
-  if (error) return <div className="p-8 text-red-600">Error: {error}</div>;
+  if (loading) return <div className="p-10">Loading…</div>;
+  if (error) return <div className="p-10 text-red-600">{error}</div>;
   if (!row) return null;
 
+  // Progress
   const completed = [
-    row?.raw?.["P1 Submitted"],
-    row?.raw?.["P3 Submitted"],
-    row?.raw?.["P4 Submitted"],
-    row?.raw?.["P5 Submitted"],
+    row.raw["P1 Submitted"],
+    row.raw["P3 Submitted"],
+    row.raw["P4 Submitted"],
+    row.raw["P5 Submitted"],
   ].filter(x => x && x.trim() !== "").length;
 
   const percentage = Math.round((completed / 4) * 100);
 
+  // Milestone rows
   const milestones = [
     { key: "P1 Submitted", milestone: "P1" },
     { key: "P3 Submitted", milestone: "P3" },
@@ -69,86 +77,100 @@ export default function MePage() {
     { key: "P5 Submitted", milestone: "P5" },
   ].map(m => ({
     milestone: m.milestone,
-    expected: DUE[m.key] || "—",
-    actual: row?.raw?.[m.key] || "",
-    start: row?.start_date || "",
-    definition: `${m.milestone} — ${DUE[m.key] || "—"}`,
+    expected: DUE[m.key],
+    actual: row.raw[m.key] || "",
+    start: row.start_date,
+    definition: `${m.milestone} — ${DUE[m.key]}`,
   }));
 
-  const initials = (row.student_name || "NA").split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase();
+  const initials = row.student_name
+    .split(" ")
+    .map(w => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto">
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left column */}
-        <div className="col-span-4 space-y-6">
-          <div className="rounded-xl p-6 bg-gradient-to-r from-[#7c3aed] to-[#fb923c] text-white shadow-lg">
-            <h1 className="text-3xl font-bold">Student Progress</h1>
-            <div className="mt-3 text-sm opacity-90">
-              <strong className="block text-white">{row.student_name}</strong>
-              <span className="block">{row.programme}</span>
-            </div>
-          </div>
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      
+      {/* HEADER */}
+      <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
+        <h1 className="text-4xl font-bold">Student Progress</h1>
+        <p className="mt-2 text-lg">
+          <strong>{row.student_name}</strong> — {row.programme}
+        </p>
+      </div>
 
-          <div className="rounded-xl bg-white p-5 shadow">
+      {/* GRID LAYOUT */}
+      <div className="grid grid-cols-12 gap-6">
+
+        {/* LEFT PANEL */}
+        <div className="col-span-4 space-y-6">
+
+          {/* PROFILE CARD */}
+          <div className="rounded-xl bg-white p-6 shadow space-y-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#7c3aed] to-[#ec4899] text-white font-bold">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center
+                              bg-gradient-to-br from-purple-600 to-pink-500 
+                              text-white text-xl font-bold">
                 {initials}
               </div>
+
               <div>
-                <div className="font-semibold">{row.student_name}</div>
-                <div className="text-sm text-gray-500">{row.programme}</div>
+                <div className="font-semibold text-lg">{row.student_name}</div>
+                <div className="text-gray-600 text-sm">{row.programme}</div>
               </div>
             </div>
 
-            <div className="mt-4 text-sm space-y-1">
+            <div className="text-sm space-y-1">
               <div><strong>Supervisor:</strong> {row.supervisor || "—"}</div>
-              <div><strong>Email:</strong> {row.email || "—"}</div>
+              <div><strong>Email:</strong> {row.email}</div>
               <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
               <div><strong>Field:</strong> {row.field || "—"}</div>
               <div><strong>Department:</strong> {row.department || "—"}</div>
-              <div><strong>Status:</strong> {row.status || "—"}</div>
+              <div><strong>Status:</strong> {row.raw["Status P"]}</div>
             </div>
           </div>
 
+          {/* SUBMISSION FOLDER */}
           <SubmissionFolder raw={row.raw} />
 
-          <div className="rounded-xl bg-white p-4 shadow">
-            <h4 className="font-semibold mb-2">Resources</h4>
-            <ul className="text-sm space-y-2">
-              <li>
-                <a className="text-purple-600 hover:underline" target="_blank" rel="noreferrer"
-                   href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc">
-                  PPBMS Student Progress Dashboard (Doc)
-                </a>
-              </li>
-            </ul>
+          {/* RESOURCES */}
+          <div className="rounded-xl bg-white p-6 shadow">
+            <h3 className="text-lg font-semibold mb-2">Resources</h3>
+            <a className="text-purple-600 hover:underline" target="_blank" 
+               href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc">
+              PPBMS Student Progress Dashboard (Doc)
+            </a>
           </div>
 
         </div>
 
-        {/* Right column */}
+        {/* RIGHT PANEL */}
         <div className="col-span-8 space-y-6">
+
+          {/* DONUT PROGRESS */}
           <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
-            <div style={{width:150}}>
-              <DonutChart percentage={percentage} size={140} />
-            </div>
+            <DonutChart percentage={percentage} size={150} />
             <div>
-              <div className="text-3xl font-semibold">{percentage}%</div>
-              <div className="text-gray-600 mt-1">{completed} of 4 milestones completed</div>
+              <div className="text-4xl font-bold">{percentage}%</div>
+              <div className="text-gray-600">{completed} of 4 milestones completed</div>
             </div>
           </div>
 
+          {/* GANTT */}
           <div className="rounded-xl bg-white p-6 shadow">
             <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
-            <MilestoneGantt rows={milestones} width={1000} />
+            <MilestoneGantt rows={milestones} width={900} />
           </div>
 
+          {/* TIMELINE TABLE */}
           <div className="rounded-xl bg-white p-6 shadow">
             <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual Timeline</h3>
             <TimelineTable rows={milestones} />
           </div>
 
+          {/* ACTIVITY MAP */}
           <div className="rounded-xl bg-white p-6 shadow">
             <h3 className="text-xl font-semibold text-purple-700 mb-4">Activity → Milestone Mapping</h3>
             <ActivityMapping />
