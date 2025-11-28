@@ -104,11 +104,11 @@ export default function SupervisorDashboard() {
                   </span>
                 </td>
 
-                <td className="p-3 text-right">
-                  <Link
-                    href={`/supervisor/student/${s.student_email}`}
-                    className="text-purple-600 hover:underline"
-                  >
+                <td className="p-3">
+  <Link href={`/supervisor/${s.email}`}>
+    <span>{s.student_name}</span>
+  </Link>
+</td>
                     View →
                   </Link>
                 </td>
