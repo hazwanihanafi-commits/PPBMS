@@ -1,6 +1,8 @@
 {
   "name": "amdi-ppbms-frontend",
   "version": "1.0.0",
+  "engines": {
+    "node": "20.x"
   "private": true,
   "scripts": {
     "dev": "next dev",
