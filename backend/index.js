@@ -5,7 +5,8 @@ import cors from "cors";
 
 import apiRouter from "./routes/api.js";
 import studentRouter from "./routes/student.js";
-import authRouter from "./routes/auth.js";   // <-- ADD THIS
+import supervisorRouter from "./routes/supervisor.js";   // <--- ADD THIS
+import authRouter from "./routes/auth.js"; 
 
 dotenv.config();
 const app = express();
@@ -27,7 +28,8 @@ app.get("/", (req, res) => {
 // Routers
 app.use("/api", apiRouter);
 app.use("/api/student", studentRouter);
-app.use("/auth", authRouter);   // <-- REGISTER AUTH API
+app.use("/api/supervisor", supervisorRouter);   // <--- MOUNT SUPERVISOR ROUTES
+app.use("/auth", authRouter);
 
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
