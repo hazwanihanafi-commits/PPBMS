@@ -1,38 +1,59 @@
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+// pages/login.js
+import { useState } from "react";
+import { useRouter } from "next/router";
+
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
 export default function LoginPage() {
-  const api = process.env.NEXT_PUBLIC_API_BASE;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const router = useRouter();
 
-  const handleSuccess = async (res) => {
-    const idToken = res.credential;
+  const handleLogin = async () => {
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const r = await fetch(`${api}/auth/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken }),
-    });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed");
 
-    const data = await r.json();
-
-    if (data.token) {
+      // SAVE TOKEN + SUPERVISOR EMAIL
       localStorage.setItem("ppbms_token", data.token);
-      window.location.href = "/student/timeline";
-    } else {
-      alert("Login failed: " + (data.error || "Unknown error"));
+      localStorage.setItem("ppbms_user_email", data.email);
+
+      router.push("/supervisor");  // redirect to dashboard
+    } catch (e) {
+      alert("Login failed: " + e.message);
     }
   };
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Login</h2>
-      <p>Please use your USM email</p>
+    <div className="p-10 max-w-md mx-auto">
+      <h1 className="text-xl font-bold mb-4">Login</h1>
 
-      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}>
-        <GoogleLogin
-          onSuccess={handleSuccess}
-          onError={() => alert("Google Login Failed")}
-        />
-      </GoogleOAuthProvider>
+      <input
+        className="border p-2 w-full mb-3"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <input
+        className="border p-2 w-full mb-3"
+        placeholder="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <button className="bg-purple-600 text-white p-2 rounded w-full"
+        onClick={handleLogin}
+      >
+        Login
+      </button>
     </div>
   );
 }
