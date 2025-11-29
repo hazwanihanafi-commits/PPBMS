@@ -1,3 +1,4 @@
+// backend/app.js
 import express from "express";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
@@ -7,11 +8,12 @@ import apiRouter from "./routes/api.js";
 import studentRouter from "./routes/student.js";
 import supervisorRouter from "./routes/supervisor.js";
 import authRouter from "./routes/auth.js";
+import taskRouter from "./routes/tasks.js"; // <-- IF YOU ADD TASKS
 
 dotenv.config();
+
 const app = express();
 
-// CORS
 app.use(
   cors({
     origin: [
@@ -34,17 +36,10 @@ app.get("/", (req, res) => {
 app.use("/api", apiRouter);
 app.use("/api/student", studentRouter);
 app.use("/api/supervisor", supervisorRouter);
+app.use("/api/tasks", taskRouter);     // <-- only if exists
 app.use("/auth", authRouter);
 
-app.get("/test-debug", (req, res) =>
-  res.send("NEW BACKEND VERSION LOADED")
-);
-
-// 404
+// 404 handler
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
-// START SERVER
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log("Backend running on port " + PORT)
-);
+export default app;
