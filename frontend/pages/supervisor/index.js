@@ -14,20 +14,27 @@ export default function SupervisorIndex() {
 
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
-    if (!token) { setLoading(false); return; }
-
     const supEmail = localStorage.getItem("ppbms_user_email");
-    if (!supEmail) { setLoading(false); return; }
+
+    if (!token || !supEmail) {
+      setLoading(false);
+      return;
+    }
 
     fetch(`${API}/api/supervisor/students?email=${encodeURIComponent(supEmail)}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(r => r.json())
-      .then(data => {
-        // data.students expected to contain fields id, name, programme, progress, status, supervisor_name
+      .then((r) => r.json())
+      .then((data) => {
         const list = (data.students || []).map(s => ({
           ...s,
-          supervisor_name: s.supervisor_name || s.supervisor || s["Main Supervisor"] || s["Main Supervisor's Name"] || s["Main Supervisor's Email"] || ""
+          supervisor_name:
+            s.supervisor_name ||
+            s.supervisor ||
+            s["Main Supervisor"] ||
+            s["Main Supervisor's Name"] ||
+            s["Main Supervisor's Email"] ||
+            ""
         }));
         setStudents(list);
         setFiltered(list);
@@ -36,12 +43,21 @@ export default function SupervisorIndex() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Search logic
   useEffect(() => {
     if (!search) return setFiltered(students);
     const q = search.toLowerCase();
-    setFiltered(students.filter(s => (s.name || "").toLowerCase().includes(q) || (s.id || "").toLowerCase().includes(q)));
+
+    setFiltered(
+      students.filter(s =>
+        (s.name || "").toLowerCase().includes(q) ||
+        (s.id || "").toLowerCase().includes(q) ||
+        (s.email || "").toLowerCase().includes(q)
+      )
+    );
   }, [search, students]);
 
+  // Progress category counts
   const counts = {
     ahead: students.filter(s => s.status === "Ahead" || s.progress === 100).length,
     onTrack: students.filter(s => s.status === "On Track").length,
@@ -56,6 +72,7 @@ export default function SupervisorIndex() {
         <p className="mt-1 text-sm">Overview of your supervisees</p>
       </header>
 
+      {/* Status summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <ProgressCard title="Ahead / Completed" value={counts.ahead} />
         <ProgressCard title="On Track" value={counts.onTrack} />
@@ -63,13 +80,30 @@ export default function SupervisorIndex() {
         <ProgressCard title="Behind" value={counts.behind} />
       </div>
 
+      {/* Search & Analytics */}
       <div className="flex gap-4 items-center">
-        <input className="flex-1 p-3 rounded border" placeholder="Search by name or email..." value={search} onChange={(e)=>setSearch(e.target.value)} />
-        <Link href="/supervisor/analytics"><a className="px-4 py-2 rounded bg-purple-600 text-white">Analytics</a></Link>
+        <input
+          className="flex-1 p-3 rounded border"
+          placeholder="Search by name, ID, or email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <Link
+          href="/supervisor/analytics"
+          className="px-4 py-2 rounded bg-purple-600 text-white"
+        >
+          Analytics
+        </Link>
       </div>
 
+      {/* Table */}
       <div className="bg-white rounded-lg shadow p-4">
-        {loading ? <div className="p-6">Loading…</div> : <SupervisorStudentTable students={filtered} />}
+        {loading ? (
+          <div className="p-6">Loading…</div>
+        ) : (
+          <SupervisorStudentTable students={filtered} />
+        )}
       </div>
     </div>
   );
