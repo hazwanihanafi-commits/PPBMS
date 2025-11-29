@@ -36,7 +36,7 @@ router.get("/me", auth, async (req, res) => {
       student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
-      supervisor: raw["Main Supervisor's Email"] || "",
+      supervisor: raw["Main Supervisor"] || "",
       start_date: raw["Start Date"] || "",
       field: raw["Field"] || "",
       department: raw["Department"] || "",
