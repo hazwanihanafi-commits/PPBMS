@@ -1,3 +1,4 @@
+// backend/routes/supervisor.js
 import express from "express";
 import { readMasterTracking } from "../services/googleSheets.js";
 
@@ -16,26 +17,27 @@ function calculateProgressFrom12(row) {
     "Seminar & report submitted",
     "Phase 2 completed",
     "1 indexed paper submitted",
-    "Conference presentation"
+    "Conference presentation",
   ];
 
   const done = activities.filter(a => {
-    const v = row[a];
+    const v = row?.[a];
     if (!v) return false;
     const s = String(v).trim().toLowerCase();
-    if (!s) return false;
-    if (["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
+    if (!s || ["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
     return true;
   }).length;
 
   return {
     done,
     total: activities.length,
-    percentage: Math.round((done / activities.length) * 100)
+    percentage: Math.round((done / activities.length) * 100),
   };
 }
 
-// GET supervisee list
+// =============================
+// GET SUPERVISOR STUDENTS
+// =============================
 router.get("/students", async (req, res) => {
   try {
     const email = req.query.email;
@@ -43,33 +45,38 @@ router.get("/students", async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const filtered = rows.filter(r => {
-  const supEmail = (r["Main Supervisor's Email"] || "").toLowerCase();
-  const supName  = (r["Main Supervisor"] || "").toLowerCase();
-  const query    = email.toLowerCase();
-  return
+    // FIXED: match your sheet column
+    const filtered = rows.filter(r =>
+      (r["Main Supervisor"] || "").toLowerCase().includes(email.toLowerCase())
+    );
 
     const result = filtered.map(r => {
       const prog = calculateProgressFrom12(r);
+
       return {
         id: r["Student's Email"],
         name: r["Student Name"],
         programme: r["Programme"],
+        supervisor: r["Main Supervisor"],
         progress: prog.percentage,
         status:
-          prog.percentage === 100 ? "Completed" :
-          prog.percentage >= 75 ? "Ahead" :
-          prog.percentage >= 50 ? "On Track" :
-          prog.percentage >= 25 ? "Behind" :
-          "At Risk"
+          prog.percentage === 100
+            ? "Completed"
+            : prog.percentage >= 75
+            ? "Ahead"
+            : prog.percentage >= 50
+            ? "On Track"
+            : prog.percentage >= 25
+            ? "Behind"
+            : "At Risk",
       };
     });
 
-    res.json({ students: result });
+    return res.json({ students: result });
 
   } catch (err) {
-    console.error("Supervisor fetch error:", err);
-    res.status(500).json({ error: err.message });
+    console.log("Supervisor fetch error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
