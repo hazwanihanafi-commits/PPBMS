@@ -1,66 +1,23 @@
-// frontend/pages/student/me.js
+// pages/student/me.js
 import { useEffect, useState } from "react";
 import DonutChart from "../../components/DonutChart";
 import TimelineTable from "../../components/TimelineTable";
 import MilestoneGantt from "../../components/MilestoneGantt";
 import SubmissionFolder from "../../components/SubmissionFolder";
+import { calculateProgressFrom12, ACTIVITIES_12 } from "../../utils/calcProgress";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
-
-// treat garbage values as not submitted
-function isSubmittedValue(val) {
-  if (val === null || val === undefined) return false;
-  const s = String(val).trim().toLowerCase();
-  if (!s) return false;
-  if (["", "n/a", "#n/a", "—", "-", "na"].includes(s)) return false;
-  return true;
-}
-
-function calculateProgressFrom12(row) {
-  const activities = [
-    "P1 Submitted",
-    "P3 Submitted",
-    "P4 Submitted",
-    "P5 Submitted",
-    "Thesis Draft Completed",
-    "Ethical clearance obtained",
-    "Pilot or Phase 1 completed",
-    "Progress approved",
-    "Seminar & report submitted",
-    "Phase 2 completed",
-    "1 indexed paper submitted",
-    "Conference presentation"
-  ];
-
-  const done = activities.filter(a => {
-    const v = row?.[a];
-    if (!v) return false;
-    const s = String(v).trim().toLowerCase();
-    if (!s) return false;
-    if (["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
-    return true;
-  }).length;
-
-  return {
-    done,
-    total: activities.length,
-    percentage: Math.round((done / activities.length) * 100)
-  };
-}
 
 export default function MePage() {
   const [token, setToken] = useState(null);
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [tab, setTab] = useState("progress");
 
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
-    if (!t) {
-      setError("Not logged in");
-      setLoading(false);
-      return;
-    }
+    if (!t) { setError("Not logged in"); setLoading(false); return; }
     setToken(t);
   }, []);
 
@@ -68,18 +25,14 @@ export default function MePage() {
     if (!token) return;
     (async () => {
       try {
-        const res = await fetch(`${API}/api/student/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(`${API}/api/student/me`, { headers: { Authorization: `Bearer ${token}` }});
         const txt = await res.text();
         if (!res.ok) throw new Error(txt);
         const data = JSON.parse(txt);
         setRow(data.row);
       } catch (err) {
         setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     })();
   }, [token]);
 
@@ -87,42 +40,39 @@ export default function MePage() {
   if (error) return <div className="p-8 text-red-600">{error}</div>;
   if (!row) return null;
 
-  // compute using 12-activity function
-  const calc = calculateProgressFrom12(row.raw || {});
-  const percentage = calc.percentage;
-  const done = calc.done;
-  const total = calc.total;
+  const prog = calculateProgressFrom12(row.raw || {});
+  const percentage = prog.percentage;
+  const completedCount = prog.done;
+  const totalCount = prog.total;
 
-  // prepare simple activity rows for timeline / Gantt — map your activity table to simpler rows
-  // For display we reuse existing timetable arrays or create simple rows from sheet keys:
-  const activityRows = [
-    { activity: "Registration & Orientation", milestone: "P1", expected: row.raw?.["Expected Date P1"] || "", actual: row.raw?.["Submission Date P1"] || "" },
-    { activity: "Literature Review & Proposal Preparation", milestone: "P3", expected: row.raw?.["Expected Date P3"] || "", actual: row.raw?.["Submission Date P3"] || "" },
-    { activity: "Proposal Defence", milestone: "P3", expected: "", actual: row.raw?.["Submission Date P3"] || "" },
-    { activity: "Research Ethics Approval (JEPeM)", milestone: "P3", expected: "", actual: "" },
-    // ... add other mapping as you like (kept short here)
-  ];
-
-  const initials = (row.student_name || "NA")
-    .split(" ")
-    .map(s => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  // build activityRows for timeline/gantt based on programme (MSc 2y, PhD 3y)
+  const programmeText = (row.programme || "").toLowerCase();
+  const isMsc = programmeText.includes("msc") || programmeText.includes("master");
+  const timelineYears = isMsc ? 2 : 3;
+  // For simplicity use some mapping (you can replace with richer arrays)
+  const activityRows = ACTIVITIES_12.map((act, idx) => ({
+    activity: act,
+    milestone: act.startsWith("P") ? act.split(" ")[0] : "Output",
+    definition: act,
+    start: row.start_date || "",
+    expected: "", // if you have expected date fields in sheet map them here
+    actual: row.raw?.[act] || ""
+  }));
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
-        <h1 className="text-4xl font-bold">Student Progress</h1>
+        <h1 className="text-3xl font-bold">Student Progress</h1>
         <p className="mt-2 text-lg"><strong>{row.student_name}</strong> — {row.programme}</p>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
+        {/* left */}
         <div className="col-span-4 space-y-6">
           <div className="rounded-xl bg-white p-6 shadow space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
-                {initials}
+                { (row.student_name || "NA").split(" ").map(s=>s[0]).slice(0,2).join("").toUpperCase() }
               </div>
               <div>
                 <div className="font-semibold text-lg">{row.student_name}</div>
@@ -131,39 +81,67 @@ export default function MePage() {
             </div>
 
             <div className="text-sm space-y-1">
-              <div><strong>Main Supervisor:</strong> {row["Main Supervisor"] || row.supervisor || "—"}</div>
+              <div><strong>Supervisor:</strong> {row["Main Supervisor"] || row.raw?.["Main Supervisor"] || row.raw?.["Main Supervisor's Name"] || row.raw?.["Main Supervisor's Email"] || "—"}</div>
               <div><strong>Email:</strong> {row.email}</div>
               <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
               <div><strong>Field:</strong> {row.field || "—"}</div>
               <div><strong>Department:</strong> {row.department || "—"}</div>
             </div>
           </div>
-        </div>
 
-        <div className="col-span-8 space-y-6">
-          <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
-            <DonutChart percentage={percentage} size={150} />
-            <div>
-              <div className="text-4xl font-bold">{percentage}%</div>
-              <div className="text-gray-600">{done} of {total} activities completed</div>
+          <div className="rounded-xl bg-white shadow p-4">
+            <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
+              <button className={tab === "progress" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("progress")}>Progress</button>
+              <button className={tab === "submissions" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("submissions")}>Submissions</button>
+              <button className={tab === "reports" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("reports")}>Reports</button>
+              <button className={tab === "documents" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("documents")}>Documents</button>
             </div>
           </div>
+        </div>
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
-            <MilestoneGantt rows={activityRows} width={1100} />
-          </div>
+        {/* right */}
+        <div className="col-span-8 space-y-6">
+          {tab === "progress" && (
+            <>
+              <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
+                <DonutChart percentage={percentage} size={150} />
+                <div>
+                  <div className="text-4xl font-bold">{percentage}%</div>
+                  <div className="text-gray-600">{completedCount} of {totalCount} activities completed</div>
+                </div>
+              </div>
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual Timeline</h3>
-            <TimelineTable rows={activityRows} />
-          </div>
+              <div className="rounded-xl bg-white p-6 shadow">
+                <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
+                <MilestoneGantt rows={activityRows} width={1000} />
+              </div>
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h3 className="text-xl font-semibold text-purple-700 mb-4">Submission Folder</h3>
-            <SubmissionFolder raw={row.raw || {}} />
-          </div>
+              <div className="rounded-xl bg-white p-6 shadow">
+                <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual Timeline</h3>
+                <TimelineTable rows={activityRows} />
+              </div>
+            </>
+          )}
 
+          {tab === "submissions" && (
+            <div className="rounded-xl bg-white p-6 shadow">
+              <SubmissionFolder raw={row.raw} studentEmail={row.email} />
+            </div>
+          )}
+
+          {tab === "reports" && (
+            <div className="rounded-xl bg-white p-6 shadow text-gray-600">
+              <h3 className="text-xl font-semibold text-purple-700 mb-4">Reports</h3>
+              <p>No reports available yet.</p>
+            </div>
+          )}
+
+          {tab === "documents" && (
+            <div className="rounded-xl bg-white p-6 shadow space-y-3">
+              <h3 className="text-xl font-semibold text-purple-700 mb-4">Documents</h3>
+              <a target="_blank" rel="noreferrer" className="text-purple-600 hover:underline block" href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc">PPBMS Student Progress Dashboard (Doc)</a>
+            </div>
+          )}
         </div>
       </div>
     </div>
