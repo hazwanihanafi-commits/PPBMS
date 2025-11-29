@@ -1,53 +1,45 @@
-// frontend/pages/supervisor/index.js
+// pages/supervisor/index.js
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SupervisorStudentTable from "../../components/SupervisorStudentTable";
 import ProgressCard from "../../components/ProgressCard";
-import { useRouter } from "next/router";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
 export default function SupervisorIndex() {
   const [students, setStudents] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
     if (!token) { setLoading(false); return; }
 
-    // supervisor email saved on login
-    const supervisorEmail = localStorage.getItem("ppbms_user_email") || router.query.email;
-    if (!supervisorEmail) { setLoading(false); return; }
+    const supEmail = localStorage.getItem("ppbms_user_email");
+    if (!supEmail) { setLoading(false); return; }
 
-    fetch(`${API}/api/supervisor/students?email=${encodeURIComponent(supervisorEmail)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    fetch(`${API}/api/supervisor/students?email=${encodeURIComponent(supEmail)}`, {
+      headers: { Authorization: `Bearer ${token}` }
     })
-      .then(async r => {
-        const txt = await r.text();
-        if (!r.ok) throw new Error(txt);
-        return JSON.parse(txt);
-      })
+      .then(r => r.json())
       .then(data => {
-        const list = data.students || [];
+        // data.students expected to contain fields id, name, programme, progress, status, supervisor_name
+        const list = (data.students || []).map(s => ({
+          ...s,
+          supervisor_name: s.supervisor_name || s.supervisor || s["Main Supervisor"] || s["Main Supervisor's Name"] || s["Main Supervisor's Email"] || ""
+        }));
         setStudents(list);
         setFiltered(list);
       })
-      .catch(err => {
-        console.error("Supervisor list fetch error:", err);
-      })
+      .catch(err => console.error(err))
       .finally(() => setLoading(false));
-  }, [router.query.email]);
+  }, []);
 
   useEffect(() => {
-    if (!search.trim()) { setFiltered(students); return; }
+    if (!search) return setFiltered(students);
     const q = search.toLowerCase();
-    setFiltered(students.filter(s =>
-      (s.name || "").toLowerCase().includes(q) ||
-      (s.id || "").toLowerCase().includes(q)
-    ));
+    setFiltered(students.filter(s => (s.name || "").toLowerCase().includes(q) || (s.id || "").toLowerCase().includes(q)));
   }, [search, students]);
 
   const counts = {
@@ -72,9 +64,8 @@ export default function SupervisorIndex() {
       </div>
 
       <div className="flex gap-4 items-center">
-        <input className="flex-1 p-3 rounded border" placeholder="Search by name or email..."
-          value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Link href="/supervisor/analytics" legacyBehavior><a className="px-4 py-2 rounded bg-purple-600 text-white">Analytics</a></Link>
+        <input className="flex-1 p-3 rounded border" placeholder="Search by name or email..." value={search} onChange={(e)=>setSearch(e.target.value)} />
+        <Link href="/supervisor/analytics"><a className="px-4 py-2 rounded bg-purple-600 text-white">Analytics</a></Link>
       </div>
 
       <div className="bg-white rounded-lg shadow p-4">
@@ -83,4 +74,3 @@ export default function SupervisorIndex() {
     </div>
   );
 }
-   
