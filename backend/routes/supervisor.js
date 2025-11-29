@@ -4,7 +4,8 @@ import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-function calculateProgressFrom12(row) {
+// 🔧 helper
+function calculateProgress(row) {
   const activities = [
     "P1 Submitted",
     "P3 Submitted",
@@ -17,27 +18,28 @@ function calculateProgressFrom12(row) {
     "Seminar & report submitted",
     "Phase 2 completed",
     "1 indexed paper submitted",
-    "Conference presentation",
+    "Conference presentation"
   ];
 
   const done = activities.filter(a => {
-    const v = row?.[a];
-    if (!v) return false;
-    const s = String(v).trim().toLowerCase();
-    if (!s || ["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
-    return true;
+    const v = row[a];
+    return v && String(v).trim() !== "" && !["n/a","-","—","#n/a","na"].includes(String(v).trim().toLowerCase());
   }).length;
 
-  return {
-    done,
-    total: activities.length,
-    percentage: Math.round((done / activities.length) * 100),
-  };
+  return Math.round((done / activities.length) * 100);
 }
 
-// =============================
-// GET SUPERVISOR STUDENTS
-// =============================
+function getStatus(p) {
+  if (p === 100) return "Completed";
+  if (p >= 75) return "Ahead";
+  if (p >= 50) return "On Track";
+  if (p >= 25) return "Behind";
+  return "At Risk";
+}
+
+// -----------------------------------------------------
+// GET STUDENTS UNDER THIS SUPERVISOR
+// -----------------------------------------------------
 router.get("/students", async (req, res) => {
   try {
     const email = req.query.email;
@@ -45,38 +47,32 @@ router.get("/students", async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // FIXED: match your sheet column
+    // IMPORTANT: match by Main Supervisor EMAIL column
+    // You already have this column in Google Sheet
     const filtered = rows.filter(r =>
-      (r["Main Supervisor"] || "").toLowerCase().includes(email.toLowerCase())
+      r["Main Supervisor Email"]?.toLowerCase() === email.toLowerCase()
     );
 
+    // Build result
     const result = filtered.map(r => {
-      const prog = calculateProgressFrom12(r);
+      const progress = calculateProgress(r);
 
       return {
         id: r["Student's Email"],
         name: r["Student Name"],
         programme: r["Programme"],
-        supervisor: r["Main Supervisor"],
-        progress: prog.percentage,
-        status:
-          prog.percentage === 100
-            ? "Completed"
-            : prog.percentage >= 75
-            ? "Ahead"
-            : prog.percentage >= 50
-            ? "On Track"
-            : prog.percentage >= 25
-            ? "Behind"
-            : "At Risk",
+        supervisorName: r["Main Supervisor"],     // ← FULL NAME
+        supervisorEmail: r["Main Supervisor Email"],
+        progress,
+        status: getStatus(progress)
       };
     });
 
-    return res.json({ students: result });
+    res.json({ students: result });
 
   } catch (err) {
-    console.log("Supervisor fetch error:", err);
-    return res.status(500).json({ error: err.message });
+    console.error("Supervisor fetch error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
