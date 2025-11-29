@@ -1,53 +1,77 @@
-// backend/services/googleSheets.js   (replace)
+// backend/services/googleSheets.js
 import { google } from "googleapis";
 
+/**
+ * AUTH HELPER
+ */
+function getAuth(readonly = true) {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON");
+
+  const credentials = JSON.parse(raw);
+
+  return new google.auth.GoogleAuth({
+    credentials,
+    scopes: [
+      readonly
+        ? "https://www.googleapis.com/auth/spreadsheets.readonly"
+        : "https://www.googleapis.com/auth/spreadsheets",
+    ],
+  });
+}
+
+/**
+ * READ MASTER TRACKING SHEET
+ */
 export async function readMasterTracking(sheetId) {
-  try {
-    if (!sheetId) throw new Error("Missing SHEET_ID env var");
+  const auth = getAuth(true);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
 
-    const rawCred = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-    if (!rawCred) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON env var");
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "MasterTracking!A1:ZZ999",
+  });
 
-    let credentials;
-    try {
-      credentials = JSON.parse(rawCred);
-    } catch (e) {
-      console.error("Google SA JSON parse error:", e.message);
-      throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_JSON (JSON parse failed)");
-    }
+  const rows = res.data.values || [];
+  if (rows.length < 2) return [];
 
-    const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-    });
+  const header = rows[0];
 
-    const client = await auth.getClient();
-    const sheets = google.sheets({ version: "v4", auth: client });
+  return rows.slice(1).map((row) => {
+    const obj = {};
+    header.forEach((h, i) => (obj[h] = row[i] || ""));
+    return obj;
+  });
+}
 
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: "MasterTracking!A1:ZZ999",
-    });
+/**
+ * WRITE TO GOOGLE SHEET (Update 1 cell)
+ */
+export async function writeToSheet(sheetId, sheetName, rowNumber, columnName, value) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
 
-    const rows = res.data.values;
-    if (!rows || rows.length === 0) {
-      console.warn("GoogleSheet: no rows returned (sheet may be empty)");
-      return [];
-    }
+  // get header row to find column index
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: `${sheetName}!A1:ZZ1`,
+  });
 
-    const header = rows[0].map((h) => (h || "").toString());
-    const results = rows.slice(1).map((row) => {
-      const obj = {};
-      header.forEach((col, idx) => {
-        obj[col] = row[idx] || "";
-      });
-      return obj;
-    });
+  const headers = headerRes.data.values[0];
+  const colIndex = headers.indexOf(columnName);
 
-    return results;
-  } catch (err) {
-    // log full error for debugging (careful: do NOT leak credentials)
-    console.error("readMasterTracking ERROR:", err && err.message ? err.message : err);
-    throw err; // rethrow so caller can handle
-  }
+  if (colIndex === -1) throw new Error("Column not found: " + columnName);
+
+  const colLetter = String.fromCharCode(65 + colIndex); // A,B,C...
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `${sheetName}!${colLetter}${rowNumber}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[value]] },
+  });
+
+  return true;
 }
