@@ -17,33 +17,27 @@ function calculateProgressFrom12(row) {
     "Seminar & report submitted",
     "Phase 2 completed",
     "1 indexed paper submitted",
-    "Conference presentation"
+    "Conference presentation",
   ];
 
   const done = activities.filter(a => {
     const v = row?.[a];
     if (!v) return false;
     const s = String(v).trim().toLowerCase();
-    if (!s) return false;
-    if (["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
+    if (!s || ["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
     return true;
   }).length;
 
   return {
     done,
     total: activities.length,
-    percentage: Math.round((done / activities.length) * 100)
+    percentage: Math.round((done / activities.length) * 100),
   };
 }
 
-function getStatus(percentage) {
-  if (percentage === 100) return "Completed";
-  if (percentage >= 75) return "Ahead";
-  if (percentage >= 50) return "On Track";
-  if (percentage >= 25) return "Behind";
-  return "At Risk";
-}
-
+// =============================
+// GET SUPERVISOR STUDENTS
+// =============================
 router.get("/students", async (req, res) => {
   try {
     const email = req.query.email;
@@ -51,31 +45,38 @@ router.get("/students", async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const supervised = rows.filter(r => {
-      const supEmail = (r["Main Supervisor's Email"] || r["Main Supervisor Email"] || "").toString().trim();
-      return supEmail.toLowerCase() === email.toLowerCase();
-    });
+    // FIXED: match your sheet column
+    const filtered = rows.filter(r =>
+      (r["Main Supervisor"] || "").toLowerCase().includes(email.toLowerCase())
+    );
 
-    const result = supervised.map(r => {
-      const calc = calculateProgressFrom12(r);
-      const status = getStatus(calc.percentage);
+    const result = filtered.map(r => {
+      const prog = calculateProgressFrom12(r);
 
       return {
-        id: r["Student's Email"] || r["Email"] || r.email || r["Student Email"] || "",
-        name: r["Student Name"] || r["Name"] || r.student_name || "",
-        programme: r["Programme"] || r.programme || "",
-        progress: calc.percentage,
-        done: calc.done,
-        total: calc.total,
-        status,
-        mainSupervisor: r["Main Supervisor"] || r["Main Supervisor's Name"] || r["Main Supervisor Name"] || r["Main Supervisor's Email"] || ""
+        id: r["Student's Email"],
+        name: r["Student Name"],
+        programme: r["Programme"],
+        supervisor: r["Main Supervisor"],
+        progress: prog.percentage,
+        status:
+          prog.percentage === 100
+            ? "Completed"
+            : prog.percentage >= 75
+            ? "Ahead"
+            : prog.percentage >= 50
+            ? "On Track"
+            : prog.percentage >= 25
+            ? "Behind"
+            : "At Risk",
       };
     });
 
-    res.json({ students: result });
+    return res.json({ students: result });
+
   } catch (err) {
-    console.error("Supervisor route error:", err);
-    res.status(500).json({ error: err.message || String(err) });
+    console.log("Supervisor fetch error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
