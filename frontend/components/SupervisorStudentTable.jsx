@@ -3,33 +3,30 @@ import Link from "next/link";
 
 export default function SupervisorStudentTable({ students = [] }) {
   if (!students || students.length === 0) {
-    return <div className="p-6 text-gray-600">No students found.</div>;
+    return <div className="p-6 text-gray-500">No students found.</div>;
   }
 
   return (
-    <table className="w-full text-left">
+    <table className="w-full text-sm">
       <thead>
         <tr className="bg-purple-600 text-white">
-          <th className="p-3">Student</th>
-          <th className="p-3">Programme</th>
-          <th className="p-3">Main Supervisor</th>
-          <th className="p-3">Progress</th>
-          <th className="p-3">Status</th>
-          <th className="p-3">View</th>
+          <th className="px-4 py-2 text-left">Student</th>
+          <th className="px-4 py-2 text-left">Programme</th>
+          <th className="px-4 py-2 text-left">Progress</th>
+          <th className="px-4 py-2 text-left">Status</th>
+          <th className="px-4 py-2 text-left">View</th>
         </tr>
       </thead>
       <tbody>
         {students.map((s) => (
           <tr key={s.id} className="border-b">
-            <td className="p-3">{s.name}</td>
-            <td className="p-3">{s.programme}</td>
-            <td className="p-3">{s.mainSupervisor || "—"}</td>
-            <td className="p-3">{s.progress}%</td>
-            <td className="p-3">{s.status}</td>
-            <td className="p-3">
-              {/* link to supervisor student detail page (you need a page at /pages/supervisor/[email].js) */}
-              <Link href={`/supervisor/${encodeURIComponent(s.id)}`} legacyBehavior>
-                <a className="text-purple-600 hover:underline">View</a>
+            <td className="px-4 py-3">{s.name}</td>
+            <td className="px-4 py-3">{s.programme}</td>
+            <td className="px-4 py-3">{s.progress}%</td>
+            <td className="px-4 py-3">{s.status}</td>
+            <td className="px-4 py-3">
+              <Link href={`/supervisor/${encodeURIComponent(s.id)}`}>
+                <a className="text-purple-600 hover:underline">Open</a>
               </Link>
             </td>
           </tr>
