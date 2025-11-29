@@ -19,9 +19,17 @@ router.get("/students", async (req, res) => {
     if (!email) return res.status(400).json({ error: "Missing supervisor email" });
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
-    const filtered = rows.filter(r => (r["Main Supervisor's Email"] || "").toLowerCase() === email.toLowerCase()
-      || (r["Main Supervisor"] || "").toLowerCase() === email.toLowerCase()
-    );
+    // BEFORE (wrong)
+const filtered = rows.filter(
+  r => r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase()
+);
+
+// AFTER (correct)
+const filtered = rows.filter(r =>
+  r["Main Supervisor"]?.toLowerCase().includes(email.toLowerCase())
+  || r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase()
+);
+
 
     const students = filtered.map(r => {
       const raw = r;
