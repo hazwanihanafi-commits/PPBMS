@@ -4,117 +4,76 @@ import { readMasterTracking, writeToSheet } from "../services/googleSheets.js";
 import sendEmail from "../services/sendEmail.js";
 
 const router = express.Router();
+const SHEET = process.env.SHEET_ID;
 
-// ---------------------------------------------------------------------
-// 🔵 A. STUDENT TOGGLES A TASK
-// ---------------------------------------------------------------------
+/**
+ * 1️⃣ Toggle Task Completed by Student
+ * BODY: { email, taskName, completed }
+ */
 router.post("/toggle", async (req, res) => {
   try {
-    const { email, taskKey, value } = req.body;
+    const { email, taskName, completed } = req.body;
 
-    if (!email || !taskKey) {
-      return res.status(400).json({ error: "Missing email or taskKey" });
-    }
+    const rows = await readMasterTracking(SHEET);
+    const idx = rows.findIndex((r) => r["Student's Email"] === email);
 
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-    const index = rows.findIndex(r => r["Student's Email"] === email);
+    if (idx === -1) return res.status(404).json({ error: "Student not found" });
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    const rowNumber = idx + 2; // because header is row 1
+    const value = completed ? "DONE" : "";
 
-    await writeToSheet(process.env.SHEET_ID, "MasterTracking", index + 2, taskKey, value);
+    await writeToSheet(SHEET, "MasterTracking", rowNumber, taskName, value);
 
-    return res.json({ success: true, message: "Task updated" });
-
+    res.json({ success: true });
   } catch (err) {
-    console.error("Toggle ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ---------------------------------------------------------------------
-// 🔵 C. SUPERVISOR APPROVES TASK
-// ---------------------------------------------------------------------
+/**
+ * 2️⃣ Supervisor Approval of Task
+ * BODY: { email, taskName }
+ */
 router.post("/approve", async (req, res) => {
   try {
-    const { studentEmail, taskKey } = req.body;
+    const { email, taskName } = req.body;
 
-    if (!studentEmail || !taskKey) {
-      return res.status(400).json({ error: "Missing data" });
-    }
+    const rows = await readMasterTracking(SHEET);
+    const idx = rows.findIndex((r) => r["Student's Email"] === email);
 
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-    const index = rows.findIndex(r => r["Student's Email"] === studentEmail);
+    if (idx === -1) return res.status(404).json({ error: "Student not found" });
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    const rowNumber = idx + 2;
 
-    await writeToSheet(process.env.SHEET_ID, "MasterTracking", index + 2, `${taskKey} Approved`, "YES");
+    await writeToSheet(SHEET, "MasterTracking", rowNumber, taskName, "APPROVED");
 
-    // ---- OPTIONAL EMAIL ----
-    await sendEmail(
-      studentEmail,
-      `Task Approved: ${taskKey}`,
-      `Your supervisor has approved: ${taskKey}`
-    );
+    // send notification
+    await sendEmail({
+      to: email,
+      subject: `Task Approved: ${taskName}`,
+      text: `Your supervisor has approved your task: ${taskName}`,
+    });
 
-    return res.json({ success: true });
-
+    res.json({ success: true });
   } catch (err) {
-    console.error("Approval ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ---------------------------------------------------------------------
-// 🔵 FILE UPLOAD (GOOGLE DRIVE)
-// ---------------------------------------------------------------------
-router.post("/upload", async (req, res) => {
+/**
+ * 3️⃣ Get student's task list
+ */
+router.get("/list/:email", async (req, res) => {
   try {
-    const { studentEmail, taskKey, fileUrl } = req.body;
+    const email = req.params.email;
 
-    if (!studentEmail || !taskKey || !fileUrl) {
-      return res.status(400).json({ error: "Missing fields" });
-    }
+    const rows = await readMasterTracking(SHEET);
+    const student = rows.find((r) => r["Student's Email"] === email);
 
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-    const index = rows.findIndex(r => r["Student's Email"] === studentEmail);
+    if (!student) return res.status(404).json({ error: "Student not found" });
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Student not found" });
-    }
-
-    await writeToSheet(
-      process.env.SHEET_ID,
-      "MasterTracking",
-      index + 2,
-      `Evidence ${taskKey}`,
-      fileUrl
-    );
-
-    return res.json({ success: true });
-
+    res.json({ student });
   } catch (err) {
-    console.error("Upload ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ---------------------------------------------------------------------
-// 🔵 EMAIL NOTIFICATION
-// ---------------------------------------------------------------------
-router.post("/notify", async (req, res) => {
-  try {
-    const { to, subject, message } = req.body;
-
-    await sendEmail(to, subject, message);
-
-    return res.json({ success: true });
-
-  } catch (err) {
-    console.error("Notify ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
