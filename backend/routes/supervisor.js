@@ -20,15 +20,14 @@ function calculateProgressFrom12(row) {
     "Conference presentation"
   ];
 
-  const done = activities.filter(a => {
+  let done = 0;
+
+  for (const a of activities) {
     const v = row?.[a];
-    if (!v) return false;
-
+    if (!v) continue;
     const s = String(v).trim().toLowerCase();
-    if (!s || ["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
-
-    return true;
-  }).length;
+    if (s && !["", "n/a", "#n/a", "-", "—"].includes(s)) done++;
+  }
 
   return {
     done,
@@ -37,40 +36,39 @@ function calculateProgressFrom12(row) {
   };
 }
 
-// ========================================
-// GET STUDENTS UNDER SUPERVISOR
-// ========================================
 router.get("/students", async (req, res) => {
   try {
-    const email = (req.query.email || "").toLowerCase().trim();
-    if (!email) return res.status(400).json({ error: "Missing supervisor email" });
+    const supervisorEmail = req.query.email;
+    if (!supervisorEmail)
+      return res.status(400).json({ error: "Missing supervisor email" });
 
+    // load sheet
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // FIXED: match EXACT SHEET COLUMN
-    const filtered = rows.filter(r =>
-      (r["Main Supervisor's Email"] || "").toLowerCase() === email
+    // FIXED: Correct column to match email
+    const matches = rows.filter(
+      r => (r["Main Supervisor's Email"] || "").toLowerCase() === supervisorEmail.toLowerCase()
     );
 
-    const result = filtered.map(r => {
+    const students = matches.map(r => {
       const prog = calculateProgressFrom12(r);
 
       return {
         id: r["Student's Email"],
         name: r["Student Name"],
         programme: r["Programme"],
-        supervisor: r["Main Supervisor"],     // NOW SHOW NAME
+        supervisor: r["Main Supervisor"],    // <-- NAME instead of email
         progress: prog.percentage,
         status:
-          prog.percentage === 100 ? "Completed" :
-          prog.percentage >= 75 ? "Ahead" :
-          prog.percentage >= 50 ? "On Track" :
-          prog.percentage >= 25 ? "Behind" :
-          "At Risk"
+          prog.percentage === 100 ? "Completed"
+          : prog.percentage >= 75 ? "Ahead"
+          : prog.percentage >= 50 ? "On Track"
+          : prog.percentage >= 25 ? "Behind"
+          : "At Risk"
       };
     });
 
-    return res.json({ students: result });
+    return res.json({ students });
 
   } catch (err) {
     console.error("Supervisor fetch error:", err);
