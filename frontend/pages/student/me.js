@@ -1,4 +1,4 @@
-ZAqQ// pages/student/me.js
+// frontend/pages/student/me.js
 import { useEffect, useState } from "react";
 import DonutChart from "../../components/DonutChart";
 import TimelineTable from "../../components/TimelineTable";
@@ -45,19 +45,25 @@ export default function MePage() {
   const completedCount = prog.done;
   const totalCount = prog.total;
 
-  // build activityRows for timeline/gantt based on programme (MSc 2y, PhD 3y)
+  // detect MSc vs PhD to decide timeline years (2 vs 3)
   const programmeText = (row.programme || "").toLowerCase();
   const isMsc = programmeText.includes("msc") || programmeText.includes("master");
-  const timelineYears = isMsc ? 2 : 3;
-  // For simplicity use some mapping (you can replace with richer arrays)
-  const activityRows = ACTIVITIES_12.map((act, idx) => ({
+  // Build simplified activity rows (you can replace with richer mapping)
+  const activityRows = ACTIVITIES_12.map((act) => ({
     activity: act,
     milestone: act.startsWith("P") ? act.split(" ")[0] : "Output",
     definition: act,
     start: row.start_date || "",
-    expected: "", // if you have expected date fields in sheet map them here
+    expected: "",
     actual: row.raw?.[act] || ""
   }));
+
+  const initials = (row.student_name || "NA")
+    .split(" ")
+    .map(s => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -67,12 +73,11 @@ export default function MePage() {
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        {/* left */}
         <div className="col-span-4 space-y-6">
           <div className="rounded-xl bg-white p-6 shadow space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
-                { (row.student_name || "NA").split(" ").map(s=>s[0]).slice(0,2).join("").toUpperCase() }
+                {initials}
               </div>
               <div>
                 <div className="font-semibold text-lg">{row.student_name}</div>
@@ -81,7 +86,7 @@ export default function MePage() {
             </div>
 
             <div className="text-sm space-y-1">
-              <div><strong>Supervisor:</strong> {row["Main Supervisor"] || row.raw?.["Main Supervisor"] || row.raw?.["Main Supervisor's Name"] || row.raw?.["Main Supervisor's Email"] || "—"}</div>
+              <div><strong>Main Supervisor:</strong> {row["Main Supervisor"] || row.raw?.["Main Supervisor"] || row.raw?.["Main Supervisor's Name"] || "—"}</div>
               <div><strong>Email:</strong> {row.email}</div>
               <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
               <div><strong>Field:</strong> {row.field || "—"}</div>
@@ -99,7 +104,6 @@ export default function MePage() {
           </div>
         </div>
 
-        {/* right */}
         <div className="col-span-8 space-y-6">
           {tab === "progress" && (
             <>
