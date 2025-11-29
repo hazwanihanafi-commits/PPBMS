@@ -4,29 +4,38 @@ import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-// helpers: compute progress and status (same logic as student)
-const MILESTONE_KEYS = [
-  "P1 Submitted","P1 Approved",
-  "P3 Submitted","P3 Approved",
-  "P4 Submitted","P4 Approved",
-  "P5 Submitted","P5 Approved"
+// 12 activities used for progress calculation
+const ACTIVITIES = [
+  // submission columns and other activity keys from your sheet
+  "P1 Submitted",
+  "P3 Submitted",
+  "P4 Submitted",
+  "P5 Submitted",
+  "Thesis Draft Completed",
+  "Ethical clearance obtained",
+  "Pilot or Phase 1 completed",
+  "Progress approved",
+  "Seminar & report submitted",
+  "Phase 2 completed",
+  "1 indexed paper submitted",
+  "Conference presentation"
 ];
 
-function calculateProgress(row) {
-  const completed = MILESTONE_KEYS.filter(k => row[k] && row[k] !== "" && row[k] !== "#N/A").length;
-  const percentage = Math.round((completed / MILESTONE_KEYS.length) * 100);
-  return percentage;
+function calculateProgressFromRow(row) {
+  // count activities where the sheet cell is not empty
+  const completed = ACTIVITIES.filter((k) => row[k] && row[k].toString().trim() !== "").length;
+  const percent = Math.round((completed / ACTIVITIES.length) * 100);
+  return { percent, completed, total: ACTIVITIES.length };
 }
 
-function getStatus(percentage) {
-  if (percentage === 100) return "Completed";
-  if (percentage >= 75) return "Ahead";
-  if (percentage >= 50) return "On Track";
-  if (percentage >= 25) return "Behind";
+function statusFromPercent(pct) {
+  if (pct === 100) return "Completed";
+  if (pct >= 75) return "Ahead";
+  if (pct >= 50) return "On Track";
+  if (pct >= 25) return "Behind";
   return "At Risk";
 }
 
-// GET /api/supervisor/students?email=supervisor@usm.my
 router.get("/students", async (req, res) => {
   try {
     const email = req.query.email;
@@ -34,72 +43,28 @@ router.get("/students", async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const filtered = rows.filter(
-      r => (r["Main Supervisor's Email"] || "").toLowerCase() === email.toLowerCase()
+    const supervised = rows.filter(
+      (r) => (r["Main Supervisor's Email"] || "").toString().toLowerCase() === email.toLowerCase()
     );
 
-    const students = filtered.map(r => {
-      const progress = calculateProgress(r);
-      const status = getStatus(progress);
-      const supervisorName = r["Main Supervisor Name"] || r["Main Supervisor's Email"] || "";
-
+    const students = supervised.map((r) => {
+      const { percent, completed } = calculateProgressFromRow(r);
       return {
         id: r["Student's Email"] || r["Matric"] || r["Student Name"],
         name: r["Student Name"] || "—",
         programme: r["Programme"] || "—",
-        supervisor: supervisorName,
-        progress,
-        status,
-        raw: r // include raw row if frontend needs more fields
+        supervisorName: r["Main Supervisor"] || r["Main Supervisor's Name"] || r["Main Supervisor's Email"] || "—",
+        progress: percent,
+        completed,
+        total: ACTIVITIES.length,
+        status: statusFromPercent(percent)
       };
     });
 
     res.json({ students });
   } catch (err) {
-    console.error("Supervisor route error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/supervisor/student/:email  -> single student data
-router.get("/student/:email", async (req, res) => {
-  try {
-    const email = decodeURIComponent(req.params.email || "");
-    if (!email) return res.status(400).json({ error: "Missing student email param" });
-
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-    const row = rows.find(r => (r["Student's Email"] || "").toLowerCase() === email.toLowerCase());
-
-    if (!row) return res.status(404).json({ error: "Student not found" });
-
-    const progress = calculateProgress(row);
-    const status = getStatus(progress);
-
-    const student = {
-      id: row["Student's Email"],
-      name: row["Student Name"],
-      programme: row["Programme"],
-      supervisor: row["Main Supervisor Name"] || row["Main Supervisor's Email"],
-      progress,
-      status,
-      raw: row
-    };
-
-    res.json({ student });
-  } catch (err) {
-    console.error("Supervisor student route error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// debug endpoint to see header keys
-router.get("/debug-keys", async (req, res) => {
-  try {
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-    const keys = Object.keys(rows[0] || {});
-    res.json({ keys });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("supervisor students err:", err);
+    res.status(500).json({ error: err.message || "server error" });
   }
 });
 
