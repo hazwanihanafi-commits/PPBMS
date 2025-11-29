@@ -2,60 +2,41 @@ import { useEffect, useState } from "react";
 import DonutChart from "../../components/DonutChart";
 import TimelineTable from "../../components/TimelineTable";
 import MilestoneGantt from "../../components/MilestoneGantt";
-import ActivityMapping from "../../components/ActivityMapping";
 import SubmissionFolder from "../../components/SubmissionFolder";
-
-// milestone definitions
-const MILESTONE_DEFINITIONS = {
-  P1: "Development Plan & Learning Contract",
-  P3: "Research Logbook (Daily/Weekly)",
-  P4: "Monthly Portfolio Monitoring Form",
-  P5: "Annual Portfolio Review (MSc/PhD)",
-};
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
-// helper — treat garbage values as not submitted
-function isSubmittedValue(val) {
-  if (val === null || val === undefined) return false;
+/* -------------------------------
+   12-ACTIVITY PROGRESS MODEL
+--------------------------------*/
+const ACTIVITIES = [
+  "P1 Submitted",
+  "P3 Submitted",
+  "P4 Submitted",
+  "P5 Submitted",
+  "Thesis Draft Completed",
+  "Ethical Clearance Obtained",
+  "Pilot or Phase 1 Completed",
+  "Progress Approved",
+  "Seminar & Report Submitted",
+  "Phase 2 Completed",
+  "1 Indexed Paper Submitted",
+  "Conference Presentation",
+];
+
+function isSubmitted(val) {
+  if (!val) return false;
   const s = String(val).trim().toLowerCase();
-  if (!s) return false;
-  if (["", "n/a", "#n/a", "—", "-", "na"].includes(s)) return false;
+  if (["", "n/a", "#n/a", "-", "—", "na"].includes(s)) return false;
   return true;
 }
 
-// MSc timeline (activities → start/end)
-const mscTimeline = [
-  { activity: "Registration & Orientation", milestone: "P1", start: "2023-01-01", end: "2023-03-31" },
-  { activity: "Literature Review & Proposal Prep", milestone: "P3", start: "2023-04-01", end: "2023-12-31" },
-  { activity: "Proposal Defence", milestone: "P3", start: "2023-07-01", end: "2023-09-30" },
-  { activity: "Research Ethics Approval (JEPeM)", milestone: "P3", start: "2023-04-01", end: "2023-12-31" },
-  { activity: "Research Implementation I", milestone: "P4", start: "2023-10-01", end: "2024-03-31" },
-  { activity: "Research Implementation II", milestone: "P4", start: "2024-04-01", end: "2024-06-30" },
-  { activity: "Publication I", milestone: "P4", start: "2024-04-01", end: "2024-06-30" },
-  { activity: "Research Dissemination", milestone: "P4", start: "2024-07-01", end: "2024-09-30" },
-  { activity: "Mid-Candidature Review", milestone: "P5", start: "2023-10-01", end: "2024-03-31" },
-  { activity: "Thesis Preparation", milestone: "P5", start: "2024-07-01", end: "2024-09-30" },
-  { activity: "Pre-Submission Review (JPMPMP)", milestone: "P5", start: "2024-10-01", end: "2024-12-31" },
-  { activity: "Thesis Examination & Completion", milestone: "P5", start: "2024-10-01", end: "2024-12-31" },
-];
+function calcProgress(row) {
+  const done = ACTIVITIES.filter(a => isSubmitted(row[a])).length;
+  return Math.round((done / ACTIVITIES.length) * 100);
+}
 
-// PhD timeline (activities → start/end)
-const phdTimeline = [
-  { activity: "Registration & Orientation", milestone: "P1", start: "2022-01-01", end: "2022-03-31" },
-  { activity: "Literature Review & Proposal Prep", milestone: "P3", start: "2022-01-01", end: "2022-12-31" },
-  { activity: "Proposal Defence", milestone: "P3", start: "2022-07-01", end: "2022-09-30" },
-  { activity: "Research Ethics Approval (JEPeM)", milestone: "P3", start: "2022-04-01", end: "2022-12-31" },
-  { activity: "Research Implementation I", milestone: "P4", start: "2023-01-01", end: "2023-03-31" },
-  { activity: "Research Communication I", milestone: "P4", start: "2023-04-01", end: "2023-06-30" },
-  { activity: "Research Implementation II", milestone: "P4", start: "2023-07-01", end: "2023-09-30" },
-  { activity: "Publication I", milestone: "P4", start: "2024-04-01", end: "2024-06-30" },
-  { activity: "Research Dissemination", milestone: "P4", start: "2024-07-01", end: "2024-09-30" },
-  { activity: "Thesis Preparation", milestone: "P5", start: "2024-07-01", end: "2024-09-30" },
-  { activity: "Pre-Submission Review (JPMPMP)", milestone: "P5", start: "2024-10-01", end: "2024-12-31" },
-  { activity: "Thesis Examination & Completion", milestone: "P5", start: "2024-10-01", end: "2024-12-31" },
-];
-
+/* ----------- STUDENT PAGE ----------- */
 export default function MePage() {
   const [token, setToken] = useState(null);
   const [row, setRow] = useState(null);
@@ -65,27 +46,26 @@ export default function MePage() {
 
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
-    if (!t) {
-      setError("Not logged in");
-      setLoading(false);
-      return;
-    }
+    if (!t) { setError("Not logged in"); setLoading(false); return; }
     setToken(t);
   }, []);
 
   useEffect(() => {
     if (!token) return;
+
     (async () => {
       try {
         const res = await fetch(`${API}/api/student/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const txt = await res.text();
-        if (!res.ok) throw new Error(txt);
-        const data = JSON.parse(txt);
+
+        const text = await res.text();
+        if (!res.ok) throw new Error(text);
+        const data = JSON.parse(text);
+
         setRow(data.row);
-      } catch (err) {
-        setError(err.message);
+      } catch (e) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
@@ -96,55 +76,46 @@ export default function MePage() {
   if (error) return <div className="p-8 text-red-600">{error}</div>;
   if (!row) return null;
 
-  // choose timeline by programme (auto-detect)
-  const programmeText = (row.programme || "").toLowerCase();
-  const timeline = programmeText.includes("master") || programmeText.includes("msc")
-    ? mscTimeline
-    : phdTimeline;
+  /* -----------------------------
+       Compute Progress
+  ------------------------------*/
+  const percentage = calcProgress(row.raw);
+  const completedCount = ACTIVITIES.filter(a => isSubmitted(row.raw[a])).length;
 
-  // Build milestones to compute progress using canonical sheet keys (P1/P3/P4/P5)
-  const canonical = [
-    { code: "P1", expected: null, actual: row.raw?.["P1 Submitted"] || null },
-    { code: "P3", expected: null, actual: row.raw?.["P3 Submitted"] || null },
-    { code: "P4", expected: null, actual: row.raw?.["P4 Submitted"] || null },
-    { code: "P5", expected: null, actual: row.raw?.["P5 Submitted"] || null },
-  ];
+  /* -----------------------------
+       Build timeline rows
+  ------------------------------*/
+  const activityRows = ACTIVITIES.map(a => ({
+    activity: a,
+    milestone: a,
+    start: row.start_date || "",
+    expected: "",
+    actual: row.raw[a] || ""
+  }));
 
-  const totalMilestones = canonical.length;
-  const completedCount = canonical.filter(m => isSubmittedValue(m.actual)).length;
-  const percentage = totalMilestones > 0 ? Math.round((completedCount / totalMilestones) * 100) : 0;
-
-  // Build activity rows for timeline component — include actual submission if exists
-  const activityRows = timeline.map((tItem) => {
-    // map milestone to actual submission date if available (sheet uses Px Submitted)
-    const submittedKey = `${tItem.milestone} Submitted`;
-    const actual = row.raw?.[submittedKey] || "";
-    return {
-      activity: tItem.activity,
-      milestone: tItem.milestone,
-      definition: MILESTONE_DEFINITIONS[tItem.milestone] || tItem.milestone,
-      start: tItem.start,
-      expected: tItem.end,
-      actual,
-    };
-  });
-
-  const initials = (row.student_name || "NA")
+  const initials = (row.student_name || "")
     .split(" ")
     .map(s => s[0])
-    .slice(0, 2)
     .join("")
     .toUpperCase();
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      
+      {/* HEADER */}
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
         <h1 className="text-4xl font-bold">Student Progress</h1>
-        <p className="mt-2 text-lg"><strong>{row.student_name}</strong> — {row.programme}</p>
+        <p className="mt-2 text-lg">
+          <strong>{row.student_name}</strong> — {row.programme}
+        </p>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
+
+        {/* LEFT PANEL */}
         <div className="col-span-4 space-y-6">
+
+          {/* PROFILE CARD */}
           <div className="rounded-xl bg-white p-6 shadow space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
@@ -162,33 +133,37 @@ export default function MePage() {
               <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
               <div><strong>Field:</strong> {row.field || "—"}</div>
               <div><strong>Department:</strong> {row.department || "—"}</div>
-              {/* STATUS line intentionally removed per request */}
             </div>
           </div>
 
+          {/* TABS */}
           <div className="rounded-xl bg-white shadow p-4">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button className={tab === "progress" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("progress")}>Progress</button>
-              <button className={tab === "submissions" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("submissions")}>Submissions</button>
-              <button className={tab === "reports" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("reports")}>Reports</button>
-              <button className={tab === "documents" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("documents")}>Documents</button>
+              <button className={tab==="progress" ? "text-purple-700 font-bold" : ""} onClick={()=>setTab("progress")}>Progress</button>
+              <button className={tab==="submissions" ? "text-purple-700 font-bold" : ""} onClick={()=>setTab("submissions")}>Submissions</button>
+              <button className={tab==="reports" ? "text-purple-700 font-bold" : ""} onClick={()=>setTab("reports")}>Reports</button>
+              <button className={tab==="documents" ? "text-purple-700 font-bold" : ""} onClick={()=>setTab("documents")}>Documents</button>
             </div>
           </div>
+
         </div>
 
+        {/* RIGHT PANEL */}
         <div className="col-span-8 space-y-6">
+
+          {/* PROGRESS TAB */}
           {tab === "progress" && (
             <>
               <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
                 <DonutChart percentage={percentage} size={150} />
                 <div>
                   <div className="text-4xl font-bold">{percentage}%</div>
-                  <div className="text-gray-600">{completedCount} of {totalMilestones} milestones completed</div>
+                  <div className="text-gray-600">{completedCount} of 12 activities completed</div>
                 </div>
               </div>
 
               <div className="rounded-xl bg-white p-6 shadow">
-                <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
+                <h3 className="text-xl font-semibold text-purple-700 mb-4">Activity Gantt Chart</h3>
                 <MilestoneGantt rows={activityRows} width={1100} />
               </div>
 
@@ -199,23 +174,38 @@ export default function MePage() {
             </>
           )}
 
-          {tab === "submissions" && <SubmissionFolder raw={row.raw} />}
+          {/* SUBMISSIONS */}
+          {tab === "submissions" && (
+            <SubmissionFolder
+              raw={row.raw}
+              extraActivities={ACTIVITIES}
+            />
+          )}
 
+          {/* REPORTS */}
           {tab === "reports" && (
-            <div className="rounded-xl bg-white p-6 shadow text-gray-600">
+            <div className="rounded-xl bg-white p-6 shadow">
               <h3 className="text-xl font-semibold text-purple-700 mb-4">Reports</h3>
-              <p>No reports available yet.</p>
+              <p>No reports available.</p>
             </div>
           )}
 
+          {/* DOCUMENTS */}
           {tab === "documents" && (
-            <div className="rounded-xl bg-white p-6 shadow space-y-3">
+            <div className="rounded-xl bg-white p-6 shadow space-y-4">
               <h3 className="text-xl font-semibold text-purple-700 mb-4">Documents</h3>
-              <a target="_blank" rel="noreferrer" href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc" className="text-purple-600 hover:underline block">
-                PPBMS Student Progress Dashboard (Doc)
+
+              <a
+                href="https://gamma.app/docs/PPBMS-Student-Progress-Dashboard-whsfuidye58swk3?mode=doc"
+                target="_blank"
+                rel="noreferrer"
+                className="text-purple-600 underline"
+              >
+                PPBMS Dashboard Document
               </a>
             </div>
           )}
+
         </div>
       </div>
     </div>
