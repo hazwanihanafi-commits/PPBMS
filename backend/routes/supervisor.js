@@ -43,10 +43,11 @@ router.get("/students", async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const filtered = rows.filter(r =>
-      (r["Main Supervisor"]?.toLowerCase().includes(email.toLowerCase())) ||
-      (r["Main Supervisor's Email"]?.toLowerCase() === email.toLowerCase())
-    );
+    const filtered = rows.filter(r => {
+  const supEmail = (r["Main Supervisor's Email"] || "").toLowerCase();
+  const supName  = (r["Main Supervisor"] || "").toLowerCase();
+  const query    = email.toLowerCase();
+  return
 
     const result = filtered.map(r => {
       const prog = calculateProgressFrom12(r);
