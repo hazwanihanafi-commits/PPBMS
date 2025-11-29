@@ -13,36 +13,26 @@ dotenv.config();
 const app = express();
 
 // CORS
-app.use(
-  cors({
-    origin: [
-      "https://ppbms-frontend.onrender.com",
-      "http://localhost:3000",
-    ],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    "https://ppbms-frontend.onrender.com",
+    "http://localhost:3000",
+  ],
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(cookieParser());
 
-// ROOT CHECK
+// Root
 app.get("/", (req, res) => {
   res.send("AMDI Student Progress API is running");
 });
 
-// ROUTES
+// Routes
 app.use("/api", apiRouter);
 app.use("/api/student", studentRouter);
 app.use("/api/supervisor", supervisorRouter);
 app.use("/auth", authRouter);
-
-// DEBUG
-app.get("/test-debug", (req, res) =>
-  res.send("NEW BACKEND VERSION LOADED")
-);
-
-// 404 HANDLER
-app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
 export default app;
