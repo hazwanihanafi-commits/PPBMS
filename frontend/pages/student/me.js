@@ -80,14 +80,13 @@ export default function MePage() {
   const programme = (row.programme || "").toLowerCase();
   const items = programme.includes("msc") || programme.includes("master") ? MSC_ITEMS : PHD_ITEMS;
 
-  // compute progress (uses your utils)
-  const prog = calculateProgress(row.raw || {}, row.programme || "");
+  // FIXED: uses correct progress calculator
+  const prog = calculateProgress(row.raw || {}, row.programme || "", row.start_date || "");
   const percentage = prog.percentage;
   const completedCount = prog.doneCount;
   const totalCount = prog.total;
 
   async function toggleItem(key) {
-    // Student toggles item -> actor=student
     try {
       const res = await fetch(`${API}/api/tasks/toggle`, {
         method: "POST",
@@ -96,7 +95,6 @@ export default function MePage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || JSON.stringify(j));
-      // Refresh row
       await refreshRow();
     } catch (e) {
       alert("Toggle error: " + e.message);
@@ -126,7 +124,7 @@ export default function MePage() {
       alert("Upload failed: " + e.message);
     } finally {
       setUploading(false);
-      e.target.value = ""; // clear file input
+      e.target.value = "";
     }
   }
 
@@ -168,7 +166,7 @@ export default function MePage() {
 
   const activityRows = items.map((label) => ({
     activity: label,
-    expected: "", // optional: you can compute expected from start_date later
+    expected: "",
     actual: row.raw?.[label] || (row.raw?.[`${label} StudentTickDate`] || ""),
     key: label,
     done: !!row.raw?.[label] && String(row.raw[label]).toLowerCase() !== "false"
@@ -233,8 +231,6 @@ export default function MePage() {
                         <span>Tick</span>
                       </label>
 
-                      {/* upload file for mandatory items (only show file input for items that require doc) */}
-                      {/* Example: Development Plan & Final Thesis Submission require upload */}
                       {["Development Plan & Learning Contract", "Final Thesis Submission", "Internal Evaluation Completed", "Annual Progress Review (Year 1)"].includes(r.key) && (
                         <div>
                           <input
@@ -245,7 +241,6 @@ export default function MePage() {
                         </div>
                       )}
 
-                      {/* show link if uploaded */}
                       {row.raw?.[submissionUrlCol] && (
                         <a href={row.raw[submissionUrlCol]} target="_blank" rel="noreferrer" className="text-sm text-purple-600 hover:underline">View</a>
                       )}
@@ -259,7 +254,9 @@ export default function MePage() {
           <div className="rounded-xl bg-white p-6 shadow">
             <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual (timeline)</h3>
             <TimelineTable rows={activityRows} />
-            <div className="mt-2 text-sm text-gray-500">Expected dates are computed from your start date (future improvement: set per-item expected dates in sheet).</div>
+            <div className="mt-2 text-sm text-gray-500">
+              Expected dates are computed from your start date (future improvement: set per-item expected dates in sheet).
+            </div>
           </div>
         </div>
       </div>
