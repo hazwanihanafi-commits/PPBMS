@@ -1,10 +1,31 @@
+// components/ExpectedActualChart.js
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend
+} from "chart.js";
 import { Bar } from "react-chartjs-2";
 
-export default function ExpectedActualChart({ items }) {
-  const labels = items.map(i => i.key);
+ChartJS.register(
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend
+);
 
-  const expected = items.map(i => i.expected && i.expected !== "—" ? 1 : 0);
-  const actual = items.map(i => i.actual && i.actual !== "—" ? 1 : 0);
+export default function ExpectedActualChart({ items }) {
+  const labels = items.map((i) => i.key);
+
+  const expected = items.map((i) =>
+    i.expected && i.expected !== "—" ? 1 : 0
+  );
+  const actual = items.map((i) =>
+    i.actual && i.actual !== "—" ? 1 : 0
+  );
 
   const data = {
     labels,
@@ -12,18 +33,14 @@ export default function ExpectedActualChart({ items }) {
       {
         label: "Expected",
         data: expected,
-        backgroundColor: "rgba(99, 102, 241, 0.3)", // purple
-        borderColor: "rgba(99, 102, 241, 1)",
-        borderWidth: 1
+        backgroundColor: "rgba(99, 102, 241, 0.5)", // purple
       },
       {
         label: "Actual",
         data: actual,
-        backgroundColor: "rgba(16, 185, 129, 0.3)", // green
-        borderColor: "rgba(16, 185, 129, 1)",
-        borderWidth: 1
-      }
-    ]
+        backgroundColor: "rgba(16, 185, 129, 0.5)", // green
+      },
+    ],
   };
 
   return <Bar data={data} />;
