@@ -7,7 +7,7 @@ import { calculateProgressWithTimeline } from "../../utils/calcProgress";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
-// List of programme activities (MSc)
+// Programme activities
 const ACTIVITIES = [
   "Development Plan & Learning Contract",
   "Proposal Defense Endorsed",
@@ -24,7 +24,7 @@ const ACTIVITIES = [
   "Final Thesis Submission",
 ];
 
-// Items that require mandatory evidence upload
+// These items require evidence upload
 const EVIDENCE_REQUIRED = new Set([
   "Development Plan & Learning Contract",
   "Annual Progress Review (Year 1)",
@@ -39,7 +39,9 @@ export default function MePage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load JWT token
+  /* ---------------------------------------------
+      LOAD TOKEN
+  --------------------------------------------- */
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -50,9 +52,12 @@ export default function MePage() {
     setToken(t);
   }, []);
 
-  // Load student info from backend
+  /* ---------------------------------------------
+      LOAD STUDENT DATA
+  --------------------------------------------- */
   useEffect(() => {
     if (!token) return;
+
     (async () => {
       try {
         const res = await fetch(`${API}/api/student/me`, {
@@ -63,7 +68,7 @@ export default function MePage() {
         const data = JSON.parse(txt);
         setRow(data.row);
       } catch (err) {
-        setError(err.message || "Failed to load");
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -74,7 +79,9 @@ export default function MePage() {
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!row) return null;
 
-  // Normalise date (DD/MM/YYYY → YYYY-MM-DD)
+  /* ---------------------------------------------
+      NORMALIZE DATE
+  --------------------------------------------- */
   function normalizeDate(d) {
     if (!d) return null;
     if (d.includes("/") && d.split("/").length === 3) {
@@ -86,7 +93,9 @@ export default function MePage() {
 
   const startDate = normalizeDate(row.start_date || row.raw?.["Start Date"]);
 
-  // Compute progress + expected timeline
+  /* ---------------------------------------------
+      CALCULATE PROGRESS + TIMELINE
+  --------------------------------------------- */
   const prog = calculateProgressWithTimeline(
     row.raw || {},
     row.programme || "",
@@ -97,11 +106,17 @@ export default function MePage() {
   const completedCount = prog.doneCount;
   const totalCount = prog.total;
 
-  /* ------------------------------
-        TOGGLE ITEM
-  ------------------------------ */
+  /* ---------------------------------------------
+      FIXED toggleItem() — supports UNTICK
+  --------------------------------------------- */
   async function toggleItem(key) {
     try {
+      const isCurrentlyDone =
+        row.raw[key] === "TRUE" ||
+        row.raw[`${key} Submitted`] === "TRUE";
+
+      const newValue = !isCurrentlyDone; // toggle
+
       const res = await fetch(`${API}/api/tasks/toggle`, {
         method: "POST",
         headers: {
@@ -112,6 +127,7 @@ export default function MePage() {
           studentEmail: row.email,
           key,
           actor: "student",
+          value: newValue, // backend will tick OR untick
         }),
       });
 
@@ -124,70 +140,67 @@ export default function MePage() {
     }
   }
 
-  /* ------------------------------
-        FILE UPLOAD
-  ------------------------------ */
+  /* ---------------------------------------------
+      FILE UPLOAD
+  --------------------------------------------- */
   async function uploadFile(e, key) {
-  const file = e.target.files[0];
-  if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-  setUploading(true);
+    setUploading(true);
 
-  try {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("studentEmail", row.email);
-    form.append("key", key);
-
-    const res = await fetch(`${API}/api/tasks/upload`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
-
-    const j = await res.json();
-    if (!res.ok) throw new Error(j.error || JSON.stringify(j));
-
-    await refreshRow();
-    alert("Uploaded");
-  } catch (e) {
-    alert("Upload failed: " + e.message);
-  } finally {
-    setUploading(false);
-    e.target.value = "";
-  }
-}
-
-
-  /* ------------------------------
-        REFRESH AFTER ACTION
-  ------------------------------ */
-  async function refreshRow() {
     try {
-      const res = await fetch(`${API}/api/student/me`, {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("studentEmail", row.email);
+      form.append("key", key);
+
+      const res = await fetch(`${API}/api/tasks/upload`, {
+        method: "POST",
         headers: { Authorization: `Bearer ${token}` },
+        body: form,
       });
-      const txt = await res.text();
-      if (!res.ok) return;
-      const data = JSON.parse(txt);
-      setRow(data.row);
-    } catch (e) {}
+
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || JSON.stringify(j));
+
+      await refreshRow();
+      alert("Uploaded");
+    } catch (e) {
+      alert("Upload failed: " + e.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   }
 
-  /* ------------------------------
-       RENDER CHECKLIST ACTIVITIES
-  ------------------------------ */
+  /* ---------------------------------------------
+      REFRESH STUDENT DATA
+  --------------------------------------------- */
+  async function refreshRow() {
+    const res = await fetch(`${API}/api/student/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const txt = await res.text();
+    if (res.ok) setRow(JSON.parse(txt).row);
+  }
+
+  /* ---------------------------------------------
+      BUILD CHECKLIST ROWS
+  --------------------------------------------- */
   const activityRows = ACTIVITIES.map((label) => {
     const submittedCol = `${label} Submitted`;
     const urlCol = `${label} Submission URL`;
     const dateCol = `${label} StudentTickDate`;
 
     const done =
-      String(row.raw?.[submittedCol] || "").toLowerCase() === "true" ||
-      String(row.raw?.[label] || "").toLowerCase() === "true";
+      row.raw?.[submittedCol] === "TRUE" ||
+      row.raw?.[label] === "TRUE";
 
     const actual =
-      row.raw?.[dateCol] || row.raw?.[label] || "—";
+      row.raw?.[dateCol] ||
+      row.raw?.[label] ||
+      "—";
 
     return {
       key: label,
@@ -198,9 +211,12 @@ export default function MePage() {
     };
   });
 
+  /* ---------------------------------------------
+      RENDER PAGE
+  --------------------------------------------- */
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      
+
       {/* HEADER */}
       <header className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
         <h1 className="text-3xl font-bold">Student Progress</h1>
@@ -210,30 +226,19 @@ export default function MePage() {
       </header>
 
       <div className="grid md:grid-cols-12 gap-6">
-        
         {/* LEFT PANEL */}
         <div className="md:col-span-4 space-y-6">
-          
-          {/* STUDENT INFO CARD */}
           <div className="rounded-xl bg-white p-6 shadow">
             <div className="text-lg font-semibold">{row.student_name}</div>
             <div className="text-sm text-gray-600">{row.programme}</div>
-
             <div className="mt-4 text-sm space-y-1">
-              <div>
-                <strong>Supervisor:</strong>{" "}
-                {row.raw?.["Main Supervisor"] || "—"}
-              </div>
-              <div>
-                <strong>Email:</strong> {row.email}
-              </div>
-              <div>
-                <strong>Start Date:</strong> {startDate || "—"}
-              </div>
+              <div><strong>Supervisor:</strong> {row.raw?.["Main Supervisor"]}</div>
+              <div><strong>Email:</strong> {row.email}</div>
+              <div><strong>Start Date:</strong> {startDate}</div>
             </div>
           </div>
 
-          {/* PROGRESS DONUT */}
+          {/* PROGRESS */}
           <div className="rounded-xl bg-white p-4 shadow">
             <div className="text-sm font-medium mb-2">Progress</div>
             <div className="flex items-center gap-4">
@@ -250,7 +255,7 @@ export default function MePage() {
 
         {/* RIGHT PANEL */}
         <div className="md:col-span-8 space-y-6">
-          
+
           {/* CHECKLIST */}
           <div className="rounded-xl bg-white p-6 shadow">
             <h3 className="text-xl font-semibold text-purple-700 mb-4">
@@ -259,20 +264,14 @@ export default function MePage() {
 
             <div className="space-y-3">
               {activityRows.map((r) => (
-                <div
-                  key={r.key}
-                  className="flex items-center justify-between border-b pb-3"
-                >
+                <div key={r.key} className="flex items-center justify-between border-b pb-3">
                   <div>
                     <div className="font-medium">{r.activity}</div>
-                    <div className="text-sm text-gray-500">
-                      Actual: {r.actual || "—"}
-                    </div>
+                    <div className="text-sm text-gray-500">Actual: {r.actual}</div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    
-                    {/* Toggle */}
+                    {/* Tick box */}
                     <label className="inline-flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
@@ -283,7 +282,7 @@ export default function MePage() {
                       <span>Tick</span>
                     </label>
 
-                    {/* File upload for required evidence */}
+                    {/* Evidence Upload */}
                     {EVIDENCE_REQUIRED.has(r.key) && (
                       <input
                         type="file"
@@ -292,7 +291,7 @@ export default function MePage() {
                       />
                     )}
 
-                    {/* Link to existing file */}
+                    {/* View File */}
                     {r.url && (
                       <a
                         href={r.url}
@@ -315,11 +314,10 @@ export default function MePage() {
               Expected vs Actual (timeline)
             </h3>
 
-            {/* USE PROG.ITEMS HERE */}
             <TimelineTable rows={prog.items} />
 
             <div className="mt-2 text-sm text-gray-500">
-              Expected dates are computed from your start date.
+              Expected dates are computed automatically.
             </div>
           </div>
         </div>
