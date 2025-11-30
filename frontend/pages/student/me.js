@@ -1,18 +1,14 @@
 // frontend/pages/student/me.js
 import { useEffect, useState } from "react";
-import DonutChart from "../../components/DonutChart";
-import TimelineTable from "../../components/TimelineTable";
-import SubmissionFolder from "../../components/SubmissionFolder";
-import { calculateProgress } from "../../utils/calcProgress";
-
+import { calculateProgressWithTimeline } from "../../utils/calcProgress";
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export default function MePage() {
   const [token, setToken] = useState(null);
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [tab, setTab] = useState("progress");
+  const [error, setError] = useState("");
+  const [refreshFlag, setRefreshFlag] = useState(0);
 
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
@@ -28,100 +24,129 @@ export default function MePage() {
         const txt = await res.text();
         if (!res.ok) throw new Error(txt);
         const data = JSON.parse(txt);
-        setRow(data.row || null);
+        setRow(data.row);
       } catch (err) {
-        setError(err.message);
+        setError(String(err));
       } finally {
         setLoading(false);
       }
     })();
-  }, [token]);
+  }, [token, refreshFlag]);
 
   if (loading) return <div className="p-6">Loading…</div>;
-  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!row) return null;
 
-  const prog = calculateProgress(row.raw || {}, row.programme || "");
-  const { percentage, doneCount, total, items } = prog;
+  const programme = row.programme || "";
+  const startDate = row.start_date || row.raw?.["Start Date"] || null;
 
-  const activityRows = items.map(it => ({
-    activity: it.label,
-    expected: it.expected,
-    actual: it.actual,
-    status: it.status,
-    remaining: it.remaining,
-  }));
+  const { items, doneCount, total, percentage } = calculateProgressWithTimeline(row.raw || {}, programme, startDate);
 
-  const initials = (row.student_name || "NA").split(" ").map(s => s[0]).slice(0,2).join("").toUpperCase();
+  // toggle student tick — calls backend which writes to Google Sheet
+  async function toggleTick(itemKey, setTo) {
+    const token = localStorage.getItem("ppbms_token");
+    try {
+      const res = await fetch(`${API}/api/tasks/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ studentEmail: row.email, key: itemKey, value: setTo ? "TRUE" : "" })
+      });
+      const txt = await res.text();
+      if (!res.ok) throw new Error(txt);
+      // refresh the student row
+      setRefreshFlag(f => f + 1);
+    } catch (e) {
+      alert("Error updating tick: " + e.message);
+    }
+  }
+
+  // Upload stub: sends a URL or uses file upload to backend
+  async function uploadDocument(key) {
+    const token = localStorage.getItem("ppbms_token");
+    const docUrl = prompt("Paste document URL (or use upload implementation):");
+    if (!docUrl) return;
+    try {
+      const res = await fetch(`${API}/api/tasks/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ studentEmail: row.email, key, url: docUrl })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setRefreshFlag(f => f + 1);
+    } catch (e) {
+      alert("Upload failed: " + e.message);
+    }
+  }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow">
         <h1 className="text-3xl font-bold">Student Progress</h1>
-        <p className="mt-2 text-lg"><strong>{row.student_name}</strong> — {row.programme}</p>
+        <p className="mt-2 text-lg"><strong>{row.student_name}</strong> — {programme}</p>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-4 space-y-6">
-          <div className="rounded-xl bg-white p-6 shadow space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
-                {initials}
-              </div>
-              <div>
-                <div className="font-semibold text-lg">{row.student_name}</div>
-                <div className="text-gray-600 text-sm">{row.programme}</div>
-              </div>
-            </div>
-
-            <div className="text-sm space-y-1">
-              <div><strong>Main Supervisor:</strong> {row.supervisor || row.raw?.["Main Supervisor"] || "—"}</div>
-              <div><strong>Email:</strong> {row.email || "—"}</div>
-              <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
-              <div><strong>Field:</strong> {row.field || "—"}</div>
-              <div><strong>Department:</strong> {row.department || "—"}</div>
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-white shadow p-4">
-            <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button className={tab === "progress" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("progress")}>Progress</button>
-              <button className={tab === "submissions" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("submissions")}>Submissions</button>
-              <button className={tab === "documents" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("documents")}>Documents</button>
+      <div className="grid grid-cols-12 gap-6 mt-6">
+        <div className="col-span-4">
+          <div className="bg-white p-4 rounded shadow">
+            <div className="font-semibold">{row.student_name}</div>
+            <div className="text-sm text-gray-600">{programme}</div>
+            <div className="mt-3 text-sm">
+              <div><strong>Supervisor:</strong> {row.raw?.["Main Supervisor"] || "—"}</div>
+              <div><strong>Email:</strong> {row.email}</div>
+              <div><strong>Start Date:</strong> {startDate || "—"}</div>
             </div>
           </div>
         </div>
 
-        <div className="col-span-8 space-y-6">
-          {tab === "progress" && (
-            <>
-              <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
-                <DonutChart percentage={percentage} size={150} />
-                <div>
-                  <div className="text-4xl font-bold">{percentage}%</div>
-                  <div className="text-gray-600">{doneCount} of {total} items completed</div>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-white p-6 shadow">
-                <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual</h3>
-                <TimelineTable rows={activityRows} />
-              </div>
-            </>
-          )}
-
-          {tab === "submissions" && (
-            <div className="rounded-xl bg-white p-6 shadow">
-              <SubmissionFolder raw={row.raw} studentEmail={row.email} />
+        <div className="col-span-8">
+          <div className="bg-white p-4 rounded shadow">
+            <div className="flex items-center gap-6">
+              <div className="text-4xl font-bold">{percentage}%</div>
+              <div className="text-gray-600">{doneCount} of {total} items completed</div>
             </div>
-          )}
+          </div>
 
-          {tab === "documents" && (
-            <div className="rounded-xl bg-white p-6 shadow space-y-3">
-              <h3 className="text-xl font-semibold text-purple-700 mb-4">Documents</h3>
-              <p className="text-sm text-gray-600">Upload required monitoring documents (Development Plan & Annual Progress / Internal Evaluation) via the submission panel.</p>
+          <div className="bg-white p-6 rounded shadow mt-4">
+            <h3 className="font-semibold text-lg mb-4">Expected vs Actual</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-purple-600 text-white">
+                  <tr>
+                    <th className="p-2 text-left">Activity</th>
+                    <th className="p-2">Expected</th>
+                    <th className="p-2">Actual</th>
+                    <th className="p-2">Status</th>
+                    <th className="p-2">Remaining</th>
+                    <th className="p-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map(it => (
+                    <tr key={it.key} className="border-b">
+                      <td className="p-2">{it.label}</td>
+                      <td className="p-2 text-center">{it.expected}</td>
+                      <td className="p-2 text-center">{it.actual}</td>
+                      <td className="p-2 text-center">{it.status}</td>
+                      <td className="p-2 text-center">{it.remaining}</td>
+                      <td className="p-2 text-center">
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!it.done}
+                            onChange={(e) => toggleTick(it.key, e.target.checked)}
+                          />
+                          { (it.key === "Development Plan & Learning Contract" || it.key === "Internal Evaluation Completed") && (
+                            <button className="ml-2 px-2 py-1 bg-purple-600 text-white rounded" onClick={() => uploadDocument(it.key)}>Upload</button>
+                          )}
+                        </label>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
+
         </div>
       </div>
     </div>
