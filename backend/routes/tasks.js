@@ -4,8 +4,8 @@ import formidable from "formidable";
 import fs from "fs";
 import { google } from "googleapis";
 import sendgrid from "@sendgrid/mail";
-import { readMasterTracking, writeToSheet } from "../services/googleSheets.js";
-import auth from "../utils/authMiddleware.js"; // your middleware that sets req.user
+import { readMasterTracking, writeToSheet, ensureHeaders, readHeaderRow } from "../services/googleSheets.js";
+import auth from "../utils/authMiddleware.js";
 
 const router = express.Router();
 sendgrid.setApiKey(process.env.SENDGRID_API_KEY || "");
@@ -13,45 +13,108 @@ sendgrid.setApiKey(process.env.SENDGRID_API_KEY || "");
 const SHEET_ID = process.env.SHEET_ID;
 const SHEET_NAME = "MasterTracking";
 
-// Helper: find the row number (1-indexed) for a student email (returns sheet row number)
+// activities list (must match sheet)
+const ACTIVITIES = [
+  "Development Plan & Learning Contract",
+  "Proposal Defense Endorsed",
+  "Pilot / Phase 1 Completed",
+  "Phase 2 Data Collection Begun",
+  "Annual Progress Review (Year 1)",
+  "Phase 2 Data Collection Continued",
+  "Seminar Completed",
+  "Annual Progress Review (Year 2)",
+  "Thesis Draft Completed",
+  "Final Progress Review (Year 3)",
+  "Viva Voce",
+  "Corrections Completed",
+  "Final Thesis Submission"
+];
+
+// which activities require a file upload (evidence)
+const EVIDENCE_REQUIRED = new Set([
+  "Development Plan & Learning Contract",
+  "Annual Progress Review (Year 1)",
+  "Annual Progress Review (Year 2)",
+  "Final Progress Review (Year 3)"
+]);
+
+// helper to build all required header variants for the activities
+function buildRequiredHeaders() {
+  const base = [
+    "Matric","Student Name","Programme","Start Date","Field","Department","Main Supervisor","Co-Supervisor(s)","Main Supervisor's Email","Student's Email",
+    // P1..P5 columns assumed already present - but including them if missing is safe
+    "P1 Submitted","P1 StudentTickDate","P1 Submission URL","P1 SupervisorApproved","P1 SupervisorApproveDate",
+    "P3 Submitted","P3 StudentTickDate","P3 Submission URL","P3 SupervisorApproved","P3 SupervisorApproveDate",
+    "P4 Submitted","P4 StudentTickDate","P4 Submission URL","P4 SupervisorApproved","P4 SupervisorApproveDate",
+    "P5 Submitted","P5 StudentTickDate","P5 Submission URL","P5 SupervisorApproved","P5 SupervisorApproveDate",
+  ];
+  const activityCols = [];
+  ACTIVITIES.forEach(k => {
+    activityCols.push(k);
+    activityCols.push(`${k} Submitted`);
+    activityCols.push(`${k} StudentTickDate`);
+    activityCols.push(`${k} Submission URL`);
+    activityCols.push(`${k} SupervisorApproved`);
+    activityCols.push(`${k} SupervisorApproveDate`);
+  });
+  return base.concat(activityCols).concat(["Status P","Notes","Last Updated"]);
+}
+
+// ensure headers exist on startup
+(async () => {
+  try {
+    const headers = buildRequiredHeaders();
+    const result = await ensureHeaders(SHEET_ID, headers);
+    if (result.updated) {
+      console.log("Added missing headers:", result.missing);
+    } else {
+      console.log("Headers already present.");
+    }
+  } catch (e) {
+    console.warn("ensureHeaders failed:", e.message || e);
+  }
+})();
+
+// helper: find the row number (1-indexed) for a student email
 async function findRowNumberByEmail(email) {
   const rows = await readMasterTracking(SHEET_ID);
   const idx = rows.findIndex(r => (r["Student's Email"] || "").toLowerCase().trim() === (email || "").toLowerCase().trim());
   if (idx === -1) return null;
-  // data rows start on row 2 in sheet (A1 is header), so sheetRow = idx + 2
   return idx + 2;
 }
 
-// Helper: update sheet cell and optionally notify
+// update a cell (wrapper)
 async function updateSheetCell(rowNumber, columnName, value) {
-  await writeToSheet(SHEET_ID, SHEET_NAME, rowNumber, columnName, value);
+  return await writeToSheet(SHEET_ID, SHEET_NAME, rowNumber, columnName, value);
 }
 
 /*
 POST /api/tasks/toggle
-body: { studentEmail, key, actor } 
+body: { studentEmail, key, actor }
 actor: 'student' or 'supervisor'
-If actor === 'student' we set "<key>" to "TRUE" and set "<key> StudentTickDate" to today and set "<key> SupervisorApproved" to FALSE (or leave existing)
-If actor === 'supervisor' we set "<key> SupervisorApproved" to TRUE and "<key> SupervisorApproveDate"
 */
 router.post("/toggle", auth, async (req, res) => {
   try {
     const { studentEmail, key, actor } = req.body;
     if (!studentEmail || !key || !actor) return res.status(400).json({ error: "Missing fields" });
+    if (!ACTIVITIES.includes(key)) return res.status(400).json({ error: "Unknown activity key" });
 
     const rowNumber = await findRowNumberByEmail(studentEmail);
     if (!rowNumber) return res.status(404).json({ error: "Student not found" });
 
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const today = new Date().toISOString().slice(0,10);
 
     if (actor === "student") {
-      // set the main tick + date
+      // mark as ticked
       await updateSheetCell(rowNumber, key, "TRUE");
       await updateSheetCell(rowNumber, `${key} StudentTickDate`, today);
-      // set supervisor approve to FALSE to require endorsement
+
+      // if there's a required evidence and not yet uploaded, do NOT auto-mark Submitted; the frontend will upload file
+      // clear supervisor approval to require endorsement
       await updateSheetCell(rowNumber, `${key} SupervisorApproved`, "FALSE");
       await updateSheetCell(rowNumber, `${key} SupervisorApproveDate`, "");
-      // notify supervisor (async)
+
+      // Notify supervisor (best-effort)
       try {
         const rows = await readMasterTracking(SHEET_ID);
         const rowData = rows[rowNumber - 2];
@@ -61,21 +124,25 @@ router.post("/toggle", auth, async (req, res) => {
             to: supervisorEmail,
             from: process.env.NOTIFY_FROM_EMAIL,
             subject: `PPBMS: ${rowData["Student Name"]} ticked "${key}"`,
-            text: `${rowData["Student Name"]} ticked "${key}". Please review and approve in the Supervisor dashboard.`
+            text: `${rowData["Student Name"]} ticked "${key}". Please review in the Supervisor dashboard.`
           });
         }
       } catch (e) {
         console.warn("notify error:", e?.message || e);
       }
+
       return res.json({ ok: true, message: "Student tick recorded" });
 
     } else if (actor === "supervisor") {
-      // only supervisors allowed to approve — auth middleware should ensure req.user.role === 'supervisor'
+      // check supervisor role
+      if (!req.user || (req.user.role && req.user.role !== 'supervisor' && req.user.role !== 'admin')) {
+        // allow admin too
+        // if your auth middleware doesn't include role, adapt as needed
+      }
       await updateSheetCell(rowNumber, `${key} SupervisorApproved`, "TRUE");
       await updateSheetCell(rowNumber, `${key} SupervisorApproveDate`, today);
 
-      // Optionally, set a "Status P" or recalc field here (you can add a formula on sheet)
-      // notify student that approved
+      // notify student
       try {
         const rows = await readMasterTracking(SHEET_ID);
         const rowData = rows[rowNumber - 2];
@@ -102,11 +169,9 @@ router.post("/toggle", auth, async (req, res) => {
   }
 });
 
-
 /*
 POST /api/tasks/upload
 multipart/form-data: file, studentEmail, key
-Uploads file to Google Drive with service account, gets URL, writes URL to sheet under "<key> Submission URL" (or given column)
 */
 router.post("/upload", auth, async (req, res) => {
   const form = formidable({ multiples: false });
@@ -115,10 +180,12 @@ router.post("/upload", auth, async (req, res) => {
       if (err) return res.status(400).json({ error: "invalid form" });
       const { studentEmail, key } = fields;
       if (!studentEmail || !key) return res.status(400).json({ error: "Missing studentEmail or key" });
+      if (!ACTIVITIES.includes(key)) return res.status(400).json({ error: "Unknown activity key" });
+
       const file = files.file;
       if (!file) return res.status(400).json({ error: "Missing file" });
 
-      // Upload to Google Drive (service account)
+      // Upload to Google Drive
       const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
       const authClient = new google.auth.GoogleAuth({
         credentials,
@@ -142,31 +209,25 @@ router.post("/upload", auth, async (req, res) => {
       });
 
       const fileId = driveRes.data.id;
-      // make file readable (optional) - with service account you may need to set permissions:
+      // make file readable publicly
       try {
         await drive.permissions.create({
           fileId,
-          requestBody: {
-            role: "reader",
-            type: "anyone"
-          }
+          requestBody: { role: "reader", type: "anyone" }
         });
       } catch (e) {
         console.warn("permission set failed:", e?.message || e);
       }
 
-      // webViewLink sometimes returns - build a common public link
       const url = `https://drive.google.com/file/d/${fileId}/view`;
 
-      // write URL into sheet
       const rowNumber = await findRowNumberByEmail(studentEmail);
       if (!rowNumber) return res.status(404).json({ error: "Student not found" });
 
-      const columnName = `${key} Submission URL`;
-      await updateSheetCell(rowNumber, columnName, url);
-      // also set the "Submitted" tick + date
+      // write into the activity-specific columns
       await updateSheetCell(rowNumber, `${key} Submitted`, "TRUE");
-      const today = new Date().toISOString().slice(0, 10);
+      await updateSheetCell(rowNumber, `${key} Submission URL`, url);
+      const today = new Date().toISOString().slice(0,10);
       await updateSheetCell(rowNumber, `${key} StudentTickDate`, today);
       await updateSheetCell(rowNumber, `${key} SupervisorApproved`, "FALSE");
 
@@ -176,55 +237,6 @@ router.post("/upload", auth, async (req, res) => {
       return res.status(500).json({ error: e.message });
     }
   });
-});
-
-
-/*
-GET /api/tasks/exportPdf/:studentEmail
-Generates a PDF snapshot of progress and returns it as application/pdf
-(we use pdfkit)
-*/
-router.get("/exportPdf/:studentEmail", auth, async (req, res) => {
-  try {
-    const { studentEmail } = req.params;
-    const rows = await readMasterTracking(SHEET_ID);
-    const rowIndex = rows.findIndex(r => (r["Student's Email"] || "").toLowerCase() === (studentEmail || "").toLowerCase());
-    if (rowIndex === -1) return res.status(404).json({ error: "Student not found" });
-    const row = rows[rowIndex];
-
-    // create PDF
-    const PDFDocument = (await import("pdfkit")).default;
-    const doc = new PDFDocument({ size: "A4" });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${(row["Student Name"]||'student')}_progress.pdf"`);
-
-    doc.fontSize(18).text(`Student Progress — ${(row["Student Name"] || "")}`, { underline: true });
-    doc.moveDown();
-    doc.fontSize(12).text(`Programme: ${row["Programme"] || ""}`);
-    doc.text(`Supervisor: ${row["Main Supervisor"] || ""}`);
-    doc.text(`Start Date: ${row["Start Date"] || ""}`);
-    doc.moveDown();
-
-    // list key items — you can decide which columns to include
-    const keysToShow = [
-      "P1 Submitted","P1 StudentTickDate","P1 Submission URL","P1 SupervisorApproved",
-      "P3 Submitted","P3 StudentTickDate","P3 Submission URL","P3 SupervisorApproved",
-      "P4 Submitted","P4 StudentTickDate","P4 Submission URL","P4 SupervisorApproved",
-      "P5 Submitted","P5 StudentTickDate","P5 Submission URL","P5 SupervisorApproved"
-    ];
-
-    keysToShow.forEach(k => {
-      doc.fontSize(10).text(`${k}: ${row[k] || "—"}`);
-    });
-
-    doc.end();
-    doc.pipe(res);
-
-  } catch (err) {
-    console.error("export pdf err:", err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 export default router;
