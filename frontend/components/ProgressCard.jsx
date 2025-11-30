@@ -1,4 +1,4 @@
-// components/ProgressCard.jsx
+// frontend/components/ProgressCard.jsx
 export default function ProgressCard({ title, value }) {
   return (
     <div className="rounded-xl bg-white p-4 shadow text-center">
