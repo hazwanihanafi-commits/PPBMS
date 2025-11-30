@@ -66,14 +66,11 @@ function fmt(d) {
   return dt.toISOString().slice(0, 10);
 }
 
-// Build expected dates based on start date and programme (quarter/offset approach)
+// Build expected dates based on start date & programme
 export function buildExpectedDates(startDate, programme) {
-  // startDate expected in YYYY-MM-DD or Date
   const s = toDate(startDate) || new Date();
   const isMsc = (programme || "").toLowerCase().includes("msc") || (programme || "").toLowerCase().includes("master");
 
-  // mapping: approximate months offset from start
-  // MSc (2 years) dense frontloaded
   const mappingMsc = {
     "Development Plan & Learning Contract": 0,
     "Proposal Defense Endorsed": 6,
@@ -120,25 +117,31 @@ export function buildExpectedDates(startDate, programme) {
   return expected;
 }
 
-// Determine status & remaining days
 export function statusAndRemaining(expectedDateStr, actualDateStr) {
   const expected = toDate(expectedDateStr);
   const actual = toDate(actualDateStr);
   const today = new Date();
+
   if (actual) {
     return { status: "Completed", remaining: "—" };
   }
   if (!expected) return { status: "No target", remaining: "—" };
+
   const diffMs = expected - today;
   const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
   if (days < 0) return { status: "Delayed", remaining: `${Math.abs(days)}d overdue` };
   if (days <= 14) return { status: "Due soon", remaining: `${days}d` };
+
   return { status: "On track", remaining: `${days}d` };
 }
 
-// Full calculator: takes raw sheet row and programme & start_date and returns items
+// Main engine
 export function calculateProgressWithTimeline(rawRow = {}, programme = "", startDate = null) {
-  const plan = (programme || "").toLowerCase().includes("msc") || (programme || "").toLowerCase().includes("master") ? MSC_PLAN : PHD_PLAN;
+  const plan = (programme || "").toLowerCase().includes("msc") || (programme || "").toLowerCase().includes("master")
+    ? MSC_PLAN
+    : PHD_PLAN;
+
   const expected = buildExpectedDates(startDate, programme);
 
   const items = plan.map((key) => {
@@ -151,5 +154,11 @@ export function calculateProgressWithTimeline(rawRow = {}, programme = "", start
   const doneCount = items.filter(i => i.done && i.status === "Completed").length;
   const total = items.length;
   const percentage = total ? Math.round((doneCount / total) * 100) : 0;
+
   return { items, doneCount, total, percentage };
+}
+
+// ⭐ Compatibility export (this fixes your crash)
+export function calculateProgress(rawRow, programme, startDate = null) {
+  return calculateProgressWithTimeline(rawRow, programme, startDate);
 }
