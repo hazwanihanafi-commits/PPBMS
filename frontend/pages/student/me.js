@@ -109,36 +109,43 @@ export default function MePage() {
   /* ---------------------------------------------
       FIXED toggleItem() — supports UNTICK
   --------------------------------------------- */
-  async function toggleItem(key) {
-    try {
-      const isCurrentlyDone =
-        row.raw[key] === "TRUE" ||
-        row.raw[`${key} Submitted`] === "TRUE";
+  /* ------------------------------
+   TOGGLE ITEM (frontend)
+   - sends boolean `value` to backend
+------------------------------ */
+async function toggleItem(key) {
+  try {
+    // read current state from the sheet fields
+    const submittedCol = `${key} Submitted`;
+    const currentlySubmitted = (row.raw?.[submittedCol] || "").toString().toLowerCase() === "true";
+    const currentlyLabel = (row.raw?.[key] || "").toString().toLowerCase() === "true";
 
-      const newValue = !isCurrentlyDone; // toggle
+    const isCurrentlyDone = currentlySubmitted || currentlyLabel;
+    const newValue = !isCurrentlyDone; // flip
 
-      const res = await fetch(`${API}/api/tasks/toggle`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          studentEmail: row.email,
-          key,
-          actor: "student",
-          value: newValue, // backend will tick OR untick
-        }),
-      });
+    const res = await fetch(`${API}/api/tasks/toggle`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        studentEmail: row.email,
+        key,
+        actor: "student",
+        value: newValue, // boolean
+      }),
+    });
 
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error || JSON.stringify(j));
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || JSON.stringify(j));
 
-      await refreshRow();
-    } catch (e) {
-      alert("Toggle error: " + e.message);
-    }
+    await refreshRow();
+  } catch (e) {
+    alert("Toggle error: " + e.message);
   }
+}
+
 
   /* ---------------------------------------------
       FILE UPLOAD
@@ -188,28 +195,40 @@ export default function MePage() {
   /* ---------------------------------------------
       BUILD CHECKLIST ROWS
   --------------------------------------------- */
-  const activityRows = ACTIVITIES.map((label) => {
-    const submittedCol = `${label} Submitted`;
-    const urlCol = `${label} Submission URL`;
-    const dateCol = `${label} StudentTickDate`;
+ const activityRows = ACTIVITIES.map((label) => {
+  const submittedCol = `${label} Submitted`;
+  const urlCol = `${label} Submission URL`;
+  const dateCol = `${label} StudentTickDate`;
 
-    const done =
-      row.raw?.[submittedCol] === "TRUE" ||
-      row.raw?.[label] === "TRUE";
+  // determine done state
+  const done =
+    (row.raw?.[submittedCol] || "").toString().toLowerCase() === "true" ||
+    (row.raw?.[label] || "").toString().toLowerCase() === "true";
 
-    const actual =
-      row.raw?.[dateCol] ||
-      row.raw?.[label] ||
-      "—";
+  // prefer explicit date column
+  let actual = "—";
+  const dateCandidate = (row.raw?.[dateCol] || "").toString().trim();
+  const labelCandidate = (row.raw?.[label] || "").toString().trim();
 
-    return {
-      key: label,
-      activity: label,
-      done,
-      actual,
-      url: row.raw?.[urlCol] || null,
-    };
-  });
+  // helper: is this a plausible date string (YYYY or contains -)
+  const looksLikeDate = (s) => {
+    if (!s) return false;
+    // ISO-like e.g. 2023-11-30 or 30/11/2023 or contains digits and dash
+    return /\d{4}-\d{2}-\d{2}/.test(s) || /\d{1,2}\/\d{1,2}\/\d{2,4}/.test(s);
+  };
+
+  if (looksLikeDate(dateCandidate)) actual = dateCandidate;
+  else if (looksLikeDate(labelCandidate)) actual = labelCandidate;
+  else actual = "—";
+
+  return {
+    key: label,
+    activity: label,
+    done,
+    actual,
+    url: row.raw?.[urlCol] || null,
+  };
+});
 
   /* ---------------------------------------------
       RENDER PAGE
