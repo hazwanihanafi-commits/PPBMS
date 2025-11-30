@@ -16,21 +16,15 @@ export default function SupervisorStudentDetail() {
     if (!email) return;
     const token = localStorage.getItem("ppbms_token");
     if (!token) { setLoading(false); return; }
-
     (async () => {
       try {
-        const res = await fetch(`${API}/api/supervisor/student/${encodeURIComponent(email)}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const txt = await res.text();
-        if (!res.ok) throw new Error(txt);
+        const r = await fetch(`${API}/api/supervisor/student/${encodeURIComponent(email)}`, { headers: { Authorization: `Bearer ${token}` }});
+        const txt = await r.text();
+        if (!r.ok) throw new Error(txt);
         const data = JSON.parse(txt);
         setStudent(data.student || null);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
     })();
   }, [email]);
 
@@ -38,11 +32,10 @@ export default function SupervisorStudentDetail() {
   if (!student) return <div className="p-6 text-red-600">Student not found.</div>;
 
   const raw = student.raw || {};
-  // Build milestone rows for display
+  // build simple activity rows for gantt using the sheet keys if present
   const keys = [
     "Development Plan & Learning Contract",
     "Master Research Timeline (Gantt)",
-    "Research Logbook (Weekly)",
     "Proposal Defense Endorsed",
     "Pilot / Phase 1 Completed",
     "Phase 2 Data Collection Begun",
@@ -56,43 +49,34 @@ export default function SupervisorStudentDetail() {
     "Final Thesis Submission"
   ];
 
-  const milestones = keys.map(k => ({
+  const rows = keys.map(k => ({
+    activity: k,
     milestone: k,
-    expected: "",
-    actual: raw[k] || ""
+    definition: k,
+    start: student.start_date || "",
+    expected: raw[`${k} Expected`] || "",
+    actual: raw[k] || raw[`${k} Date`] || ""
   }));
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="rounded-xl bg-white p-6 shadow">
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="bg-white p-6 rounded shadow">
         <h2 className="text-2xl font-semibold">{student.name}</h2>
-        <p className="text-sm text-gray-600">{student.programme}</p>
-
+        <div className="text-sm text-gray-600">{student.programme}</div>
         <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
           <div><strong>Email:</strong> {student.email}</div>
           <div><strong>Supervisor:</strong> {student.supervisor}</div>
-          <div><strong>Field:</strong> {raw.Field || "—"}</div>
-          <div><strong>Department:</strong> {raw.Department || "—"}</div>
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow">
-        <h3 className="text-xl font-semibold text-purple-700 mb-3">Submission Status</h3>
-        <ul className="space-y-2 text-sm">
-          <li><strong>Development Plan (P1):</strong> {raw["Development Plan & Learning Contract"] || "Not ticked"}</li>
-          <li><strong>Annual Review (P5):</strong> {raw["Annual Progress Review (Year 1)"] || "Not ticked"}</li>
-          <li><strong>Other ticks:</strong> See table below</li>
-        </ul>
+      <div className="bg-white p-6 rounded shadow">
+        <h3 className="text-xl font-semibold text-purple-700 mb-3">Milestone Gantt</h3>
+        <MilestoneGantt rows={rows} width={1000} />
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow">
-        <h3 className="text-xl font-semibold text-purple-700 mb-3">Milestone Gantt (preview)</h3>
-        <MilestoneGantt rows={milestones} />
-      </div>
-
-      <div className="rounded-xl bg-white p-6 shadow">
-        <h3 className="text-xl font-semibold text-purple-700 mb-3">Expected vs Actual</h3>
-        <TimelineTable rows={milestones} />
+      <div className="bg-white p-6 rounded shadow">
+        <h3 className="text-xl font-semibold text-purple-700 mb-3">Timeline</h3>
+        <TimelineTable rows={rows} />
       </div>
     </div>
   );
