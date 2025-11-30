@@ -1,6 +1,4 @@
 // frontend/utils/calcProgress.js
-
-// helper: consider a value "ticked" if non-empty and not garbage
 export function isTicked(rawRow, key) {
   if (!rawRow) return false;
   const v = rawRow[key];
@@ -11,11 +9,10 @@ export function isTicked(rawRow, key) {
   return true;
 }
 
-// MSc plan (14 items) - ordered
+// Plan (MSc) — NOTE: Research Logbook removed from plan (kept in docs)
 export const MSC_PLAN = [
   { key: "Development Plan & Learning Contract", label: "Development Plan & Learning Contract", mandatory: true },
   { key: "Master Research Timeline (Gantt)", label: "Master Research Timeline (Gantt)", mandatory: false },
-  { key: "Research Logbook (Weekly)", label: "Research Logbook (Weekly)", mandatory: false },
   { key: "Proposal Defense Endorsed", label: "Proposal Defense Endorsed", mandatory: true },
   { key: "Pilot / Phase 1 Completed", label: "Pilot / Phase 1 Completed", mandatory: true },
   { key: "Phase 2 Data Collection Begun", label: "Phase 2 Data Collection Begun", mandatory: true },
@@ -29,11 +26,10 @@ export const MSC_PLAN = [
   { key: "Final Thesis Submission", label: "Final Thesis Submission", mandatory: true }
 ];
 
-// PhD plan (17 items)
+// Plan (PhD)
 export const PHD_PLAN = [
   { key: "Development Plan & Learning Contract", label: "Development Plan & Learning Contract", mandatory: true },
   { key: "Master Research Timeline (Gantt)", label: "Master Research Timeline (Gantt)", mandatory: false },
-  { key: "Research Logbook (Weekly)", label: "Research Logbook (Weekly)", mandatory: false },
   { key: "Proposal Defense Endorsed", label: "Proposal Defense Endorsed", mandatory: true },
   { key: "Pilot / Phase 1 Completed", label: "Pilot / Phase 1 Completed", mandatory: true },
   { key: "Annual Progress Review (Year 1)", label: "Annual Progress Review (Year 1)", mandatory: true },
@@ -50,10 +46,9 @@ export const PHD_PLAN = [
   { key: "Final Thesis Submission", label: "Final Thesis Submission", mandatory: true }
 ];
 
-// calculate progress by selecting plan based on programme text
 export function calculateProgress(rawRow = {}, programmeText = "") {
-  const prog = (programmeText || "").toLowerCase();
-  const plan = prog.includes("msc") || prog.includes("master") ? MSC_PLAN : PHD_PLAN;
+  const lower = (programmeText || "").toLowerCase();
+  const plan = (lower.includes("msc") || lower.includes("master")) ? MSC_PLAN : PHD_PLAN;
 
   const items = plan.map(it => ({ ...it, done: isTicked(rawRow, it.key) }));
   const doneCount = items.filter(i => i.done).length;
