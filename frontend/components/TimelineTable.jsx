@@ -1,55 +1,47 @@
-// frontend/components/TimelineTable.jsx
-import React from "react";
-
-function daysBetween(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d)) return null;
-  const diff = Math.ceil((d - new Date()) / (1000*60*60*24));
-  return diff;
-}
-
 export default function TimelineTable({ rows = [] }) {
-  if (!rows || rows.length === 0) return null;
+  const badge = (status) => {
+    const base =
+      "px-3 py-1 rounded-full text-xs font-semibold tracking-wide";
 
-  function statusOf(r) {
-    if (r.actual && r.actual !== "") return "Completed";
-    if (!r.expected) return "No target";
-    const remaining = daysBetween(r.expected);
-    if (remaining === null) return "Pending";
-    if (remaining < 0) return "Delayed";
-    if (remaining <= 14) return "Due soon";
-    return "On Track";
-  }
+    switch (status) {
+      case "Completed":
+        return <span className={`${base} bg-green-100 text-green-700`}>Completed</span>;
+      case "On track":
+        return <span className={`${base} bg-blue-100 text-blue-700`}>On Track</span>;
+      case "Due soon":
+        return <span className={`${base} bg-yellow-100 text-yellow-800`}>Due Soon</span>;
+      case "Delayed":
+        return <span className={`${base} bg-red-100 text-red-700`}>Delayed</span>;
+      default:
+        return <span className={`${base} bg-gray-100 text-gray-600`}>—</span>;
+    }
+  };
 
   return (
-    <table className="w-full border-collapse mt-3">
-      <thead>
-        <tr className="bg-purple-600 text-white">
-          <th className="p-2 text-left">Activity</th>
-          <th className="p-2 text-left">Expected</th>
-          <th className="p-2 text-left">Actual</th>
-          <th className="p-2 text-left">Status</th>
-          <th className="p-2 text-left">Remaining</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r, idx) => {
-          const st = statusOf(r);
-          const rem = r.expected ? daysBetween(r.expected) : null;
-          return (
-            <tr key={idx} className="border-b">
-              <td className="p-2">{r.definition || r.activity || r.milestone}</td>
-              <td className="p-2">{r.expected || "—"}</td>
-              <td className="p-2">{r.actual || "—"}</td>
-              <td className="p-2 font-semibold">{st}</td>
-              <td className="p-2">
-                {rem === null ? "—" : (rem < 0 ? `${Math.abs(rem)}d overdue` : `${rem}d`)}
-              </td>
+    <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+      <table className="w-full text-sm">
+        <thead className="bg-purple-600 text-white text-left">
+          <tr>
+            <th className="py-3 px-4 font-semibold">Activity</th>
+            <th className="py-3 px-4 font-semibold">Expected</th>
+            <th className="py-3 px-4 font-semibold">Actual</th>
+            <th className="py-3 px-4 font-semibold">Status</th>
+            <th className="py-3 px-4 font-semibold text-right">Remaining</th>
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-gray-200 bg-white">
+          {rows.map((r) => (
+            <tr key={r.key} className="hover:bg-gray-50">
+              <td className="py-3 px-4 font-medium text-gray-800 w-56">{r.label || r.key}</td>
+              <td className="py-3 px-4 text-gray-600">{r.expected}</td>
+              <td className="py-3 px-4 text-gray-600">{r.actual}</td>
+              <td className="py-3 px-4">{badge(r.status)}</td>
+              <td className="py-3 px-4 text-right text-gray-700">{r.remaining}</td>
             </tr>
-          );
-        })}
-      </tbody>
-    </table>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
