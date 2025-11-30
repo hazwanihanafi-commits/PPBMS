@@ -14,14 +14,11 @@ export default function MePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("progress");
+  const [toggling, setToggling] = useState(null);
 
   useEffect(() => {
-    const t = typeof window !== "undefined" ? localStorage.getItem("ppbms_token") : null;
-    if (!t) {
-      setError("Not logged in");
-      setLoading(false);
-      return;
-    }
+    const t = localStorage.getItem("ppbms_token");
+    if (!t) { setError("Not logged in"); setLoading(false); return; }
     setToken(t);
   }, []);
 
@@ -29,65 +26,73 @@ export default function MePage() {
     if (!token) return;
     (async () => {
       try {
-        const res = await fetch(`${API}/api/student/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(`${API}/api/student/me`, { headers: { Authorization: `Bearer ${token}` } });
         const txt = await res.text();
         if (!res.ok) throw new Error(txt);
         const data = JSON.parse(txt);
-        // server should return { row: {...}, raw: {...} } or at least { row: {...} }
-        setRow(data.row || data);
+        setRow(data.row);
       } catch (err) {
-        setError(err.message || "Failed to fetch student row");
-      } finally {
-        setLoading(false);
-      }
+        setError(err.message || String(err));
+      } finally { setLoading(false); }
     })();
   }, [token]);
 
+  async function toggleItem(key, value) {
+    // value = true means student ticked (set date), false = untick
+    if (!row || !row.email) return;
+    setToggling(key);
+    try {
+      const res = await fetch(`${API}/api/tasks/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ studentEmail: row.email, key, value })
+      });
+      const txt = await res.text();
+      if (!res.ok) throw new Error(txt);
+      const data = JSON.parse(txt);
+      // update local row with returned row if provided, else refetch
+      if (data.row) setRow(data.row);
+      else {
+        // refetch
+        const r2 = await fetch(`${API}/api/student/me`, { headers: { Authorization: `Bearer ${token}` } });
+        const t2 = await r2.text();
+        if (r2.ok) setRow(JSON.parse(t2).row);
+      }
+    } catch (e) {
+      console.error("toggle error", e);
+      alert("Toggle failed: " + (e.message || e));
+    } finally {
+      setToggling(null);
+    }
+  }
+
   if (loading) return <div className="p-6">Loading…</div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-  if (!row) return <div className="p-6">No data available.</div>;
+  if (!row) return null;
 
-  // calculate progress based on plan (msc vs phd)
-  const raw = row.raw || row; // graceful: some endpoints return row.raw
-  const prog = calculateProgress(raw, row.programme || "");
-  const percentage = prog.percentage;
-  const completedCount = prog.doneCount;
-  const totalCount = prog.total;
-
-  // build activityRows for gantt/timeline from the plan items
-  const activityRows = prog.items.map((it) => ({
+  const prog = calculateProgress(row.raw || {}, row.programme || "");
+  const activityRows = prog.items.map(it => ({
     activity: it.label,
     milestone: it.label,
     definition: it.label,
     start: row.start_date || "",
-    expected: "", // optional: map to sheet fields if available
-    actual: raw[it.key] || (it.done ? raw[`${it.key} Date`] || "" : ""),
+    expected: "", // could map expected date if present in sheet
+    actual: row.raw?.[it.key] || ""
   }));
-
-  const initials = (row.student_name || "")
-    .split(" ")
-    .map((s) => s[0] || "")
-    .slice(0, 2)
-    .join("")
-    .toUpperCase() || "NA";
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
         <h1 className="text-3xl font-bold">Student Progress</h1>
-        <p className="mt-2 text-lg">
-          <strong>{row.student_name}</strong> — {row.programme}
-        </p>
+        <p className="mt-2 text-lg"><strong>{row.student_name}</strong> — {row.programme}</p>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-4 space-y-6">
-          <div className="rounded-xl bg-white p-6 shadow space-y-4">
+          <div className="rounded-xl bg-white p-6 shadow">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
-                {initials}
+                {(row.student_name || "NA").split(" ").map(s => s[0]).slice(0,2).join("").toUpperCase()}
               </div>
               <div>
                 <div className="font-semibold text-lg">{row.student_name}</div>
@@ -95,52 +100,20 @@ export default function MePage() {
               </div>
             </div>
 
-            <div className="text-sm space-y-1">
-              <div>
-                <strong>Supervisor:</strong>{" "}
-                {row.supervisor || raw["Main Supervisor"] || raw["Main Supervisor's Name"] || "—"}
-              </div>
-              <div>
-                <strong>Email:</strong> {row.email || raw["Student's Email"] || "—"}
-              </div>
-              <div>
-                <strong>Start Date:</strong> {row.start_date || raw["Start Date"] || "—"}
-              </div>
-              <div>
-                <strong>Field:</strong> {row.field || raw["Field"] || "—"}
-              </div>
-              <div>
-                <strong>Department:</strong> {row.department || raw["Department"] || "—"}
-              </div>
+            <div className="mt-4 text-sm space-y-1">
+              <div><strong>Supervisor:</strong> {row.raw?.["Main Supervisor"] || row.raw?.["Main Supervisor's Name"] || "—"}</div>
+              <div><strong>Email:</strong> {row.email}</div>
+              <div><strong>Start Date:</strong> {row.start_date || "—"}</div>
+              <div><strong>Field:</strong> {row.field || "—"}</div>
+              <div><strong>Department:</strong> {row.department || "—"}</div>
             </div>
           </div>
 
-          <div className="rounded-xl bg-white shadow p-4">
+          <div className="rounded-xl bg-white p-4 shadow">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button
-                className={tab === "progress" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("progress")}
-              >
-                Progress
-              </button>
-              <button
-                className={tab === "submissions" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("submissions")}
-              >
-                Submissions
-              </button>
-              <button
-                className={tab === "reports" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("reports")}
-              >
-                Reports
-              </button>
-              <button
-                className={tab === "documents" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("documents")}
-              >
-                Documents
-              </button>
+              <button onClick={() => setTab("progress")} className={tab==="progress" ? "text-purple-700 font-bold" : ""}>Progress</button>
+              <button onClick={() => setTab("submissions")} className={tab==="submissions" ? "text-purple-700 font-bold" : ""}>Submissions</button>
+              <button onClick={() => setTab("documents")} className={tab==="documents" ? "text-purple-700 font-bold" : ""}>Documents</button>
             </div>
           </div>
         </div>
@@ -149,22 +122,20 @@ export default function MePage() {
           {tab === "progress" && (
             <>
               <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
-                <DonutChart percentage={percentage} size={150} />
+                <DonutChart percentage={prog.percentage} size={150} />
                 <div>
-                  <div className="text-4xl font-bold">{percentage}%</div>
-                  <div className="text-gray-600">
-                    {completedCount} of {totalCount} items completed
-                  </div>
+                  <div className="text-4xl font-bold">{prog.percentage}%</div>
+                  <div className="text-gray-600">{prog.doneCount} of {prog.total} items completed (approved/ticked)</div>
                 </div>
               </div>
 
               <div className="rounded-xl bg-white p-6 shadow">
-                <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt Chart</h3>
-                <MilestoneGantt rows={activityRows} width={1000} />
+                <h3 className="text-xl font-semibold text-purple-700 mb-4">Milestone Gantt (preview)</h3>
+                <MilestoneGantt rows={activityRows} width={980} />
               </div>
 
               <div className="rounded-xl bg-white p-6 shadow">
-                <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual Timeline</h3>
+                <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual</h3>
                 <TimelineTable rows={activityRows} />
               </div>
             </>
@@ -172,23 +143,45 @@ export default function MePage() {
 
           {tab === "submissions" && (
             <div className="rounded-xl bg-white p-6 shadow">
-              <SubmissionFolder raw={raw} studentEmail={row.email || raw["Student's Email"]} />
-            </div>
-          )}
+              <h3 className="text-xl font-semibold text-purple-700 mb-4">Submissions & Tick Items</h3>
 
-          {tab === "reports" && (
-            <div className="rounded-xl bg-white p-6 shadow text-gray-600">
-              <h3 className="text-xl font-semibold text-purple-700 mb-4">Reports</h3>
-              <p>No reports available yet.</p>
+              <div className="space-y-2">
+                {prog.items.map(it => {
+                  const done = Boolean(row.raw?.[it.key] && String(row.raw[it.key]).trim() !== "");
+                  const dateValue = done ? row.raw[it.key] : "";
+                  return (
+                    <div key={it.key} className="flex items-center justify-between border-b py-3">
+                      <div>
+                        <div className="font-medium">{it.label}</div>
+                        <div className="text-sm text-gray-500">{it.mandatory ? "Mandatory" : "Optional"}</div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm">{dateValue || "Not ticked"}</div>
+                        <button
+                          className="px-3 py-1 rounded bg-purple-600 text-white text-sm"
+                          disabled={toggling === it.key}
+                          onClick={() => toggleItem(it.key, !done)}
+                        >
+                          {done ? "Untick" : "Tick"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6">
+                <SubmissionFolder raw={row.raw} studentEmail={row.email} />
+              </div>
             </div>
           )}
 
           {tab === "documents" && (
-            <div className="rounded-xl bg-white p-6 shadow space-y-3">
-              <h3 className="text-xl font-semibold text-purple-700 mb-4">Documents</h3>
-              <p>
-                The research logbook and other personal records are kept under Documents. (You asked to move logbook to Documents.)
-              </p>
+            <div className="rounded-xl bg-white p-6 shadow">
+              <h3 className="text-xl font-semibold text-purple-700 mb-3">Documents</h3>
+              <p className="text-sm text-gray-600">Upload P1 and Annual Progress Review (P5) via the submission widget below.</p>
+              <SubmissionFolder raw={row.raw} studentEmail={row.email} />
             </div>
           )}
         </div>
