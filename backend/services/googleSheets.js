@@ -116,3 +116,14 @@ export async function writeToSheet(sheetId, sheetName, rowNumber, columnName, va
 
   return true;
 }
+export function colIndexToLetter(index) {
+  let letter = "";
+  let n = index + 1;
+  while (n > 0) {
+    let rem = (n - 1) % 26;
+    letter = String.fromCharCode(65 + rem) + letter;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letter;
+}
+
