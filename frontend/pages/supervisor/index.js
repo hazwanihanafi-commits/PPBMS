@@ -24,22 +24,17 @@ export default function SupervisorIndex() {
     (async () => {
       try {
         const r = await fetch(`${API}/api/supervisor/students?email=${encodeURIComponent(supervisorEmail)}`, { headers: { Authorization: `Bearer ${token}` } });
-        const txt = await r.text();
-        if (!r.ok) throw new Error(txt);
-        const data = JSON.parse(txt);
-        const list = data.students || [];
-        setStudents(list);
-        setFiltered(list);
-      } catch (err) {
-        console.error("Supervisor list fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
+        const data = await r.json();
+        setStudents(data.students || []);
+        setFiltered(data.students || []);
+      } catch (e) {
+        console.error(e);
+      } finally { setLoading(false); }
     })();
   }, [router.query.email]);
 
   useEffect(() => {
-    if (!search) { setFiltered(students); return; }
+    if (!search) return setFiltered(students);
     const q = search.toLowerCase();
     setFiltered(students.filter(s => (s.name || "").toLowerCase().includes(q) || (s.id || "").toLowerCase().includes(q)));
   }, [search, students]);
