@@ -1,20 +1,22 @@
 export default function TimelineTable({ rows = [] }) {
   const badge = (status) => {
-    const base =
-      "px-3 py-1 rounded-full text-xs font-semibold tracking-wide";
+    const baseClasses = "px-2 py-1 rounded text-xs font-semibold";
 
-    switch (status) {
-      case "Completed":
-        return <span className={`${base} bg-green-100 text-green-700`}>Completed</span>;
-      case "On track":
-        return <span className={`${base} bg-blue-100 text-blue-700`}>On Track</span>;
-      case "Due soon":
-        return <span className={`${base} bg-yellow-100 text-yellow-800`}>Due Soon</span>;
-      case "Delayed":
-        return <span className={`${base} bg-red-100 text-red-700`}>Delayed</span>;
-      default:
-        return <span className={`${base} bg-gray-100 text-gray-600`}>—</span>;
+    if (status === "Completed") {
+      return <span className={`${baseClasses} bg-green-100 text-green-700`}>{status}</span>;
     }
+    if (status === "On track") {
+      return <span className={`${baseClasses} bg-blue-100 text-blue-700`}>{status}</span>;
+    }
+    if (status === "Due soon") {
+      return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>{status}</span>;
+    }
+    if (status === "Delayed") {
+      return <span className={`${baseClasses} bg-red-100 text-red-700`}>{status}</span>;
+    }
+
+    // default / blank
+    return <span className={`${baseClasses} bg-gray-100 text-gray-600`}>—</span>;
   };
 
   return (
@@ -33,11 +35,18 @@ export default function TimelineTable({ rows = [] }) {
         <tbody className="divide-y divide-gray-200 bg-white">
           {rows.map((r) => (
             <tr key={r.key} className="hover:bg-gray-50">
-              <td className="py-3 px-4 font-medium text-gray-800 w-56">{r.label || r.key}</td>
+              <td className="py-3 px-4 font-medium text-gray-800 w-56">
+                {r.label || r.key}
+              </td>
+
               <td className="py-3 px-4 text-gray-600">{r.expected}</td>
               <td className="py-3 px-4 text-gray-600">{r.actual}</td>
+
               <td className="py-3 px-4">{badge(r.status)}</td>
-              <td className="py-3 px-4 text-right text-gray-700">{r.remaining}</td>
+
+              <td className="py-3 px-4 text-right text-gray-700">
+                {r.remaining}
+              </td>
             </tr>
           ))}
         </tbody>
