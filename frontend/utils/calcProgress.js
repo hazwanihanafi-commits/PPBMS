@@ -17,9 +17,8 @@ export function isTicked(rawRow, key) {
   return true;
 }
 
-
 // ----------------------------------------------------------------------
-//  MSc PLAN (16 items)
+//  MSc PLAN (14 items)
 // ----------------------------------------------------------------------
 export const MSC_PLAN = [
   { key: "Development Plan & Learning Contract", label: "Development Plan & Learning Contract", mandatory: true },
@@ -38,9 +37,8 @@ export const MSC_PLAN = [
   { key: "Final Thesis Submission", label: "Final Thesis Submission", mandatory: true }
 ];
 
-
 // ----------------------------------------------------------------------
-//  PhD PLAN (same structure — 17 items)
+//  PhD PLAN (17 items)
 // ----------------------------------------------------------------------
 export const PHD_PLAN = [
   { key: "Development Plan & Learning Contract", label: "Development Plan & Learning Contract", mandatory: true },
@@ -62,31 +60,30 @@ export const PHD_PLAN = [
   { key: "Final Thesis Submission", label: "Final Thesis Submission", mandatory: true }
 ];
 
-
 // ----------------------------------------------------------------------
 //  MAIN CALCULATOR — RETURNS percentage, done list, total list
 // ----------------------------------------------------------------------
 export function calculateProgress(rawRow, programmeText) {
-  const isMsc = programmeText.toLowerCase().includes("msc") ||
-                programmeText.toLowerCase().includes("master");
+  const isMsc =
+    programmeText.toLowerCase().includes("msc") ||
+    programmeText.toLowerCase().includes("master");
 
   const plan = isMsc ? MSC_PLAN : PHD_PLAN;
 
-  const doneCount = plan.filter(i => isTicked(rawRow, i.key)).length;
+  const doneCount = plan.filter((i) => isTicked(rawRow, i.key)).length;
   const total = plan.length;
 
   const percentage = Math.round((doneCount / total) * 100);
 
-  // Return full breakdown for table
-  const itemsWithStatus = plan.map(i => ({
+  const itemsWithStatus = plan.map((i) => ({
     ...i,
-    done: isTicked(rawRow, i.key)
+    done: isTicked(rawRow, i.key),
   }));
 
   return {
     percentage,
     done: doneCount,
     total,
-    items: itemsWithStatus
+    items: itemsWithStatus,
   };
 }
