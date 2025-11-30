@@ -4,72 +4,109 @@ import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-function calculateProgressFrom12(row) {
-  const activities = [
-    "P1 Submitted",
-    "P3 Submitted",
-    "P4 Submitted",
-    "P5 Submitted",
-    "Thesis Draft Completed",
-    "Ethical clearance obtained",
-    "Pilot or Phase 1 completed",
-    "Progress approved",
-    "Seminar & report submitted",
-    "Phase 2 completed",
-    "1 indexed paper submitted",
-    "Conference presentation"
-  ];
+// ===== 1. Same MSc / PhD plan (no P1–P5 labels) =====
 
-  let done = 0;
+const MSC_PLAN = [
+  { key: "Development Plan & Learning Contract", optional: false },
+  { key: "Master Research Timeline (Gantt)", optional: true },
+  { key: "Research Logbook (Weekly)", optional: true },
+  { key: "Proposal Defense Endorsed", optional: false },
+  { key: "Pilot / Phase 1 Completed", optional: false },
+  { key: "Phase 2 Data Collection Begun", optional: false },
+  { key: "Annual Progress Review (Year 1)", optional: false },
+  { key: "Phase 2 Data Collection Continued", optional: false },
+  { key: "Seminar Completed", optional: false },
+  { key: "Thesis Draft Completed", optional: false },
+  { key: "Internal Evaluation Completed", optional: false }, // evidence stage
+  { key: "Viva Voce", optional: false },
+  { key: "Corrections Completed", optional: false },
+  { key: "Final Thesis Submission", optional: false },       // evidence stage
+];
 
-  for (const a of activities) {
-    const v = row?.[a];
-    if (!v) continue;
-    const s = String(v).trim().toLowerCase();
-    if (s && !["", "n/a", "#n/a", "-", "—"].includes(s)) done++;
-  }
+const PHD_PLAN = [
+  { key: "Development Plan & Learning Contract", optional: false },
+  { key: "Master Research Timeline (Gantt)", optional: true },
+  { key: "Research Logbook (Weekly)", optional: true },
+  { key: "Proposal Defense Endorsed", optional: false },
+  { key: "Pilot / Phase 1 Completed", optional: false },
+  { key: "Annual Progress Review (Year 1)", optional: false },
+  { key: "Phase 2 Completed", optional: false },
+  { key: "Seminar Completed", optional: false },
+  { key: "Data Analysis Completed", optional: false },
+  { key: "1 Journal Paper Submitted", optional: false },
+  { key: "Conference Presentation", optional: false },
+  { key: "Annual Progress Review (Year 2)", optional: false },
+  { key: "Thesis Draft Completed", optional: false },
+  { key: "Internal Evaluation Completed", optional: false }, // evidence stage
+  { key: "Viva Voce", optional: false },
+  { key: "Corrections Completed", optional: false },
+  { key: "Final Thesis Submission", optional: false },       // evidence stage
+];
 
-  return {
-    done,
-    total: activities.length,
-    percentage: Math.round((done / activities.length) * 100)
-  };
+function inferProgrammeTypeBack(row) {
+  const p = (row["Programme"] || "").toLowerCase();
+  if (p.includes("master") || p.includes("msc")) return "msc";
+  return "phd";
 }
 
+function isTickedBack(row, key) {
+  const v = row?.[key];
+  if (!v) return false;
+  const s = String(v).trim().toLowerCase();
+  if (!s || ["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
+  return true;
+}
+
+function calculateProgressFromPlanBack(row) {
+  const type = inferProgrammeTypeBack(row);
+  const plan = type === "msc" ? MSC_PLAN : PHD_PLAN;
+  const required = plan.filter((i) => !i.optional);
+  const doneRequired = required.filter((i) => isTickedBack(row, i.key)).length;
+  const totalRequired = required.length || 1;
+  const percentage = Math.round((doneRequired / totalRequired) * 100);
+  return { percentage };
+}
+
+function statusFromPercentage(p) {
+  if (p === 100) return "Completed";
+  if (p >= 75) return "Ahead";
+  if (p >= 50) return "On Track";
+  if (p >= 25) return "Behind";
+  return "At Risk";
+}
+
+// =============================
+// GET /api/supervisor/students
+// =============================
 router.get("/students", async (req, res) => {
   try {
-    const supervisorEmail = req.query.email;
-    if (!supervisorEmail)
+    const email = req.query.email;
+    if (!email) {
       return res.status(400).json({ error: "Missing supervisor email" });
+    }
 
-    // load sheet
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // FIXED: Correct column to match email
-    const matches = rows.filter(
-      r => (r["Main Supervisor's Email"] || "").toLowerCase() === supervisorEmail.toLowerCase()
+    // Use MAIN SUPERVISOR NAME, but filter by email if you prefer
+    const filtered = rows.filter(
+      (r) =>
+        (r["Main Supervisor's Email"] || "").toLowerCase() ===
+        email.toLowerCase()
     );
 
-    const students = matches.map(r => {
-      const prog = calculateProgressFrom12(r);
-
+    const students = filtered.map((r) => {
+      const prog = calculateProgressFromPlanBack(r);
       return {
         id: r["Student's Email"],
         name: r["Student Name"],
         programme: r["Programme"],
-        supervisor: r["Main Supervisor"],    // <-- NAME instead of email
+        supervisor: r["Main Supervisor"], // <-- full name
         progress: prog.percentage,
-        status:
-          prog.percentage === 100 ? "Completed"
-          : prog.percentage >= 75 ? "Ahead"
-          : prog.percentage >= 50 ? "On Track"
-          : prog.percentage >= 25 ? "Behind"
-          : "At Risk"
+        status: statusFromPercentage(prog.percentage),
       };
     });
 
     return res.json({ students });
-
   } catch (err) {
     console.error("Supervisor fetch error:", err);
     return res.status(500).json({ error: err.message });
