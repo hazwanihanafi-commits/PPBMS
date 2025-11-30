@@ -21,6 +21,8 @@
     "swr": "^2.1.2",
     "react-google-charts": "^3.0.15",
     "date-fns": "^3.6.0",
+    "react-chartjs-2": "^5.2.0",
+    "chart.js": "^4.4.0",
     "react-icons": "^4.11.0"
   },
 
