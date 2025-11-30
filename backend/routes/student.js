@@ -1,53 +1,47 @@
+// backend/routes/student.js
 import express from "express";
 import jwt from "jsonwebtoken";
-import { readMasterTracking } from "../services/googleSheets.js";
+import { getCachedSheet } from "../utils/sheetCache.js";
 
 const router = express.Router();
 
-/* Auth */
 function auth(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.replace("Bearer ", "");
-
-  if (!token) return res.status(401).json({ error: "No token provided" });
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "No token" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
-  } catch (e) {
+  } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-/* GET /student/me */
 router.get("/me", auth, async (req, res) => {
   try {
     const email = (req.user.email || "").toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const rows = await getCachedSheet(process.env.SHEET_ID);
 
     const raw = rows.find(
-      (r) => (r["Student's Email"] || "").toLowerCase() === email
+      (r) =>
+        (r["Student's Email"] || "").toLowerCase().trim() === email
     );
 
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+    if (!raw) return res.status(404).json({ error: "Not found" });
 
-    const row = {
-      student_name: raw["Student Name"] || "",
-      email: raw["Student's Email"] || "",
-      programme: raw["Programme"] || "",
-      supervisor: raw["Main Supervisor"] || "",
-      start_date: raw["Start Date"] || "",
-      field: raw["Field"] || "",
-      department: raw["Department"] || "",
-      raw,
-    };
-
-    res.json({ row });
-
+    return res.json({
+      row: {
+        student_name: raw["Student Name"],
+        email: raw["Student's Email"],
+        programme: raw["Programme"],
+        supervisor: raw["Main Supervisor"],
+        start_date: raw["Start Date"],
+        raw,
+      },
+    });
   } catch (err) {
-    console.error("GET /student/me ERROR", err);
-    return res.status(500).json({ error: "Server Error" });
+    return res.status(500).json({ error: err.message });
   }
 });
 
