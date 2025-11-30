@@ -70,37 +70,88 @@ async function updateSheetCell(rowNumber, columnName, value) {
 /* --------------------------------------------
    POST /api/tasks/toggle
 -------------------------------------------- */
+// --- inside backend/routes/tasks.js (replace existing /toggle handler) ---
 router.post("/toggle", auth, async (req, res) => {
   try {
-    const { studentEmail, key, actor } = req.body;
-
-    if (!ACTIVITIES.includes(key))
-      return res.status(400).json({ error: "Unknown activity" });
+    const { studentEmail, key, actor, value } = req.body;
+    if (!studentEmail || !key || !actor) return res.status(400).json({ error: "Missing fields" });
 
     const rowNumber = await findRowNumberByEmail(studentEmail);
-    if (!rowNumber)
-      return res.status(404).json({ error: "Student not found" });
+    if (!rowNumber) return res.status(404).json({ error: "Student not found" });
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
     if (actor === "student") {
-      await updateSheetCell(rowNumber, key, "TRUE");
-      await updateSheetCell(rowNumber, `${key} StudentTickDate`, today);
-      await updateSheetCell(rowNumber, `${key} SupervisorApproved`, "FALSE");
-      await updateSheetCell(rowNumber, `${key} SupervisorApproveDate`, "");
+      // value should be boolean true/false
+      const willBeTrue = value === true || value === "true" || value === "TRUE";
 
-      return res.json({ ok: true });
+      // Update main tick column (set TRUE or FALSE)
+      await updateSheetCell(rowNumber, key, willBeTrue ? "TRUE" : "FALSE");
+
+      // Also update Submitted column for consistency
+      await updateSheetCell(rowNumber, `${key} Submitted`, willBeTrue ? "TRUE" : "FALSE");
+
+      if (willBeTrue) {
+        // set the StudentTickDate and reset supervisor approval
+        await updateSheetCell(rowNumber, `${key} StudentTickDate`, today);
+        await updateSheetCell(rowNumber, `${key} SupervisorApproved`, "FALSE");
+        await updateSheetCell(rowNumber, `${key} SupervisorApproveDate`, "");
+      } else {
+        // unticked: clear date and supervisor approval
+        await updateSheetCell(rowNumber, `${key} StudentTickDate`, "");
+        await updateSheetCell(rowNumber, `${key} SupervisorApproved`, "FALSE");
+        await updateSheetCell(rowNumber, `${key} SupervisorApproveDate`, "");
+      }
+
+      // Try to notify supervisor asynchronously (don't block on errors)
+      try {
+        const rows = await getCachedSheet(SHEET_ID);
+        const rowData = rows[rowNumber - 2];
+        const supervisorEmail = rowData["Main Supervisor's Email"] || rowData["Main Supervisor"];
+        if (supervisorEmail && willBeTrue) {
+          await sendgrid.send({
+            to: supervisorEmail,
+            from: process.env.NOTIFY_FROM_EMAIL,
+            subject: `PPBMS: ${rowData["Student Name"]} ticked "${key}"`,
+            text: `${rowData["Student Name"]} ticked "${key}". Please review and approve in the Supervisor dashboard.`,
+          });
+        }
+      } catch (e) {
+        console.warn("notify error:", e?.message || e);
+      }
+
+      return res.json({ ok: true, value: willBeTrue });
     }
 
     if (actor === "supervisor") {
-      await updateSheetCell(rowNumber, `${key} SupervisorApproved`, "TRUE");
-      await updateSheetCell(rowNumber, `${key} SupervisorApproveDate`, today);
+      // Only allow supervisor role — auth middleware should check role
+      const willBeTrue = value === true || value === "true" || value === "TRUE";
+      await updateSheetCell(rowNumber, `${key} SupervisorApproved`, willBeTrue ? "TRUE" : "FALSE");
+      await updateSheetCell(rowNumber, `${key} SupervisorApproveDate`, willBeTrue ? today : "");
 
-      return res.json({ ok: true });
+      // notify student if approved
+      try {
+        const rows = await getCachedSheet(SHEET_ID);
+        const rowData = rows[rowNumber - 2];
+        const studentEmailRow = rowData["Student's Email"];
+        if (studentEmailRow && willBeTrue) {
+          await sendgrid.send({
+            to: studentEmailRow,
+            from: process.env.NOTIFY_FROM_EMAIL,
+            subject: `PPBMS: Supervisor approved "${key}"`,
+            text: `Your supervisor approved "${key}". Check your dashboard for details.`,
+          });
+        }
+      } catch (e) {
+        console.warn("notify error:", e?.message || e);
+      }
+
+      return res.json({ ok: true, value: willBeTrue });
     }
 
-    return res.status(400).json({ error: "Invalid actor" });
+    return res.status(400).json({ error: "actor must be 'student' or 'supervisor'" });
   } catch (err) {
+    console.error("toggle error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
