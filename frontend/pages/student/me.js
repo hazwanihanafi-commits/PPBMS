@@ -128,35 +128,36 @@ export default function MePage() {
         FILE UPLOAD
   ------------------------------ */
   async function uploadFile(e, key) {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    setUploading(true);
+  setUploading(true);
 
-    try:
-      const form = new FormData();
-      form.append("file", file);
-      form.append("studentEmail", row.email);
-      form.append("key", key);
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("studentEmail", row.email);
+    form.append("key", key);
 
-      const res = await fetch(`${API}/api/tasks/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
+    const res = await fetch(`${API}/api/tasks/upload`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
 
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error || JSON.stringify(j));
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || JSON.stringify(j));
 
-      await refreshRow();
-      alert("Uploaded");
-    } catch (e) {
-      alert("Upload failed: " + e.message);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
+    await refreshRow();
+    alert("Uploaded");
+  } catch (e) {
+    alert("Upload failed: " + e.message);
+  } finally {
+    setUploading(false);
+    e.target.value = "";
   }
+}
+
 
   /* ------------------------------
         REFRESH AFTER ACTION
