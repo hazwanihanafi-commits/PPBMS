@@ -4,36 +4,65 @@ import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
+/* -----------------------------------------------------
+   PROGRESS CALCULATION (matches your Google Sheet)
+----------------------------------------------------- */
 function calculateProgressFromPlan(row, programme) {
-  // reuse same logic as frontend for consistency; simple version:
   const lower = (programme || "").toLowerCase();
   const isMsc = lower.includes("msc") || lower.includes("master");
-  const plan = isMsc
-    ? [
-      "Development Plan & Learning Contract","Proposal Defense Endorsed","Pilot / Phase 1 Completed","Phase 2 Data Collection Begun",
-      "Annual Progress Review (Year 1)","Phase 2 Data Collection Continued","Seminar Completed","Thesis Draft Completed",
-      "Internal Evaluation Completed","Viva Voce","Corrections Completed","Final Thesis Submission"
-    ]
-    : [
-      "Development Plan & Learning Contract","Proposal Defense Endorsed","Pilot / Phase 1 Completed","Annual Progress Review (Year 1)",
-      "Phase 2 Completed","Seminar Completed","Data Analysis Completed","1 Journal Paper Submitted","Conference Presentation",
-      "Annual Progress Review (Year 2)","Thesis Draft Completed","Internal Evaluation Completed","Viva Voce","Corrections Completed","Final Thesis Submission"
-    ];
 
-  const done = plan.filter(k => {
-    const v = row[k];
+  const MSC_PLAN = [
+    "Development Plan & Learning Contract",
+    "Proposal Defense Endorsed",
+    "Pilot / Phase 1 Completed",
+    "Phase 2 Data Collection Begun",
+    "Annual Progress Review (Year 1)",
+    "Phase 2 Data Collection Continued",
+    "Seminar Completed",
+    "Annual Progress Review (Year 2)",
+    "Thesis Draft Completed",
+    "Final Progress Review (Year 3)",
+    "Viva Voce",
+    "Corrections Completed",
+    "Final Thesis Submission"
+  ];
+
+  const PHD_PLAN = [
+    "Development Plan & Learning Contract",
+    "Proposal Defense Endorsed",
+    "Pilot / Phase 1 Completed",
+    "Annual Progress Review (Year 1)",
+    "Phase 2 Completed",
+    "Seminar Completed",
+    "Data Analysis Completed",
+    "1 Journal Paper Submitted",
+    "Conference Presentation",
+    "Annual Progress Review (Year 2)",
+    "Thesis Draft Completed",
+    "Final Progress Review (Year 3)",
+    "Viva Voce",
+    "Corrections Completed",
+    "Final Thesis Submission"
+  ];
+
+  const plan = isMsc ? MSC_PLAN : PHD_PLAN;
+
+  const done = plan.filter((key) => {
+    const v = row[key];
     if (!v) return false;
     const s = String(v).trim().toLowerCase();
-    if (!s) return false;
-    if (["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
+    if (["", "n/a", "na", "-", "#n/a", "—"].includes(s)) return false;
     return true;
   }).length;
 
-  const percentage = plan.length ? Math.round((done / plan.length) * 100) : 0;
+  const percentage = Math.round((done / plan.length) * 100);
+
   return { done, total: plan.length, percentage };
 }
 
-// list students supervised by ?email
+/* -----------------------------------------------------
+   LIST ALL STUDENTS UNDER A SUPERVISOR
+----------------------------------------------------- */
 router.get("/students", async (req, res) => {
   try {
     const email = req.query.email;
@@ -41,44 +70,69 @@ router.get("/students", async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const filtered = rows.filter(r => {
-      // your sheet has "Main Supervisor" (name) and "Main Supervisor's Email"
       const supEmail = (r["Main Supervisor's Email"] || "").toLowerCase();
-      const mainSup = (r["Main Supervisor"] || "").toLowerCase();
-      return supEmail === email.toLowerCase() || mainSup.includes(email.toLowerCase());
+      const supName = (r["Main Supervisor"] || "").toLowerCase();
+      return supEmail === email.toLowerCase() || supName.includes(email.toLowerCase());
     });
 
     const students = filtered.map(r => {
-      const progCalc = calculateProgressFromPlan(r, r["Programme"] || "");
+      const prog = calculateProgressFromPlan(r, r["Programme"] || "");
       return {
         id: r["Student's Email"],
         name: r["Student Name"],
         programme: r["Programme"],
-        supervisor: r["Main Supervisor"] || r["Main Supervisor's Name"] || r["Main Supervisor's Email"],
-        progress: progCalc.percentage,
-        status: progCalc.percentage === 100 ? "Completed" : (progCalc.percentage >= 75 ? "Ahead" : (progCalc.percentage >= 50 ? "On Track" : (progCalc.percentage >= 25 ? "Behind" : "At Risk"))),
+        supervisor: r["Main Supervisor"],
+        progress: prog.percentage,
+        status:
+          prog.percentage === 100
+            ? "Completed"
+            : prog.percentage >= 75
+              ? "Ahead"
+              : prog.percentage >= 50
+                ? "On Track"
+                : prog.percentage >= 25
+                  ? "Behind"
+                  : "At Risk",
         raw: r
       };
     });
 
-    return res.json({ students });
+    res.json({ students });
   } catch (err) {
-    console.error("supervisor/students error", err);
-    return res.status(500).json({ error: err.message });
+    console.error("supervisor/students error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// single student detail (by email)
+/* -----------------------------------------------------
+   SINGLE STUDENT DETAIL
+----------------------------------------------------- */
 router.get("/student/:email", async (req, res) => {
   try {
     const { email } = req.params;
     const rows = await readMasterTracking(process.env.SHEET_ID);
-    const found = rows.find(r => (r["Student's Email"] || "").toLowerCase() === email.toLowerCase());
+
+    const found = rows.find(
+      r => (r["Student's Email"] || "").toLowerCase() === email.toLowerCase()
+    );
+
     if (!found) return res.status(404).json({ error: "Student not found" });
+
     const prog = calculateProgressFromPlan(found, found["Programme"] || "");
-    return res.json({ student: { id: found["Student's Email"], name: found["Student Name"], programme: found["Programme"], supervisor: found["Main Supervisor"], progress: prog.percentage, raw: found }});
+
+    res.json({
+      student: {
+        id: found["Student's Email"],
+        name: found["Student Name"],
+        programme: found["Programme"],
+        supervisor: found["Main Supervisor"],
+        progress: prog.percentage,
+        raw: found
+      }
+    });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
