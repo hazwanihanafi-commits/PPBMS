@@ -2,78 +2,71 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet } from "../utils/sheetCache.js";
-import { buildTimeline } from "../utils/buildTimeline.js";
+import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
-// ---------------------------
-// AUTH MIDDLEWARE
-// ---------------------------
+/*-------------------------------------------------------
+  AUTH MIDDLEWARE
+-------------------------------------------------------*/
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-// ---------------------------
-// SUPERVISOR — LIST STUDENTS
-// ---------------------------
+/*-------------------------------------------------------
+  GET LIST OF STUDENTS FOR SUPERVISOR
+-------------------------------------------------------*/
 router.get("/students", auth, async (req, res) => {
   try {
-    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
+    const supEmail = (req.query.email || "")
+      .toLowerCase()
+      .trim();
+
+    if (!supEmail) return res.json({ students: [] });
+
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // filter all students whose supervisor email matches login
-    const supervised = rows.filter(
-      (r) =>
-        (r["Main Supervisor's Email"] || "")
+    const students = rows
+      .filter(r => {
+        const col = (r["Main Supervisor's Email"] || "")
           .toLowerCase()
-          .trim() === supervisorEmail
-    );
+          .trim();
+        return col === supEmail;
+      })
+      .map(r => {
+        const raw = r;
+        const timeline = buildTimelineForRow(raw);
 
-    let output = [];
+        const progress =
+          Math.round(
+            (timeline.filter(t => t.status === "Completed").length /
+              timeline.length) *
+              100
+          ) || 0;
 
-    for (const row of supervised) {
-      // build timeline for each student
-      const timeline = buildTimeline(row);
-
-      // progress %: completed activities / total activities
-      const completedCount = timeline.filter(
-        (t) => t.status === "Completed"
-      ).length;
-
-      const totalCount = timeline.length;
-
-      const progressPercent =
-        totalCount === 0
-          ? 0
-          : Math.round((completedCount / totalCount) * 100);
-
-      output.push({
-        student_name: row["Student Name"],
-        email: row["Student's Email"],
-        programme: row["Programme"],
-        field: row["Field"] || "",
-        start_date: row["Start Date"],
-
-        progress_percent: progressPercent,
-        completed: completedCount,
-        total: totalCount,
-
-        timeline, // <-- send full timeline to frontend
+        return {
+          email: r["Student's Email"] || "",
+          name: r["Student Name"] || "",
+          programme: r["Programme"] || "",
+          progress,
+          timeline
+        };
       });
-    }
 
-    return res.json({ students: output });
+    return res.json({ students });
+
   } catch (err) {
     console.error("SUPERVISOR ERROR:", err);
-    return res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
