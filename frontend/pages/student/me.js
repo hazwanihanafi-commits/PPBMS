@@ -14,23 +14,37 @@ export default function MePage() {
   const [tab, setTab] = useState("progress");
   const [error, setError] = useState(null);
 
+  // Load token
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
-    if (!t) { setError("Not logged in"); setLoading(false); return; }
+    if (!t) {
+      setError("Not logged in");
+      setLoading(false);
+      return;
+    }
     setToken(t);
   }, []);
 
+  // Load student row
   useEffect(() => {
     if (!token) return;
     (async () => {
       try {
-        const res = await fetch(`${API}/api/student/me`, { headers: { Authorization: `Bearer ${token}` }});
+        const res = await fetch(`${API}/api/student/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
         const txt = await res.text();
         if (!res.ok) throw new Error(txt);
+
         const data = JSON.parse(txt);
         setRow(data.row);
-      } catch (e) { setError(e.message || e); }
-      finally { setLoading(false); }
+
+      } catch (e) {
+        setError(e.message || e);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [token]);
 
@@ -39,20 +53,32 @@ export default function MePage() {
   if (!row) return null;
 
   const prog = calculateProgressFromPlan(row.raw || {}, row.programme || "");
-  const initials = (row.student_name || "NA").split(" ").map(s => s[0]).slice(0,2).join("").toUpperCase();
+  const initials = (row.student_name || "NA")
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* Header */}
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
         <h1 className="text-3xl font-bold">Student Progress</h1>
-        <p className="mt-2 text-lg"><strong>{row.student_name}</strong> — {row.programme}</p>
+        <p className="mt-2 text-lg">
+          <strong>{row.student_name}</strong> — {row.programme}
+        </p>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
+
+        {/* Left Column */}
         <div className="col-span-4 space-y-6">
           <div className="rounded-xl bg-white p-6 shadow">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">{initials}</div>
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
+                {initials}
+              </div>
               <div>
                 <div className="font-semibold text-lg">{row.student_name}</div>
                 <div className="text-gray-600">{row.programme}</div>
@@ -62,23 +88,42 @@ export default function MePage() {
             <div className="mt-4 text-sm space-y-1">
               <div><strong>Supervisor:</strong> {row.supervisor}</div>
               <div><strong>Start Date:</strong> {row.start_date || "-"}</div>
-              <div><strong>Field:</strong> {row.raw?.Field || row.raw?.field || "-"}</div>
-              <div><strong>Department:</strong> {row.raw?.Department || row.raw?.department || "-"}</div>
+              <div><strong>Field:</strong> {row.raw?.Field || "-"}</div>
+              <div><strong>Department:</strong> {row.raw?.Department || "-"}</div>
             </div>
           </div>
 
           <div className="rounded-xl bg-white p-4">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button className={tab==="progress" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("progress")}>Progress</button>
-              <button className={tab==="submissions" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("submissions")}>Submissions</button>
-              <button className={tab==="documents" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("documents")}>Documents</button>
+              <button 
+                className={tab === "progress" ? "text-purple-700 font-bold" : ""} 
+                onClick={() => setTab("progress")}
+              >
+                Progress
+              </button>
+              <button 
+                className={tab === "submissions" ? "text-purple-700 font-bold" : ""} 
+                onClick={() => setTab("submissions")}
+              >
+                Submissions
+              </button>
+              <button 
+                className={tab === "documents" ? "text-purple-700 font-bold" : ""} 
+                onClick={() => setTab("documents")}
+              >
+                Documents
+              </button>
             </div>
           </div>
         </div>
 
+        {/* RIGHT SIDE CONTENT */}
         <div className="col-span-8 space-y-6">
+
+          {/* ---------------------- PROGRESS TAB ----------------------- */}
           {tab === "progress" && (
             <>
+              {/* Donut Progress */}
               <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
                 <DonutChart percentage={prog.percentage} size={130} />
                 <div>
@@ -87,13 +132,12 @@ export default function MePage() {
                 </div>
               </div>
 
-              <div className="rounded-xl bg-white p-6 shadow">
-                <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual</h3>
-                <TimelineTable rows={row.timeline || []} />
-              </div>
+              {/* Timeline with Date Picker */}
+              <TimelineWithSave row={row} token={token} API={API} />
             </>
           )}
 
+          {/* ---------------------- SUBMISSIONS ----------------------- */}
           {tab === "submissions" && (
             <div className="rounded-xl bg-white p-6 shadow">
               <h3 className="text-lg font-semibold">Submission Folder</h3>
@@ -101,13 +145,59 @@ export default function MePage() {
             </div>
           )}
 
+          {/* ---------------------- DOCUMENTS ----------------------- */}
           {tab === "documents" && (
             <div className="rounded-xl bg-white p-6 shadow">
               <p>Documents & logbook links (upload to Submission Folder)</p>
             </div>
           )}
+
         </div>
       </div>
+    </div>
+  );
+}
+
+
+
+/* ===========================================================
+   TIMELINE WITH DATE PICKER + AUTO-SAVE
+   =========================================================== */
+function TimelineWithSave({ row, token, API }) {
+  const [timeline, setTimeline] = useState(row.timeline || []);
+
+  // Save actual date
+  async function saveActualDate(activity, date) {
+    await fetch(`${API}/api/student/update-actual`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        studentId: row.student_id,
+        activity,
+        date
+      })
+    });
+
+    // Reload updated timeline
+    const res = await fetch(`${API}/api/student/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const txt = await res.text();
+    const data = JSON.parse(txt);
+    setTimeline(data.row.timeline); 
+  }
+
+  return (
+    <div className="rounded-xl bg-white p-6 shadow">
+      <h3 className="text-xl font-semibold text-purple-700 mb-4">
+        Expected vs Actual
+      </h3>
+
+      <TimelineTable timeline={timeline} onUpdate={saveActualDate} />
     </div>
   );
 }
