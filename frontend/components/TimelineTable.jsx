@@ -1,30 +1,26 @@
-// frontend/components/TimelineTable.jsx
-import React from "react";
+import ProgressRow from "./ProgressRow";
 
-export default function TimelineTable({ rows = [] }) {
+export default function TimelineTable({ timeline, onUpdate }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border-collapse">
+    <div className="mt-4 w-full overflow-x-auto bg-white shadow rounded-lg p-4">
+      <h3 className="text-xl font-semibold text-purple-700 mb-4">
+        Expected vs Actual Timeline
+      </h3>
+
+      <table className="min-w-full border">
         <thead>
-          <tr className="text-left">
-            <th className="p-2">Activity</th>
-            <th className="p-2">Expected</th>
-            <th className="p-2">Actual</th>
-            <th className="p-2">Status</th>
-            <th className="p-2">Remaining (days)</th>
+          <tr className="bg-purple-100 text-left">
+            <th className="px-3 py-2">Activity</th>
+            <th className="px-3 py-2">Expected</th>
+            <th className="px-3 py-2">Actual</th>
+            <th className="px-3 py-2">Status</th>
+            <th className="px-3 py-2">Remaining (days)</th>
           </tr>
         </thead>
+
         <tbody>
-          {rows.map((t) => (
-            <tr key={t.activity} className="border-t">
-              <td className="p-2">{t.activity}</td>
-              <td className="p-2">{t.expected || "-"}</td>
-              <td className="p-2">{t.actual || "-"}</td>
-              <td className={`p-2 ${t.status === "Late" ? "text-red-600" : t.status === "Completed" ? "text-green-600" : "text-yellow-600"}`}>
-                {t.status}
-              </td>
-              <td className="p-2">{t.remaining === null || t.remaining === undefined ? "-" : t.remaining}</td>
-            </tr>
+          {timeline.map((row, i) => (
+            <ProgressRow key={i} row={row} onUpdate={onUpdate} />
           ))}
         </tbody>
       </table>
