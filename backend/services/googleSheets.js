@@ -53,3 +53,68 @@ export async function writeToSheet(sheetId, sheetName, rowNumber, columnName, va
   });
   return true;
 }
+// -----------------------------------------------------------
+// WRITE ACTUAL DATE + FILE URL for a student activity
+// -----------------------------------------------------------
+export async function writeStudentActual(sheetId, activityKey, url, actualDate) {
+  const sheetName = "MasterTracking";
+
+  // authenticate
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  // 1️⃣ Read header row to find correct columns
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: `${sheetName}!A1:ZZ1`
+  });
+
+  const headers = headerRes.data.values[0];
+
+  const actualColumn = `${activityKey} - Actual`;
+  const urlColumn = `${activityKey} - FileURL`;
+
+  const actualIndex = headers.indexOf(actualColumn);
+  const urlIndex = headers.indexOf(urlColumn);
+
+  if (actualIndex === -1)
+    throw new Error(`Column not found: ${actualColumn}`);
+  if (urlIndex === -1)
+    throw new Error(`Column not found: ${urlColumn}`);
+
+  // 2️⃣ Find the row number for the student’s sheet
+  const studentSheet = sheetId; // activity sheet = student sheet
+  const rowNumber = 2; // always row 2 for student sheet
+
+  // Convert index to Excel column letter
+  function toColumnLetter(idx) {
+    let letter = "";
+    while (idx >= 0) {
+      letter = String.fromCharCode((idx % 26) + 65) + letter;
+      idx = Math.floor(idx / 26) - 1;
+    }
+    return letter;
+  }
+
+  const actualLetter = toColumnLetter(actualIndex);
+  const urlLetter = toColumnLetter(urlIndex);
+
+  // 3️⃣ Write Actual Date
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: studentSheet,
+    range: `${sheetName}!${actualLetter}${rowNumber}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[actualDate]] }
+  });
+
+  // 4️⃣ Write File URL
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: studentSheet,
+    range: `${sheetName}!${urlLetter}${rowNumber}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[url]] }
+  });
+
+  return true;
+}
