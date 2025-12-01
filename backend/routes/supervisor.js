@@ -2,10 +2,13 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet } from "../utils/sheetCache.js";
-import buildTimeline from "../utils/buildTimeline.js";   // ⬅️ IMPORTANT
+import buildTimeline from "../utils/buildTimeline.js";
+
 const router = express.Router();
 
-// auth middleware
+// ---------------------------
+// AUTH MIDDLEWARE
+// ---------------------------
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -18,42 +21,59 @@ function auth(req, res, next) {
   }
 }
 
+// ---------------------------
+// SUPERVISOR — LIST STUDENTS
+// ---------------------------
 router.get("/students", auth, async (req, res) => {
   try {
-    const email = (req.user.email || "").toLowerCase().trim();
-
+    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // Filter students under this supervisor
-    const list = rows.filter(
+    // filter all students whose supervisor email matches login
+    const supervised = rows.filter(
       (r) =>
-        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === email
+        (r["Main Supervisor's Email"] || "")
+          .toLowerCase()
+          .trim() === supervisorEmail
     );
 
-    const output = [];
+    let output = [];
 
-    for (const r of list) {
-      const timeline = buildTimeline(r);       // ⬅️ Use new engine
-      const completed = timeline.filter((t) => t.status === "Completed").length;
-      const total = timeline.length;
-      const percent = Math.round((completed / total) * 100);
+    for (const row of supervised) {
+      // build timeline for each student
+      const timeline = buildTimeline(row);
+
+      // progress %: completed activities / total activities
+      const completedCount = timeline.filter(
+        (t) => t.status === "Completed"
+      ).length;
+
+      const totalCount = timeline.length;
+
+      const progressPercent =
+        totalCount === 0
+          ? 0
+          : Math.round((completedCount / totalCount) * 100);
 
       output.push({
-        student_name: r["Student Name"],
-        email: r["Student's Email"],
-        programme: r["Programme"],
-        field: r["Field"] || "",
-        start_date: r["Start Date"],
-        progress_percent: percent,
-        completed,
-        total,
-        timeline,
+        student_name: row["Student Name"],
+        email: row["Student's Email"],
+        programme: row["Programme"],
+        field: row["Field"] || "",
+        start_date: row["Start Date"],
+
+        progress_percent: progressPercent,
+        completed: completedCount,
+        total: totalCount,
+
+        timeline, // <-- send full timeline to frontend
       });
     }
 
-    res.json({ students: output });
+    return res.json({ students: output });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("SUPERVISOR ERROR:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
