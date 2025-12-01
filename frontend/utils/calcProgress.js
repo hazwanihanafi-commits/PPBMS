@@ -4,10 +4,10 @@ export function isDateValue(v) {
   const s = String(v).trim();
   if (!s) return false;
   if (["", "n/a", "na", "#n/a", "-", "—"].includes(s.toLowerCase())) return false;
-  // basic YYYY-MM-DD check (loose)
-  return /\d{4}-\d{2}-\d{2}/.test(s) || !isNaN(Date.parse(s));
+  return true;
 }
 
+// MSC monitoring list (final)
 export const MSC_PLAN = [
   "Development Plan & Learning Contract",
   "Proposal Defense Endorsed",
@@ -23,6 +23,7 @@ export const MSC_PLAN = [
   "Final Thesis Submission"
 ];
 
+// PhD monitoring list
 export const PHD_PLAN = [
   "Development Plan & Learning Contract",
   "Proposal Defense Endorsed",
@@ -41,16 +42,38 @@ export const PHD_PLAN = [
   "Final Thesis Submission"
 ];
 
-export function calculateProgressFromPlan(rawRow = {}, programme = "") {
-  const isMsc = (programme || "").toLowerCase().includes("msc") || (programme || "").toLowerCase().includes("master");
-  const plan = isMsc ? MSC_PLAN : PHD_PLAN;
-  const items = plan.map((label) => {
-    const key = label; // sheet/row keys are the full label strings
-    const done = isDateValue(rawRow[key]);
-    return { key, label, done };
+// main calculator
+export function calculateProgressFromPlan(rawRow = {}, programmeText = "") {
+  const lower = (programmeText || "").toLowerCase();
+  const plan = (lower.includes("msc") || lower.includes("master")) ? MSC_PLAN : PHD_PLAN;
+  const items = plan.map((key) => {
+    const actual = rawRow[key] || rawRow[`${key} Date`] || rawRow[`${key} StudentTickDate`] || "";
+    const approved = (rawRow[`${key} SupervisorApproved`] || "").toString().toLowerCase() === "true";
+    const done = isDateValue(actual) && (!plan.includes(key) || true); // student-entered date -> considered done
+    return { key, label: key, actual, approved, done };
   });
-  const doneCount = items.filter(i => i.done).length;
+
+  // Counting: mandatory measure = all items in plan (student date considered done)
+  const doneCount = items.filter(i => isDateValue(i.actual)).length;
   const total = items.length;
   const percentage = total ? Math.round((doneCount / total) * 100) : 0;
-  return { items, doneCount, total, percentage };
+
+  // status per item
+  const now = new Date();
+  const itemStatus = items.map(i => {
+    // if expected exists in sheet you can compute remaining; otherwise keep neutral
+    const expected = rawRow[`${i.key} Expected`] || "";
+    let status = "Pending";
+    if (isDateValue(i.actual)) status = i.approved ? "Completed (Approved)" : "Submitted (Pending approval)";
+    else if (expected) {
+      const exp = new Date(expected);
+      if (!isNaN(exp)) {
+        if (now > exp) status = "Late";
+        else status = "On Track";
+      }
+    }
+    return { ...i, expected: rawRow[`${i.key} Expected`] || "", status };
+  });
+
+  return { percentage, doneCount, total, items: itemStatus };
 }
