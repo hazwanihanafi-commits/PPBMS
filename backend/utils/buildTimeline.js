@@ -77,3 +77,4 @@ export function buildTimelineForRow(row) {
 
   return timeline;
 }
+export default buildTimeline;
