@@ -1,161 +1,87 @@
 // backend/utils/buildTimeline.js
 
-import { differenceInCalendarDays, parseISO } from "date-fns";
+// -----------------------------------------------
+// FIXED — EXPORTS BOTH FUNCTIONS CLEANLY
+// -----------------------------------------------
 
-/*
-----------------------------------------------------------
- DEFINE MASTER ACTIVITY LIST (same order for MSC + PhD)
-----------------------------------------------------------
-*/
-
+// MSc + PhD activities (same list; sheet provides actual dates)
 export const ACTIVITIES = [
-  {
-    key: "Development Plan & Learning Contract - Actual",
-    name: "Development Plan & Learning Contract",
-    expectedMonth: 2,  // 2 months after start
-    mandatory: true
-  },
-  {
-    key: "Proposal Defense Endorsed - Actual",
-    name: "Proposal Defense Endorsed",
-    expectedMonth: 12
-  },
-  {
-    key: "Pilot / Phase 1 Completed - Actual",
-    name: "Pilot / Phase 1 Completed",
-    expectedMonth: 18
-  },
-  {
-    key: "Phase 2 Data Collection Begun - Actual",
-    name: "Phase 2 Data Collection Begun",
-    expectedMonth: 20
-  },
-  {
-    key: "Annual Progress Review (Year 1) - Actual",
-    name: "Annual Progress Review (Year 1)",
-    expectedMonth: 12,
-    mandatory: true
-  },
-  {
-    key: "Phase 2 Data Collection Continued - Actual",
-    name: "Phase 2 Data Collection Continued",
-    expectedMonth: 24
-  },
-  {
-    key: "Seminar Completed - Actual",
-    name: "Seminar Completed",
-    expectedMonth: 24
-  },
-  {
-    key: "Data Analysis Completed - Actual",
-    name: "Data Analysis Completed",
-    expectedMonth: 30
-  },
-  {
-    key: "1 Journal Paper Submitted - Actual",
-    name: "1 Journal Paper Submitted",
-    expectedMonth: 30
-  },
-  {
-    key: "Conference Presentation - Actual",
-    name: "Conference Presentation",
-    expectedMonth: 30
-  },
-  {
-    key: "Annual Progress Review (Year 2) - Actual",
-    name: "Annual Progress Review (Year 2)",
-    expectedMonth: 24,
-    mandatory: true
-  },
-  {
-    key: "Thesis Draft Completed - Actual",
-    name: "Thesis Draft Completed",
-    expectedMonth: 36
-  },
-  {
-    key: "Final Progress Review (Year 3) - Actual",
-    name: "Final Progress Review (Year 3)",
-    expectedMonth: 36,
-    mandatory: true
-  },
-  {
-    key: "Viva Voce - Actual",
-    name: "Viva Voce",
-    expectedMonth: 40
-  },
-  {
-    key: "Corrections Completed - Actual",
-    name: "Corrections Completed",
-    expectedMonth: 42
-  },
-  {
-    key: "Final Thesis Submission - Actual",
-    name: "Final Thesis Submission",
-    expectedMonth: 48
-  }
+  { key: "Development Plan & Learning Contract", months: 2 },
+  { key: "Proposal Defense Endorsed", months: 12 },
+  { key: "Pilot / Phase 1 Completed", months: 18 },
+  { key: "Phase 2 Data Collection Begun", months: 20 },
+  { key: "Annual Progress Review (Year 1)", months: 12 },
+  { key: "Phase 2 Data Collection Continued", months: 24 },
+  { key: "Seminar Completed", months: 26 },
+  { key: "Data Analysis Completed", months: 30 },
+  { key: "1 Journal Paper Submitted", months: 30 },
+  { key: "Conference Presentation", months: 32 },
+  { key: "Annual Progress Review (Year 2)", months: 24 },
+  { key: "Thesis Draft Completed", months: 36 },
+  { key: "Final Progress Review (Year 3)", months: 40 },
+  { key: "Viva Voce", months: 42 },
+  { key: "Corrections Completed", months: 44 },
+  { key: "Final Thesis Submission", months: 48 }
 ];
 
-/*
-----------------------------------------------------------
- BUILD TIMELINE FUNCTION
- Converts sheet row → timeline array
-----------------------------------------------------------
-*/
+/** Utility */
+function addMonths(date, num) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + num);
+  return d;
+}
+function daysBetween(a, b) {
+  return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
+}
 
-export function buildTimeline(raw) {
-  if (!raw) return [];
-
-  const startDateStr = raw["Start Date"];
-  if (!startDateStr) return [];
-
-  const startDate = parseISO(startDateStr);
+/**
+ * -----------------------------------------------------
+ * MAIN ENGINE — builds timeline for one student row
+ * -----------------------------------------------------
+ */
+export function buildTimelineForRow(raw) {
+  const start = new Date(raw["Start Date"]);
   const today = new Date();
 
-  const timeline = ACTIVITIES.map((item) => {
-    // expected date = start date + expectedMonth
-    const expected = new Date(startDate);
-    expected.setMonth(expected.getMonth() + item.expectedMonth);
-    const expectedStr = expected.toISOString().slice(0, 10);
+  const timeline = ACTIVITIES.map((act) => {
+    const expected = addMonths(start, act.months).toISOString().slice(0, 10);
 
-    // actual date from sheet
-    const actual = raw[item.key] || "";
-    const actualStr = actual || "";
+    const actualKey = `${act.key} - Actual`;
+    const actual = raw[actualKey] || "";
 
     let status = "Pending";
     let remaining = "";
 
-    if (actualStr) {
+    if (actual) {
       status = "Completed";
-      remaining = "0 days";
+      remaining = "0";
     } else {
-      const daysLeft = differenceInCalendarDays(expected, today);
-
-      if (daysLeft < 0) {
+      if (new Date(expected) < today) {
         status = "Late";
-        remaining = `${Math.abs(daysLeft)} days overdue`;
+        remaining = daysBetween(new Date(expected), today) * -1; // overdue
       } else {
         status = "On Track";
-        remaining = `${daysLeft} days`;
+        remaining = daysBetween(today, new Date(expected)); // days left
       }
     }
 
     return {
-      activity: item.name,
-      key: item.key,
-      expected: expectedStr,
-      actual: actualStr,
+      activity: act.key,
+      expected,
+      actual,
       status,
-      remaining,
-      mandatory: !!item.mandatory
+      remaining
     };
   });
 
   return timeline;
 }
 
-/*
-----------------------------------------------------------
- DEFAULT EXPORT
-----------------------------------------------------------
-*/
-export default buildTimeline;
+/**
+ * -----------------------------------------------------
+ * SUPERVISOR VIEW WRAPPER
+ * -----------------------------------------------------
+ */
+export function buildTimeline(raw) {
+  return buildTimelineForRow(raw);
+}
