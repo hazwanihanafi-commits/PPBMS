@@ -3,112 +3,141 @@ import { useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
-export default function SubmissionFolder({ raw = {}, studentEmail }) {
+export default function SubmissionFolder({ raw = {}, studentEmail, isSupervisor = false, onUpdated }) {
+  // Keys that require upload (mandatory)
+  const mandatoryKeys = [
+    "Development Plan & Learning Contract",
+    "Annual Progress Review (Year 1)",
+    "Internal Evaluation Completed (Pre-Viva)",
+    "Final Thesis Submission",
+  ];
+
   const [uploading, setUploading] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [error, setError] = useState(null);
 
-  async function handleDateSave(key, e) {
-    const value = e.target.value; // YYYY-MM-DD
+  async function handleUpload(e, key) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
     try {
-      setMsg("Saving...");
       const token = localStorage.getItem("ppbms_token");
-      await fetch(`${API}/api/tasks/toggle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ studentEmail, key, actor: "student", actualDate: value })
-      });
-      setMsg("Saved");
-      setTimeout(() => setMsg(""), 2000);
-      window.location.reload();
-    } catch (err) {
-      setMsg("Error saving");
-      console.error(err);
-    }
-  }
+      const form = new FormData();
+      form.append("file", file);
+      form.append("studentEmail", studentEmail);
+      form.append("key", key);
 
-  async function handleFileUpload(key, file) {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("studentEmail", studentEmail);
-    form.append("key", key);
-
-    try {
-      setUploading(true);
-      setMsg("Uploading...");
-      const token = localStorage.getItem("ppbms_token");
       const res = await fetch(`${API}/api/tasks/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
-        body: form
+        body: form,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-      setMsg("Uploaded");
-      setTimeout(() => setMsg(""), 2000);
-      window.location.reload();
-    } catch (err) {
-      console.error(err);
-      setMsg("Upload error");
+      if (!res.ok) throw new Error(data.error || JSON.stringify(data));
+      if (onUpdated) onUpdated();
+    } catch (e) {
+      setError(e.message || String(e));
     } finally {
       setUploading(false);
     }
   }
 
-  async function handleSupervisorApprove(key) {
+  async function handleToggle(key, actor) {
+    setError(null);
     try {
       const token = localStorage.getItem("ppbms_token");
       const res = await fetch(`${API}/api/tasks/toggle`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ studentEmail, key, actor: "supervisor" })
+        body: JSON.stringify({ studentEmail, key, actor }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Approve failed");
-      window.location.reload();
-    } catch (err) {
-      console.error(err);
-      alert("Approve failed: " + (err.message || ""));
+      if (!res.ok) throw new Error(data.error || JSON.stringify(data));
+      if (onUpdated) onUpdated();
+    } catch (e) {
+      setError(e.message || String(e));
     }
   }
 
-  // Determine list to show: you can supply it or the page will map using raw keys.
-  const keys = Object.keys(raw).filter(k => k && typeof k === "string");
-  const monitorKeys = [
-    "Development Plan & Learning Contract",
-    "Annual Progress Review (Year 1)",
-    "Annual Progress Review (Year 2)",
-    "Internal Evaluation Completed (Pre-Viva)",
-    "Final Thesis Submission"
-  ];
+  async function handleExportPdf() {
+    try {
+      const token = localStorage.getItem("ppbms_token");
+      const res = await fetch(`${API}/api/tasks/exportPdf/${encodeURIComponent(studentEmail)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${studentEmail}_progress.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e.message || String(e));
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      <h4 className="font-semibold">Submissions</h4>
-      <div className="text-sm text-gray-600">Upload mandatory documents or set actual date here. Supervisor will be emailed on upload.</div>
+    <div>
+      <h4 className="text-lg font-semibold mb-3">Submission Folder</h4>
+      {error && <div className="text-red-600 mb-2">{error}</div>}
+      <table className="w-full table-auto border-collapse">
+        <thead>
+          <tr className="text-left bg-gray-100">
+            <th className="p-2">Activity</th>
+            <th className="p-2">Submitted</th>
+            <th className="p-2">Student Date / Link</th>
+            <th className="p-2">Supervisor Approved</th>
+            <th className="p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {mandatoryKeys.map((k) => {
+            const submitted = raw[`${k}`] || raw[`${k} Submitted`] || "";
+            const studentDate = raw[`${k} StudentTickDate`] || raw[`${k} Date`] || "";
+            const submissionUrl = raw[`${k} Submission URL`] || "";
+            const supApproved = raw[`${k} SupervisorApproved`] || "";
+            return (
+              <tr key={k} className="border-b">
+                <td className="p-2 font-medium">{k}</td>
+                <td className="p-2">{submitted ? "Yes" : "No"}</td>
+                <td className="p-2">
+                  <div className="text-sm">{studentDate || "—"}</div>
+                  {submissionUrl && <a className="text-sm text-purple-600" href={submissionUrl} target="_blank" rel="noreferrer">View</a>}
+                </td>
+                <td className="p-2">{supApproved && String(supApproved).toLowerCase() === "true" ? "Approved" : "Pending"}</td>
+                <td className="p-2">
+                  {!isSupervisor && (
+                    <>
+                      <label className="inline-flex items-center gap-2 mr-3">
+                        <input type="file" onChange={(e) => handleUpload(e, k)} />
+                      </label>
+                      <button className="px-3 py-1 bg-gray-100 rounded" onClick={() => handleToggle(k, "student")} disabled={uploading}>
+                        Mark Done
+                      </button>
+                    </>
+                  )}
+                  {isSupervisor && (
+                    <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleToggle(k, "supervisor")}>
+                      Approve
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
 
-      {monitorKeys.map((key) => {
-        const actual = raw[key] || raw[`${key} Date`] || "";
-        const approved = (raw[`${key} SupervisorApproved`] || "").toString().toLowerCase() === "true";
-        const url = raw[`${key} Submission URL`] || "";
-        return (
-          <div key={key} className="p-3 border rounded flex items-center gap-4">
-            <div className="flex-1">
-              <div className="font-medium">{key}</div>
-              <div className="text-xs text-gray-600">Actual: {actual || "—"} {approved && <span className="ml-2 text-green-700 font-semibold">Approved</span>}</div>
-              {url && <a className="text-sm text-purple-600" target="_blank" rel="noreferrer" href={url}>View uploaded document</a>}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input type="date" defaultValue={actual || ""} onBlur={(e) => handleDateSave(key, e)} className="border p-1 rounded text-sm" />
-              <label className="text-xs">Upload</label>
-              <input type="file" onChange={(e) => e.target.files[0] && handleFileUpload(key, e.target.files[0])} />
-              <button onClick={() => handleSupervisorApprove(key)} className="px-3 py-1 bg-purple-600 text-white rounded text-sm" disabled={approved}>Approve</button>
-            </div>
-          </div>
-        );
-      })}
-
-      {msg && <div className="text-sm text-gray-600 mt-2">{msg}</div>}
+      <div className="mt-4">
+        <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleExportPdf}>Download PDF</button>
+      </div>
     </div>
   );
 }
