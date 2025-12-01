@@ -3,40 +3,29 @@ import Link from "next/link";
 
 export default function SupervisorStudentTable({ students = [] }) {
   return (
-    <table className="w-full text-sm">
+    <table className="w-full table-auto">
       <thead>
-        <tr className="bg-purple-600 text-white">
-          <th className="p-3 text-left">Student</th>
-          <th className="p-3 text-left">Programme</th>
-          <th className="p-3 text-left">Progress</th>
-          <th className="p-3 text-left">Status</th>
-          <th className="p-3 text-left">View</th>
+        <tr className="bg-gray-100 text-left">
+          <th className="p-2">Name</th>
+          <th className="p-2">Email</th>
+          <th className="p-2">Programme</th>
+          <th className="p-2">Progress</th>
+          <th className="p-2">Status</th>
+          <th className="p-2">Action</th>
         </tr>
       </thead>
       <tbody>
-        {students.length === 0 && (
-          <tr><td colSpan={5} className="p-6 text-center text-gray-500">No students found.</td></tr>
-        )}
         {students.map((s) => (
-          <tr key={s.id} className="border-b hover:bg-purple-50">
-            <td className="p-3">
-              <div className="font-medium">{s.name}</div>
-              <div className="text-xs text-gray-500">{s.id}</div>
-            </td>
-            <td className="p-3">{s.programme || "—"}</td>
-            <td className="p-3 font-semibold">{s.progress ?? "—"}%</td>
-            <td className="p-3">
-              <span className={`px-2 py-1 rounded text-white font-medium
-                ${s.status === "Ahead" ? "bg-green-600" : ""}
-                ${s.status === "On Track" ? "bg-blue-600" : ""}
-                ${s.status === "At Risk" ? "bg-yellow-500" : ""}
-                ${s.status === "Behind" ? "bg-red-600" : ""}
-              `}>
-                {s.status}
-              </span>
-            </td>
-            <td className="p-3">
-              <Link href={`/supervisor/${encodeURIComponent(s.id)}`}><a className="text-purple-700 hover:underline font-semibold">View →</a></Link>
+          <tr key={s.id} className="border-b">
+            <td className="p-2">{s.name}</td>
+            <td className="p-2">{s.id}</td>
+            <td className="p-2">{s.programme}</td>
+            <td className="p-2">{s.progress}%</td>
+            <td className="p-2">{s.status}</td>
+            <td className="p-2">
+              <Link href={`/supervisor/${encodeURIComponent(s.id)}`}>
+                <a className="text-purple-600 hover:underline">Open</a>
+              </Link>
             </td>
           </tr>
         ))}
