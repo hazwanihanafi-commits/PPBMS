@@ -1,69 +1,70 @@
-// frontend/pages/supervisor/index.js
+// pages/supervisor/index.js
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import SupervisorStudentTable from "../../components/SupervisorStudentTable";
-import ProgressCard from "../../components/ProgressCard";
+import { useRouter } from "next/router";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
-
-export default function SupervisorIndex() {
+export default function SupervisorDashboard() {
+  const router = useRouter();
   const [students, setStudents] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const email = localStorage.getItem("ppbms_user_email");
     const token = localStorage.getItem("ppbms_token");
-    if (!token) { setLoading(false); return; }
-    const supervisorEmail = localStorage.getItem("ppbms_user_email");
-    if (!supervisorEmail) { setLoading(false); return; }
 
-    (async () => {
-      try {
-        const r = await fetch(`${API}/api/supervisor/students?email=${encodeURIComponent(supervisorEmail)}`, { headers: { Authorization: `Bearer ${token}` }});
-        const data = await r.json();
-        setStudents(data.students || []);
-        setFiltered(data.students || []);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    })();
+    if (!email || !token) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API}/api/supervisor/students?email=${email}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setStudents(d.students || []);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!search) { setFiltered(students); return; }
-    const q = search.toLowerCase();
-    setFiltered(students.filter(s => (s.name||"").toLowerCase().includes(q) || (s.id||"").toLowerCase().includes(q)));
-  }, [search, students]);
-
-  const counts = {
-    ahead: students.filter(s => s.progress >= 85).length,
-    onTrack: students.filter(s => s.progress >= 50 && s.progress < 85).length,
-    atRisk: students.filter(s => s.progress >= 25 && s.progress < 50).length,
-    behind: students.filter(s => s.progress < 25).length
-  };
+  if (loading) return <div className="p-6">Loading…</div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <header className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow">
-        <h1 className="text-3xl font-bold">Supervisor Dashboard</h1>
-        <p className="mt-1 text-sm">Your supervisees overview</p>
-      </header>
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">My Students</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <ProgressCard title="Ahead" value={counts.ahead} />
-        <ProgressCard title="On Track" value={counts.onTrack} />
-        <ProgressCard title="At Risk" value={counts.atRisk} />
-        <ProgressCard title="Behind" value={counts.behind} />
-      </div>
+      <table className="w-full border rounded text-sm">
+        <thead className="bg-purple-600 text-white">
+          <tr>
+            <th className="p-2">Student</th>
+            <th className="p-2">Programme</th>
+            <th className="p-2">Progress</th>
+            <th className="p-2"></th>
+          </tr>
+        </thead>
 
-      <div className="flex gap-4 items-center">
-        <input className="flex-1 p-3 rounded border" placeholder="Search by name or email..." value={search} onChange={(e)=>setSearch(e.target.value)} />
-        <Link href="/supervisor/analytics"><a className="px-4 py-2 rounded bg-purple-600 text-white">Analytics</a></Link>
-      </div>
+        <tbody>
+          {students.map((s) => (
+            <tr key={s.email} className="border-b">
+              <td className="p-2">{s.name}</td>
+              <td className="p-2">{s.programme}</td>
+              <td className="p-2">{s.progress}%</td>
+              <td className="p-2">
+                <button
+                  className="text-purple-600 underline"
+                  onClick={() => router.push(`/supervisor/${s.email}`)}
+                >
+                  View
+                </button>
+              </td>
+            </tr>
+          ))}
 
-      <div className="bg-white rounded-lg shadow p-4">
-        {loading ? <div className="p-6">Loading…</div> : <SupervisorStudentTable students={filtered} />}
-      </div>
+          {!students.length && (
+            <tr>
+              <td colSpan="4" className="text-center p-4 text-gray-500">
+                No students found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
