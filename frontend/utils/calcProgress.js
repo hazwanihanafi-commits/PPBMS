@@ -1,110 +1,83 @@
-// utils/calcProgress.js
+// frontend/utils/calcProgress.js
+// Calculate progress for MSc / PhD plans (tick-by-student date + supervisor approval not required
+// for the checklist percentage — student fills Actual Date; supervisor approves mandatory docs)
+
+export function isFilled(value) {
+  if (!value && value !== 0) return false;
+  const s = String(value).trim().toLowerCase();
+  return !(["", "n/a", "na", "#n/a", "-", "—"].includes(s));
+}
 
 export const MSC_PLAN = [
-  { key: "Development Plan & Learning Contract", label: "Development Plan & Learning Contract", mandatory: true },
-  { key: "Proposal Defense Endorsed", label: "Proposal Defense Endorsed", mandatory: false },
-  { key: "Pilot / Phase 1 Completed", label: "Pilot / Phase 1 Completed", mandatory: false },
-  { key: "Phase 2 Data Collection Begun", label: "Phase 2 Data Collection Begun", mandatory: false },
-  { key: "Annual Progress Review (Year 1)", label: "Annual Progress Review (Year 1)", mandatory: true },
-  { key: "Phase 2 Data Collection Continued", label: "Phase 2 Data Collection Continued", mandatory: false },
-  { key: "Seminar Completed", label: "Seminar Completed", mandatory: false },
-  { key: "Thesis Draft Completed", label: "Thesis Draft Completed", mandatory: false },
-  { key: "Internal Evaluation Completed", label: "Internal Evaluation Completed", mandatory: true },
-  { key: "Viva Voce", label: "Viva Voce", mandatory: false },
-  { key: "Corrections Completed", label: "Corrections Completed", mandatory: false },
-  { key: "Final Thesis Submission", label: "Final Thesis Submission", mandatory: true }
+  "Development Plan & Learning Contract",
+  "Proposal Defense Endorsed",
+  "Pilot / Phase 1 Completed",
+  "Phase 2 Data Collection Begun",
+  "Annual Progress Review (Year 1)",
+  "Phase 2 Data Collection Continued",
+  "Seminar Completed",
+  "Thesis Draft Completed",
+  "Internal Evaluation Completed (Pre-Viva)",
+  "Viva Voce",
+  "Corrections Completed",
+  "Final Thesis Submission"
 ];
 
 export const PHD_PLAN = [
-  { key: "Development Plan & Learning Contract", label: "Development Plan & Learning Contract", mandatory: true },
-  { key: "Proposal Defense Endorsed", label: "Proposal Defense Endorsed", mandatory: false },
-  { key: "Pilot / Phase 1 Completed", label: "Pilot / Phase 1 Completed", mandatory: false },
-  { key: "Annual Progress Review (Year 1)", label: "Annual Progress Review (Year 1)", mandatory: true },
-  { key: "Phase 2 Completed", label: "Phase 2 Completed", mandatory: false },
-  { key: "Seminar Completed", label: "Seminar Completed", mandatory: false },
-  { key: "Data Analysis Completed", label: "Data Analysis Completed", mandatory: false },
-  { key: "1 Journal Paper Submitted", label: "1 Journal Paper Submitted", mandatory: false },
-  { key: "Conference Presentation", label: "Conference Presentation", mandatory: false },
-  { key: "Annual Progress Review (Year 2)", label: "Annual Progress Review (Year 2)", mandatory: true },
-  { key: "Thesis Draft Completed", label: "Thesis Draft Completed", mandatory: false },
-  { key: "Internal Evaluation Completed", label: "Internal Evaluation Completed", mandatory: true },
-  { key: "Viva Voce", label: "Viva Voce", mandatory: false },
-  { key: "Corrections Completed", label: "Corrections Completed", mandatory: false },
-  { key: "Final Thesis Submission", label: "Final Thesis Submission", mandatory: true }
+  "Development Plan & Learning Contract",
+  "Proposal Defense Endorsed",
+  "Pilot / Phase 1 Completed",
+  "Annual Progress Review (Year 1)",
+  "Phase 2 Completed",
+  "Seminar Completed",
+  "Data Analysis Completed",
+  "1 Journal Paper Submitted",
+  "Conference Presentation",
+  "Annual Progress Review (Year 2)",
+  "Thesis Draft Completed",
+  "Internal Evaluation Completed (Pre-Viva)",
+  "Viva Voce",
+  "Corrections Completed",
+  "Final Thesis Submission"
 ];
 
-export function isTicked(rawRow, key) {
-  if (!rawRow) return false;
-  const v = rawRow[key] || rawRow[`${key} Submitted`] || rawRow[`${key} StudentTickDate`];
-  if (!v) return false;
-  const s = String(v).trim().toLowerCase();
-  if (!s) return false;
-  if (["", "n/a", "na", "#n/a", "-", "—", "false"].includes(s)) return false;
-  return true;
+export function getPlanForProgramme(programmeText = "") {
+  const lower = (programmeText || "").toLowerCase();
+  if (lower.includes("msc") || lower.includes("master")) return MSC_PLAN;
+  return PHD_PLAN;
 }
 
 /**
- * given raw row (sheet) and plan list, return { done, total, percentage, items[] }
+ * calculateProgress(rowRaw, programmeText)
+ * - rowRaw: object with sheet row fields (or DB row)
+ * - returns: { doneCount, total, percentage, items: [{ key, label, actual, isDone, mandatory }] }
  */
-export function calculateProgressFromPlan(rawRow, planList) {
-  const plan = planList || (rawRow.programme && rawRow.programme.toLowerCase().includes("msc") ? MSC_PLAN : PHD_PLAN);
-  const itemsWith = plan.map(i => ({ ...i, done: isTicked(rawRow, i.key) }));
-  const done = itemsWith.filter(i => i.done).length;
-  const total = itemsWith.length;
-  const percentage = Math.round((done / total) * 100);
-  return { done, total, percentage, items: itemsWith };
-}
-
-/**
- * expectedDatesFromStart(startDateString, isMsc)
- * returns map { key: 'YYYY-MM-DD' } computed from start date offsets (months)
- * NOTE: these offsets are configurable here.
- */
-function addMonths(date, months) {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0,10);
-}
-
-export function expectedDatesFromStart(startDateString, isMsc=true) {
-  const start = startDateString ? new Date(startDateString) : null;
-  const map = {};
-  // define month offsets for MSc (2 years) and PhD (3 years)
-  // offsets are approximate and you can tune them
-  const base = isMsc ? {
-    "Development Plan & Learning Contract": 0,
-    "Proposal Defense Endorsed": 6,
-    "Pilot / Phase 1 Completed": 9,
-    "Phase 2 Data Collection Begun": 12,
-    "Annual Progress Review (Year 1)": 12,
-    "Phase 2 Data Collection Continued": 15,
-    "Seminar Completed": 18,
-    "Thesis Draft Completed": 18,
-    "Internal Evaluation Completed": 21,
-    "Viva Voce": 22,
-    "Corrections Completed": 23,
-    "Final Thesis Submission": 24
-  } : {
-    "Development Plan & Learning Contract": 0,
-    "Proposal Defense Endorsed": 9,
-    "Pilot / Phase 1 Completed": 12,
-    "Annual Progress Review (Year 1)": 12,
-    "Phase 2 Completed": 24,
-    "Seminar Completed": 24,
-    "Data Analysis Completed": 30,
-    "1 Journal Paper Submitted": 30,
-    "Conference Presentation": 30,
-    "Annual Progress Review (Year 2)": 24,
-    "Thesis Draft Completed": 36,
-    "Internal Evaluation Completed": 38,
-    "Viva Voce": 39,
-    "Corrections Completed": 40,
-    "Final Thesis Submission": 42
-  };
-
-  Object.keys(base).forEach(k => {
-    map[k] = start ? addMonths(start, base[k]) : "";
+export function calculateProgress(rowRaw = {}, programmeText = "") {
+  const plan = getPlanForProgramme(programmeText);
+  const items = plan.map((label) => {
+    // keys in sheet are expected to be "<label>" or "<label> - Actual" etc.
+    // We'll look for either exact label key or "{label} - Actual"
+    const possibleKeys = [label, `${label} - Actual`, `${label} Actual`, `${label} Date`];
+    let actual = "";
+    for (const k of possibleKeys) {
+      if (Object.prototype.hasOwnProperty.call(rowRaw, k) && isFilled(rowRaw[k])) {
+        actual = rowRaw[k];
+        break;
+      }
+    }
+    const isDone = !!actual && isFilled(actual);
+    // define mandatory: Development Plan, Annual reviews, Internal evaluation, Final submit
+    const mandatory =
+      label === "Development Plan & Learning Contract" ||
+      label.includes("Annual Progress Review") ||
+      label.includes("Internal Evaluation") ||
+      label.includes("Final Thesis Submission");
+    return { key: label, label, actual, isDone, mandatory };
   });
 
-  return map;
+  const doneCount = items.filter(i => i.isDone).length;
+  const total = items.length;
+  const percentage = total ? Math.round((doneCount / total) * 100) : 0;
+
+  return { doneCount, total, percentage, items };
 }
