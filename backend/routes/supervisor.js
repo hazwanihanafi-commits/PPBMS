@@ -2,7 +2,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet } from "../utils/sheetCache.js";
-import buildTimeline from "../utils/buildTimeline.js";
+import { buildTimeline } from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
