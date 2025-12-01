@@ -3,11 +3,10 @@ import Link from "next/link";
 
 export default function SupervisorStudentTable({ students = [] }) {
   return (
-    <table className="w-full table-auto">
+    <table className="min-w-full">
       <thead>
-        <tr className="bg-gray-100 text-left">
+        <tr>
           <th className="p-2">Name</th>
-          <th className="p-2">Email</th>
           <th className="p-2">Programme</th>
           <th className="p-2">Progress</th>
           <th className="p-2">Status</th>
@@ -15,11 +14,10 @@ export default function SupervisorStudentTable({ students = [] }) {
         </tr>
       </thead>
       <tbody>
-        {students.map((s) => (
-          <tr key={s.id} className="border-b">
+        {students.map(s => (
+          <tr key={s.id} className="border-t">
             <td className="p-2">{s.name}</td>
-            <td className="p-2">{s.id}</td>
-            <td className="p-2">{s.programme}</td>
+            <td className="p-2">{s.programme || "-"}</td>
             <td className="p-2">{s.progress}%</td>
             <td className="p-2">{s.status}</td>
             <td className="p-2">
