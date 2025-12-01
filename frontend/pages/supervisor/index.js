@@ -7,19 +7,25 @@ export default function SupervisorDashboard() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API = process.env.NEXT_PUBLIC_API_BASE || "";
+
   useEffect(() => {
     const email = localStorage.getItem("ppbms_user_email");
     const token = localStorage.getItem("ppbms_token");
 
-    if (!email || !token) return;
+    if (!email || !token) {
+      setLoading(false);
+      return;
+    }
 
-    fetch(`${process.env.NEXT_PUBLIC_API}/api/supervisor/students?email=${email}`, {
+    fetch(`${API}/api/supervisor/students?email=${email}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .then((d) => {
         setStudents(d.students || []);
       })
+      .catch((err) => console.error("Supervisor API failed:", err))
       .finally(() => setLoading(false));
   }, []);
 
