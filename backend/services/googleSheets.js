@@ -4,126 +4,71 @@ import { google } from "googleapis";
 function getAuth(readonly = true) {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (!raw) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON");
-  const credentials = JSON.parse(raw);
-
   return new google.auth.GoogleAuth({
-    credentials,
+    credentials: JSON.parse(raw),
     scopes: [
       readonly
         ? "https://www.googleapis.com/auth/spreadsheets.readonly"
-        : "https://www.googleapis.com/auth/spreadsheets",
-    ],
+        : "https://www.googleapis.com/auth/spreadsheets"
+    ]
   });
 }
 
-async function getSheetsClient(readonly = true) {
-  const auth = getAuth(readonly);
+export async function readStudentSheet(sheetId) {
+  const auth = getAuth(true);
   const client = await auth.getClient();
-  return google.sheets({ version: "v4", auth: client });
-}
+  const sheets = google.sheets({ version: "v4", auth: client });
 
-// Read header row (A1:ZZ1)
-export async function readHeaderRow(sheetId) {
-  const sheets = await getSheetsClient(true);
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "MasterTracking!A1:ZZ1",
-  });
-  const headers = (res.data.values && res.data.values[0]) || [];
-  return headers;
-}
-
-// Ensure headers exist: will append missing headers to the end of header row
-export async function ensureHeaders(sheetId, requiredHeaders = []) {
-  const sheets = await getSheetsClient(false);
-  const headerRes = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: "MasterTracking!A1:ZZ1",
-  });
-  const existing = (headerRes.data.values && headerRes.data.values[0]) || [];
-
-  const missing = requiredHeaders.filter(h => !existing.includes(h));
-  if (missing.length === 0) return { updated: false, missing: [] };
-
-  const newHeader = existing.concat(missing);
-  // write back full header row (A1:...)
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: sheetId,
-    range: `MasterTracking!A1:1`,
-    valueInputOption: "RAW",
-    requestBody: { values: [newHeader] },
+    range: "Tracking!A1:F999",
   });
 
-  return { updated: true, missing };
-}
+  const rows = res.data.values;
+  if (!rows || rows.length < 2) return [];
 
-// Read the whole MasterTracking sheet (A1:ZZ999)
-export async function readMasterTracking(sheetId) {
-  const sheets = await getSheetsClient(true);
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: "MasterTracking!A1:ZZ999",
-  });
-
-  const rows = res.data.values || [];
-  if (rows.length < 2) return [];
   const header = rows[0];
-  return rows.slice(1).map(row => {
+  return rows.slice(1).map(r => {
     const obj = {};
-    header.forEach((h, i) => (obj[h] = row[i] || ""));
+    header.forEach((h, i) => obj[h] = r[i] || "");
     return obj;
   });
 }
 
-// Update one cell by header name + row number (rowNumber is 1-indexed)
-export async function writeToSheet(sheetId, sheetName, rowNumber, columnName, value) {
-  const sheets = await getSheetsClient(false);
+export async function writeStudentActual(sheetId, activity, url = "", date = "") {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
 
-  // get header row
-  const headerRes = await sheets.spreadsheets.values.get({
+  // Load sheet
+  const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: `${sheetName}!A1:ZZ1`,
-  });
-  const headers = (headerRes.data.values && headerRes.data.values[0]) || [];
-  const colIndex = headers.indexOf(columnName);
-
-  if (colIndex === -1) {
-    throw new Error(`Column not found: "${columnName}"`);
-  }
-
-  // convert 0-based colIndex to letter(s)
-  function colIndexToLetter(index) {
-    // supports beyond Z
-    let letter = '';
-    let n = index + 1;
-    while (n > 0) {
-      const rem = (n - 1) % 26;
-      letter = String.fromCharCode(65 + rem) + letter;
-      n = Math.floor((n - 1) / 26);
-    }
-    return letter;
-  }
-
-  const colLetter = colIndexToLetter(colIndex);
-  const range = `${sheetName}!${colLetter}${rowNumber}`;
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: sheetId,
-    range,
-    valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[value]] },
+    range: "Tracking!A1:F999"
   });
 
+  const rows = res.data.values;
+  const header = rows[0];
+
+  const activityIndex = rows.findIndex(r => r[0] === activity);
+  if (activityIndex === -1) throw new Error("Activity not found in sheet");
+
+  const actualCol = header.indexOf("Actual Date");
+  const urlCol = header.indexOf("Submission URL");
+
+  const rowNum = activityIndex + 1;
+
+  const values = [];
+  if (date) values.push({ col: actualCol, val: date });
+  if (url) values.push({ col: urlCol, val: url });
+
+  for (const v of values) {
+    const colLetter = String.fromCharCode(65 + v.col);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `Tracking!${colLetter}${rowNum}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [[v.val]] }
+    });
+  }
   return true;
 }
-export function colIndexToLetter(index) {
-  let letter = "";
-  let n = index + 1;
-  while (n > 0) {
-    let rem = (n - 1) % 26;
-    letter = String.fromCharCode(65 + rem) + letter;
-    n = Math.floor((n - 1) / 26);
-  }
-  return letter;
-}
-
