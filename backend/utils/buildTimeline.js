@@ -1,80 +1,161 @@
 // backend/utils/buildTimeline.js
-// Builds timeline rows (activity, expected (YYYY-MM-DD), actual, status, remaining)
-function addDays(dateStr, days) {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0,10);
-}
 
-function daysBetween(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  const diff = Math.ceil((d - new Date()) / (1000*60*60*24));
-  return diff;
-}
+import { differenceInCalendarDays, parseISO } from "date-fns";
 
-export function buildTimelineForRow(row) {
-  // detect programme MSC vs PHD
-  const programme = (row["Programme"] || "").toLowerCase();
-  const isMsc = programme.includes("msc") || programme.includes("master");
-  const start = row["Start Date"] || row["start_date"] || "";
+/*
+----------------------------------------------------------
+ DEFINE MASTER ACTIVITY LIST (same order for MSC + PhD)
+----------------------------------------------------------
+*/
 
-  // NOTE: expected schedule offsets (days) — simple defaults. You can replace with better mapping.
-  const plan = isMsc ? [
-    { activity: "Development Plan & Learning Contract", offsetDays: 30, keyActual: "Development Plan & Learning Contract - Actual", keyFile: "Development Plan & Learning Contract - FileURL", mandatory: true },
-    { activity: "Proposal Defense Endorsed", offsetDays: 180, keyActual: "Proposal Defense Endorsed - Actual" },
-    { activity: "Pilot / Phase 1 Completed", offsetDays: 240, keyActual: "Pilot / Phase 1 Completed - Actual" },
-    { activity: "Phase 2 Data Collection Begun", offsetDays: 270, keyActual: "Phase 2 Data Collection Begun - Actual" },
-    { activity: "Annual Progress Review (Year 1)", offsetDays: 365, keyActual: "Annual Progress Review (Year 1) - Actual", keyFile: "Annual Progress Review (Year 1) - FileURL", mandatory: true },
-    { activity: "Phase 2 Data Collection Continued", offsetDays: 450, keyActual: "Phase 2 Data Collection Continued - Actual" },
-    { activity: "Seminar Completed", offsetDays: 520, keyActual: "Seminar Completed - Actual" },
-    { activity: "Thesis Draft Completed", offsetDays: 600, keyActual: "Thesis Draft Completed - Actual" },
-    { activity: "Internal Evaluation Completed (Pre-Viva)", offsetDays: 640, keyActual: "Final Progress Review (Year 3) - Actual", keyFile: "Final Progress Review (Year 3) - FileURL", mandatory: true },
-    { activity: "Viva Voce", offsetDays: 700, keyActual: "Viva Voce - Actual" },
-    { activity: "Corrections Completed", offsetDays: 730, keyActual: "Corrections Completed - Actual" },
-    { activity: "Final Thesis Submission", offsetDays: 760, keyActual: "Final Thesis Submission - Actual", mandatory: true }
-  ] : [
-    // PhD plan ~ 3 years
-    { activity: "Development Plan & Learning Contract", offsetDays: 30, keyActual: "Development Plan & Learning Contract - Actual", keyFile: "Development Plan & Learning Contract - FileURL", mandatory: true },
-    { activity: "Proposal Defense Endorsed", offsetDays: 240, keyActual: "Proposal Defense Endorsed - Actual" },
-    { activity: "Pilot / Phase 1 Completed", offsetDays: 300, keyActual: "Pilot / Phase 1 Completed - Actual" },
-    { activity: "Annual Progress Review (Year 1)", offsetDays: 365, keyActual: "Annual Progress Review (Year 1) - Actual", keyFile: "Annual Progress Review (Year 1) - FileURL", mandatory: true },
-    { activity: "Phase 2 Completed", offsetDays: 700, keyActual: "Phase 2 Data Collection Continued - Actual" },
-    { activity: "Seminar Completed", offsetDays: 760, keyActual: "Seminar Completed - Actual" },
-    { activity: "Data Analysis Completed", offsetDays: 820, keyActual: "Data Analysis Completed - Actual" },
-    { activity: "1 Journal Paper Submitted", offsetDays: 840, keyActual: "1 Journal Paper Submitted - Actual" },
-    { activity: "Conference Presentation", offsetDays: 880, keyActual: "Conference Presentation - Actual" },
-    { activity: "Annual Progress Review (Year 2)", offsetDays: 1095, keyActual: "Annual Progress Review (Year 2) - Actual", keyFile: "Annual Progress Review (Year 2) - FileURL", mandatory: true },
-    { activity: "Thesis Draft Completed", offsetDays: 1200, keyActual: "Thesis Draft Completed - Actual" },
-    { activity: "Final Progress Review (Year 3)", offsetDays: 1280, keyActual: "Final Progress Review (Year 3) - Actual", keyFile: "Final Progress Review (Year 3) - FileURL", mandatory: true },
-    { activity: "Viva Voce", offsetDays: 1320, keyActual: "Viva Voce - Actual" },
-    { activity: "Corrections Completed", offsetDays: 1360, keyActual: "Corrections Completed - Actual" },
-    { activity: "Final Thesis Submission", offsetDays: 1400, keyActual: "Final Thesis Submission - Actual", mandatory: true }
-  ];
+export const ACTIVITIES = [
+  {
+    key: "Development Plan & Learning Contract - Actual",
+    name: "Development Plan & Learning Contract",
+    expectedMonth: 2,  // 2 months after start
+    mandatory: true
+  },
+  {
+    key: "Proposal Defense Endorsed - Actual",
+    name: "Proposal Defense Endorsed",
+    expectedMonth: 12
+  },
+  {
+    key: "Pilot / Phase 1 Completed - Actual",
+    name: "Pilot / Phase 1 Completed",
+    expectedMonth: 18
+  },
+  {
+    key: "Phase 2 Data Collection Begun - Actual",
+    name: "Phase 2 Data Collection Begun",
+    expectedMonth: 20
+  },
+  {
+    key: "Annual Progress Review (Year 1) - Actual",
+    name: "Annual Progress Review (Year 1)",
+    expectedMonth: 12,
+    mandatory: true
+  },
+  {
+    key: "Phase 2 Data Collection Continued - Actual",
+    name: "Phase 2 Data Collection Continued",
+    expectedMonth: 24
+  },
+  {
+    key: "Seminar Completed - Actual",
+    name: "Seminar Completed",
+    expectedMonth: 24
+  },
+  {
+    key: "Data Analysis Completed - Actual",
+    name: "Data Analysis Completed",
+    expectedMonth: 30
+  },
+  {
+    key: "1 Journal Paper Submitted - Actual",
+    name: "1 Journal Paper Submitted",
+    expectedMonth: 30
+  },
+  {
+    key: "Conference Presentation - Actual",
+    name: "Conference Presentation",
+    expectedMonth: 30
+  },
+  {
+    key: "Annual Progress Review (Year 2) - Actual",
+    name: "Annual Progress Review (Year 2)",
+    expectedMonth: 24,
+    mandatory: true
+  },
+  {
+    key: "Thesis Draft Completed - Actual",
+    name: "Thesis Draft Completed",
+    expectedMonth: 36
+  },
+  {
+    key: "Final Progress Review (Year 3) - Actual",
+    name: "Final Progress Review (Year 3)",
+    expectedMonth: 36,
+    mandatory: true
+  },
+  {
+    key: "Viva Voce - Actual",
+    name: "Viva Voce",
+    expectedMonth: 40
+  },
+  {
+    key: "Corrections Completed - Actual",
+    name: "Corrections Completed",
+    expectedMonth: 42
+  },
+  {
+    key: "Final Thesis Submission - Actual",
+    name: "Final Thesis Submission",
+    expectedMonth: 48
+  }
+];
 
-  // build timeline entries
-  const timeline = plan.map((p) => {
-    const expected = start ? addDays(start, p.offsetDays) : "";
-    const actual = row[p.keyActual] || "";
+/*
+----------------------------------------------------------
+ BUILD TIMELINE FUNCTION
+ Converts sheet row → timeline array
+----------------------------------------------------------
+*/
+
+export function buildTimeline(raw) {
+  if (!raw) return [];
+
+  const startDateStr = raw["Start Date"];
+  if (!startDateStr) return [];
+
+  const startDate = parseISO(startDateStr);
+  const today = new Date();
+
+  const timeline = ACTIVITIES.map((item) => {
+    // expected date = start date + expectedMonth
+    const expected = new Date(startDate);
+    expected.setMonth(expected.getMonth() + item.expectedMonth);
+    const expectedStr = expected.toISOString().slice(0, 10);
+
+    // actual date from sheet
+    const actual = raw[item.key] || "";
+    const actualStr = actual || "";
+
     let status = "Pending";
-    if (actual && actual.trim()) status = "Completed";
-    else {
-      if (!expected) status = "Pending";
-      else {
-        const daysLeft = daysBetween(expected);
-        status = daysLeft < 0 ? "Late" : "On Track";
+    let remaining = "";
+
+    if (actualStr) {
+      status = "Completed";
+      remaining = "0 days";
+    } else {
+      const daysLeft = differenceInCalendarDays(expected, today);
+
+      if (daysLeft < 0) {
+        status = "Late";
+        remaining = `${Math.abs(daysLeft)} days overdue`;
+      } else {
+        status = "On Track";
+        remaining = `${daysLeft} days`;
       }
     }
-    const remaining = actual && actual.trim() ? 0 : (expected ? daysBetween(expected) : null);
+
     return {
-      activity: p.activity,
-      expected,
-      actual,
+      activity: item.name,
+      key: item.key,
+      expected: expectedStr,
+      actual: actualStr,
       status,
-      remaining
+      remaining,
+      mandatory: !!item.mandatory
     };
   });
 
   return timeline;
 }
+
+/*
+----------------------------------------------------------
+ DEFAULT EXPORT
+----------------------------------------------------------
+*/
 export default buildTimeline;
