@@ -14,7 +14,7 @@ export default function MePage() {
   const [tab, setTab] = useState("progress");
   const [error, setError] = useState(null);
 
-  // Load token
+  // Load token from localStorage
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -25,9 +25,10 @@ export default function MePage() {
     setToken(t);
   }, []);
 
-  // Load student row
+  // Load student data
   useEffect(() => {
     if (!token) return;
+
     (async () => {
       try {
         const res = await fetch(`${API}/api/student/me`, {
@@ -53,9 +54,10 @@ export default function MePage() {
   if (!row) return null;
 
   const prog = calculateProgressFromPlan(row.raw || {}, row.programme || "");
+
   const initials = (row.student_name || "NA")
     .split(" ")
-    .map((s) => s[0])
+    .map(s => s[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
@@ -71,8 +73,7 @@ export default function MePage() {
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-
-        {/* Left Column */}
+        {/* ---------------- LEFT PANEL ---------------- */}
         <div className="col-span-4 space-y-6">
           <div className="rounded-xl bg-white p-6 shadow">
             <div className="flex items-center gap-4">
@@ -93,22 +94,23 @@ export default function MePage() {
             </div>
           </div>
 
+          {/* Tabs */}
           <div className="rounded-xl bg-white p-4">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button 
-                className={tab === "progress" ? "text-purple-700 font-bold" : ""} 
+              <button
+                className={tab === "progress" ? "text-purple-700 font-bold" : ""}
                 onClick={() => setTab("progress")}
               >
                 Progress
               </button>
-              <button 
-                className={tab === "submissions" ? "text-purple-700 font-bold" : ""} 
+              <button
+                className={tab === "submissions" ? "text-purple-700 font-bold" : ""}
                 onClick={() => setTab("submissions")}
               >
                 Submissions
               </button>
-              <button 
-                className={tab === "documents" ? "text-purple-700 font-bold" : ""} 
+              <button
+                className={tab === "documents" ? "text-purple-700 font-bold" : ""}
                 onClick={() => setTab("documents")}
               >
                 Documents
@@ -117,13 +119,12 @@ export default function MePage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE CONTENT */}
+        {/* ---------------- RIGHT SIDE CONTENT ---------------- */}
         <div className="col-span-8 space-y-6">
 
-          {/* ---------------------- PROGRESS TAB ----------------------- */}
+          {/* --------- PROGRESS TAB --------- */}
           {tab === "progress" && (
             <>
-              {/* Donut Progress */}
               <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
                 <DonutChart percentage={prog.percentage} size={130} />
                 <div>
@@ -132,20 +133,18 @@ export default function MePage() {
                 </div>
               </div>
 
-              {/* Timeline with Date Picker */}
               <TimelineWithSave row={row} token={token} API={API} />
             </>
           )}
 
-          {/* ---------------------- SUBMISSIONS ----------------------- */}
+          {/* --------- SUBMISSIONS TAB --------- */}
           {tab === "submissions" && (
             <div className="rounded-xl bg-white p-6 shadow">
-              <h3 className="text-lg font-semibold">Submission Folder</h3>
               <SubmissionFolder raw={row.raw} studentEmail={row.email} />
             </div>
           )}
 
-          {/* ---------------------- DOCUMENTS ----------------------- */}
+          {/* --------- DOCUMENTS TAB --------- */}
           {tab === "documents" && (
             <div className="rounded-xl bg-white p-6 shadow">
               <p>Documents & logbook links (upload to Submission Folder)</p>
@@ -158,15 +157,12 @@ export default function MePage() {
   );
 }
 
-
-
-/* ===========================================================
-   TIMELINE WITH DATE PICKER + AUTO-SAVE
-   =========================================================== */
+/*===========================================================
+  TIMELINE WITH DATE PICKER + AUTO SAVE
+===========================================================*/
 function TimelineWithSave({ row, token, API }) {
   const [timeline, setTimeline] = useState(row.timeline || []);
 
-  // Save actual date
   async function saveActualDate(activity, date) {
     await fetch(`${API}/api/student/update-actual`, {
       method: "POST",
@@ -188,15 +184,12 @@ function TimelineWithSave({ row, token, API }) {
 
     const txt = await res.text();
     const data = JSON.parse(txt);
-    setTimeline(data.row.timeline); 
+    setTimeline(data.row.timeline);
   }
 
   return (
     <div className="rounded-xl bg-white p-6 shadow">
-      <h3 className="text-xl font-semibold text-purple-700 mb-4">
-        Expected vs Actual
-      </h3>
-
+      <h3 className="text-xl font-semibold text-purple-700 mb-4">Expected vs Actual</h3>
       <TimelineTable timeline={timeline} onUpdate={saveActualDate} />
     </div>
   );
