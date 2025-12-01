@@ -1,9 +1,9 @@
 // backend/services/googleSheets.js
 import { google } from "googleapis";
 
-// -----------------------------------------------------------
-// GOOGLE AUTH
-// -----------------------------------------------------------
+/* -----------------------------------------------------------
+   AUTH HELPER
+----------------------------------------------------------- */
 function getAuth(readonly = true) {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (!raw) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -15,14 +15,14 @@ function getAuth(readonly = true) {
     scopes: [
       readonly
         ? "https://www.googleapis.com/auth/spreadsheets.readonly"
-        : "https://www.googleapis.com/auth/spreadsheets"
-    ]
+        : "https://www.googleapis.com/auth/spreadsheets",
+    ],
   });
 }
 
-// -----------------------------------------------------------
-// READ MASTERTRACKING
-// -----------------------------------------------------------
+/* -----------------------------------------------------------
+   READ MASTER TRACKING SHEET → returns array of objects
+----------------------------------------------------------- */
 export async function readMasterTracking(sheetId) {
   const auth = getAuth(true);
   const client = await auth.getClient();
@@ -30,118 +30,102 @@ export async function readMasterTracking(sheetId) {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "MasterTracking!A1:ZZ999"
+    range: "MasterTracking!A1:ZZ999",
   });
 
   const rows = res.data.values || [];
   if (rows.length < 2) return [];
 
   const header = rows[0];
-
-  return rows.slice(1).map(row => {
-    const obj = {};
-    header.forEach((h, i) => obj[h] = row[i] || "");
-    return obj;
+  return rows.slice(1).map((r) => {
+    const o = {};
+    header.forEach((h, i) => (o[h] = r[i] || ""));
+    return o;
   });
 }
 
-// -----------------------------------------------------------
-// GENERIC WRITE CELL
-// -----------------------------------------------------------
+/* -----------------------------------------------------------
+   BASIC WRITE FUNCTION (updates a single cell)
+----------------------------------------------------------- */
 export async function writeToSheet(sheetId, sheetName, rowNumber, columnName, value) {
   const auth = getAuth(false);
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
 
-  // read header
+  // Read sheet header
   const headerRes = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: `${sheetName}!A1:ZZ1`
+    range: `${sheetName}!A1:ZZ1`,
   });
 
   const headers = headerRes.data.values[0];
-  const colIndex = headers.indexOf(columnName);
+  const index = headers.indexOf(columnName);
 
-  if (colIndex === -1)
-    throw new Error("Column not found: " + columnName);
+  if (index === -1) throw new Error(`Column not found: ${columnName}`);
 
-  // Convert index to Excel column letter
-  let n = colIndex;
-  let colLetter = "";
-  while (n >= 0) {
-    colLetter = String.fromCharCode((n % 26) + 65) + colLetter;
-    n = Math.floor(n / 26) - 1;
-  }
+  const colLetter = String.fromCharCode(65 + index);
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
     range: `${sheetName}!${colLetter}${rowNumber}`,
     valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[value]] }
+    requestBody: { values: [[value]] },
   });
-
-  return true;
 }
 
-// -----------------------------------------------------------
-// WRITE STUDENT ACTUAL DATE + FILE URL (MANDATORY UPLOAD)
-// -----------------------------------------------------------
-export async function writeStudentActual(sheetId, activityKey, fileURL, actualDate) {
-  const sheetName = "MasterTracking";
+/* -----------------------------------------------------------
+   WRITE ACTUAL DATE + FILE URL FOR AN ACTIVITY
+----------------------------------------------------------- */
+export async function writeStudentActual(sheetId, activityName, fileURL, actualDate) {
+  const SHEET_NAME = "MasterTracking";
 
+  // 1) Authenticate
   const auth = getAuth(false);
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
 
-  // read header row
+  // 2) Read header to locate columns
   const headerRes = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: `${sheetName}!A1:ZZ1`
+    range: `${SHEET_NAME}!A1:ZZ1`,
   });
 
   const headers = headerRes.data.values[0];
 
-  const actualColName = `${activityKey} - Actual`;
-  const urlColName = `${activityKey} - FileURL`;
+  const actualColName = `${activityName} - Actual`;
+  const fileColName = `${activityName} - FileURL`;
 
   const actualIndex = headers.indexOf(actualColName);
-  const urlIndex = headers.indexOf(urlColName);
+  const fileIndex = headers.indexOf(fileColName);
 
   if (actualIndex === -1)
-    throw new Error("Missing column: " + actualColName);
-  if (urlIndex === -1)
-    throw new Error("Missing column: " + urlColName);
+    throw new Error(`Column not found: ${actualColName}`);
+  if (fileIndex === -1)
+    throw new Error(`Column not found: ${fileColName}`);
 
-  // ALWAYS write into row 2 (each student = separate sheet)
+  // Always writing to row 2 (each student has its own sheet)
   const rowNumber = 2;
 
-  // convert index to letter
-  function colLetter(i) {
-    let s = "";
-    while (i >= 0) {
-      s = String.fromCharCode((i % 26) + 65) + s;
-      i = Math.floor(i / 26) - 1;
-    }
-    return s;
-  }
+  // Convert index → letter
+  const toCol = (i) => String.fromCharCode(65 + i);
 
-  const actualLetter = colLetter(actualIndex);
-  const urlLetter = colLetter(urlIndex);
+  const actualLetter = toCol(actualIndex);
+  const fileLetter = toCol(fileIndex);
 
-  // write actual date
+  // 3) Write Actual date
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `${sheetName}!${actualLetter}${rowNumber}`,
+    range: `${SHEET_NAME}!${actualLetter}${rowNumber}`,
     valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[actualDate]] }
+    requestBody: { values: [[actualDate]] },
   });
 
-  // write file URL
+  // 4) Write File URL
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `${sheetName}!${urlLetter}${rowNumber}`,
+    range: `${SHEET_NAME}!${fileLetter}${rowNumber}`,
     valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[fileURL]] }
+    requestBody: { values: [[fileURL]] },
   });
 
   return true;
