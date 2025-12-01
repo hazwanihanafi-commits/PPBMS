@@ -1,83 +1,50 @@
 // frontend/utils/calcProgress.js
-// Calculate progress for MSc / PhD plans (tick-by-student date + supervisor approval not required
-// for the checklist percentage — student fills Actual Date; supervisor approves mandatory docs)
-
-export function isFilled(value) {
-  if (!value && value !== 0) return false;
-  const s = String(value).trim().toLowerCase();
-  return !(["", "n/a", "na", "#n/a", "-", "—"].includes(s));
+export function isDone(val) {
+  if (!val) return false;
+  const s = String(val).trim().toLowerCase();
+  if (!s) return false;
+  if (["", "n/a", "na", "#n/a", "-", "—"].includes(s)) return false;
+  return true;
 }
 
 export const MSC_PLAN = [
-  "Development Plan & Learning Contract",
-  "Proposal Defense Endorsed",
-  "Pilot / Phase 1 Completed",
-  "Phase 2 Data Collection Begun",
-  "Annual Progress Review (Year 1)",
-  "Phase 2 Data Collection Continued",
-  "Seminar Completed",
-  "Thesis Draft Completed",
-  "Internal Evaluation Completed (Pre-Viva)",
-  "Viva Voce",
-  "Corrections Completed",
-  "Final Thesis Submission"
+  "Development Plan & Learning Contract - Actual",
+  "Proposal Defense Endorsed - Actual",
+  "Pilot / Phase 1 Completed - Actual",
+  "Phase 2 Data Collection Begun - Actual",
+  "Annual Progress Review (Year 1) - Actual",
+  "Phase 2 Data Collection Continued - Actual",
+  "Seminar Completed - Actual",
+  "Thesis Draft Completed - Actual",
+  "Internal Evaluation Completed Date",
+  "Viva Voce - Actual",
+  "Corrections Completed - Actual",
+  "Final Thesis Submission - Actual"
 ];
 
 export const PHD_PLAN = [
-  "Development Plan & Learning Contract",
-  "Proposal Defense Endorsed",
-  "Pilot / Phase 1 Completed",
-  "Annual Progress Review (Year 1)",
-  "Phase 2 Completed",
-  "Seminar Completed",
-  "Data Analysis Completed",
-  "1 Journal Paper Submitted",
-  "Conference Presentation",
-  "Annual Progress Review (Year 2)",
-  "Thesis Draft Completed",
-  "Internal Evaluation Completed (Pre-Viva)",
-  "Viva Voce",
-  "Corrections Completed",
-  "Final Thesis Submission"
+  "Development Plan & Learning Contract - Actual",
+  "Proposal Defense Endorsed - Actual",
+  "Pilot / Phase 1 Completed - Actual",
+  "Annual Progress Review (Year 1) - Actual",
+  "Phase 2 Data Collection Continued - Actual",
+  "Seminar Completed - Actual",
+  "Data Analysis Completed - Actual",
+  "1 Journal Paper Submitted - Actual",
+  "Conference Presentation - Actual",
+  "Annual Progress Review (Year 2) - Actual",
+  "Thesis Draft Completed - Actual",
+  "Final Progress Review (Year 3) - Actual",
+  "Viva Voce - Actual",
+  "Corrections Completed - Actual",
+  "Final Thesis Submission - Actual"
 ];
 
-export function getPlanForProgramme(programmeText = "") {
-  const lower = (programmeText || "").toLowerCase();
-  if (lower.includes("msc") || lower.includes("master")) return MSC_PLAN;
-  return PHD_PLAN;
-}
-
-/**
- * calculateProgress(rowRaw, programmeText)
- * - rowRaw: object with sheet row fields (or DB row)
- * - returns: { doneCount, total, percentage, items: [{ key, label, actual, isDone, mandatory }] }
- */
-export function calculateProgress(rowRaw = {}, programmeText = "") {
-  const plan = getPlanForProgramme(programmeText);
-  const items = plan.map((label) => {
-    // keys in sheet are expected to be "<label>" or "<label> - Actual" etc.
-    // We'll look for either exact label key or "{label} - Actual"
-    const possibleKeys = [label, `${label} - Actual`, `${label} Actual`, `${label} Date`];
-    let actual = "";
-    for (const k of possibleKeys) {
-      if (Object.prototype.hasOwnProperty.call(rowRaw, k) && isFilled(rowRaw[k])) {
-        actual = rowRaw[k];
-        break;
-      }
-    }
-    const isDone = !!actual && isFilled(actual);
-    // define mandatory: Development Plan, Annual reviews, Internal evaluation, Final submit
-    const mandatory =
-      label === "Development Plan & Learning Contract" ||
-      label.includes("Annual Progress Review") ||
-      label.includes("Internal Evaluation") ||
-      label.includes("Final Thesis Submission");
-    return { key: label, label, actual, isDone, mandatory };
-  });
-
-  const doneCount = items.filter(i => i.isDone).length;
-  const total = items.length;
-  const percentage = total ? Math.round((doneCount / total) * 100) : 0;
-
-  return { doneCount, total, percentage, items };
+export function calculateProgressFromPlan(rawRow = {}, programme = "") {
+  const isMsc = (programme || "").toLowerCase().includes("msc") || (programme || "").toLowerCase().includes("master");
+  const plan = isMsc ? MSC_PLAN : PHD_PLAN;
+  const done = plan.filter(k => isDone(rawRow[k])).length;
+  const total = plan.length;
+  const percentage = total ? Math.round((done / total) * 100) : 0;
+  return { done, total, percentage };
 }
