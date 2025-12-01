@@ -1,4 +1,4 @@
-// pages/supervisor/index.js
+// frontend/pages/supervisor/index.js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -19,13 +19,13 @@ export default function SupervisorDashboard() {
     }
 
     fetch(`${API}/api/supervisor/students?email=${email}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` }
     })
-      .then((r) => r.json())
-      .then((d) => {
-        setStudents(d.students || []);
+      .then(res => res.json())
+      .then(data => {
+        setStudents(data.students || []);
       })
-      .catch((err) => console.error("Supervisor API failed:", err))
+      .catch(err => console.error("SUPERVISOR FETCH ERROR:", err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -46,7 +46,7 @@ export default function SupervisorDashboard() {
         </thead>
 
         <tbody>
-          {students.map((s) => (
+          {students.map(s => (
             <tr key={s.email} className="border-b">
               <td className="p-2">{s.name}</td>
               <td className="p-2">{s.programme}</td>
