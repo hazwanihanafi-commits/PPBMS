@@ -1,64 +1,97 @@
-// frontend/pages/supervisor/[email].js
+// pages/supervisor/[email].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import TimelineTable from "../../components/TimelineTable";
-import MilestoneGantt from "../../components/MilestoneGantt"; // optional
-import { calculateProgress } from "../../utils/calcProgress";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
-
-export default function SupervisorStudentDetail() {
+export default function SupervisorStudentView() {
   const router = useRouter();
   const { email } = router.query;
-  const [student, setStudent] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  const [data, setData] = useState(null);
+  const [timeline, setTimeline] = useState([]);
 
   useEffect(() => {
     if (!email) return;
+
     const token = localStorage.getItem("ppbms_token");
-    if (!token) { setLoading(false); return; }
-    (async () => {
-      try {
-        const r = await fetch(`${API}/api/supervisor/student/${encodeURIComponent(email)}`, { headers: { Authorization: `Bearer ${token}` }});
-        const txt = await r.text();
-        if (!r.ok) throw new Error(txt);
-        const data = JSON.parse(txt);
-        setStudent(data.student || null);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    })();
+    if (!token) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API}/api/supervisor/student/${email}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d.student);
+        setTimeline(d.timeline || []);
+      });
   }, [email]);
 
-  if (loading) return <div className="p-6">Loading…</div>;
-  if (!student) return <div className="p-6 text-red-600">Student not found</div>;
-
-  const prog = calculateProgress(student.raw || {}, student.programme || "");
-  const activityRows = prog.items.map(it => ({
-    activity: it.label,
-    expected: "", // supervisor page can show expected based on start date if needed
-    actual: it.actual || "",
-    status: it.isDone ? "Completed" : "Pending",
-    remaining: it.isDone ? "-" : ""
-  }));
+  if (!data) return <div className="p-6">Loading…</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="rounded-xl bg-white p-6 shadow">
-        <h2 className="text-2xl font-semibold">{student.name}</h2>
-        <div className="text-sm text-gray-600">{student.programme}</div>
+    <div className="p-6 space-y-6">
+
+      {/* Student Details */}
+      <div className="border p-4 rounded bg-white shadow-md">
+        <h2 className="text-lg font-bold mb-2">{data.student_name}</h2>
+
+        <p><b>Programme:</b> {data.programme}</p>
+        <p><b>Field:</b> {data.field}</p>
+        <p><b>Department:</b> {data.department}</p>
+        <p><b>Start Date:</b> {data.start_date}</p>
+        <p><b>Email:</b> {data.email}</p>
+
+        <div className="mt-4">
+          <b>Progress:</b> {data.progress}% ({data.completed} of {data.total} completed)
+        </div>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow">
-        <h3 className="text-xl font-semibold mb-3">Activity Checklist</h3>
-        <TimelineTable rows={activityRows} />
-      </div>
+      {/* Timeline Table */}
+      <div className="border rounded bg-white shadow-md">
+        <h3 className="text-xl font-bold p-4 border-b">Activity Timeline</h3>
 
-      <div className="rounded-xl bg-white p-6 shadow">
-        <h3 className="text-xl font-semibold mb-3">Submissions (mandatory files)</h3>
-        <ul className="text-sm">
-          <li>Development Plan: {student.raw?.["Development Plan & Learning Contract - FileURL"] ? <a href={student.raw["Development Plan & Learning Contract - FileURL"]} target="_blank" rel="noreferrer">View</a> : "Not uploaded"}</li>
-          <li>Annual Review: {student.raw?.["Annual Progress Review (Year 1) - FileURL"] ? <a href={student.raw["Annual Progress Review (Year 1) - FileURL"]} target="_blank" rel="noreferrer">View</a> : "Not uploaded"}</li>
-        </ul>
+        <table className="w-full text-sm">
+          <thead className="bg-purple-600 text-white">
+            <tr>
+              <th className="p-2">Activity</th>
+              <th className="p-2">Expected</th>
+              <th className="p-2">Actual</th>
+              <th className="p-2">Status</th>
+              <th className="p-2">Remaining</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {timeline.map((t) => (
+              <tr key={t.activity} className="border-b">
+                <td className="p-2">{t.activity}</td>
+                <td className="p-2">{t.expected}</td>
+                <td className="p-2">{t.actual || "-"}</td>
+
+                <td className="p-2">
+                  {t.status === "Late" && (
+                    <span className="text-red-500 font-semibold">Late</span>
+                  )}
+                  {t.status === "On Track" && (
+                    <span className="text-green-600 font-semibold">On Track</span>
+                  )}
+                  {t.status === "Completed" && (
+                    <span className="text-green-700 font-semibold">Completed</span>
+                  )}
+                </td>
+
+                <td className="p-2">{t.remaining}</td>
+              </tr>
+            ))}
+
+            {!timeline.length && (
+              <tr>
+                <td colSpan="5" className="text-center p-4 text-gray-500">
+                  No timeline data.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
