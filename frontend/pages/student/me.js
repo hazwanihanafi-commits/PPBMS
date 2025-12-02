@@ -242,10 +242,6 @@ function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
 
   return (
     <div className="rounded-xl bg-white p-6 shadow">
-      <h3 className="text-xl font-semibold text-purple-700 mb-4">
-        Expected vs Actual
-      </h3>
-
       <TimelineTable timeline={timeline} onUpdate={saveActualDate} />
     </div>
   );
