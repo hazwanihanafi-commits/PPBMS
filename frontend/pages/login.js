@@ -14,11 +14,16 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
+    const cleanEmail = email.toLowerCase().trim();
+
     try {
       const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email: cleanEmail,
+          password
+        }),
       });
 
       const data = await res.json();
@@ -28,12 +33,12 @@ export default function LoginPage() {
         return;
       }
 
-      // save session
+      // Save session (always clean email)
       localStorage.setItem("ppbms_token", data.token);
-      localStorage.setItem("ppbms_user_email", data.email);
+      localStorage.setItem("ppbms_user_email", cleanEmail);
       localStorage.setItem("ppbms_role", data.role || "student");
 
-      // redirect based on role
+      // Redirect
       if (data.role === "supervisor") {
         router.push("/supervisor");
       } else {
