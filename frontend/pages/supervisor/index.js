@@ -1,7 +1,16 @@
+// frontend/pages/supervisor/index.js
 import { useEffect, useState } from "react";
 import StatusBadge from "../../components/StatusBadge";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
+
+function getOverallStatus(student) {
+  const { completed, total, timeline } = student;
+
+  if (total > 0 && completed === total) return "Completed";
+  if (timeline && timeline.some((t) => t.status === "Late")) return "Late";
+  return "On Track";
+}
 
 export default function SupervisorDashboard() {
   const [loading, setLoading] = useState(true);
@@ -24,12 +33,11 @@ export default function SupervisorDashboard() {
         });
 
         const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load students");
 
-        if (!res.ok) throw new Error(data.error || "Failed to load");
-
-        setStudents(data.students);
+        setStudents(data.students || []);
       } catch (e) {
-        setError(e.message);
+        setError(e.message || "Error loading students");
       } finally {
         setLoading(false);
       }
@@ -49,64 +57,72 @@ export default function SupervisorDashboard() {
       </h1>
 
       {students.length === 0 && (
-        <div className="p-4 bg-yellow-100 border-l-4 border-yellow-600 text-gray-700">
+        <div className="p-4 bg-yellow-100 border-l-4 border-yellow-600 text-gray-700 rounded">
           No students assigned to your email.
         </div>
       )}
 
       {/* Student Cards */}
       <div className="space-y-5">
-        {students.map((s) => (
-          <div
-            key={s.email}
-            className="bg-white rounded-xl p-6 shadow border border-gray-100"
-          >
-            <div className="flex justify-between items-start">
+        {students.map((s) => {
+          const status = getOverallStatus(s);
 
-              {/* LEFT PROFILE INFO */}
-              <div>
-                <h2 className="text-xl font-bold">{s.student_name}</h2>
-                <p className="text-gray-600 text-sm">{s.programme}</p>
-                <p className="text-sm text-gray-700 mt-1">
-                  <strong>Email:</strong> {s.email}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Field:</strong> {s.field || "-"}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Start Date:</strong> {s.start_date || "-"}
-                </p>
-              </div>
+          return (
+            <div
+              key={s.email}
+              className="bg-white rounded-xl p-6 shadow border border-gray-100"
+            >
+              <div className="flex justify-between items-start gap-4">
+                {/* LEFT: Info */}
+                <div>
+                  <h2 className="text-xl font-bold">{s.student_name}</h2>
+                  <p className="text-gray-600 text-sm">{s.programme}</p>
 
-              {/* RIGHT SIDE: STATUS + PERCENTAGE */}
-              <div className="text-right">
-                <StatusBadge status={s.overall_status} />
-
-                <div className="text-4xl font-bold mt-2">
-                  {s.progress_percent}%
+                  <div className="mt-2 text-sm text-gray-700 space-y-1">
+                    <p>
+                      <strong>Email:</strong> {s.email || "-"}
+                    </p>
+                    <p>
+                      <strong>Field:</strong> {s.field || "-"}
+                    </p>
+                    <p>
+                      <strong>Department:</strong> {s.department || "-"}
+                    </p>
+                    <p>
+                      <strong>Start Date:</strong> {s.start_date || "-"}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="text-sm text-gray-600">
-                  {s.completed} / {s.total} completed
+                {/* RIGHT: Status + % */}
+                <div className="text-right">
+                  <StatusBadge status={status} />
+                  <div className="text-4xl font-bold mt-2">
+                    {s.progress_percent || 0}%
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {s.completed} / {s.total} completed
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* PROGRESS BAR */}
-            <div className="mt-4 bg-gray-200 h-3 w-full rounded">
-              <div
-                className={`h-3 rounded ${
-                  s.overall_status === "Late"
-                    ? "bg-red-500"
-                    : s.overall_status === "Completed"
-                    ? "bg-green-600"
-                    : "bg-purple-600"
-                }`}
-                style={{ width: `${s.progress_percent}%` }}
-              ></div>
+              {/* Progress bar */}
+              <div className="mt-4 bg-gray-200 h-3 w-full rounded">
+                <div
+                  className={
+                    "h-3 rounded " +
+                    (status === "Late"
+                      ? "bg-red-500"
+                      : status === "Completed"
+                      ? "bg-green-600"
+                      : "bg-purple-600")
+                  }
+                  style={{ width: `${s.progress_percent || 0}%` }}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
