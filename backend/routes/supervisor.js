@@ -20,7 +20,7 @@ function auth(req, res, next) {
   }
 }
 
-// -------- Supervisor Email Lookup --------
+// -------- Extract supervisor email from row --------
 function getSupervisorEmail(row) {
   return (
     row["Main Supervisor's Email"] ||
@@ -40,7 +40,7 @@ router.get("/students", auth, async (req, res) => {
     const supervisorEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // Filter students under this supervisor
+    // Filter rows supervised by this email
     const assigned = rows.filter(
       (r) => getSupervisorEmail(r) === supervisorEmail
     );
@@ -50,20 +50,40 @@ router.get("/students", auth, async (req, res) => {
     for (const r of assigned) {
       const timeline = buildTimelineForRow(r);
 
+      // Progress %
       const completed = timeline.filter((t) => t.status === "Completed").length;
       const total = timeline.length;
-      const progress_percent = Math.round((completed / total) * 100);
+      const progress_percent =
+        total === 0 ? 0 : Math.round((completed / total) * 100);
+
+      // Field and department — SAME as student page
+      const field =
+        r["Field"] ||
+        r["Field of Study"] ||
+        r["Research Field"] ||
+        r["Research Area"] ||
+        "-";
+
+      const department =
+        r["Department"] ||
+        r["Department Name"] ||
+        r["Dept"] ||
+        r["Main Department"] ||
+        "-";
 
       result.push({
-        student_name: r["Student Name"] || "Unnamed",
-        email: r["Student's Email"] || "",
+        student_name:
+          r["Student Name"] || r["StudentName"] || r["Name"] || "Unnamed",
+        email: r["Student's Email"] || r["Email"] || "",
         programme: r["Programme"] || "",
-        field: r["Field"] || "",
+        field,
+        department,
         start_date: r["Start Date"] || "",
+
         progress_percent,
         completed,
         total,
-        timeline,
+        timeline
       });
     }
 
