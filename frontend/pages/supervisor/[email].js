@@ -2,12 +2,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
+const API = process.env.NEXT_PUBLIC_API_BASE || "";
+
 export default function SupervisorStudentView() {
   const router = useRouter();
   const { email } = router.query;
 
   const [data, setData] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!email) return;
@@ -15,21 +18,25 @@ export default function SupervisorStudentView() {
     const token = localStorage.getItem("ppbms_token");
     if (!token) return;
 
-    fetch(`${process.env.NEXT_PUBLIC_API}/api/supervisor/student/${email}`, {
+    fetch(`${API}/api/supervisor/student/${encodeURIComponent(email)}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then((d) => {
         setData(d.student);
         setTimeline(d.timeline || []);
-      });
+      })
+      .catch((err) => setError(err.message));
   }, [email]);
 
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!data) return <div className="p-6">Loading…</div>;
 
   return (
     <div className="p-6 space-y-6">
-
       {/* Student Details */}
       <div className="border p-4 rounded bg-white shadow-md">
         <h2 className="text-lg font-bold mb-2">{data.student_name}</h2>
@@ -61,32 +68,32 @@ export default function SupervisorStudentView() {
           </thead>
 
           <tbody>
-            {timeline.map((t) => (
-              <tr key={t.activity} className="border-b">
-                <td className="p-2">{t.activity}</td>
-                <td className="p-2">{t.expected}</td>
-                <td className="p-2">{t.actual || "-"}</td>
+            {timeline.length > 0 ? (
+              timeline.map((t) => (
+                <tr key={t.activity} className="border-b">
+                  <td className="p-2">{t.activity}</td>
+                  <td className="p-2">{t.expected}</td>
+                  <td className="p-2">{t.actual || "-"}</td>
 
-                <td className="p-2">
-                  {t.status === "Late" && (
-                    <span className="text-red-500 font-semibold">Late</span>
-                  )}
-                  {t.status === "On Track" && (
-                    <span className="text-green-600 font-semibold">On Track</span>
-                  )}
-                  {t.status === "Completed" && (
-                    <span className="text-green-700 font-semibold">Completed</span>
-                  )}
-                </td>
+                  <td className="p-2">
+                    {t.status === "Late" && (
+                      <span className="text-red-500 font-semibold">Late</span>
+                    )}
+                    {t.status === "On Track" && (
+                      <span className="text-blue-600 font-semibold">On Track</span>
+                    )}
+                    {t.status === "Completed" && (
+                      <span className="text-green-700 font-semibold">Completed</span>
+                    )}
+                  </td>
 
-                <td className="p-2">{t.remaining}</td>
-              </tr>
-            ))}
-
-            {!timeline.length && (
+                  <td className="p-2">{t.remaining}</td>
+                </tr>
+              ))
+            ) : (
               <tr>
                 <td colSpan="5" className="text-center p-4 text-gray-500">
-                  No timeline data.
+                  No timeline data
                 </td>
               </tr>
             )}
