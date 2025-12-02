@@ -169,7 +169,7 @@ function StudentCard({ s }) {
       {/* FIXED LINK */}
       <div className="text-right">
         <a
-          href={`/supervisor/${s.email}`}
+          href={`/supervisor/${encodeURIComponent(s.email)}`}
           className="text-purple-700 font-semibold hover:underline"
         >
           View Full Progress →
