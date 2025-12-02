@@ -56,7 +56,7 @@ router.get("/me", auth, async (req, res) => {
       supervisor: raw["Main Supervisor"] || raw["Supervisor"] || "",
       start_date: raw["Start Date"] || "",
 
-      // 🔥 NEW: include field from various column names
+      // Field
       field:
         raw["Field"] ||
         raw["Field of Study"] ||
@@ -65,7 +65,7 @@ router.get("/me", auth, async (req, res) => {
         raw["Specialization"] ||
         "-",
 
-      // 🔥 NEW: include department from various column names
+      // Department
       department:
         raw["Department"] ||
         raw["Department Name"] ||
@@ -74,25 +74,15 @@ router.get("/me", auth, async (req, res) => {
         raw["School / Department"] ||
         "-",
 
-      // 🔥 NEW: send raw row to frontend (needed for SubmissionFolder)
+      // Full raw row for submission folder
       raw
     };
 
-    // ---------- Build timeline ----------
+    // Build timeline
     const timeline = buildTimelineForRow(raw);
 
     return res.json({ row: { ...profile, timeline } });
 
-  } catch (err) {
-    console.error("student/me", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-    // -------- FIX: build timeline using full sheet row --------
-    const timeline = buildTimelineForRow(raw);
-
-    return res.json({ row: { ...profile, timeline } });
   } catch (err) {
     console.error("student/me", err);
     return res.status(500).json({ error: err.message });
@@ -111,12 +101,13 @@ router.post("/update-actual", auth, async (req, res) => {
 
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    const row = rows.find(r =>
-      (r["Matric"] ||
-       r["Matric No"] ||
-       r["Student ID"] ||
-       r["StudentID"] ||
-       "") === studentId
+    const row = rows.find(
+      r =>
+        (r["Matric"] ||
+         r["Matric No"] ||
+         r["Student ID"] ||
+         r["StudentID"] ||
+         "") === studentId
     );
 
     if (!row)
