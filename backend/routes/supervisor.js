@@ -2,66 +2,71 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet } from "../utils/sheetCache.js";
-import { buildTimelineForRow } from "../utils/buildTimeline.js";
+import buildTimeline from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
-/*-------------------------------------------------------
-  AUTH MIDDLEWARE
--------------------------------------------------------*/
+// auth middleware
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-/*-------------------------------------------------------
-  GET STUDENTS FOR SUPERVISOR
--------------------------------------------------------*/
+// helper to normalize supervisor email
+function getSupervisorEmail(row) {
+  return (
+    row["Main Supervisor's Email"] ||
+    row["Main Supervisor Email"] ||
+    row["Supervisor Email"] ||
+    row["Main Supervisor"] ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .trim();
+}
+
 router.get("/students", auth, async (req, res) => {
   try {
-    const supEmail = (req.query.email || "").toLowerCase().trim();
-    if (!supEmail) return res.json({ students: [] });
+    const email = (req.user.email || "").toLowerCase().trim();
 
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // Only using your REAL column name:
-    const column = "Main Supervisor's Email";
+    // find all students under this supervisor
+    const list = rows.filter((r) => getSupervisorEmail(r) === email);
 
-    const students = rows
-      .filter(r => {
-        const val = (r[column] || "").toLowerCase().trim();
-        return val === supEmail;  // exact match
-      })
-      .map(r => {
-        const raw = r;
-        const timeline = buildTimelineForRow(raw);
+    const output = [];
 
-        const progress = Math.round(
-          (timeline.filter(t => t.status === "Completed").length /
-            timeline.length) * 100
-        );
+    for (const r of list) {
+      const timeline = buildTimeline(r);
 
-        return {
-          email: r["Student's Email"] || "",
-          name: r["Student Name"] || "",
-          programme: r["Programme"] || "",
-          progress
-        };
+      const completed = timeline.filter((t) => t.status === "Completed").length;
+      const total = timeline.length;
+      const percent = Math.round((completed / total) * 100);
+
+      output.push({
+        student_name: r["Student Name"],
+        email: r["Student's Email"],
+        programme: r["Programme"],
+        field: r["Field"] || "",
+        start_date: r["Start Date"],
+        progress_percent: percent,
+        completed,
+        total,
+        timeline,
       });
+    }
 
-    return res.json({ students });
-
+    res.json({ students: output });
   } catch (err) {
-    console.error("SUPERVISOR ERROR:", err);
-    return res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
