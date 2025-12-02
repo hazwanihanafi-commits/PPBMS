@@ -6,9 +6,10 @@ import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
-// auth middleware
+// ---------------- AUTH ----------------
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
+
   if (!token) return res.status(401).json({ error: "No token" });
 
   try {
@@ -19,7 +20,7 @@ function auth(req, res, next) {
   }
 }
 
-// helper to normalize supervisor email
+// -------- Supervisor Email Lookup --------
 function getSupervisorEmail(row) {
   return (
     row["Main Supervisor's Email"] ||
@@ -33,40 +34,45 @@ function getSupervisorEmail(row) {
     .trim();
 }
 
+// ---------------- ROUTE -----------------
 router.get("/students", auth, async (req, res) => {
   try {
-    const email = (req.user.email || "").toLowerCase().trim();
-
+    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // find all students under this supervisor
-    const list = rows.filter((r) => getSupervisorEmail(r) === email);
+    // Filter rows supervised by this email
+    const assigned = rows.filter(
+      (r) => getSupervisorEmail(r) === supervisorEmail
+    );
 
-    const output = [];
+    const result = [];
 
-    for (const r of list) {
-      const timeline = buildTimeline(r);
+    for (const r of assigned) {
+      // -------- FIXED: correct timeline builder --------
+      const timeline = buildTimelineForRow(r);
 
       const completed = timeline.filter((t) => t.status === "Completed").length;
       const total = timeline.length;
-      const percent = Math.round((completed / total) * 100);
+      const progress_percent = Math.round((completed / total) * 100);
 
-      output.push({
-        student_name: r["Student Name"],
-        email: r["Student's Email"],
-        programme: r["Programme"],
+      result.push({
+        student_name:
+          r["Student Name"] || r["StudentName"] || r["Name"] || "Unnamed",
+        email: r["Student's Email"] || r["Email"] || "",
+        programme: r["Programme"] || "",
         field: r["Field"] || "",
-        start_date: r["Start Date"],
-        progress_percent: percent,
+        start_date: r["Start Date"] || "",
+        progress_percent,
         completed,
         total,
         timeline,
       });
     }
 
-    res.json({ students: output });
+    return res.json({ students: result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("supervisor/students", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
