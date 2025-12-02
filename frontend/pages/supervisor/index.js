@@ -107,7 +107,6 @@ function StudentCard({ s }) {
     <div
       className={`rounded-2xl border-l-8 ${borderColor} bg-white shadow-md p-6 flex flex-col gap-5`}
     >
-      {/* Top Row */}
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-xl font-bold">{s.student_name}</h2>
@@ -123,7 +122,9 @@ function StudentCard({ s }) {
           </div>
         </div>
 
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}
+        >
           {s.progress_percent === 100
             ? "Completed"
             : s.progress_percent > 40
@@ -132,7 +133,6 @@ function StudentCard({ s }) {
         </span>
       </div>
 
-      {/* Avatar + Info */}
       <div className="flex gap-4 items-center">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white flex items-center justify-center font-bold text-lg">
           {initials}
@@ -148,7 +148,6 @@ function StudentCard({ s }) {
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div>
         <div className="flex justify-between text-sm text-gray-600 mb-1">
           <span>
@@ -167,7 +166,7 @@ function StudentCard({ s }) {
         </div>
       </div>
 
-      {/* FIXED: View Full Progress */}
+      {/* FIXED LINK */}
       <div className="text-right">
         <a
           href={`/supervisor/${s.email}`}
