@@ -23,42 +23,37 @@ function auth(req, res, next) {
 }
 
 /*-------------------------------------------------------
-  GET LIST OF STUDENTS FOR SUPERVISOR
+  GET STUDENTS FOR SUPERVISOR
 -------------------------------------------------------*/
 router.get("/students", auth, async (req, res) => {
   try {
-    const supEmail = (req.query.email || "")
-      .toLowerCase()
-      .trim();
-
+    const supEmail = (req.query.email || "").toLowerCase().trim();
     if (!supEmail) return res.json({ students: [] });
 
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
+    // Only using your REAL column name:
+    const column = "Main Supervisor's Email";
+
     const students = rows
       .filter(r => {
-        const col = (r["Main Supervisor's Email"] || "")
-          .toLowerCase()
-          .trim();
-        return col === supEmail;
+        const val = (r[column] || "").toLowerCase().trim();
+        return val === supEmail;  // exact match
       })
       .map(r => {
         const raw = r;
         const timeline = buildTimelineForRow(raw);
 
-        const progress =
-          Math.round(
-            (timeline.filter(t => t.status === "Completed").length /
-              timeline.length) *
-              100
-          ) || 0;
+        const progress = Math.round(
+          (timeline.filter(t => t.status === "Completed").length /
+            timeline.length) * 100
+        );
 
         return {
           email: r["Student's Email"] || "",
           name: r["Student Name"] || "",
           programme: r["Programme"] || "",
-          progress,
-          timeline
+          progress
         };
       });
 
@@ -66,7 +61,7 @@ router.get("/students", auth, async (req, res) => {
 
   } catch (err) {
     console.error("SUPERVISOR ERROR:", err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
