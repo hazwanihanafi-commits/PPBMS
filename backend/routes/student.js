@@ -15,8 +15,7 @@ function auth(req, res, next) {
   if (!token) return res.status(401).json({ error: "No token" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });
@@ -24,25 +23,22 @@ function auth(req, res, next) {
 }
 
 /*-------------------------------------------------------
-  GET /api/student/me 
-  Load student profile + timeline
+  GET /api/student/me
 -------------------------------------------------------*/
 router.get("/me", auth, async (req, res) => {
   try {
     const email = (req.user.email || "").toLowerCase().trim();
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // Match email column EXACTLY from your sheet
     const raw = rows.find(
-      r =>
-        ((r["Student's Email"] || "").toLowerCase().trim() === email)
+      r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
 
     if (!raw)
       return res.status(404).json({ error: "Student not found" });
 
-    // ---------- Build clean, consistent student object ----------
-    const row = {
+    // Clean student profile
+    const profile = {
       student_id:
         raw["Matric"] ||
         raw["Matric No"] ||
@@ -55,32 +51,16 @@ router.get("/me", auth, async (req, res) => {
         raw["StudentName"] ||
         "",
 
-      email:
-        raw["Student's Email"] ||
-        "",
-
-      programme:
-        raw["Programme"] ||
-        "",
-
-      supervisor:
-        raw["Main Supervisor"] ||
-        raw["Supervisor"] ||
-        "",
-
-      start_date:
-        raw["Start Date"] ||
-        "",
-
-      raw      // give all raw columns back to frontend
+      email: raw["Student's Email"] || "",
+      programme: raw["Programme"] || "",
+      supervisor: raw["Main Supervisor"] || raw["Supervisor"] || "",
+      start_date: raw["Start Date"] || "",
     };
 
-    // ---------- Build timeline on backend ----------
+    // -------- FIX: build timeline using full sheet row --------
     const timeline = buildTimelineForRow(raw);
 
-    // ---------- Send merged result ----------
-    return res.json({ row: { ...row, timeline } });
-
+    return res.json({ row: { ...profile, timeline } });
   } catch (err) {
     console.error("student/me", err);
     return res.status(500).json({ error: err.message });
@@ -89,7 +69,6 @@ router.get("/me", auth, async (req, res) => {
 
 /*-------------------------------------------------------
   POST /api/student/update-actual
-  Save actual date to Google Sheet
 -------------------------------------------------------*/
 router.post("/update-actual", auth, async (req, res) => {
   try {
@@ -100,28 +79,23 @@ router.post("/update-actual", auth, async (req, res) => {
 
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // Find row by Matric / Student ID
-    const row = rows.find(
-      r =>
-        (r["Matric"] ||
-          r["Matric No"] ||
-          r["Student ID"] ||
-          r["StudentID"] ||
-          "") === studentId
+    const row = rows.find(r =>
+      (r["Matric"] ||
+       r["Matric No"] ||
+       r["Student ID"] ||
+       r["StudentID"] ||
+       "") === studentId
     );
 
     if (!row)
       return res.status(404).json({ error: "Student not found" });
 
-    // Construct correct actual date column name
-    const actualKey = `${activity} - Actual`;
+    const key = `${activity} - Actual`;
+    row[key] = date;
 
-    // Write date back to sheet
-    row[actualKey] = date;
     await row.save();
 
     return res.json({ success: true });
-
   } catch (err) {
     console.error("update-actual", err);
     return res.status(500).json({ error: err.message });
