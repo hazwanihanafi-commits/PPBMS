@@ -1,3 +1,4 @@
+// backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet } from "../utils/sheetCache.js";
@@ -35,6 +36,7 @@ function getSupervisorEmail(row) {
 
 /*-------------------------------------------------------
   GET /api/supervisor/students
+  List all students under this supervisor
 -------------------------------------------------------*/
 router.get("/students", auth, async (req, res) => {
   try {
@@ -92,6 +94,7 @@ router.get("/students", auth, async (req, res) => {
 
 /*-------------------------------------------------------
   GET /api/supervisor/student/:email
+  Full profile + timeline + raw row for ONE student
 -------------------------------------------------------*/
 router.get("/student/:email", auth, async (req, res) => {
   try {
@@ -126,11 +129,12 @@ router.get("/student/:email", auth, async (req, res) => {
     return res.json({
       student: {
         ...profile,
-        progress: Math.round((completed / total) * 100),
+        progress: total === 0 ? 0 : Math.round((completed / total) * 100),
         completed,
         total,
       },
       timeline,
+      raw, // 🔥 send full sheet row (for FileURL links)
     });
   } catch (err) {
     console.error("GET /student/:email", err);
