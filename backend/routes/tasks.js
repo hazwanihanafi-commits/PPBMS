@@ -24,7 +24,12 @@ async function findRowNumberByEmail(sheetId, studentEmail) {
 }
 
 router.post("/upload", auth, async (req, res) => {
-  const form = formidable({ multiples: false });
+  // ---- Safari, Mobile and Node-safe upload ----
+  const form = formidable({
+    multiples: false,
+    keepExtensions: true,
+    maxFileSize: 30 * 1024 * 1024, // 30MB
+  });
 
   form.parse(req, async (err, fields, files) => {
     try {
@@ -34,24 +39,22 @@ router.post("/upload", auth, async (req, res) => {
       const file = files.file;
 
       if (!studentEmail || !activity) {
-        return res.status(400).json({ error: "Missing studentEmail or activity" });
+        return res.status(400).json({
+          error: "Missing studentEmail or activity"
+        });
       }
       if (!file) {
         return res.status(400).json({ error: "File not found" });
       }
 
-      // ---- FIX FOR SAFARI / MOBILE / FORMIDABLE v3 ----
-      const filePath =
-        file.filepath ||
-        file._writeStream?.path ||
-        file._writeStream?.filepath;
-
-      if (!filePath) {
-        console.error("UPLOAD ERROR — file path missing:", file);
-        return res.status(400).json({
-          error: "File path missing (mobile browser issue). Try another browser."
-        });
+      // ---- PDF ONLY ENFORCEMENT ----
+      if (file.mimetype !== "application/pdf") {
+        return res.status(400).json({ error: "Only PDF files are allowed" });
       }
+
+      // ---- IMPORTANT: SAFARI FIX ----
+      // Formidable v3 ALWAYS provides file.filepath correctly
+      const filePath = file.filepath;
 
       // ---- Google Drive Upload ----
       const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -76,14 +79,14 @@ router.post("/upload", auth, async (req, res) => {
         },
         media: {
           mimeType: file.mimetype,
-          body: fs.createReadStream(filePath) // SAFE for all devices
+          body: fs.createReadStream(filePath)
         },
         fields: "id"
       });
 
       const fileId = driveRes.data.id;
 
-      // Make file public
+      // Make public
       try {
         await drive.permissions.create({
           fileId,
@@ -95,7 +98,7 @@ router.post("/upload", auth, async (req, res) => {
 
       const fileURL = `https://drive.google.com/file/d/${fileId}/view`;
 
-      // ---- Update Google Sheet ----
+      // ---- Find Student Row ----
       const rowNumber = await findRowNumberByEmail(
         process.env.SHEET_ID,
         studentEmail
@@ -105,10 +108,12 @@ router.post("/upload", auth, async (req, res) => {
         return res.status(404).json({ error: "Student not found in sheet" });
       }
 
+      // Column names that match your Google Sheet headers
       const actualColumn = `${activity} - Actual`;
       const urlColumn = `${activity} - FileURL`;
       const today = new Date().toISOString().slice(0, 10);
 
+      // ---- Write both DATE + URL ----
       await writeStudentActual(
         process.env.SHEET_ID,
         rowNumber,
@@ -118,7 +123,7 @@ router.post("/upload", auth, async (req, res) => {
         fileURL
       );
 
-      // ---- Email supervisor notification ----
+      // ---- Email Supervisor ----
       try {
         const rows = await readMasterTracking(process.env.SHEET_ID);
         const row = rows[rowNumber - 2];
@@ -137,7 +142,12 @@ router.post("/upload", auth, async (req, res) => {
         console.warn("Email notify error:", e?.message || e);
       }
 
-      return res.json({ ok: true, url: fileURL });
+      return res.json({
+        ok: true,
+        message: "Uploaded successfully",
+        url: fileURL,
+        date: today
+      });
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: e.message });
