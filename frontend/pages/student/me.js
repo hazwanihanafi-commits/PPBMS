@@ -70,29 +70,30 @@ export default function MePage() {
     .join("")
     .toUpperCase();
 
-// Field (supports all naming variations)
+// Field & Department fallbacks (SAFE VERSION — FIXED)
 const field =
-  row.raw?.Field ||
-  row.raw?.["Field of Study"] ||
-  row.raw?.["Research Field"] ||
-  row.raw?.["Research Area"] ||
-  row.raw?.["Programme Field"] ||
-  row.raw?.["Specialization"] ||
-  row.raw?.["Cluster Field"] ||
-  row.raw?.["Major"] ||
-  "-";
+  (row.raw && (
+    row.raw["Field"] ||
+    row.raw["Field of Study"] ||
+    row.raw["Research Field"] ||
+    row.raw["Research Area"] ||
+    row.raw["Programme Field"] ||
+    row.raw["Specialization"] ||
+    row.raw["Cluster Field"] ||
+    row.raw["Major"]
+  )) || "-";
 
-// Department (supports all naming variations)
 const department =
-  row.raw?.Department ||
-  row.raw?.["Department Name"] ||
-  row.raw?.["Dept"] ||
-  row.raw?.["Main Department"] ||
-  row.raw?.["School / Department"] ||
-  row.raw?.["Faculty"] ||
-  row.raw?.["Unit"] ||
-  row.raw?.["Cluster"] ||
-  "-";
+  (row.raw && (
+    row.raw["Department"] ||
+    row.raw["Department Name"] ||
+    row.raw["Dept"] ||
+    row.raw["Main Department"] ||
+    row.raw["School / Department"] ||
+    row.raw["Faculty"] ||
+    row.raw["Unit"] ||
+    row.raw["Cluster"]
+  )) || "-";
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
