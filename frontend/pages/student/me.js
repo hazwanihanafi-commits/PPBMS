@@ -52,7 +52,7 @@ export default function MePage() {
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!row) return null;
 
-  // Progress calculation from timeline
+  // Progress calc
   const timeline = row.timeline || [];
   const completed = timeline.filter(t => t.status === "Completed").length;
   const total = timeline.length;
@@ -70,10 +70,23 @@ export default function MePage() {
     .join("")
     .toUpperCase();
 
+  // Field & Department fallbacks
+  const field =
+    row.raw?.Field ||
+    row.raw?.["Field of Study"] ||
+    row.raw?.["Research Field"] ||
+    "-";
+
+  const department =
+    row.raw?.Department ||
+    row.raw?.["Department Name"] ||
+    row.raw?.["Dept"] ||
+    "-";
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       
-      {/* HEADER */}
+      {/* Header */}
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
         <h1 className="text-3xl font-bold">Student Progress</h1>
         <p className="mt-2 text-lg">
@@ -86,28 +99,50 @@ export default function MePage() {
         {/* LEFT PANEL */}
         <div className="col-span-4 space-y-6">
 
-          {/* Info Card */}
-          <div className="rounded-xl bg-white p-6 shadow">
+          {/* Profile Card */}
+          <div className="rounded-xl bg-white p-6 shadow flex flex-col gap-4">
+
+            {/* Avatar + Name */}
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xl font-bold">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center 
+                              bg-gradient-to-br from-purple-600 to-pink-500 
+                              text-white text-2xl font-bold shadow">
                 {initials}
               </div>
               <div>
-                <div className="font-semibold text-lg">{row.student_name}</div>
-                <div className="text-gray-600">{row.programme}</div>
+                <div className="font-semibold text-xl leading-tight">{row.student_name}</div>
+                <div className="text-gray-600 text-sm">{row.programme}</div>
               </div>
             </div>
 
-            <div className="mt-4 text-sm space-y-1">
-              <div><strong>Supervisor:</strong> {row.supervisor}</div>
-              <div><strong>Start Date:</strong> {row.start_date || "-"}</div>
-              <div><strong>Field:</strong> {row.raw?.Field || "-"}</div>
-              <div><strong>Department:</strong> {row.raw?.Department || "-"}</div>
+            {/* Details */}
+            <div className="text-sm space-y-3 mt-2">
+              
+              <div>
+                <div className="font-semibold text-gray-700">Supervisor</div>
+                <div className="text-gray-800">{row.supervisor || "-"}</div>
+              </div>
+
+              <div>
+                <div className="font-semibold text-gray-700">Start Date</div>
+                <div className="text-gray-800">{row.start_date || "-"}</div>
+              </div>
+
+              <div>
+                <div className="font-semibold text-gray-700">Field</div>
+                <div className="text-gray-800">{field}</div>
+              </div>
+
+              <div>
+                <div className="font-semibold text-gray-700">Department</div>
+                <div className="text-gray-800">{department}</div>
+              </div>
+
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="rounded-xl bg-white p-4">
+          <div className="rounded-xl bg-white p-4 shadow">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
               <button
                 className={tab === "progress" ? "text-purple-700 font-bold" : ""}
@@ -139,7 +174,6 @@ export default function MePage() {
           {/* PROGRESS TAB */}
           {tab === "progress" && (
             <>
-              {/* PROGRESS DONUT */}
               <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
                 <DonutChart percentage={prog.percentage} size={130} />
                 <div>
@@ -148,7 +182,7 @@ export default function MePage() {
                 </div>
               </div>
 
-              {/* TIMELINE */}
+              {/* Timeline */}
               <TimelineWithSave
                 row={row}
                 token={token}
@@ -163,14 +197,14 @@ export default function MePage() {
             </>
           )}
 
-          {/* SUBMISSIONS */}
+          {/* SUBMISSIONS TAB */}
           {tab === "submissions" && (
             <div className="rounded-xl bg-white p-6 shadow">
               <SubmissionFolder raw={row.raw} studentEmail={row.email} />
             </div>
           )}
 
-          {/* DOCUMENTS */}
+          {/* DOCUMENTS TAB */}
           {tab === "documents" && (
             <div className="rounded-xl bg-white p-6 shadow">
               <p>Documents & logbook links (upload to Submission Folder)</p>
@@ -202,7 +236,6 @@ function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
       })
     });
 
-    // Reload timeline
     const res = await fetch(`${API}/api/student/me`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -211,10 +244,8 @@ function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
     const data = JSON.parse(txt);
     const updated = data.row.timeline;
 
-    // Local update
     setTimeline(updated);
 
-    // Update parent DONUT + progress
     if (onTimelineUpdate) onTimelineUpdate(updated);
   }
 
