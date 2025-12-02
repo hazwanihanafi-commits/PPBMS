@@ -1,4 +1,3 @@
-// backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet } from "../utils/sheetCache.js";
@@ -34,13 +33,14 @@ function getSupervisorEmail(row) {
     .trim();
 }
 
-// ---------------- ROUTE -----------------
+/*-------------------------------------------------------
+  GET /api/supervisor/students
+-------------------------------------------------------*/
 router.get("/students", auth, async (req, res) => {
   try {
     const supervisorEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // Filter rows supervised by this email
     const assigned = rows.filter(
       (r) => getSupervisorEmail(r) === supervisorEmail
     );
@@ -50,13 +50,11 @@ router.get("/students", auth, async (req, res) => {
     for (const r of assigned) {
       const timeline = buildTimelineForRow(r);
 
-      // Progress %
       const completed = timeline.filter((t) => t.status === "Completed").length;
       const total = timeline.length;
       const progress_percent =
         total === 0 ? 0 : Math.round((completed / total) * 100);
 
-      // Field and department — SAME as student page
       const field =
         r["Field"] ||
         r["Field of Study"] ||
@@ -72,18 +70,16 @@ router.get("/students", auth, async (req, res) => {
         "-";
 
       result.push({
-        student_name:
-          r["Student Name"] || r["StudentName"] || r["Name"] || "Unnamed",
-        email: r["Student's Email"] || r["Email"] || "",
+        student_name: r["Student Name"] || r["Name"] || "",
+        email: r["Student's Email"] || "",
         programme: r["Programme"] || "",
         field,
         department,
         start_date: r["Start Date"] || "",
-
         progress_percent,
         completed,
         total,
-        timeline
+        timeline,
       });
     }
 
@@ -96,14 +92,15 @@ router.get("/students", auth, async (req, res) => {
 
 /*-------------------------------------------------------
   GET /api/supervisor/student/:email
-  Return full timeline + profile for ONE student
 -------------------------------------------------------*/
 router.get("/student/:email", auth, async (req, res) => {
   try {
-    const email = (req.params.email || "").toLowerCase().trim();
+    const email = decodeURIComponent(req.params.email)
+      .toLowerCase()
+      .trim();
+
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    // Find matching student
     const raw = rows.find(
       (r) =>
         (r["Student's Email"] || "").toLowerCase().trim() === email
@@ -113,7 +110,6 @@ router.get("/student/:email", auth, async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // Build profile
     const profile = {
       student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
@@ -123,9 +119,7 @@ router.get("/student/:email", auth, async (req, res) => {
       start_date: raw["Start Date"] || "",
     };
 
-    // Build timeline
     const timeline = buildTimelineForRow(raw);
-
     const completed = timeline.filter((t) => t.status === "Completed").length;
     const total = timeline.length;
 
@@ -143,6 +137,5 @@ router.get("/student/:email", auth, async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-
 
 export default router;
