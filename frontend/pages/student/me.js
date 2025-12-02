@@ -70,7 +70,7 @@ export default function MePage() {
     .join("")
     .toUpperCase();
 
-  V// Field (supports all naming variations)
+// Field (supports all naming variations)
 const field =
   row.raw?.Field ||
   row.raw?.["Field of Study"] ||
