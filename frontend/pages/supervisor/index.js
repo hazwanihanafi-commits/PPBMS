@@ -89,7 +89,6 @@ function StudentCard({ s }) {
     .slice(0, 2)
     .toUpperCase();
 
-  // Status color
   const statusColor =
     s.progress_percent === 100
       ? "bg-green-100 text-green-700"
@@ -97,7 +96,6 @@ function StudentCard({ s }) {
       ? "bg-blue-100 text-blue-700"
       : "bg-red-100 text-red-700";
 
-  // Side border color
   const borderColor =
     s.progress_percent === 100
       ? "border-green-400"
@@ -109,13 +107,12 @@ function StudentCard({ s }) {
     <div
       className={`rounded-2xl border-l-8 ${borderColor} bg-white shadow-md p-6 flex flex-col gap-5`}
     >
-      {/* Top Row: Name + Status */}
+      {/* Top Row */}
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-xl font-bold">{s.student_name}</h2>
           <p className="text-gray-600 text-sm">{s.programme}</p>
 
-          {/* Tags */}
           <div className="flex gap-2 mt-2 text-xs flex-wrap">
             <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
               {s.field || "-"}
@@ -126,10 +123,7 @@ function StudentCard({ s }) {
           </div>
         </div>
 
-        {/* Status Badge */}
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}
-        >
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
           {s.progress_percent === 100
             ? "Completed"
             : s.progress_percent > 40
@@ -154,7 +148,7 @@ function StudentCard({ s }) {
         </div>
       </div>
 
-      {/* Progress Indicator */}
+      {/* Progress Bar */}
       <div>
         <div className="flex justify-between text-sm text-gray-600 mb-1">
           <span>
@@ -173,11 +167,11 @@ function StudentCard({ s }) {
         </div>
       </div>
 
-      {/* View Details Button */}
+      {/* FIXED: View Full Progress */}
       <div className="text-right">
         <a
-          href={`/student/${s.email}`}
-          className="text-purple-700 text-sm font-semibold hover:underline"
+          href={`/supervisor/${s.email}`}
+          className="text-purple-700 font-semibold hover:underline"
         >
           View Full Progress →
         </a>
