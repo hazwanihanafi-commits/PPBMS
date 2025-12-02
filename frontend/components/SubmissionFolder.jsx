@@ -4,10 +4,10 @@ import { useState } from "react";
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
+  const [selectedFiles, setSelectedFiles] = useState({});
   const [uploadingActivity, setUploadingActivity] = useState("");
   const [message, setMessage] = useState("");
 
-  // Only the required ones — MUST match Google Sheet column names
   const mandatoryUploads = [
     "Development Plan & Learning Contract",
     "Annual Progress Review (Year 1)",
@@ -15,7 +15,8 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
     "Final Thesis Submission",
   ];
 
-  async function uploadFile(activity, file) {
+  async function uploadFile(activity) {
+    const file = selectedFiles[activity];
     if (!file) {
       setMessage("❗ Please select a file before uploading.");
       return;
@@ -39,25 +40,22 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
-      setMessage(`✅ Successfully uploaded for: ${activity}`);
+      setMessage(`✅ Successfully uploaded: ${activity}`);
 
-      // Refresh the UI by reloading the page data
       setTimeout(() => {
         window.location.reload();
-      }, 1200);
+      }, 1000);
 
     } catch (err) {
       setMessage("❌ Upload failed: " + err.message);
-    } finally {
-      setUploadingActivity("");
     }
+
+    setUploadingActivity("");
   }
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold text-purple-700 flex items-center gap-2">
-        <span>📁 Submission Folder</span>
-      </h3>
+      <h3 className="text-xl font-bold text-purple-700">📁 Submission Folder</h3>
 
       <p className="text-sm text-gray-600">
         Uploads here will automatically update Google Sheets and notify your supervisor.
@@ -69,57 +67,50 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
           const hasFile = Boolean(url);
 
           return (
-            <div
-              key={activity}
-              className="border rounded-xl bg-white p-5 shadow-md transition hover:shadow-lg"
-            >
+            <div key={activity} className="p-5 rounded-xl bg-white border shadow-md">
               {/* Title */}
-              <div className="font-semibold text-purple-700 text-sm mb-1">
-                {activity}
-              </div>
+              <div className="font-bold text-purple-700 mb-1">{activity}</div>
 
               {/* Status */}
-              <div className="mb-3 text-xs">
+              <div className="mb-2 text-xs">
                 {hasFile ? (
                   <a
                     href={url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-green-700 underline font-medium"
+                    className="text-green-700 underline"
                   >
-                    ✔ File Uploaded — View File
+                    ✔ File Uploaded — View
                   </a>
                 ) : (
-                  <span className="text-red-500 font-medium">
-                    ✖ No file uploaded yet
-                  </span>
+                  <span className="text-red-500">✖ No file uploaded</span>
                 )}
               </div>
 
-              {/* File input */}
+              {/* File selector */}
               <input
                 type="file"
-                className="block w-full text-xs mb-3"
+                className="w-full text-xs mb-3"
                 onChange={(e) =>
-                  uploadFile(activity, e.target.files?.[0])
+                  setSelectedFiles((prev) => ({
+                    ...prev,
+                    [activity]: e.target.files?.[0],
+                  }))
                 }
-                disabled={uploadingActivity === activity}
               />
 
               {/* Upload button */}
               <button
-                disabled={uploadingActivity === activity}
-                className={`w-full py-2 rounded-lg text-white text-sm font-medium transition 
+                className={`w-full py-2 text-sm rounded-lg text-white 
                 ${
                   uploadingActivity === activity
                     ? "bg-gray-400"
                     : "bg-purple-600 hover:bg-purple-700"
                 }`}
-                onClick={() => {}}
+                disabled={uploadingActivity === activity}
+                onClick={() => uploadFile(activity)}
               >
-                {uploadingActivity === activity
-                  ? "Uploading..."
-                  : "Upload File"}
+                {uploadingActivity === activity ? "Uploading…" : "Upload File"}
               </button>
             </div>
           );
@@ -127,9 +118,7 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
       </div>
 
       {message && (
-        <div className="text-sm text-gray-800 bg-gray-100 p-3 rounded-lg border">
-          {message}
-        </div>
+        <div className="p-3 bg-gray-100 border rounded text-sm">{message}</div>
       )}
 
       <p className="text-xs text-gray-500">
