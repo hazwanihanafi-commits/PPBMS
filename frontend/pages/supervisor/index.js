@@ -23,6 +23,7 @@ export default function SupervisorDashboard() {
     })
       .then(res => res.json())
       .then(data => {
+        console.log("Supervisor loaded students:", data);
         setStudents(data.students || []);
       })
       .catch(err => console.error("SUPERVISOR FETCH ERROR:", err))
