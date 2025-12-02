@@ -191,7 +191,11 @@ const department = row.raw?.Department || "-";
           {/* SUBMISSIONS TAB */}
           {tab === "submissions" && (
             <div className="rounded-xl bg-white p-6 shadow">
-              <SubmissionFolder raw={row.raw} studentEmail={row.email} />
+              <SubmissionFolder 
+  raw={row.raw} 
+  studentEmail={row.email} 
+  token={token}
+/>
             </div>
           )}
 
