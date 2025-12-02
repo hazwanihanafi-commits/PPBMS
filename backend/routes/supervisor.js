@@ -94,4 +94,55 @@ router.get("/students", auth, async (req, res) => {
   }
 });
 
+/*-------------------------------------------------------
+  GET /api/supervisor/student/:email
+  Return full timeline + profile for ONE student
+-------------------------------------------------------*/
+router.get("/student/:email", auth, async (req, res) => {
+  try {
+    const email = (req.params.email || "").toLowerCase().trim();
+    const rows = await getCachedSheet(process.env.SHEET_ID);
+
+    // Find matching student
+    const raw = rows.find(
+      (r) =>
+        (r["Student's Email"] || "").toLowerCase().trim() === email
+    );
+
+    if (!raw) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // Build profile
+    const profile = {
+      student_name: raw["Student Name"] || "",
+      email: raw["Student's Email"] || "",
+      programme: raw["Programme"] || "",
+      field: raw["Field"] || "-",
+      department: raw["Department"] || "-",
+      start_date: raw["Start Date"] || "",
+    };
+
+    // Build timeline
+    const timeline = buildTimelineForRow(raw);
+
+    const completed = timeline.filter((t) => t.status === "Completed").length;
+    const total = timeline.length;
+
+    return res.json({
+      student: {
+        ...profile,
+        progress: Math.round((completed / total) * 100),
+        completed,
+        total,
+      },
+      timeline,
+    });
+  } catch (err) {
+    console.error("GET /student/:email", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
 export default router;
