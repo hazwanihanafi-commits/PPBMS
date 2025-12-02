@@ -113,3 +113,6 @@ export async function writeStudentActual(
 
   return true;
 }
+export function writeToSheet() {
+  throw new Error("writeToSheet is deprecated. Use writeStudentActual instead.");
+}
