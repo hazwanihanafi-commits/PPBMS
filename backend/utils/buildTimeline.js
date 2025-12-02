@@ -1,138 +1,82 @@
-// -----------------------------------------------
-// SEPARATED ACTIVITY LISTS FOR MSc & PhD
-// -----------------------------------------------
+// backend/utils/buildTimeline.js
 
-// ---------- MSc (2 years) ----------
-export const MSC_ACTIVITIES = [
-  { key: "Development Plan & Learning Contract", months: 1 },
-  { key: "Proposal Defense Endorsed", months: 6 },
-  { key: "Pilot / Phase 1 Completed", months: 9 },
-  { key: "Data Collection Completed", months: 12 },
-  { key: "Annual Progress Review (Year 1)", months: 12 },
-
-  // Seminar FIRST
-  { key: "Seminar Completed", months: 18 },
-
-  // Final Review SECOND
-  { key: "Final Year Review / Internal Evaluation (Pre-Viva)", months: 20 },
-
-  { key: "Thesis Draft Completed", months: 22 },
-  { key: "Viva Voce", months: 24 },
-  { key: "Corrections Completed", months: 25 },
-  { key: "Final Thesis Submission", months: 26 }
+// ---- MSC TIMELINE ----
+const MSC_ITEMS = [
+  { activity: "Development Plan & Learning Contract", months: 1 },
+  { activity: "Proposal Defense Endorsed", months: 12 },
+  { activity: "Pilot / Phase 1 Completed", months: 18 },
+  { activity: "Phase 2 Data Collection Begun", months: 20 },
+  { activity: "Annual Progress Review (Year 1)", months: 12 },
+  { activity: "Phase 2 Data Collection Continued", months: 22 },
+  { activity: "Seminar Completed", months: 24 },
+  { activity: "Thesis Draft Completed", months: 28 },
+  { activity: "Final Progress Review (Year 3)", months: 30 },
+  { activity: "Viva Voce", months: 32 },
+  { activity: "Corrections Completed", months: 34 },
+  { activity: "Final Thesis Submission", months: 36 }
 ];
 
-// ---------- PhD (3–4 years) ----------
-export const PHD_ACTIVITIES = [
-  { key: "Development Plan & Learning Contract", months: 2 },
-  { key: "Proposal Defense Endorsed", months: 12 },
-  { key: "Pilot / Phase 1 Completed", months: 18 },
-
-  { key: "Phase 2 Data Collection Begun", months: 20 },
-  { key: "Annual Progress Review (Year 1)", months: 12 },
-  { key: "Phase 2 Data Collection Continued", months: 24 },
-
-  { key: "Seminar Completed", months: 26 },
-  { key: "Data Analysis Completed", months: 30 },
-  { key: "1 Journal Paper Submitted", months: 30 },
-  { key: "Conference Presentation", months: 32 },
-
-  { key: "Annual Progress Review (Year 2)", months: 24 },
-  { key: "Thesis Draft Completed", months: 36 },
-
-  // Your required final evaluation
-  { key: "Final Year Review / Internal Evaluation (Pre-Viva)", months: 38 },
-
-  { key: "Viva Voce", months: 42 },
-  { key: "Corrections Completed", months: 44 },
-  { key: "Final Thesis Submission", months: 48 }
+// ---- PHD TIMELINE ----
+const PHD_ITEMS = [
+  { activity: "Development Plan & Learning Contract", months: 1 },
+  { activity: "Proposal Defense Endorsed", months: 12 },
+  { activity: "Pilot / Phase 1 Completed", months: 18 },
+  { activity: "Phase 2 Data Collection Begun", months: 20 },
+  { activity: "Annual Progress Review (Year 1)", months: 12 },
+  { activity: "Phase 2 Data Collection Continued", months: 28 },
+  { activity: "Seminar Completed", months: 30 },
+  { activity: "Data Analysis Completed", months: 32 },
+  { activity: "1 Journal Paper Submitted", months: 34 },
+  { activity: "Conference Presentation", months: 36 },
+  { activity: "Annual Progress Review (Year 2)", months: 24 },
+  { activity: "Thesis Draft Completed", months: 40 },
+  { activity: "Final Progress Review (Year 3)", months: 42 },
+  { activity: "Viva Voce", months: 45 },
+  { activity: "Corrections Completed", months: 46 },
+  { activity: "Final Thesis Submission", months: 48 }
 ];
 
-// -----------------------------------------------------
-// PROGRAMME DETECTION (Doctor of Philosophy → PhD)
-// -----------------------------------------------------
-function detectLevel(raw) {
-  const p = (raw["Programme"] || "").toLowerCase();
-
-  if (p.includes("master") || p.includes("msc") || p.includes("m.sc")) {
-    return "MSc";
-  }
-  return "PhD";
+// Convert months to expected dates
+function addMonths(startDate, months) {
+  const d = new Date(startDate);
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
 }
 
-// -----------------------------------------------------
-// Utility Functions
-// -----------------------------------------------------
-function addMonths(date, num) {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + num);
-  return d;
-}
+/**
+ * Build timeline for a single student row
+ */
+export function buildTimelineForRow(row) {
+  if (!row) return [];
 
-function daysBetween(a, b) {
-  return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
-}
+  const start = row["Start Date"];
+  const isMsc = (row["Programme"] || "").toLowerCase().includes("msc");
 
-// -----------------------------------------------------
-// Find ACTUAL date (supports many column formats)
-// -----------------------------------------------------
-function getActual(raw, actKey) {
-  const candidates = [
-    `${actKey} - Actual`,
-    `${actKey} - actual`,
-    `${actKey} Actual`,
-    `${actKey} (Actual)`,
-    `${actKey} Date`,
-    `${actKey} Completed`
-  ];
+  const plan = isMsc ? MSC_ITEMS : PHD_ITEMS;
 
-  for (const key of candidates) {
-    if (raw[key]) return raw[key];
-  }
+  return plan.map(item => {
+    const key = `${item.activity} - Actual`;
+    const actual = row[key] || "";
 
-  // SPECIAL: backward compatibility for old sheets
-  if (actKey === "Final Year Review / Internal Evaluation (Pre-Viva)") {
-    return raw["Final Progress Review (Year 3) - Actual"] || "";
-  }
+    // calculate expected date
+    const expected = addMonths(start, item.months);
 
-  return "";
-}
-
-// -----------------------------------------------------
-// MAIN TIMELINE ENGINE
-// -----------------------------------------------------
-export function buildTimelineForRow(raw) {
-  const level = detectLevel(raw);
-  const activities = level === "PhD" ? PHD_ACTIVITIES : MSC_ACTIVITIES;
-
-  const startDate = new Date(raw["Start Date"]);
-  const today = new Date();
-
-  return activities.map((act) => {
-    const expected = addMonths(startDate, act.months)
-      .toISOString()
-      .slice(0, 10);
-
-    const actual = getActual(raw, act.key);
-
-    let status = "Pending";
+    // determine remaining days
     let remaining = "";
+    let status = "Pending";
 
     if (actual) {
       status = "Completed";
-      remaining = 0;
+      remaining = "0 days";
     } else {
-      if (new Date(expected) < today) {
-        status = "Late";
-        remaining = -daysBetween(new Date(expected), today);
-      } else {
-        status = "On Track";
-        remaining = daysBetween(today, new Date(expected));
-      }
+      const diff = (new Date(expected) - new Date()) / 86400000;
+      remaining = Math.ceil(diff) + " days";
+
+      status = diff < 0 ? "Late" : "On Track";
     }
 
     return {
-      activity: act.key,
+      activity: item.activity,
       expected,
       actual,
       status,
@@ -141,6 +85,4 @@ export function buildTimelineForRow(raw) {
   });
 }
 
-export function buildTimeline(raw) {
-  return buildTimelineForRow(raw);
-}
+export default buildTimelineForRow;
