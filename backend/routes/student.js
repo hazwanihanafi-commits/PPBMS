@@ -37,7 +37,7 @@ router.get("/me", auth, async (req, res) => {
     if (!raw)
       return res.status(404).json({ error: "Student not found" });
 
-    // Clean student profile
+    // -------- Build Clean Student Profile --------
     const profile = {
       student_id:
         raw["Matric"] ||
@@ -55,7 +55,39 @@ router.get("/me", auth, async (req, res) => {
       programme: raw["Programme"] || "",
       supervisor: raw["Main Supervisor"] || raw["Supervisor"] || "",
       start_date: raw["Start Date"] || "",
+
+      // 🔥 NEW: include field from various column names
+      field:
+        raw["Field"] ||
+        raw["Field of Study"] ||
+        raw["Research Field"] ||
+        raw["Research Area"] ||
+        raw["Specialization"] ||
+        "-",
+
+      // 🔥 NEW: include department from various column names
+      department:
+        raw["Department"] ||
+        raw["Department Name"] ||
+        raw["Dept"] ||
+        raw["Main Department"] ||
+        raw["School / Department"] ||
+        "-",
+
+      // 🔥 NEW: send raw row to frontend (needed for SubmissionFolder)
+      raw
     };
+
+    // ---------- Build timeline ----------
+    const timeline = buildTimelineForRow(raw);
+
+    return res.json({ row: { ...profile, timeline } });
+
+  } catch (err) {
+    console.error("student/me", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
     // -------- FIX: build timeline using full sheet row --------
     const timeline = buildTimelineForRow(raw);
