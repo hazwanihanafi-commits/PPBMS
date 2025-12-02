@@ -43,9 +43,6 @@ function addMonths(startDate, months) {
   return d.toISOString().slice(0, 10);
 }
 
-/**
- * Build timeline for a single student row
- */
 export function buildTimelineForRow(row) {
   if (!row) return [];
 
@@ -58,10 +55,8 @@ export function buildTimelineForRow(row) {
     const key = `${item.activity} - Actual`;
     const actual = row[key] || "";
 
-    // calculate expected date
     const expected = addMonths(start, item.months);
 
-    // determine remaining days
     let remaining = "";
     let status = "Pending";
 
@@ -71,7 +66,6 @@ export function buildTimelineForRow(row) {
     } else {
       const diff = (new Date(expected) - new Date()) / 86400000;
       remaining = Math.ceil(diff) + " days";
-
       status = diff < 0 ? "Late" : "On Track";
     }
 
@@ -84,5 +78,3 @@ export function buildTimelineForRow(row) {
     };
   });
 }
-
-export default buildTimelineForRow;
