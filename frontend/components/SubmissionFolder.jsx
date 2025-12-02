@@ -3,66 +3,138 @@ import { useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
-export default function SubmissionFolder({ raw = {}, studentEmail }) {
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
+  const [uploadingActivity, setUploadingActivity] = useState("");
   const [message, setMessage] = useState("");
 
-  const mandatory = [
+  // Only the required ones — MUST match Google Sheet column names
+  const mandatoryUploads = [
     "Development Plan & Learning Contract",
     "Annual Progress Review (Year 1)",
-    "Internal Evaluation Completed (Pre-Viva)",
-    "Final Thesis Submission"
+    "Annual Progress Review (Year 2)",
+    "Final Thesis Submission",
   ];
 
-  async function handleUpload(key) {
-    if (!file) { setMessage("Select a file first"); return; }
-    setUploading(true);
-    const token = localStorage.getItem("ppbms_token");
+  async function uploadFile(activity, file) {
+    if (!file) {
+      setMessage("❗ Please select a file before uploading.");
+      return;
+    }
+
+    setUploadingActivity(activity);
+    setMessage("");
+
     const form = new FormData();
     form.append("file", file);
     form.append("studentEmail", studentEmail);
-    form.append("key", key);
+    form.append("activity", activity);
 
     try {
       const res = await fetch(`${API}/api/tasks/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
-        body: form
+        body: form,
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || JSON.stringify(data));
-      setMessage(`Uploaded — ${key}`);
-    } catch (e) {
-      setMessage("Upload failed: " + e.message);
-    } finally { setUploading(false); }
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      setMessage(`✅ Successfully uploaded for: ${activity}`);
+
+      // Refresh the UI by reloading the page data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
+    } catch (err) {
+      setMessage("❌ Upload failed: " + err.message);
+    } finally {
+      setUploadingActivity("");
+    }
   }
 
   return (
-    <div>
-      <h4 className="text-lg font-semibold mb-2">Submission Folder (mandatory uploads)</h4>
-      <div className="mb-3">
-        <input type="file" onChange={(e) => setFile(e.target.files?.[0])} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {mandatory.map((k) => (
-          <div key={k} className="p-3 border rounded">
-            <div className="font-medium">{k}</div>
-            <div className="text-sm mb-2">
-              Current: {raw[`${k} - FileURL`] ? <a className="text-purple-600" href={raw[`${k} - FileURL`]} target="_blank" rel="noreferrer">View</a> : "Not uploaded"}
-            </div>
-            <button
-              onClick={() => handleUpload(k)}
-              disabled={uploading}
-              className="px-3 py-1 bg-purple-600 text-white rounded"
+    <div className="space-y-6">
+      <h3 className="text-xl font-bold text-purple-700 flex items-center gap-2">
+        <span>📁 Submission Folder</span>
+      </h3>
+
+      <p className="text-sm text-gray-600">
+        Uploads here will automatically update Google Sheets and notify your supervisor.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {mandatoryUploads.map((activity) => {
+          const url = raw[`${activity} - FileURL`];
+          const hasFile = Boolean(url);
+
+          return (
+            <div
+              key={activity}
+              className="border rounded-xl bg-white p-5 shadow-md transition hover:shadow-lg"
             >
-              {uploading ? "Uploading…" : "Upload selected file"}
-            </button>
-          </div>
-        ))}
+              {/* Title */}
+              <div className="font-semibold text-purple-700 text-sm mb-1">
+                {activity}
+              </div>
+
+              {/* Status */}
+              <div className="mb-3 text-xs">
+                {hasFile ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-green-700 underline font-medium"
+                  >
+                    ✔ File Uploaded — View File
+                  </a>
+                ) : (
+                  <span className="text-red-500 font-medium">
+                    ✖ No file uploaded yet
+                  </span>
+                )}
+              </div>
+
+              {/* File input */}
+              <input
+                type="file"
+                className="block w-full text-xs mb-3"
+                onChange={(e) =>
+                  uploadFile(activity, e.target.files?.[0])
+                }
+                disabled={uploadingActivity === activity}
+              />
+
+              {/* Upload button */}
+              <button
+                disabled={uploadingActivity === activity}
+                className={`w-full py-2 rounded-lg text-white text-sm font-medium transition 
+                ${
+                  uploadingActivity === activity
+                    ? "bg-gray-400"
+                    : "bg-purple-600 hover:bg-purple-700"
+                }`}
+                onClick={() => {}}
+              >
+                {uploadingActivity === activity
+                  ? "Uploading..."
+                  : "Upload File"}
+              </button>
+            </div>
+          );
+        })}
       </div>
-      {message && <div className="mt-3 text-sm text-gray-700">{message}</div>}
-      <div className="mt-4 text-sm text-gray-500">Notes: Only mandatory files will be notified to supervisor on upload.</div>
+
+      {message && (
+        <div className="text-sm text-gray-800 bg-gray-100 p-3 rounded-lg border">
+          {message}
+        </div>
+      )}
+
+      <p className="text-xs text-gray-500">
+        * Only mandatory documents will trigger supervisor notifications.
+      </p>
     </div>
   );
 }
