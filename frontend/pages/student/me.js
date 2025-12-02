@@ -70,30 +70,9 @@ export default function MePage() {
     .join("")
     .toUpperCase();
 
-// Field & Department fallbacks (SAFE VERSION — FIXED)
-const field =
-  (row.raw && (
-    row.raw["Field"] ||
-    row.raw["Field of Study"] ||
-    row.raw["Research Field"] ||
-    row.raw["Research Area"] ||
-    row.raw["Programme Field"] ||
-    row.raw["Specialization"] ||
-    row.raw["Cluster Field"] ||
-    row.raw["Major"]
-  )) || "-";
-
-const department =
-  (row.raw && (
-    row.raw["Department"] ||
-    row.raw["Department Name"] ||
-    row.raw["Dept"] ||
-    row.raw["Main Department"] ||
-    row.raw["School / Department"] ||
-    row.raw["Faculty"] ||
-    row.raw["Unit"] ||
-    row.raw["Cluster"]
-  )) || "-";
+// Field & Department (exact Google Sheet headers)
+const field = row.raw?.Field || "-";
+const department = row.raw?.Department || "-";
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
