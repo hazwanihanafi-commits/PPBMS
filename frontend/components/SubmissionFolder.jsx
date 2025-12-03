@@ -7,18 +7,29 @@ const API =
 export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
   const [uploadingActivity, setUploadingActivity] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
-  const [selectedDate, setSelectedDate] = useState("");
   const [message, setMessage] = useState("");
 
-  // ----------------------------------------------------
-  // File Select
-  // ----------------------------------------------------
+  // -------------------------------
+  // FIXED: Accept all PDF MIME types
+  // -------------------------------
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.type !== "application/pdf") {
-      setMessage("❌ Only PDF files are allowed.");
+    // Browsers may report PDFs differently
+    const allowedTypes = [
+      "application/pdf",
+      "application/octet-stream",
+      "binary/octet-stream",
+      "application/x-pdf",
+      "application/download",
+      "application/force-download"
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setMessage(
+        `❌ Only PDF files are allowed. Detected file type: ${file.type || "unknown"}`
+      );
       setSelectedFile(null);
       return;
     }
@@ -27,48 +38,9 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
     setMessage("");
   };
 
-  // ----------------------------------------------------
-  // DATE-ONLY UPDATE (No PDF)
-  // ----------------------------------------------------
-  const handleSaveDateOnly = async () => {
-    if (!uploadingActivity) {
-      setMessage("❌ Please select an activity.");
-      return;
-    }
-    if (!selectedDate) {
-      setMessage("❌ Please select a date.");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API}/tasks/date-only`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          studentEmail,
-          activity: uploadingActivity,
-          date: selectedDate,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setMessage(`❌ Failed: ${data.error}`);
-        return;
-      }
-
-      setMessage("✅ Date saved successfully!");
-    } catch (err) {
-      setMessage("❌ Error saving date: " + err.message);
-    }
-  };
-
-  // ----------------------------------------------------
-  // UPLOAD PDF FILE
-  // ----------------------------------------------------
+  // -------------------------------
+  // Upload handler
+  // -------------------------------
   const handleUpload = async () => {
     if (!uploadingActivity) {
       setMessage("❌ Please select an activity first.");
@@ -84,16 +56,19 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
     formData.append("activity", uploadingActivity);
     formData.append("studentEmail", studentEmail);
 
-    setMessage("⏳ Uploading… please wait.");
+    setMessage("⏳ Uploading… Please wait.");
 
     try {
       const res = await fetch(`${API}/tasks/upload`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
       const data = await res.json();
+
       if (!res.ok) {
         setMessage(`❌ Upload failed: ${data.error}`);
         return;
@@ -101,6 +76,7 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
 
       setMessage("✅ File uploaded & date updated successfully!");
       setSelectedFile(null);
+
     } catch (err) {
       setMessage("❌ Error uploading file: " + err.message);
     }
@@ -108,7 +84,7 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
 
   return (
     <div className="upload-box">
-      <h3>📂 Upload Document / Save Date</h3>
+      <h3>📂 Upload Document</h3>
 
       <label>Activity:</label>
       <select
@@ -116,6 +92,7 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
         onChange={(e) => setUploadingActivity(e.target.value)}
       >
         <option value="">-- Select --</option>
+
         {Object.keys(raw)
           .filter((k) => k.endsWith("- FileURL"))
           .map((k) => {
@@ -128,23 +105,10 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
           })}
       </select>
 
-      {/* DATE PICKER */}
-      <label>Select Date:</label>
-      <input
-        type="date"
-        value={selectedDate}
-        onChange={(e) => setSelectedDate(e.target.value)}
-      />
-
-      <button onClick={handleSaveDateOnly}>💾 Save Date Only</button>
-
-      <hr />
-
-      {/* FILE UPLOAD */}
       <label>Choose PDF file:</label>
       <input type="file" accept="application/pdf" onChange={handleFileChange} />
 
-      <button onClick={handleUpload}>📤 Upload PDF</button>
+      <button onClick={handleUpload}>Upload PDF</button>
 
       {message && <p>{message}</p>}
     </div>
