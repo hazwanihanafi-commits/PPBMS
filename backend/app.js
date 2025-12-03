@@ -35,6 +35,16 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+
+try {
+  console.log("Loading tasks router...");
+  const tasksRouter = (await import("./routes/tasks.js")).default;
+  app.use("/tasks", tasksRouter);
+  console.log("✓ Tasks router loaded");
+} catch (err) {
+  console.error("❌ Tasks router failed to load:", err);
+}
+
 // ----------------------
 // Routers
 // ----------------------
