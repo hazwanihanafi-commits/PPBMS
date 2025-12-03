@@ -1,6 +1,8 @@
 import { useState } from "react";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
+const API =
+  process.env.NEXT_PUBLIC_API_BASE?.trim() ||
+  "https://ppbms.onrender.com";
 
 export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
   const [uploadingActivity, setUploadingActivity] = useState("");
@@ -11,7 +13,6 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // PDF-only validation
     if (file.type !== "application/pdf") {
       setMessage("❌ Only PDF files are allowed.");
       setSelectedFile(null);
@@ -43,9 +44,9 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
       const res = await fetch(`${API}/tasks/upload`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: formData
+        body: formData,
       });
 
       const data = await res.json();
@@ -65,7 +66,6 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
 
   return (
     <div className="upload-box">
-
       <h3>📂 Upload Document</h3>
 
       <label>Activity:</label>
@@ -76,23 +76,21 @@ export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
         <option value="">-- Select --</option>
 
         {Object.keys(raw)
-          .filter(k => k.endsWith("- FileURL"))
-          .map(k => {
+          .filter((k) => k.endsWith("- FileURL"))
+          .map((k) => {
             const activity = k.replace(" - FileURL", "");
-            return <option key={k} value={activity}>{activity}</option>;
+            return (
+              <option key={k} value={activity}>
+                {activity}
+              </option>
+            );
           })}
       </select>
 
       <label>Choose PDF file:</label>
-      <input
-        type="file"
-        accept="application/pdf"
-        onChange={handleFileChange}
-      />
+      <input type="file" accept="application/pdf" onChange={handleFileChange} />
 
-      <button onClick={handleUpload}>
-        Upload PDF
-      </button>
+      <button onClick={handleUpload}>Upload PDF</button>
 
       {message && <p>{message}</p>}
     </div>
