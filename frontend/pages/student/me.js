@@ -1,83 +1,101 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
-const API = process.env.NEXT_PUBLIC_API_BASE;
-
-export default function StudentMe() {
+export default function StudentPage() {
   const router = useRouter();
+  const API = process.env.NEXT_PUBLIC_API_BASE;
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [timeline, setTimeline] = useState([]);
   const [error, setError] = useState("");
 
+  // ------------------------
+  // LOAD STUDENT DATA
+  // ------------------------
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
+
     if (!token) {
       router.push("/login");
       return;
     }
 
     fetch(`${API}/api/student/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setProfile(data.row);
+      .then(async (res) => {
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Failed to load student data");
+          setLoading(false);
+          return;
         }
+
+        setProfile(data.row || null);
+        setTimeline(data.row?.timeline || []);
         setLoading(false);
       })
-      .catch(() => {
-        setError("Unable to load data");
+      .catch((err) => {
+        console.error("FETCH ERROR:", err);
+        setError("Unable to connect to server.");
         setLoading(false);
       });
   }, []);
 
-  if (loading) return <p className="p-8">Loading...</p>;
-  if (error) return <p className="p-8 text-red-600">{error}</p>;
+  // ------------------------
+  // UI STATES
+  // ------------------------
+  if (loading) return <div className="p-8">Loading...</div>;
+  if (error) return <div className="p-8 text-red-600">{error}</div>;
+  if (!profile) return <div className="p-8">No profile found.</div>;
 
-  const t = profile.timeline || [];
-
+  // ------------------------
+  // NORMAL RENDER
+  // ------------------------
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-4">Student Progress</h1>
 
-      <div className="bg-white p-4 shadow rounded mb-6">
-        <h2 className="text-xl font-semibold">{profile.student_name}</h2>
-        <p>Email: {profile.email}</p>
-        <p>Supervisor: {profile.supervisor}</p>
-        <p>Programme: {profile.programme}</p>
-        <p>Start Date: {profile.start_date}</p>
+      {/* Student Profile */}
+      <div className="bg-white shadow p-4 rounded mb-6">
+        <p><strong>Name:</strong> {profile.student_name}</p>
+        <p><strong>Email:</strong> {profile.email}</p>
+        <p><strong>Programme:</strong> {profile.programme}</p>
+        <p><strong>Supervisor:</strong> {profile.supervisor}</p>
+        <p><strong>Start Date:</strong> {profile.start_date}</p>
       </div>
 
-      <h3 className="text-xl font-bold mb-2">Expected vs Actual Timeline</h3>
+      {/* Timeline */}
+      <h2 className="text-xl font-semibold mb-2">Expected vs Actual Timeline</h2>
 
-      <table className="w-full bg-white shadow rounded">
-        <thead>
-          <tr className="bg-purple-100">
-            <th className="p-2 text-left">Activity</th>
-            <th className="p-2 text-left">Expected</th>
-            <th className="p-2 text-left">Actual</th>
-            <th className="p-2 text-left">Status</th>
-            <th className="p-2 text-left">Remaining</th>
-          </tr>
-        </thead>
-        <tbody>
-          {t.map((item, idx) => (
-            <tr key={idx} className="border-t">
-              <td className="p-2">{item.activity}</td>
-              <td className="p-2">{item.expected || "-"}</td>
-              <td className="p-2">{item.actual || "dd/mm/yyyy"}</td>
-              <td className="p-2">{item.status}</td>
-              <td className="p-2">{item.remaining_days}</td>
+      <div className="bg-white shadow rounded">
+        <table className="w-full">
+          <thead className="bg-purple-100">
+            <tr>
+              <th className="p-2 text-left">Activity</th>
+              <th className="p-2 text-left">Expected</th>
+              <th className="p-2 text-left">Actual</th>
+              <th className="p-2 text-left">Status</th>
+              <th className="p-2 text-left">Remaining (days)</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {timeline.map((row, i) => (
+              <tr key={i} className="border-t">
+                <td className="p-2">{row.activity}</td>
+                <td className="p-2">{row.expected || "-"}</td>
+                <td className="p-2">{row.actual || "-"}</td>
+                <td className="p-2">{row.status}</td>
+                <td className="p-2">{row.remaining_days}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
