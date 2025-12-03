@@ -4,7 +4,7 @@ import formidable from "formidable";
 import fs from "fs";
 import { google } from "googleapis";
 import sendgrid from "@sendgrid/mail";
-import { readMasterTracking, writeStudentActual } from "../services/googleSheets.mjs";
+import { readMasterTracking, writeStudentActual } from "../services/googleSheets.js";
 import auth from "../utils/authMiddleware.js";
 
 const router = express.Router();
