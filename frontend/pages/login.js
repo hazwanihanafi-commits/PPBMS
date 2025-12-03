@@ -22,23 +22,29 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: cleanEmail,
-          password
+          password,
         }),
       });
+
+      // If backend cannot be reached
+      if (!res.ok) {
+        setError("Invalid login. Please check your credentials.");
+        return;
+      }
 
       const data = await res.json();
 
       if (!data.token) {
-        setError("Invalid login");
+        setError(data.error || "Invalid login");
         return;
       }
 
-      // Save session (always clean email)
+      // Save session
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_user_email", cleanEmail);
       localStorage.setItem("ppbms_role", data.role || "student");
 
-      // Redirect
+      // Redirect based on role
       if (data.role === "supervisor") {
         router.push("/supervisor");
       } else {
@@ -46,8 +52,8 @@ export default function LoginPage() {
       }
 
     } catch (err) {
-      console.error(err);
-      setError("Login failed");
+      console.error("LOGIN ERROR:", err);
+      setError("Server unavailable. Please try again.");
     }
   };
 
