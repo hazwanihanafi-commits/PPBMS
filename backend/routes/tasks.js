@@ -8,7 +8,7 @@ import sendgrid from "@sendgrid/mail";
 import {
   readMasterTracking,
   writeStudentActual,
-} from "../services/googleSheets.js";
+} from "../services/googleSheets.mjs";
 
 import auth from "../utils/authMiddleware.js";
 
