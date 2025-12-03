@@ -15,7 +15,7 @@ const router = express.Router();
 sendgrid.setApiKey(process.env.SENDGRID_API_KEY || "");
 
 // --------------------------------------------------------------
-// Find correct row in Google Sheet by student email
+// Find row number in MasterTracking by student email
 // --------------------------------------------------------------
 async function findRowNumberByEmail(sheetId, studentEmail) {
   const rows = await readMasterTracking(sheetId);
@@ -27,7 +27,7 @@ async function findRowNumberByEmail(sheetId, studentEmail) {
   );
 
   if (index === -1) return null;
-  return index + 2; // Row 1 = headers, row 2 = first student
+  return index + 2; // Row 1 header, row 2 = first student
 }
 
 // --------------------------------------------------------------
@@ -37,7 +37,7 @@ router.post("/upload", auth, async (req, res) => {
   const form = formidable({
     multiples: false,
     keepExtensions: true,
-    maxFileSize: 30 * 1024 * 1024, // 30 MB
+    maxFileSize: 30 * 1024 * 1024,
   });
 
   form.parse(req, async (err, fields, files) => {
@@ -51,26 +51,21 @@ router.post("/upload", auth, async (req, res) => {
       const file = files.file;
 
       if (!studentEmail || !activity) {
-        return res.status(400).json({
-          error: "Missing studentEmail or activity",
-        });
+        return res.status(400).json({ error: "Missing studentEmail or activity" });
       }
 
       if (!file) {
         return res.status(400).json({ error: "File not found" });
       }
 
-      // Ensure PDF only
       if (file.mimetype !== "application/pdf") {
-        return res
-          .status(400)
-          .json({ error: "Only PDF files are allowed." });
+        return res.status(400).json({ error: "Only PDF files are allowed." });
       }
 
       const filePath = file.filepath;
 
       // ---------------------------------------------------------
-      // Upload to Google Drive
+      // UPLOAD TO GOOGLE DRIVE
       // ---------------------------------------------------------
       const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
@@ -102,7 +97,6 @@ router.post("/upload", auth, async (req, res) => {
       const fileId = uploadRes.data.id;
       const fileURL = `https://drive.google.com/file/d/${fileId}/view`;
 
-      // Make public
       try {
         await drive.permissions.create({
           fileId,
@@ -113,7 +107,7 @@ router.post("/upload", auth, async (req, res) => {
       }
 
       // ---------------------------------------------------------
-      // Find Google Sheet row
+      // FIND SHEET ROW
       // ---------------------------------------------------------
       const rowNumber = await findRowNumberByEmail(
         process.env.SHEET_ID,
@@ -121,16 +115,13 @@ router.post("/upload", auth, async (req, res) => {
       );
 
       if (!rowNumber) {
-        return res.status(404).json({
-          error: "Student email not found in MasterTracking sheet",
-        });
+        return res.status(404).json({ error: "Student email not found in sheet" });
       }
 
       const actualColumn = `${activity} - Actual`;
       const urlColumn = `${activity} - FileURL`;
       const today = new Date().toISOString().slice(0, 10);
 
-      // Update Google Sheet
       await writeStudentActual(
         process.env.SHEET_ID,
         rowNumber,
@@ -141,7 +132,7 @@ router.post("/upload", auth, async (req, res) => {
       );
 
       // ---------------------------------------------------------
-      // Notify Supervisor
+      // SEND SUPERVISOR EMAIL
       // ---------------------------------------------------------
       try {
         const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -155,3 +146,26 @@ router.post("/upload", auth, async (req, res) => {
           await sendgrid.send({
             to: supervisorEmail,
             from: process.env.NOTIFY_FROM_EMAIL,
+            subject: `PPBMS: ${studentRow["Student Name"]} uploaded ${activity}`,
+            text: `${studentRow["Student Name"]} uploaded "${activity}". Please review.`,
+          });
+        }
+      } catch (emailError) {
+        console.warn("Email send failed:", emailError?.message);
+      }
+
+      return res.json({
+        ok: true,
+        message: "Upload successful. Sheet updated.",
+        url: fileURL,
+        date: today,
+      });
+
+    } catch (e) {
+      console.error("UPLOAD ERROR:", e);
+      return res.status(500).json({ error: e.message });
+    }
+  });
+});
+
+export default router;
