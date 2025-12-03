@@ -8,9 +8,9 @@ import { writeStudentActual } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/*-------------------------------------------------------
-  JWT Auth Middleware
--------------------------------------------------------*/
+/* ----------------------------------------
+   AUTH MIDDLEWARE
+-----------------------------------------*/
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
 
@@ -24,9 +24,9 @@ function auth(req, res, next) {
   }
 }
 
-/*-------------------------------------------------------
-  GET /api/student/me
--------------------------------------------------------*/
+/* ----------------------------------------
+   GET /student/me
+-----------------------------------------*/
 router.get("/me", auth, async (req, res) => {
   try {
     const email = (req.user.email || "").toLowerCase().trim();
@@ -38,7 +38,6 @@ router.get("/me", auth, async (req, res) => {
 
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
-    // Build student profile
     const profile = {
       student_id:
         raw["Matric"] ||
@@ -47,7 +46,7 @@ router.get("/me", auth, async (req, res) => {
         raw["StudentID"] ||
         "",
 
-      student_name: raw["Student Name"] || raw["StudentName"] || "",
+      student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
       supervisor:
@@ -55,7 +54,6 @@ router.get("/me", auth, async (req, res) => {
         raw["Main Supervisor's Email"] ||
         raw["Supervisor"] ||
         "",
-
       start_date: raw["Start Date"] || "",
 
       field:
@@ -74,8 +72,7 @@ router.get("/me", auth, async (req, res) => {
         raw["School / Department"] ||
         "-",
 
-      // Send the raw Google Sheet row for submission folders
-      raw,
+      raw
     };
 
     const timeline = buildTimelineForRow(raw);
@@ -87,17 +84,16 @@ router.get("/me", auth, async (req, res) => {
   }
 });
 
-/*-------------------------------------------------------
-  POST /api/student/update-actual
-  Manual override for actual date (for admin)
--------------------------------------------------------*/
+/* ----------------------------------------
+   POST /student/update-actual
+   Manual update of Actual date only
+-----------------------------------------*/
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { studentId, activity, date } = req.body;
 
-    if (!studentId || !activity) {
-      return res.status(400).json({ error: "Missing required data" });
-    }
+    if (!studentId || !activity)
+      return res.status(400).json({ error: "Missing required fields" });
 
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
@@ -110,28 +106,23 @@ router.post("/update-actual", auth, async (req, res) => {
           "") === studentId
     );
 
-    if (rowIndex === -1) {
+    if (rowIndex === -1)
       return res.status(404).json({ error: "Student not found" });
-    }
 
-    const rowNumber = rowIndex + 2; // +2 because row 1 = header
+    const rowNumber = rowIndex + 2;
 
-    // Column header names
-    const actualColumn = `${activity} - Actual`;
-
-    // Write to sheet (using your global sheet writer)
     await writeStudentActual(
       process.env.SHEET_ID,
       rowNumber,
-      actualColumn,
-      null,        // no URL in manual update
+      `${activity} - Actual`,
+      null,
       date,
       null
     );
 
     return res.json({ success: true });
   } catch (err) {
-    console.error("student/update-actual ERROR:", err);
+    console.error("update-actual ERROR:", err);
     return res.status(500).json({ error: err.message });
   }
 });
