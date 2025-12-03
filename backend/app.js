@@ -15,11 +15,19 @@ app.get("/", (req, res) => {
   res.json({ status: "Backend running", time: new Date() });
 });
 
-// MOUNT ROUTES
+// MOUNT ROUTES (Correct)
 app.use("/auth", authRoutes);
-app.use("/student", studentRoutes);
-app.use("/supervisor", supervisorRoutes);
+
+// Student routes must be under /api/student
+app.use("/api/student", studentRoutes);
+
+// Supervisor routes must be under /api/supervisor
+app.use("/api/supervisor", supervisorRoutes);
+
+// PDF upload route
 app.use("/tasks", tasksRoutes);
+
+// Generic API (if you use it)
 app.use("/api", apiRoutes);
 
 // fallback
