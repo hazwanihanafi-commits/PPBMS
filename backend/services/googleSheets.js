@@ -84,13 +84,26 @@ export async function writeStudentActual(
 
   const updates = [];
 
-  // Write "Actual" date
-  if (actualDate) {
-    updates.push({
-      range: `MasterTracking!${toColLetter(actualIdx)}${rowNumber}`,
-      values: [[actualDate]]
-    });
+  export async function writeStudentActual(
+  sheetId,
+  rowNumber,
+  actualColumn,
+  urlColumn,
+  date,
+  fileURL
+) {
+  const updates = {
+    [actualColumn]: date
+  };
+
+  // Only include URL column if it exists
+  if (urlColumn) {
+    updates[urlColumn] = fileURL;
   }
+
+  await writeToSheet(sheetId, rowNumber, updates);
+}
+
 
   // Write File URL
   if (url) {
