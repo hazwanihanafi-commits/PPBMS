@@ -1,28 +1,44 @@
+// backend/routes/admin.js
 import express from "express";
-import { readMasterTracking } from "../services/googleSheets.js";
+import jwt from "jsonwebtoken";
+import { getCachedSheet, resetSheetCache } from "../utils/sheetCache.js";
 
 const router = express.Router();
 
-router.get("/students", async (req, res) => {
+/* --------------------------------------------
+   ADMIN AUTH CHECK
+---------------------------------------------*/
+function admin(req, res, next) {
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+
   try {
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    res.json({
-      count: rows.length,
-      students: rows.map(r => ({
-        matric: r["Matric"],
-        name: r["Student Name"],
-        programme: r["Programme"],
-        supervisor: r["Main Supervisor's Email"],
-        email: r["Student's Email"],
-        status: r["Status P"],
-      })),
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    const data = jwt.verify(token, process.env.JWT_SECRET);
+    if (data.role !== "admin") throw new Error();
+    req.user = data;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Admin only" });
   }
+}
+
+/* --------------------------------------------
+   GET ALL STUDENTS
+---------------------------------------------*/
+router.get("/all-students", admin, async (req, res) => {
+  try {
+    const rows = await getCachedSheet(process.env.SHEET_ID);
+    return res.json({ students: rows });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/* --------------------------------------------
+   CLEAR CACHE (FOR DEBUG)
+---------------------------------------------*/
+router.post("/reset-cache", admin, (req, res) => {
+  resetSheetCache();
+  return res.json({ ok: true });
 });
 
 export default router;
