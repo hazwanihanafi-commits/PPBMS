@@ -77,5 +77,22 @@ app._router.stack.forEach((layer) => {
   }
 });
 
+console.log("Registered routes:");
+app._router.stack.forEach((middleware) => {
+  if (middleware.route) {
+    // Routes registered directly
+    console.log("Endpoint:", middleware.route.path);
+  } else if (middleware.name === "router") {
+    // Router middleware
+    middleware.handle.stack.forEach((handler) => {
+      const routePath = handler.route?.path;
+      const routeMethod = handler.route?.stack[0]?.method;
+      if (routePath) {
+        console.log(`Router -> ${routeMethod.toUpperCase()} ${routePath}`);
+      }
+    });
+  }
+});
+
 
 export default app;
