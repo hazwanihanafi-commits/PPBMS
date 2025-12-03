@@ -1,16 +1,11 @@
-// backend/routes/student.js
 import express from "express";
 import jwt from "jsonwebtoken";
-
-import { getCachedSheet } from "../utils/sheetCache.js";
+import { readMasterTracking } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
-import { writeStudentActual } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/* ----------------------------------------
-   AUTH MIDDLEWARE
------------------------------------------*/
+// AUTH MIDDLEWARE
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
 
@@ -24,19 +19,22 @@ function auth(req, res, next) {
   }
 }
 
-/* ----------------------------------------
-   GET /student/me
------------------------------------------*/
+/* -------------------------------------------------------
+   GET /api/student/me
+------------------------------------------------------- */
 router.get("/me", auth, async (req, res) => {
   try {
-    const email = (req.user.email || "").toLowerCase().trim();
-    const rows = await getCachedSheet(process.env.SHEET_ID);
+    const loginEmail = (req.user.email || "").toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
+    // Match Google Sheet column correctly
     const raw = rows.find(
-      (r) => (r["Student's Email"] || "").toLowerCase().trim() === email
+      (r) =>
+        (r["Student's Email"] || "").toLowerCase().trim() === loginEmail
     );
 
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+    if (!raw)
+      return res.status(404).json({ error: "Student not found" });
 
     const profile = {
       student_id:
@@ -49,80 +47,19 @@ router.get("/me", auth, async (req, res) => {
       student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
-      supervisor:
-        raw["Main Supervisor"] ||
-        raw["Main Supervisor's Email"] ||
-        raw["Supervisor"] ||
-        "",
+      supervisor: raw["Main Supervisor"] || "",
       start_date: raw["Start Date"] || "",
-
-      field:
-        raw["Field"] ||
-        raw["Field of Study"] ||
-        raw["Research Field"] ||
-        raw["Research Area"] ||
-        raw["Specialization"] ||
-        "-",
-
-      department:
-        raw["Department"] ||
-        raw["Department Name"] ||
-        raw["Dept"] ||
-        raw["Main Department"] ||
-        raw["School / Department"] ||
-        "-",
-
-      raw
+      department: raw["Department"] || "-",
+      field: raw["Field"] || "-",
+      raw,
     };
 
     const timeline = buildTimelineForRow(raw);
 
     return res.json({ row: { ...profile, timeline } });
+
   } catch (err) {
-    console.error("student/me ERROR:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-/* ----------------------------------------
-   POST /student/update-actual
-   Manual update of Actual date only
------------------------------------------*/
-router.post("/update-actual", auth, async (req, res) => {
-  try {
-    const { studentId, activity, date } = req.body;
-
-    if (!studentId || !activity)
-      return res.status(400).json({ error: "Missing required fields" });
-
-    const rows = await getCachedSheet(process.env.SHEET_ID);
-
-    const rowIndex = rows.findIndex(
-      (r) =>
-        (r["Matric"] ||
-          r["Matric No"] ||
-          r["Student ID"] ||
-          r["StudentID"] ||
-          "") === studentId
-    );
-
-    if (rowIndex === -1)
-      return res.status(404).json({ error: "Student not found" });
-
-    const rowNumber = rowIndex + 2;
-
-    await writeStudentActual(
-      process.env.SHEET_ID,
-      rowNumber,
-      `${activity} - Actual`,
-      null,
-      date,
-      null
-    );
-
-    return res.json({ success: true });
-  } catch (err) {
-    console.error("update-actual ERROR:", err);
+    console.error("student/me error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
