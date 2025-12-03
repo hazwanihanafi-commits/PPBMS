@@ -55,40 +55,67 @@ function isISO(date) {
 // ROUTE 1 — PDF UPLOAD + update sheet + email supervisor
 // ======================================================
 router.post("/upload", auth, async (req, res) => {
+
+  // Formidable v3 – fully compatible config
   const form = formidable({
     multiples: false,
     keepExtensions: true,
     maxFileSize: 40 * 1024 * 1024,
+
+    allowEmptyFiles: false,
+    minFileSize: 1,
+
+    encoding: "utf-8",
+    hashAlgorithm: false,
+
+    // VERY IMPORTANT: ensures file is accepted + fields parsed
+    filter: () => true,
   });
 
   form.parse(req, async (err, fields, files) => {
     try {
-      if (err) return res.status(400).json({ error: "Form parse error" });
+      if (err) {
+        console.error("FORM PARSE ERROR:", err);
+        return res.status(400).json({ error: "Form parse error" });
+      }
 
-      const { studentEmail, activity } = fields;
+      // Debug logs — TEMPORARY, remove after deployment
+      console.log("---- FORM PARSE RESULT ----");
+      console.log("FIELDS:", fields);
+      console.log("FILES:", files);
+
+      // Extract fields
+      const studentEmail = fields.studentEmail?.toString().trim();
+      const activity = fields.activity?.toString().trim();
       const file = files.file;
 
-      if (!studentEmail || !activity)
+      if (!studentEmail || !activity) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
 
-      if (!file)
+      if (!file) {
         return res.status(400).json({ error: "File missing" });
+      }
 
-      // Accept PDF by MIME or filename
+      // Determine PDF validity
       const originalName = file.originalFilename || "";
       const isPDF =
         file.mimetype === "application/pdf" ||
         originalName.toLowerCase().endsWith(".pdf");
 
-      if (!isPDF)
+      if (!isPDF) {
         return res.status(400).json({ error: "Only PDF files allowed" });
+      }
 
       // Ensure file path
       const filePath = file.filepath || file.path;
-      if (!filePath || !fs.existsSync(filePath))
+      if (!filePath || !fs.existsSync(filePath)) {
         return res.status(400).json({ error: "File path error" });
+      }
 
-      // Upload to Google Drive
+      // =======================
+      // GOOGLE DRIVE UPLOAD
+      // =======================
       const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
       const authClient = new google.auth.GoogleAuth({
         credentials,
@@ -103,22 +130,33 @@ router.post("/upload", auth, async (req, res) => {
           name: originalName || `upload_${Date.now()}.pdf`,
           parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
         },
-        media: { mimeType: "application/pdf", body: fs.createReadStream(filePath) },
+        media: {
+          mimeType: "application/pdf",
+          body: fs.createReadStream(filePath),
+        },
         fields: "id",
       });
 
       const fileId = uploadRes.data.id;
       const fileURL = `https://drive.google.com/file/d/${fileId}/view`;
 
+      // Make file public
       await drive.permissions.create({
         fileId,
         requestBody: { role: "reader", type: "anyone" },
       });
 
-      // Update spreadsheet
-      const rowNumber = await findRowNumberByEmail(process.env.SHEET_ID, studentEmail);
-      if (!rowNumber)
+      // =======================
+      // UPDATE GOOGLE SHEET
+      // =======================
+      const rowNumber = await findRowNumberByEmail(
+        process.env.SHEET_ID,
+        studentEmail
+      );
+
+      if (!rowNumber) {
         return res.status(404).json({ error: "Student not found in sheet" });
+      }
 
       const today = new Date().toISOString().slice(0, 10);
 
@@ -131,66 +169,41 @@ router.post("/upload", auth, async (req, res) => {
         fileURL
       );
 
-      // Email supervisor (optional)
+      // =======================
+      // OPTIONAL EMAIL NOTIFY
+      // =======================
       if (emailEnabled) {
         try {
           const rows = await readMasterTracking(process.env.SHEET_ID);
           const row = rows[rowNumber - 2];
-          const supervisor = row["Main Supervisor's Email"];
+          const supervisorEmail = row["Main Supervisor's Email"];
+          const studentName = row["Student Name"];
 
-          if (supervisor) {
+          if (supervisorEmail) {
             await sendgrid.send({
-              to: supervisor,
+              to: supervisorEmail,
               from: process.env.NOTIFY_FROM_EMAIL,
-              subject: `PPBMS: ${row["Student Name"]} uploaded ${activity}`,
-              text: `${row["Student Name"]} uploaded ${activity}.\nFile: ${fileURL}`,
+              subject: `PPBMS: ${studentName} uploaded ${activity}`,
+              text: `${studentName} uploaded ${activity}. File: ${fileURL}`,
             });
             console.log("Email sent to supervisor");
           }
-        } catch (err) {
-          console.warn("Email failed:", err.message);
+        } catch (e) {
+          console.warn("Email failed:", e.message);
         }
       }
 
-      return res.json({ ok: true, url: fileURL, date: today });
+      // =======================
+      // SUCCESS
+      // =======================
+      return res.json({
+        ok: true,
+        url: fileURL,
+        date: today,
+      });
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: e.message });
     }
   });
 });
-
-// ======================================================
-// ROUTE 2 — DATE ONLY UPDATE (NO FILE UPLOAD)
-// ======================================================
-router.post("/date-only", auth, async (req, res) => {
-  try {
-    const { studentEmail, activity, date } = req.body;
-
-    if (!studentEmail || !activity || !date)
-      return res.status(400).json({ error: "Missing fields" });
-
-    if (!isISO(date))
-      return res.status(400).json({ error: "Date must be YYYY-MM-DD" });
-
-    const rowNumber = await findRowNumberByEmail(process.env.SHEET_ID, studentEmail);
-    if (!rowNumber)
-      return res.status(404).json({ error: "Student not found" });
-
-    await writeStudentActual(
-      process.env.SHEET_ID,
-      rowNumber,
-      `${activity} - Actual`,
-      null,   // Do not touch FileURL
-      date,
-      ""
-    );
-
-    return res.json({ ok: true, message: "Date updated", date });
-  } catch (e) {
-    console.error("DATE-ONLY ERROR:", e);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-export default router;
