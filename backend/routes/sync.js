@@ -1,5 +1,8 @@
-const router = require("express").Router();
-const db = require("../db"); // implement your DB upsert
+// backend/routes/sync.js
+import express from "express";
+const router = express.Router();
+
+import db from "../db.js";  // ensure db.js is ESM too
 
 router.post("/upsert", async (req, res) => {
   try {
@@ -14,4 +17,4 @@ router.post("/upsert", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
