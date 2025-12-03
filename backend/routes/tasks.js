@@ -229,4 +229,43 @@ router.post("/date-only", auth, async (req, res) => {
   }
 });
 
+// --------------------------------------------------------------
+// SAVE DATE ONLY (student selects date, no file)
+// --------------------------------------------------------------
+router.post("/date-only", auth, async (req, res) => {
+  try {
+    const { studentEmail, activity, date } = req.body;
+
+    if (!studentEmail || !activity || !date) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const rowNumber = await findRowNumberByEmail(
+      process.env.SHEET_ID,
+      studentEmail
+    );
+
+    if (!rowNumber) {
+      return res.status(404).json({ error: "Student email not found in sheet" });
+    }
+
+    const actualColumn = `${activity} - Actual`;
+
+    // Write only date, no FileURL
+    await writeStudentActual(
+      process.env.SHEET_ID,
+      rowNumber,
+      actualColumn,
+      null, // No FileURL column
+      date,
+      ""    // Empty URL
+    );
+
+    return res.json({ ok: true, message: "Date updated successfully" });
+  } catch (err) {
+    console.error("DATE-ONLY ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
