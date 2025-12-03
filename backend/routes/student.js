@@ -1,13 +1,15 @@
 // backend/routes/student.js
 import express from "express";
 import jwt from "jsonwebtoken";
+
 import { getCachedSheet } from "../utils/sheetCache.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
+import { writeStudentActual } from "../services/googleSheets.js";
 
 const router = express.Router();
 
 /*-------------------------------------------------------
-  JWT AUTH
+  JWT Auth Middleware
 -------------------------------------------------------*/
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
@@ -31,13 +33,12 @@ router.get("/me", auth, async (req, res) => {
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
     const raw = rows.find(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === email
+      (r) => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
 
-    if (!raw)
-      return res.status(404).json({ error: "Student not found" });
+    if (!raw) return res.status(404).json({ error: "Student not found" });
 
-    // -------- Build Clean Student Profile --------
+    // Build student profile
     const profile = {
       student_id:
         raw["Matric"] ||
@@ -46,17 +47,17 @@ router.get("/me", auth, async (req, res) => {
         raw["StudentID"] ||
         "",
 
-      student_name:
-        raw["Student Name"] ||
-        raw["StudentName"] ||
-        "",
-
+      student_name: raw["Student Name"] || raw["StudentName"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
-      supervisor: raw["Main Supervisor"] || raw["Supervisor"] || "",
+      supervisor:
+        raw["Main Supervisor"] ||
+        raw["Main Supervisor's Email"] ||
+        raw["Supervisor"] ||
+        "",
+
       start_date: raw["Start Date"] || "",
 
-      // Field
       field:
         raw["Field"] ||
         raw["Field of Study"] ||
@@ -65,7 +66,6 @@ router.get("/me", auth, async (req, res) => {
         raw["Specialization"] ||
         "-",
 
-      // Department
       department:
         raw["Department"] ||
         raw["Department Name"] ||
@@ -74,53 +74,64 @@ router.get("/me", auth, async (req, res) => {
         raw["School / Department"] ||
         "-",
 
-      // Full raw row for submission folder
-      raw
+      // Send the raw Google Sheet row for submission folders
+      raw,
     };
 
-    // Build timeline
     const timeline = buildTimelineForRow(raw);
 
     return res.json({ row: { ...profile, timeline } });
-
   } catch (err) {
-    console.error("student/me", err);
+    console.error("student/me ERROR:", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
 /*-------------------------------------------------------
   POST /api/student/update-actual
+  Manual override for actual date (for admin)
 -------------------------------------------------------*/
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { studentId, activity, date } = req.body;
 
-    if (!studentId || !activity)
-      return res.status(400).json({ error: "Missing data" });
+    if (!studentId || !activity) {
+      return res.status(400).json({ error: "Missing required data" });
+    }
 
     const rows = await getCachedSheet(process.env.SHEET_ID);
 
-    const row = rows.find(
-      r =>
+    const rowIndex = rows.findIndex(
+      (r) =>
         (r["Matric"] ||
-         r["Matric No"] ||
-         r["Student ID"] ||
-         r["StudentID"] ||
-         "") === studentId
+          r["Matric No"] ||
+          r["Student ID"] ||
+          r["StudentID"] ||
+          "") === studentId
     );
 
-    if (!row)
+    if (rowIndex === -1) {
       return res.status(404).json({ error: "Student not found" });
+    }
 
-    const key = `${activity} - Actual`;
-    row[key] = date;
+    const rowNumber = rowIndex + 2; // +2 because row 1 = header
 
-    await row.save();
+    // Column header names
+    const actualColumn = `${activity} - Actual`;
+
+    // Write to sheet (using your global sheet writer)
+    await writeStudentActual(
+      process.env.SHEET_ID,
+      rowNumber,
+      actualColumn,
+      null,        // no URL in manual update
+      date,
+      null
+    );
 
     return res.json({ success: true });
   } catch (err) {
-    console.error("update-actual", err);
+    console.error("student/update-actual ERROR:", err);
     return res.status(500).json({ error: err.message });
   }
 });
