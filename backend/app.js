@@ -70,6 +70,17 @@ app.get("/test-debug", (req, res) => {
   res.send("Backend updated & routes registered successfully");
 });
 
+app.get("/", (req, res) => {
+  res.send("PPBMS Student Progress API is running");
+});
+
+app.get("/zz-test", (req, res) => {
+  res.send("YES — backend code is running");
+});
+
+// 404 Handler
+app.use((req, res) => res.status(404).json({ error: "Not Found" }));
+
 // ----------------------
 // 404 handler
 // ----------------------
