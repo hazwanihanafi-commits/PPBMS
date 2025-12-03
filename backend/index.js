@@ -1,7 +1,7 @@
 // backend/index.js
 import app from "./app.js";
 import cron from "node-cron";
-import { generateExpectedTimeline } from "./cron/expectedTimeline.js";
+import { generateExpectedTimeline } from "./cron/expectedTimeline.mjs";
 
 const PORT = process.env.PORT || 10000;
 
