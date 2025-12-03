@@ -4,13 +4,6 @@ import DonutChart from "../../components/DonutChart";
 import TimelineTable from "../../components/TimelineTable";
 import SubmissionFolder from "../../components/SubmissionFolder";
 
-<TimelineTable
-  timeline={timeline}
-  studentEmail={user.email}
-  token={token}
-  API={process.env.NEXT_PUBLIC_API_BASE}
-/>
-
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export default function MePage() {
@@ -20,7 +13,7 @@ export default function MePage() {
   const [tab, setTab] = useState("progress");
   const [error, setError] = useState(null);
 
-  // Load token
+  // Load token from localStorage
   useEffect(() => {
     const t = localStorage.getItem("ppbms_token");
     if (!t) {
@@ -31,7 +24,7 @@ export default function MePage() {
     setToken(t);
   }, []);
 
-  // Load student data
+  // Load student data from backend
   useEffect(() => {
     if (!token) return;
 
@@ -46,7 +39,6 @@ export default function MePage() {
 
         const data = JSON.parse(txt);
         setRow(data.row);
-
       } catch (e) {
         setError(e.message || e);
       } finally {
@@ -59,7 +51,7 @@ export default function MePage() {
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!row) return null;
 
-  // Progress calc
+  // Progress percentage
   const timeline = row.timeline || [];
   const completed = timeline.filter(t => t.status === "Completed").length;
   const total = timeline.length;
@@ -77,13 +69,12 @@ export default function MePage() {
     .join("")
     .toUpperCase();
 
-// Field & Department (exact Google Sheet headers)
-const field = row.raw?.Field || "-";
-const department = row.raw?.Department || "-";
+  const field = row.raw?.Field || "-";
+  const department = row.raw?.Department || "-";
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
-      
+
       {/* Header */}
       <div className="rounded-xl p-6 bg-gradient-to-r from-purple-600 to-orange-400 text-white shadow-lg">
         <h1 className="text-3xl font-bold">Student Progress</h1>
@@ -93,14 +84,12 @@ const department = row.raw?.Department || "-";
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* LEFT PANEL */}
         <div className="col-span-4 space-y-6">
 
           {/* Profile Card */}
           <div className="rounded-xl bg-white p-6 shadow flex flex-col gap-4">
-
-            {/* Avatar + Name */}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center 
                               bg-gradient-to-br from-purple-600 to-pink-500 
@@ -115,7 +104,6 @@ const department = row.raw?.Department || "-";
 
             {/* Details */}
             <div className="text-sm space-y-3 mt-2">
-              
               <div>
                 <div className="font-semibold text-gray-700">Supervisor</div>
                 <div className="text-gray-800">{row.supervisor || "-"}</div>
@@ -135,31 +123,19 @@ const department = row.raw?.Department || "-";
                 <div className="font-semibold text-gray-700">Department</div>
                 <div className="text-gray-800">{department}</div>
               </div>
-
             </div>
           </div>
 
           {/* Tabs */}
           <div className="rounded-xl bg-white p-4 shadow">
             <div className="flex gap-3 border-b pb-2 text-sm font-medium text-gray-600">
-              <button
-                className={tab === "progress" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("progress")}
-              >
+              <button className={tab === "progress" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("progress")}>
                 Progress
               </button>
-
-              <button
-                className={tab === "submissions" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("submissions")}
-              >
+              <button className={tab === "submissions" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("submissions")}>
                 Submissions
               </button>
-
-              <button
-                className={tab === "documents" ? "text-purple-700 font-bold" : ""}
-                onClick={() => setTab("documents")}
-              >
+              <button className={tab === "documents" ? "text-purple-700 font-bold" : ""} onClick={() => setTab("documents")}>
                 Documents
               </button>
             </div>
@@ -185,11 +161,8 @@ const department = row.raw?.Department || "-";
                 row={row}
                 token={token}
                 API={API}
-                onTimelineUpdate={(newTimeline) => {
-                  setRow(prev => ({
-                    ...prev,
-                    timeline: newTimeline,
-                  }));
+                onTimelineUpdate={(updated) => {
+                  setRow(prev => ({ ...prev, timeline: updated }));
                 }}
               />
             </>
@@ -199,32 +172,32 @@ const department = row.raw?.Department || "-";
           {tab === "submissions" && (
             <div className="rounded-xl bg-white p-6 shadow">
               <SubmissionFolder 
-  raw={row.raw} 
-  studentEmail={row.email} 
-  token={token}
-/>
+                raw={row.raw} 
+                studentEmail={row.email} 
+                token={token}
+              />
             </div>
           )}
 
           {/* DOCUMENTS TAB */}
           {tab === "documents" && (
             <div className="rounded-xl bg-white p-6 shadow">
-              <p>Documents & logbook links (upload to Submission Folder)</p>
+              <p>Documents & logbook links (upload in Submissions tab)</p>
             </div>
           )}
+
         </div>
       </div>
     </div>
   );
 }
 
-/*===========================================================
-   TIMELINE WITH AUTO-SAVE  — FINAL WORKING VERSION
-===========================================================*/
+/* ====================================================================
+   TIMELINE WITH AUTO-SAVE (FINAL & CLEAN)
+==================================================================== */
 function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
   const [timeline, setTimeline] = useState(row.timeline || []);
 
-  /** SAVE ACTUAL DATE — FINAL CORRECT VERSION **/
   async function saveActualDate(activity, date) {
     try {
       const res = await fetch(`${API}/tasks/date-only`, {
@@ -234,20 +207,19 @@ function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          studentEmail: row.raw?.["Student's Email"],  // <— Required by backend
+          studentEmail: row.raw?.["Student's Email"],
           activity,
           date,
         }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
         alert("❌ Failed: " + data.error);
         return;
       }
 
-      // Reload updated timeline from backend
+      // Reload fresh timeline
       const refresh = await fetch(`${API}/api/student/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -256,7 +228,6 @@ function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
       const updated = JSON.parse(txt).row.timeline;
 
       setTimeline(updated);
-
       if (onTimelineUpdate) onTimelineUpdate(updated);
 
     } catch (err) {
@@ -266,9 +237,9 @@ function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
 
   return (
     <div className="rounded-xl bg-white p-6 shadow">
-      <TimelineTable
-        timeline={timeline}
-        onUpdate={saveActualDate}   // <— Use our correct handler
+      <TimelineTable 
+        timeline={timeline} 
+        onUpdate={saveActualDate} 
       />
     </div>
   );
