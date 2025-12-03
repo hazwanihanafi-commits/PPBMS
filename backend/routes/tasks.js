@@ -9,6 +9,8 @@ import {
   writeStudentActual,
 } from "../services/googleSheets.js";
 import auth from "../utils/authMiddleware.js";
+console.log("TASKS ROUTER LOADED");
+
 
 const router = express.Router();
 sendgrid.setApiKey(process.env.SENDGRID_API_KEY || "");
