@@ -1,80 +1,54 @@
 // backend/utils/buildTimeline.js
 
-// ---- MSC TIMELINE ----
-const MSC_ITEMS = [
-  { activity: "Development Plan & Learning Contract", months: 1 },
-  { activity: "Proposal Defense Endorsed", months: 12 },
-  { activity: "Pilot / Phase 1 Completed", months: 18 },
-  { activity: "Phase 2 Data Collection Begun", months: 20 },
-  { activity: "Annual Progress Review (Year 1)", months: 12 },
-  { activity: "Phase 2 Data Collection Continued", months: 22 },
-  { activity: "Seminar Completed", months: 24 },
-  { activity: "Thesis Draft Completed", months: 28 },
-  { activity: "Final Progress Review (Year 3)", months: 30 },
-  { activity: "Viva Voce", months: 32 },
-  { activity: "Corrections Completed", months: 34 },
-  { activity: "Final Thesis Submission", months: 36 }
-];
-
-// ---- PHD TIMELINE ----
-const PHD_ITEMS = [
-  { activity: "Development Plan & Learning Contract", months: 1 },
-  { activity: "Proposal Defense Endorsed", months: 12 },
-  { activity: "Pilot / Phase 1 Completed", months: 18 },
-  { activity: "Phase 2 Data Collection Begun", months: 20 },
-  { activity: "Annual Progress Review (Year 1)", months: 12 },
-  { activity: "Phase 2 Data Collection Continued", months: 28 },
-  { activity: "Seminar Completed", months: 30 },
-  { activity: "Data Analysis Completed", months: 32 },
-  { activity: "1 Journal Paper Submitted", months: 34 },
-  { activity: "Conference Presentation", months: 36 },
-  { activity: "Annual Progress Review (Year 2)", months: 24 },
-  { activity: "Thesis Draft Completed", months: 40 },
-  { activity: "Final Progress Review (Year 3)", months: 42 },
-  { activity: "Viva Voce", months: 45 },
-  { activity: "Corrections Completed", months: 46 },
-  { activity: "Final Thesis Submission", months: 48 }
-];
-
-// Convert months to expected dates
-function addMonths(startDate, months) {
-  const d = new Date(startDate);
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0, 10);
+/* ------------------------------------------------------
+   UTIL: compute date difference safely
+-------------------------------------------------------*/
+function daysBetween(d1, d2) {
+  const a = new Date(d1);
+  const b = new Date(d2);
+  if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
+  const diff = Math.floor((b - a) / (1000 * 60 * 60 * 24));
+  return diff;
 }
 
+/* ------------------------------------------------------
+   MAIN: build timeline table for frontend
+-------------------------------------------------------*/
 export function buildTimelineForRow(row) {
-  if (!row) return [];
+  const out = [];
 
-  const start = row["Start Date"];
-  const isMsc = (row["Programme"] || "").toLowerCase().includes("msc");
+  const keys = Object.keys(row).filter((k) => k.startsWith("Exp: "));
 
-  const plan = isMsc ? MSC_ITEMS : PHD_ITEMS;
+  for (const expKey of keys) {
+    const activity = expKey.replace("Exp: ", "");
+    const expected = row[expKey] || "";
 
-  return plan.map(item => {
-    const key = `${item.activity} - Actual`;
-    const actual = row[key] || "";
+    const actualKey = `${activity} - Actual`;
+    const actual = row[actualKey] || "";
 
-    const expected = addMonths(start, item.months);
+    const today = new Date().toISOString().slice(0, 10);
 
-    let remaining = "";
     let status = "Pending";
+    let remaining = null;
 
     if (actual) {
+      // Completed
       status = "Completed";
-      remaining = "0 days";
-    } else {
-      const diff = (new Date(expected) - new Date()) / 86400000;
-      remaining = Math.ceil(diff) + " days";
-      status = diff < 0 ? "Late" : "On Track";
+      remaining = daysBetween(expected, actual);
+    } else if (expected) {
+      const diffToday = daysBetween(expected, today);
+      status = diffToday < 0 ? "Late" : "Pending";
+      remaining = diffToday;
     }
 
-    return {
-      activity: item.activity,
+    out.push({
+      activity,
       expected,
-      actual,
+      actual: actual || "",
       status,
       remaining
-    };
-  });
+    });
+  }
+
+  return out;
 }
