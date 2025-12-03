@@ -1,73 +1,89 @@
-// frontend/components/SubmissionFolder.jsx
-
 import { useState } from "react";
+import { API_BASE } from "../utils/api";
 
-const API = process.env.NEXT_PUBLIC_API_BASE;
-
-export default function SubmissionFolder({ raw, studentEmail, token }) {
+export default function SubmissionFolder({ raw, studentEmail }) {
   const [activity, setActivity] = useState("");
   const [file, setFile] = useState(null);
-  const [msg, setMsg] = useState("");
+  const [message, setMessage] = useState("");
+  const [uploading, setUploading] = useState(false);
 
-  const handleUpload = async () => {
-    if (!activity) return setMsg("Please select an activity.");
-    if (!file) return setMsg("Please select a PDF file.");
+  if (!raw) return null;
 
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("activity", activity);
-    fd.append("studentEmail", studentEmail);
+  // Auto-generate dropdown from activities containing "- Expected"
+  const activities = Object.keys(raw)
+    .filter((k) => k.includes("Exp: "))
+    .map((k) => k.replace("Exp: ", ""));
 
-    setMsg("Uploading...");
-
-    try {
-      const res = await fetch(`${API}/tasks/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: fd
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMsg("Upload failed: " + (data.error || "Unknown error"));
-        return;
-      }
-
-      setMsg("PDF uploaded successfully ✓");
-    } catch (e) {
-      setMsg("Network error: " + e.message);
+  const uploadPDF = async () => {
+    if (!activity) {
+      setMessage("Please select activity.");
+      return;
     }
+    if (!file) {
+      setMessage("Please upload PDF.");
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setMessage("File must be PDF.");
+      return;
+    }
+
+    setUploading(true);
+    setMessage("");
+
+    const formData = new FormData();
+    formData.append("studentEmail", studentEmail);
+    formData.append("activity", activity);
+    formData.append("file", file);
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${API_BASE}/tasks/upload`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+
+    const data = await res.json();
+    setUploading(false);
+
+    if (!res.ok) {
+      setMessage("Upload failed: " + data.error);
+      return;
+    }
+
+    setMessage("Uploaded successfully!");
   };
 
   return (
-    <div>
+    <div style={{ padding: 20, border: "1px solid #eee", borderRadius: 8 }}>
       <h3>Upload Document</h3>
 
-      <div>
-        <label>Activity:</label>
-        <select value={activity} onChange={(e) => setActivity(e.target.value)}>
-          <option value="">Select activity</option>
-          {Object.keys(raw).map((k) =>
-            k.endsWith("FileURL") ? null : null
-          )}
-        </select>
-      </div>
+      <label>Activity:</label>
+      <select value={activity} onChange={(e) => setActivity(e.target.value)}>
+        <option value="">-- Select --</option>
+        {activities.map((a) => (
+          <option key={a} value={a}>{a}</option>
+        ))}
+      </select>
 
-      <div>
-        <label>PDF File:</label>
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => setFile(e.target.files[0])}
-        />
-      </div>
+      <br /><br />
 
-      <button onClick={handleUpload}>Upload PDF</button>
+      <label>PDF File:</label>
+      <input
+        type="file"
+        accept="application/pdf"
+        onChange={(e) => setFile(e.target.files[0])}
+      />
 
-      {msg && <p style={{ marginTop: "10px" }}>{msg}</p>}
+      <br /><br />
+
+      <button onClick={uploadPDF} disabled={uploading}>
+        {uploading ? "Uploading..." : "Upload PDF"}
+      </button>
+
+      {message && <p style={{ marginTop: 10, color: "red" }}>{message}</p>}
     </div>
   );
 }
