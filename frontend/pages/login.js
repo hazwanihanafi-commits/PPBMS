@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const API = process.env.NEXT_PUBLIC_API_BASE || "";
   console.log("API BASE =", API);
 
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,13 +31,20 @@ export default function LoginPage() {
         return;
       }
 
+      // Save session
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_user_email", cleanEmail);
-      localStorage.setItem("ppbms_role", data.role || "student");
+      localStorage.setItem("ppbms_role", data.role);
 
-      router.push(data.role === "supervisor" ? "/supervisor" : "/student/me");
+      // Redirect based on role
+      if (data.role === "supervisor") {
+        router.push("/supervisor");
+      } else {
+        router.push("/student"); // <---- FIXED HERE
+      }
+
     } catch (err) {
-      console.error("Login error:", err);
+      console.error(err);
       setError("Unable to connect to server");
     }
   };
@@ -46,10 +54,11 @@ export default function LoginPage() {
       <h1 className="text-3xl font-bold mb-6">Login</h1>
 
       <form onSubmit={handleLogin} className="space-y-4">
+        
         <input
           type="email"
           className="w-full p-3 border rounded"
-          placeholder="Email"
+          placeholder="Email (e.g. hazwanihanafi@usm.my)"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
