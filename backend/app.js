@@ -48,23 +48,11 @@ import tasksRouter from "./routes/tasks.js";
 // ----------------------
 // Route registration
 // ----------------------
-
-// General API
 app.use("/api", apiRouter);
-
-// Student API
 app.use("/api/student", studentRouter);
-
-// Supervisor API
 app.use("/api/supervisor", supervisorRouter);
-
-// Authentication (login, register, refresh, logout)
 app.use("/auth", authRouter);
-
-// File uploads (PDFs, documents, Drive uploads, sheet updates)
-app.use("/tasks", tasksRouter);
-// Final upload URL is:
-// POST https://ppbms.onrender.com/tasks/upload
+app.use("/tasks", tasksRouter);   // <— IMPORTANT
 
 // Root test
 app.get("/", (req, res) => {
@@ -79,11 +67,9 @@ app.get("/zz-test", (req, res) => {
   res.send("YES — backend code is running");
 });
 
-
-// ----------------------
-// 404 handler
-// ----------------------
+// 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
+
 
 console.log("Registered routes:");
 app._router.stack.forEach((layer) => {
