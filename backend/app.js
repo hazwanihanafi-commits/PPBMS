@@ -4,55 +4,75 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import cors from "cors";
 
-// Load environment variables
+// Load env vars
 dotenv.config();
 
-// Create Express app
+// Init app
 const app = express();
 
+// ----------------------
 // CORS
+// ----------------------
 app.use(
   cors({
     origin: [
-      "https://ppbms-frontend.onrender.com",
-      "http://localhost:3000",
+      "https://ppbms-frontend.onrender.com", // Production frontend
+      "http://localhost:3000",               // Local development
     ],
     credentials: true,
   })
 );
 
-// Body parser & cookies
+// ----------------------
+// Middleware
+// ----------------------
 app.use(express.json());
 app.use(cookieParser());
 
 // ----------------------
-// ROUTERS
+// Routers
 // ----------------------
 import apiRouter from "./routes/api.js";
 import studentRouter from "./routes/student.js";
 import supervisorRouter from "./routes/supervisor.js";
 import authRouter from "./routes/auth.js";
-import taskRouter from "./routes/tasks.js";   // ✅ FIXED
+import tasksRouter from "./routes/tasks.js";
 
 // ----------------------
-// ROUTE REGISTRATION
+// Route registration
 // ----------------------
+
+// General API
 app.use("/api", apiRouter);
-app.use("/api/student", studentRouter);
-app.use("/api/supervisor", supervisorRouter);
-app.use("/auth", authRouter);
-app.use("/api/tasks", taskRouter);   // ✅ FIXED & VALID
 
+// Student API
+app.use("/api/student", studentRouter);
+
+// Supervisor API
+app.use("/api/supervisor", supervisorRouter);
+
+// Authentication (login, register, refresh, logout)
+app.use("/auth", authRouter);
+
+// File uploads (PDFs, documents, Drive uploads, sheet updates)
+app.use("/tasks", tasksRouter);
+// Final upload URL is:
+// POST https://ppbms.onrender.com/tasks/upload
+
+// ----------------------
 // Root test
+// ----------------------
 app.get("/", (req, res) => {
-  res.send("AMDI Student Progress API is running");
+  res.send("PPBMS Student Progress API is running");
 });
 
-app.get("/test-debug", (req, res) =>
-  res.send("NEW BACKEND VERSION LOADED")
-);
+app.get("/test-debug", (req, res) => {
+  res.send("Backend updated & routes registered successfully");
+});
 
-// 404 Handler
+// ----------------------
+// 404 handler
+// ----------------------
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
 export default app;
