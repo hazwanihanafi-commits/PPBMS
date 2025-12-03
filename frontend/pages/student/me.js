@@ -4,6 +4,13 @@ import DonutChart from "../../components/DonutChart";
 import TimelineTable from "../../components/TimelineTable";
 import SubmissionFolder from "../../components/SubmissionFolder";
 
+<TimelineTable
+  timeline={timeline}
+  studentEmail={user.email}
+  token={token}
+  API={process.env.NEXT_PUBLIC_API_BASE}
+/>
+
 const API = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export default function MePage() {
@@ -212,41 +219,57 @@ const department = row.raw?.Department || "-";
 }
 
 /*===========================================================
-   TIMELINE WITH AUTO-SAVE
+   TIMELINE WITH AUTO-SAVE  — FINAL WORKING VERSION
 ===========================================================*/
 function TimelineWithSave({ row, token, API, onTimelineUpdate }) {
   const [timeline, setTimeline] = useState(row.timeline || []);
 
+  /** SAVE ACTUAL DATE — FINAL CORRECT VERSION **/
   async function saveActualDate(activity, date) {
-    await fetch(`${API}/api/student/update-actual`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        studentId: row.student_id,
-        activity,
-        date
-      })
-    });
+    try {
+      const res = await fetch(`${API}/tasks/date-only`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          studentEmail: row.raw?.["Student's Email"],  // <— Required by backend
+          activity,
+          date,
+        }),
+      });
 
-    const res = await fetch(`${API}/api/student/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+      const data = await res.json();
 
-    const txt = await res.text();
-    const data = JSON.parse(txt);
-    const updated = data.row.timeline;
+      if (!res.ok) {
+        alert("❌ Failed: " + data.error);
+        return;
+      }
 
-    setTimeline(updated);
+      // Reload updated timeline from backend
+      const refresh = await fetch(`${API}/api/student/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    if (onTimelineUpdate) onTimelineUpdate(updated);
+      const txt = await refresh.text();
+      const updated = JSON.parse(txt).row.timeline;
+
+      setTimeline(updated);
+
+      if (onTimelineUpdate) onTimelineUpdate(updated);
+
+    } catch (err) {
+      alert("❌ Error saving date: " + err.message);
+    }
   }
 
   return (
     <div className="rounded-xl bg-white p-6 shadow">
-      <TimelineTable timeline={timeline} onUpdate={saveActualDate} />
+      <TimelineTable
+        timeline={timeline}
+        onUpdate={saveActualDate}   // <— Use our correct handler
+      />
     </div>
   );
 }
