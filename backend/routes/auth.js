@@ -1,22 +1,33 @@
-// backend/routes/auth.js
 import express from "express";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
+// POST /auth/login
 router.post("/login", (req, res) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
 
-  if (!email)
-    return res.status(400).json({ error: "Email required" });
+  if (!email || !password)
+    return res.status(400).json({ error: "Missing credentials" });
 
-  const token = jwt.sign(
-    { email, role: email.endsWith("@usm.my") ? "admin" : "student" },
-    process.env.JWT_SECRET,
-    { expiresIn: "10h" }
-  );
+  // TEMP valid test login
+  const hardcoded = {
+    "cao@student.usm.my": "1234",
+    "supervisor@usm.my": "1234"
+  };
 
-  return res.json({ token });
+  if (!hardcoded[email])
+    return res.status(401).json({ error: "Invalid email" });
+
+  if (hardcoded[email] !== password)
+    return res.status(401).json({ error: "Wrong password" });
+
+  const token = jwt.sign({ email }, process.env.JWT_SECRET);
+
+  return res.json({
+    token,
+    role: email.includes("supervisor") ? "supervisor" : "student"
+  });
 });
 
 export default router;
