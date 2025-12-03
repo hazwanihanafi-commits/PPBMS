@@ -1,16 +1,15 @@
+// backend/routes/student.js
 import express from "express";
 import jwt from "jsonwebtoken";
-import { readMasterTracking } from "../services/googleSheets.js";
+import { readMasterTracking, writeSheetCell } from "../services/googleSheets.mjs";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
-// AUTH MIDDLEWARE
+// auth middleware
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
-
   if (!token) return res.status(401).json({ error: "No token" });
-
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
@@ -19,22 +18,15 @@ function auth(req, res, next) {
   }
 }
 
-/* -------------------------------------------------------
-   GET /api/student/me
-------------------------------------------------------- */
+// GET /api/student/me
 router.get("/me", auth, async (req, res) => {
   try {
-    const loginEmail = (req.user.email || "").toLowerCase().trim();
+    const email = (req.user.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // Match Google Sheet column correctly
-    const raw = rows.find(
-      (r) =>
-        (r["Student's Email"] || "").toLowerCase().trim() === loginEmail
-    );
+    const raw = rows.find(r => (r["Student's Email"] || "").toLowerCase().trim() === email);
 
-    if (!raw)
-      return res.status(404).json({ error: "Student not found" });
+    if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const profile = {
       student_id:
@@ -43,7 +35,6 @@ router.get("/me", auth, async (req, res) => {
         raw["Student ID"] ||
         raw["StudentID"] ||
         "",
-
       student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
@@ -51,16 +42,45 @@ router.get("/me", auth, async (req, res) => {
       start_date: raw["Start Date"] || "",
       department: raw["Department"] || "-",
       field: raw["Field"] || "-",
-      raw,
+      raw
     };
 
     const timeline = buildTimelineForRow(raw);
-
     return res.json({ row: { ...profile, timeline } });
+  } catch (e) {
+    console.error("student/me error:", e);
+    return res.status(500).json({ error: e.message });
+  }
+});
 
-  } catch (err) {
-    console.error("student/me error:", err);
-    return res.status(500).json({ error: err.message });
+// POST /api/student/update-actual
+router.post("/update-actual", auth, async (req, res) => {
+  try {
+    const { activity, date } = req.body;
+    if (!activity || !date) return res.status(400).json({ error: "Missing data" });
+
+    const email = (req.user.email || "").toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const idx = rows.findIndex(r => (r["Student's Email"] || "").toLowerCase().trim() === email);
+    if (idx === -1) return res.status(404).json({ error: "Student not found" });
+
+    const rowNumber = idx + 2;
+    const actualCol = `${activity} - Actual`;
+
+    await writeSheetCell(process.env.SHEET_ID, actualCol, rowNumber, date);
+
+    // Update cache entry for this student if exists
+    if (global.expectedTimelineCache) {
+      const cacheEntry = global.expectedTimelineCache.find(x => (x.email||"").toLowerCase().trim() === email);
+      if (cacheEntry) {
+        // no change to expected fields necessary; timeline builder reads actual from sheet on next GET
+      }
+    }
+
+    return res.json({ success: true });
+  } catch (e) {
+    console.error("update-actual error:", e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
