@@ -2,9 +2,9 @@
   "name": "ppbms-backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "backend/index.js",
+  "main": "backend/index.mjs",
   "scripts": {
-    "start": "node backend/index.js"
+    "start": "node backend/index.mjs"
   },
   "dependencies": {
     "@sendgrid/mail": "^7.7.0",
