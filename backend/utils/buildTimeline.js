@@ -1,54 +1,50 @@
-// backend/utils/buildTimeline.js
+// buildTimeline.js
 
-/* ------------------------------------------------------
-   UTIL: compute date difference safely
--------------------------------------------------------*/
-function daysBetween(d1, d2) {
-  const a = new Date(d1);
-  const b = new Date(d2);
-  if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
-  const diff = Math.floor((b - a) / (1000 * 60 * 60 * 24));
-  return diff;
-}
-
-/* ------------------------------------------------------
-   MAIN: build timeline table for frontend
--------------------------------------------------------*/
 export function buildTimelineForRow(row) {
-  const out = [];
+  if (!row) return [];
 
-  const keys = Object.keys(row).filter((k) => k.startsWith("Exp: "));
+  const timeline = [];
 
-  for (const expKey of keys) {
-    const activity = expKey.replace("Exp: ", "");
-    const expected = row[expKey] || "";
+  // STEP 1 — find all expected columns
+  Object.keys(row).forEach((key) => {
+    if (key.startsWith("Exp:")) {
+      const activity = key.replace("Exp:", "").trim();
 
-    const actualKey = `${activity} - Actual`;
-    const actual = row[actualKey] || "";
+      const expected = row[key] || "";
+      const actual = row[`${activity} - Actual`] || "";
+      const fileURL = row[`${activity} - FileURL`] || "";
 
-    const today = new Date().toISOString().slice(0, 10);
+      // status
+      let status = "Pending";
+      let remaining = "";
 
-    let status = "Pending";
-    let remaining = null;
+      if (expected) {
+        const today = new Date();
+        const exp = new Date(expected);
 
-    if (actual) {
-      // Completed
-      status = "Completed";
-      remaining = daysBetween(expected, actual);
-    } else if (expected) {
-      const diffToday = daysBetween(expected, today);
-      status = diffToday < 0 ? "Late" : "Pending";
-      remaining = diffToday;
+        const diffDays = Math.floor((exp - today) / (1000 * 60 * 60 * 24));
+        remaining = diffDays;
+
+        if (actual) {
+          status = "Completed";
+          remaining = 0;
+        } else if (diffDays < 0) {
+          status = "Late";
+        } else {
+          status = "Upcoming";
+        }
+      }
+
+      timeline.push({
+        activity,
+        expected,
+        actual,
+        fileURL,
+        status,
+        remaining_days: remaining,
+      });
     }
+  });
 
-    out.push({
-      activity,
-      expected,
-      actual: actual || "",
-      status,
-      remaining
-    });
-  }
-
-  return out;
+  return timeline;
 }
