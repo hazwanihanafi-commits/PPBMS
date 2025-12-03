@@ -2,12 +2,20 @@
 import { readMasterTracking } from "../services/googleSheets.js";
 
 let cache = null;
-let cacheAt = 0;
-const TTL = 30 * 1000; // 30 sec cache (adjust as needed)
+let lastFetch = 0;
+const TTL = 30000; // 30 seconds
 
 export async function getCachedSheet(sheetId) {
-  if (cache && (Date.now() - cacheAt) < TTL) return cache;
-  cache = await readMasterTracking(sheetId);
-  cacheAt = Date.now();
+  const now = Date.now();
+
+  if (!cache || now - lastFetch > TTL) {
+    cache = await readMasterTracking(sheetId);
+    lastFetch = now;
+  }
+
   return cache;
+}
+
+export function resetSheetCache() {
+  cache = null;
 }
