@@ -3,6 +3,13 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
+
+console.log("DEBUG — Checking routes directory:");
+console.log("Routes folder exists:", fs.existsSync(path.resolve("routes")));
+console.log("tasks.js exists:", fs.existsSync(path.resolve("routes/tasks.js")));
+
 
 // Load env vars
 dotenv.config();
