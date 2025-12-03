@@ -8,7 +8,7 @@ import sendgrid from "@sendgrid/mail";
 import {
   readMasterTracking,
   writeStudentActual,
-} from "../services/googleSheets.mjs";
+} from "../services/googleSheets.js";
 
 import auth from "../utils/authMiddleware.js";
 
@@ -33,7 +33,7 @@ if (process.env.SENDGRID_API_KEY?.startsWith("SG.")) {
 const router = express.Router();
 
 // ======================================================
-// Helper Functions
+// Helper — Find row number by Student Email
 // ======================================================
 async function findRowNumberByEmail(sheetId, email) {
   const rows = await readMasterTracking(sheetId);
@@ -44,31 +44,19 @@ async function findRowNumberByEmail(sheetId, email) {
       email.toLowerCase().trim()
   );
 
-  return index === -1 ? null : index + 2; // Sheet row
-}
-
-function isISO(date) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(date);
+  return index === -1 ? null : index + 2; // +2 because header = row 1
 }
 
 // ======================================================
-// ROUTE 1 — PDF UPLOAD + update sheet + email supervisor
+// ROUTE: PDF UPLOAD + Google Drive + Sheet Update + Email
 // ======================================================
 router.post("/upload", auth, async (req, res) => {
-
-  // Formidable v3 – fully compatible config
   const form = formidable({
     multiples: false,
     keepExtensions: true,
     maxFileSize: 40 * 1024 * 1024,
-
     allowEmptyFiles: false,
     minFileSize: 1,
-
-    encoding: "utf-8",
-    hashAlgorithm: false,
-
-    // VERY IMPORTANT: ensures file is accepted + fields parsed
     filter: () => true,
   });
 
@@ -79,12 +67,6 @@ router.post("/upload", auth, async (req, res) => {
         return res.status(400).json({ error: "Form parse error" });
       }
 
-      // Debug logs — TEMPORARY, remove after deployment
-      console.log("---- FORM PARSE RESULT ----");
-      console.log("FIELDS:", fields);
-      console.log("FILES:", files);
-
-      // Extract fields
       const studentEmail = fields.studentEmail?.toString().trim();
       const activity = fields.activity?.toString().trim();
       const file = files.file;
@@ -97,7 +79,9 @@ router.post("/upload", auth, async (req, res) => {
         return res.status(400).json({ error: "File missing" });
       }
 
-      // Determine PDF validity
+      // ========================
+      // Validate PDF
+      // ========================
       const originalName = file.originalFilename || "";
       const isPDF =
         file.mimetype === "application/pdf" ||
@@ -107,19 +91,21 @@ router.post("/upload", auth, async (req, res) => {
         return res.status(400).json({ error: "Only PDF files allowed" });
       }
 
-      // Ensure file path
-      const filePath = file.filepath || file.path;
+      const filePath = file.filepath;
       if (!filePath || !fs.existsSync(filePath)) {
         return res.status(400).json({ error: "File path error" });
       }
 
-      // =======================
-      // GOOGLE DRIVE UPLOAD
-      // =======================
+      // ========================
+      // UPLOAD TO GOOGLE DRIVE
+      // ========================
       const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
       const authClient = new google.auth.GoogleAuth({
         credentials,
-        scopes: ["https://www.googleapis.com/auth/drive.file"],
+        scopes: [
+          "https://www.googleapis.com/auth/drive",
+          "https://www.googleapis.com/auth/drive.file",
+        ],
       });
 
       const client = await authClient.getClient();
@@ -141,14 +127,18 @@ router.post("/upload", auth, async (req, res) => {
       const fileURL = `https://drive.google.com/file/d/${fileId}/view`;
 
       // Make file public
-      await drive.permissions.create({
-        fileId,
-        requestBody: { role: "reader", type: "anyone" },
-      });
+      try {
+        await drive.permissions.create({
+          fileId,
+          requestBody: { role: "reader", type: "anyone" },
+        });
+      } catch (e) {
+        console.warn("Drive permission warning:", e.message);
+      }
 
-      // =======================
+      // ========================
       // UPDATE GOOGLE SHEET
-      // =======================
+      // ========================
       const rowNumber = await findRowNumberByEmail(
         process.env.SHEET_ID,
         studentEmail
@@ -169,9 +159,9 @@ router.post("/upload", auth, async (req, res) => {
         fileURL
       );
 
-      // =======================
-      // OPTIONAL EMAIL NOTIFY
-      // =======================
+      // ========================
+      // EMAIL SUPERVISOR
+      // ========================
       if (emailEnabled) {
         try {
           const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -186,24 +176,24 @@ router.post("/upload", auth, async (req, res) => {
               subject: `PPBMS: ${studentName} uploaded ${activity}`,
               text: `${studentName} uploaded ${activity}. File: ${fileURL}`,
             });
-            console.log("Email sent to supervisor");
           }
         } catch (e) {
           console.warn("Email failed:", e.message);
         }
       }
 
-      // =======================
-      // SUCCESS
-      // =======================
+      // SUCCESS RESPONSE
       return res.json({
         ok: true,
         url: fileURL,
         date: today,
       });
+
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: e.message });
     }
   });
 });
+
+export default router;
