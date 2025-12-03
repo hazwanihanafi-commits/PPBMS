@@ -12,22 +12,32 @@ import auth from "../utils/authMiddleware.js";
 console.log("TASKS ROUTER LOADED");
 
 const router = express.Router();
-sendgrid.setApiKey(process.env.SENDGRID_API_KEY || "");
+
+// --------------------------------------------------------------
+// Enable SendGrid only if valid API key exists
+// --------------------------------------------------------------
+if (
+  process.env.SENDGRID_API_KEY &&
+  process.env.SENDGRID_API_KEY.startsWith("SG.")
+) {
+  sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log("SendGrid enabled");
+} else {
+  console.log("⚠ SendGrid disabled — missing or invalid SENDGRID_API_KEY");
+}
 
 // --------------------------------------------------------------
 // Find row number in MasterTracking by student email
 // --------------------------------------------------------------
 async function findRowNumberByEmail(sheetId, studentEmail) {
   const rows = await readMasterTracking(sheetId);
-
   const index = rows.findIndex(
     (r) =>
       (r["Student's Email"] || "").toLowerCase().trim() ===
       (studentEmail || "").toLowerCase().trim()
   );
-
   if (index === -1) return null;
-  return index + 2; // Row 1 header, row 2 = first student
+  return index + 2; // Row 2 = first student entry
 }
 
 // --------------------------------------------------------------
@@ -51,7 +61,9 @@ router.post("/upload", auth, async (req, res) => {
       const file = files.file;
 
       if (!studentEmail || !activity) {
-        return res.status(400).json({ error: "Missing studentEmail or activity" });
+        return res
+          .status(400)
+          .json({ error: "Missing studentEmail or activity" });
       }
 
       if (!file) {
@@ -115,7 +127,9 @@ router.post("/upload", auth, async (req, res) => {
       );
 
       if (!rowNumber) {
-        return res.status(404).json({ error: "Student email not found in sheet" });
+        return res
+          .status(404)
+          .json({ error: "Student email not found in sheet" });
       }
 
       const actualColumn = `${activity} - Actual`;
@@ -132,7 +146,7 @@ router.post("/upload", auth, async (req, res) => {
       );
 
       // ---------------------------------------------------------
-      // SEND SUPERVISOR EMAIL
+      // SEND SUPERVISOR EMAIL (ONLY IF VALID API KEY)
       // ---------------------------------------------------------
       try {
         const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -142,7 +156,11 @@ router.post("/upload", auth, async (req, res) => {
           studentRow["Main Supervisor's Email"] ||
           studentRow["Main Supervisor"];
 
-        if (supervisorEmail && process.env.SENDGRID_API_KEY) {
+        if (
+          supervisorEmail &&
+          process.env.SENDGRID_API_KEY &&
+          process.env.SENDGRID_API_KEY.startsWith("SG.")
+        ) {
           await sendgrid.send({
             to: supervisorEmail,
             from: process.env.NOTIFY_FROM_EMAIL,
@@ -160,7 +178,6 @@ router.post("/upload", auth, async (req, res) => {
         url: fileURL,
         date: today,
       });
-
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: e.message });
