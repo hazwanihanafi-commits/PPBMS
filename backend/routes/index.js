@@ -1,5 +1,5 @@
 import express from "express";
-import { readMasterTracking } from "../services/googleSheets.js";
+import { readMasterTracking } from "../services/googleSheets.mjs";
 import studentRouter from "./student.js";
 
 const router = express.Router();
