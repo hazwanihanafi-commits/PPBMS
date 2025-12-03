@@ -1,116 +1,73 @@
+// frontend/components/SubmissionFolder.jsx
+
 import { useState } from "react";
 
-const API =
-  process.env.NEXT_PUBLIC_API_BASE?.trim() ||
-  "https://ppbms.onrender.com";
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function SubmissionFolder({ raw = {}, studentEmail, token }) {
-  const [uploadingActivity, setUploadingActivity] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [message, setMessage] = useState("");
+export default function SubmissionFolder({ raw, studentEmail, token }) {
+  const [activity, setActivity] = useState("");
+  const [file, setFile] = useState(null);
+  const [msg, setMsg] = useState("");
 
-  // -------------------------------
-  // FIXED: Accept all PDF MIME types
-  // -------------------------------
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Browsers may report PDFs differently
-    const allowedTypes = [
-      "application/pdf",
-      "application/octet-stream",
-      "binary/octet-stream",
-      "application/x-pdf",
-      "application/download",
-      "application/force-download"
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      setMessage(
-        `❌ Only PDF files are allowed. Detected file type: ${file.type || "unknown"}`
-      );
-      setSelectedFile(null);
-      return;
-    }
-
-    setSelectedFile(file);
-    setMessage("");
-  };
-
-  // -------------------------------
-  // Upload handler
-  // -------------------------------
   const handleUpload = async () => {
-    if (!uploadingActivity) {
-      setMessage("❌ Please select an activity first.");
-      return;
-    }
-    if (!selectedFile) {
-      setMessage("❌ Please select a PDF file.");
-      return;
-    }
+    if (!activity) return setMsg("Please select an activity.");
+    if (!file) return setMsg("Please select a PDF file.");
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("activity", uploadingActivity);
-    formData.append("studentEmail", studentEmail);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("activity", activity);
+    fd.append("studentEmail", studentEmail);
 
-    setMessage("⏳ Uploading… Please wait.");
+    setMsg("Uploading...");
 
     try {
       const res = await fetch(`${API}/tasks/upload`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
-        body: formData,
+        body: fd
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage(`❌ Upload failed: ${data.error}`);
+        setMsg("Upload failed: " + (data.error || "Unknown error"));
         return;
       }
 
-      setMessage("✅ File uploaded & date updated successfully!");
-      setSelectedFile(null);
-
-    } catch (err) {
-      setMessage("❌ Error uploading file: " + err.message);
+      setMsg("PDF uploaded successfully ✓");
+    } catch (e) {
+      setMsg("Network error: " + e.message);
     }
   };
 
   return (
-    <div className="upload-box">
-      <h3>📂 Upload Document</h3>
+    <div>
+      <h3>Upload Document</h3>
 
-      <label>Activity:</label>
-      <select
-        value={uploadingActivity}
-        onChange={(e) => setUploadingActivity(e.target.value)}
-      >
-        <option value="">-- Select --</option>
+      <div>
+        <label>Activity:</label>
+        <select value={activity} onChange={(e) => setActivity(e.target.value)}>
+          <option value="">Select activity</option>
+          {Object.keys(raw).map((k) =>
+            k.endsWith("FileURL") ? null : null
+          )}
+        </select>
+      </div>
 
-        {Object.keys(raw)
-          .filter((k) => k.endsWith("- FileURL"))
-          .map((k) => {
-            const activity = k.replace(" - FileURL", "");
-            return (
-              <option key={k} value={activity}>
-                {activity}
-              </option>
-            );
-          })}
-      </select>
-
-      <label>Choose PDF file:</label>
-      <input type="file" accept="application/pdf" onChange={handleFileChange} />
+      <div>
+        <label>PDF File:</label>
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={(e) => setFile(e.target.files[0])}
+        />
+      </div>
 
       <button onClick={handleUpload}>Upload PDF</button>
 
-      {message && <p>{message}</p>}
+      {msg && <p style={{ marginTop: "10px" }}>{msg}</p>}
     </div>
   );
 }
