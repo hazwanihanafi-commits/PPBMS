@@ -11,11 +11,7 @@ import auth from "../utils/authMiddleware.js";
 
 console.log("TASKS ROUTER LOADED");
 
-const router = express.Router();
-
-// --------------------------------------------------------------
-// Enable SendGrid only if valid API key exists
-// --------------------------------------------------------------
+// Enable SendGrid only if key exists
 if (
   process.env.SENDGRID_API_KEY &&
   process.env.SENDGRID_API_KEY.startsWith("SG.")
@@ -25,6 +21,8 @@ if (
 } else {
   console.log("⚠ SendGrid disabled — missing or invalid SENDGRID_API_KEY");
 }
+
+const router = express.Router();
 
 // --------------------------------------------------------------
 // Find row number in MasterTracking by student email
