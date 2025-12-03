@@ -1,4 +1,4 @@
-// backend/services/googleSheets.mjs
+// backend/services/googleSheets.js
 import { google } from "googleapis";
 
 /** internal auth helper */
