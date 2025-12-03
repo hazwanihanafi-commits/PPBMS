@@ -1,7 +1,7 @@
 // backend/routes/student.js
 import express from "express";
 import jwt from "jsonwebtoken";
-import { readMasterTracking, writeSheetCell } from "../services/googleSheets.mjs";
+import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
 const router = express.Router();
