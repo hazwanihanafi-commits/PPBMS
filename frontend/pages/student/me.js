@@ -1,43 +1,77 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { apiGet } from "../../utils/api";
-import SubmissionFolder from "../../components/SubmissionFolder";
+import express from "express";
+import jwt from "jsonwebtoken";
+import { readMasterTracking } from "../services/googleSheets.js";
+import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
-export default function StudentProfile() {
-  const router = useRouter();
-  const [data, setData] = useState(null);
-  const [err, setErr] = useState("");
+const router = express.Router();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
+// AUTH MIDDLEWARE
+function auth(req, res, next) {
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "No token" });
+
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+// Helper: normalize email columns
+function getRowEmail(row) {
+  return (
+    row["Student's Email"] ||
+    row["Student Email"] ||
+    row["Email"] ||
+    row["email"] ||
+    ""
+  )
+    .toLowerCase()
+    .trim();
+}
+
+/* -------------------------------------------------------
+   GET /api/student/me
+------------------------------------------------------- */
+router.get("/me", auth, async (req, res) => {
+  try {
+    const loginEmail = (req.user.email || "").toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const raw = rows.find((r) => getRowEmail(r) === loginEmail);
+
+    if (!raw) {
+      console.log("LOGIN EMAIL NOT FOUND:", loginEmail);
+      return res.status(404).json({ error: "Student not found" });
     }
 
-    apiGet("/student/me").then((res) => {
-      if (res.error) {
-        setErr(res.error);
-        if (res.error === "No token" || res.error === "Invalid token") {
-          router.push("/login");
-        }
-      } else {
-        setData(res.row);
-      }
-    });
-  }, []);
+    // Build profile
+    const profile = {
+      student_id:
+        raw["Matric"] ||
+        raw["Matric No"] ||
+        raw["Student ID"] ||
+        raw["StudentID"] ||
+        "",
 
-  if (err) return <div>Error: {err}</div>;
-  if (!data) return <div>Loading...</div>;
+      student_name: raw["Student Name"] || "",
+      email: getRowEmail(raw),
+      programme: raw["Programme"] || "",
+      supervisor: raw["Main Supervisor"] || "",
+      start_date: raw["Start Date"] || "",
+      department: raw["Department"] || "-",
+      field: raw["Field"] || "-",
+      raw,
+    };
 
-  return (
-    <div style={{ padding: 40 }}>
-      <h2>Student Progress</h2>
-      <p><b>{data.student_name}</b></p>
+    const timeline = buildTimelineForRow(raw);
 
-      <div style={{ marginTop: 30 }}>
-        <SubmissionFolder raw={data.raw} studentEmail={data.email} />
-      </div>
-    </div>
-  );
-}
+    return res.json({ row: { ...profile, timeline } });
+  } catch (err) {
+    console.error("student/me error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;
