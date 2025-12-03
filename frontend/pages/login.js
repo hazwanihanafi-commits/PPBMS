@@ -2,9 +2,12 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 
 export default function LoginPage() {
-  const router = useRouter();
+  // Next.js replaces this at build time (browser safe)
+  const API = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
-  const API = process.env.NEXT_PUBLIC_API_BASE || "";
+  console.log("🔧 API BASE =", API);
+
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,7 +22,10 @@ export default function LoginPage() {
       const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cleanEmail, password }),
+        body: JSON.stringify({
+          email: cleanEmail,
+          password,
+        }),
       });
 
       const data = await res.json();
@@ -29,11 +35,12 @@ export default function LoginPage() {
         return;
       }
 
-      // Save token
+      // Save session
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_user_email", cleanEmail);
       localStorage.setItem("ppbms_role", data.role || "student");
 
+      // Redirect based on role
       if (data.role === "supervisor") {
         router.push("/supervisor");
       } else {
@@ -50,11 +57,10 @@ export default function LoginPage() {
       <h1 className="text-3xl font-bold mb-6">Login</h1>
 
       <form onSubmit={handleLogin} className="space-y-4">
-        
         <input
           type="email"
           className="w-full p-3 border rounded"
-          placeholder="Email (e.g. hazwanihanafi@usm.my)"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
