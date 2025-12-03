@@ -1,6 +1,24 @@
 import ProgressRow from "./ProgressRow";
 
-export default function TimelineTable({ timeline, onUpdate }) {
+export default function TimelineTable({ timeline, studentEmail, token, API }) {
+
+  async function saveActualDate(activity, date) {
+    const res = await fetch(`${API}/tasks/date-only`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        studentEmail,
+        activity,
+        date,
+      }),
+    });
+
+    return await res.json();
+  }
+
   return (
     <div className="mt-4 w-full overflow-x-auto bg-white shadow rounded-lg p-4">
       <h3 className="text-xl font-semibold text-purple-700 mb-4">
@@ -20,7 +38,11 @@ export default function TimelineTable({ timeline, onUpdate }) {
 
         <tbody>
           {timeline.map((row, i) => (
-            <ProgressRow key={i} row={row} onUpdate={onUpdate} />
+            <ProgressRow
+              key={i}
+              row={row}
+              saveActualDate={saveActualDate}   // ✅ PASS FUNCTION
+            />
           ))}
         </tbody>
       </table>
