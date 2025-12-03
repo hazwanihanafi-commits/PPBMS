@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // -----------------------------
-// IMPORT ROUTES (MUST MATCH FILES IN /routes folder)
+// IMPORT ALL ROUTES
 // -----------------------------
 import authRoutes from "./routes/auth.js";
 import studentRoutes from "./routes/student.js";
