@@ -1,13 +1,10 @@
-// backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
-import { getCachedSheet } from "../utils/sheetCache.js";
+import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/* --------------------------------------------
-   AUTH
----------------------------------------------*/
+// AUTH
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -20,24 +17,25 @@ function auth(req, res, next) {
   }
 }
 
-/* --------------------------------------------
-   SUPERVISOR: LIST STUDENTS
----------------------------------------------*/
+/* -------------------------------------------------------
+   GET /api/supervisor/students
+------------------------------------------------------- */
 router.get("/students", auth, async (req, res) => {
   try {
-    const email = req.user.email?.toLowerCase().trim();
-    const rows = await getCachedSheet(process.env.SHEET_ID);
+    const spvEmail = (req.user.email || "").toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const assigned = rows.filter(
+    const supervised = rows.filter(
       (r) =>
         (r["Main Supervisor's Email"] || "")
           .toLowerCase()
-          .trim() === email
+          .trim() === spvEmail
     );
 
-    return res.json({ students: assigned });
+    return res.json({ students: supervised });
+
   } catch (err) {
-    console.error("SUPERVISOR /students ERROR:", err);
+    console.error("supervisor/students error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
