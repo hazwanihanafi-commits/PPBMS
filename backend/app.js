@@ -1,8 +1,12 @@
-// backend/app.js
+// --------------------------------------------------------
+// Load environment variables FIRST
+// --------------------------------------------------------
 import dotenv from "dotenv";
-// Load env vars
 dotenv.config();
 
+// --------------------------------------------------------
+// Imports
+// --------------------------------------------------------
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -13,57 +17,79 @@ console.log("DEBUG — Checking routes directory:");
 console.log("Routes folder exists:", fs.existsSync(path.resolve("routes")));
 console.log("tasks.js exists:", fs.existsSync(path.resolve("routes/tasks.js")));
 
-// Init app
 const app = express();
 
-// ----------------------
+// --------------------------------------------------------
 // CORS
-// ----------------------
+// --------------------------------------------------------
 app.use(
   cors({
     origin: [
-      "https://ppbms-frontend.onrender.com", // Production frontend
-      "http://localhost:3000",               // Local development
+      "https://ppbms-frontend.onrender.com",
+      "http://localhost:3000"
     ],
     credentials: true,
   })
 );
 
-// ----------------------
+// --------------------------------------------------------
 // Middleware
-// ----------------------
+// --------------------------------------------------------
 app.use(express.json());
 app.use(cookieParser());
 
+// --------------------------------------------------------
+// Routers (SAFE IMPORT with error logs)
+// --------------------------------------------------------
+let apiRouter, studentRouter, supervisorRouter, authRouter, tasksRouter;
 
 try {
-  console.log("Loading tasks router...");
-  const tasksRouter = (await import("./routes/tasks.js")).default;
-  app.use("/tasks", tasksRouter);
-  console.log("✓ Tasks router loaded");
-} catch (err) {
-  console.error("❌ Tasks router failed to load:", err);
+  apiRouter = (await import("./routes/api.js")).default;
+  console.log("✓ api.js loaded");
+} catch (e) {
+  console.error("❌ Failed to load api.js:", e);
 }
 
-// ----------------------
-// Routers
-// ----------------------
-import apiRouter from "./routes/api.js";
-import studentRouter from "./routes/student.js";
-import supervisorRouter from "./routes/supervisor.js";
-import authRouter from "./routes/auth.js";
-import tasksRouter from "./routes/tasks.js";
+try {
+  studentRouter = (await import("./routes/student.js")).default;
+  console.log("✓ student.js loaded");
+} catch (e) {
+  console.error("❌ Failed to load student.js:", e);
+}
 
-// ----------------------
-// Route registration
-// ----------------------
-app.use("/api", apiRouter);
-app.use("/api/student", studentRouter);
-app.use("/api/supervisor", supervisorRouter);
-app.use("/auth", authRouter);
-app.use("/tasks", tasksRouter);   // <— IMPORTANT
+try {
+  supervisorRouter = (await import("./routes/supervisor.js")).default;
+  console.log("✓ supervisor.js loaded");
+} catch (e) {
+  console.error("❌ Failed to load supervisor.js:", e);
+}
 
-// Root test
+try {
+  authRouter = (await import("./routes/auth.js")).default;
+  console.log("✓ auth.js loaded");
+} catch (e) {
+  console.error("❌ Failed to load auth.js:", e);
+}
+
+try {
+  tasksRouter = (await import("./routes/tasks.js")).default;
+  console.log("✓ tasks.js loaded");
+} catch (e) {
+  console.error("❌ Failed to load tasks.js:", e);
+}
+
+// --------------------------------------------------------
+// Register Routers
+// --------------------------------------------------------
+if (apiRouter) app.use("/api", apiRouter);
+if (studentRouter) app.use("/api/student", studentRouter);
+if (supervisorRouter) app.use("/api/supervisor", supervisorRouter);
+if (authRouter) app.use("/auth", authRouter);
+if (tasksRouter) app.use("/tasks", tasksRouter); // IMPORTANT
+
+// --------------------------------------------------------
+// Root test routes
+// --------------------------------------------------------
 app.get("/", (req, res) => {
   res.send("PPBMS Student Progress API is running");
 });
@@ -76,33 +102,32 @@ app.get("/zz-test", (req, res) => {
   res.send("YES — backend code is running");
 });
 
-// 404
+// --------------------------------------------------------
+// 404 Handler
+// --------------------------------------------------------
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
+// --------------------------------------------------------
+// LOG ALL REGISTERED ROUTES (FULL VERSION)
+// --------------------------------------------------------
+console.log("------- REGISTERED ENDPOINTS -------");
 
-console.log("Registered routes:");
-app._router.stack.forEach((layer) => {
+const listRoutes = (layer, basePath = "") => {
   if (layer.route) {
-    console.log(layer.route.path);
+    const route = layer.route;
+    const methods = Object.keys(route.methods)
+      .map((m) => m.toUpperCase())
+      .join(", ");
+    console.log(`${methods}  ${basePath}${route.path}`);
+  } else if (layer.name === "router" && layer.handle.stack) {
+    layer.handle.stack.forEach((handler) =>
+      listRoutes(handler, basePath + (layer.regexp?.source.replace("^\\/", "/") || ""))
+    );
   }
-});
+};
 
-console.log("Registered routes:");
-app._router.stack.forEach((middleware) => {
-  if (middleware.route) {
-    // Routes registered directly
-    console.log("Endpoint:", middleware.route.path);
-  } else if (middleware.name === "router") {
-    // Router middleware
-    middleware.handle.stack.forEach((handler) => {
-      const routePath = handler.route?.path;
-      const routeMethod = handler.route?.stack[0]?.method;
-      if (routePath) {
-        console.log(`Router -> ${routeMethod.toUpperCase()} ${routePath}`);
-      }
-    });
-  }
-});
+app._router.stack.forEach((layer) => listRoutes(layer));
 
+console.log("------------------------------------");
 
 export default app;
