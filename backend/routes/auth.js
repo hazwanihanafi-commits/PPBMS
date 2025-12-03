@@ -1,33 +1,56 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-// POST /auth/login
-router.post("/login", (req, res) => {
-  const { email, password } = req.body;
+/**
+ * LOGIN:
+ * - Accept ANY email that exists in MasterTracking Sheet
+ * - Password = "1234" for now
+ */
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password)
-    return res.status(400).json({ error: "Missing credentials" });
+    if (!email || !password)
+      return res.status(400).json({ error: "Missing credentials" });
 
-  // TEMP valid test login
-  const hardcoded = {
-    "cao@student.usm.my": "1234",
-    "supervisor@usm.my": "1234"
-  };
+    // For now, universal password (you can upgrade later)
+    if (password !== "1234")
+      return res.status(401).json({ error: "Wrong password" });
 
-  if (!hardcoded[email])
-    return res.status(401).json({ error: "Invalid email" });
+    const cleanEmail = email.toLowerCase().trim();
 
-  if (hardcoded[email] !== password)
-    return res.status(401).json({ error: "Wrong password" });
+    // Read Google Sheet
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-  const token = jwt.sign({ email }, process.env.JWT_SECRET);
+    // Find student
+    const student = rows.find(
+      (r) =>
+        (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail
+    );
 
-  return res.json({
-    token,
-    role: email.includes("supervisor") ? "supervisor" : "student"
-  });
+    // Find supervisor
+    const supervisor = rows.find(
+      (r) =>
+        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
+    );
+
+    if (!student && !supervisor) {
+      return res.status(401).json({ error: "Email not found in system" });
+    }
+
+    const role = supervisor ? "supervisor" : "student";
+
+    const token = jwt.sign({ email: cleanEmail, role }, process.env.JWT_SECRET);
+
+    return res.json({ token, role });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
