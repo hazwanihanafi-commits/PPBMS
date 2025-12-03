@@ -11,12 +11,12 @@ import auth from "../utils/authMiddleware.js";
 
 console.log("TASKS ROUTER LOADED");
 
-// Enable SendGrid only if key exists
+// Enable SendGrid only if key exists AND starts with "SG."
 if (
   process.env.SENDGRID_API_KEY &&
   process.env.SENDGRID_API_KEY.startsWith("SG.")
 ) {
-  sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+  sendgrid.setApiKey(process.env.SENDGRID_API_KEY);   // ✅ correct use
   console.log("SendGrid enabled");
 } else {
   console.log("⚠ SendGrid disabled — missing or invalid SENDGRID_API_KEY");
