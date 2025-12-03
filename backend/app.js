@@ -66,9 +66,7 @@ app.use("/tasks", tasksRouter);
 // Final upload URL is:
 // POST https://ppbms.onrender.com/tasks/upload
 
-// ----------------------
 // Root test
-// ----------------------
 app.get("/", (req, res) => {
   res.send("PPBMS Student Progress API is running");
 });
@@ -77,13 +75,10 @@ app.get("/test-debug", (req, res) => {
   res.send("Backend updated & routes registered successfully");
 });
 
-app.get("/", (req, res) => {
-  res.send("PPBMS Student Progress API is running");
-});
-
 app.get("/zz-test", (req, res) => {
   res.send("YES — backend code is running");
 });
+
 
 // ----------------------
 // 404 handler
