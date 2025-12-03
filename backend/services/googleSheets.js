@@ -51,7 +51,13 @@ function toColLetter(idx) {
   return s;
 }
 
-/** Write Date + URL to Google Sheet */
+/**
+ * Write Date + URL to Google Sheet
+ * - actualColumnName = "Development Plan & Learning Contract - Actual" OR "Exp: ..."
+ * - urlColumnName    = "Development Plan & Learning Contract - FileURL" OR null
+ * - actualDate       = "2025-01-01" (string)
+ * - url              = Google Drive file link OR null
+ */
 export async function writeStudentActual(
   sheetId,
   rowNumber,
@@ -64,7 +70,7 @@ export async function writeStudentActual(
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
 
-  // Get headers to identify correct columns
+  // Get sheet headers
   const headerRes = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
     range: "MasterTracking!A1:ZZ1"
@@ -73,40 +79,27 @@ export async function writeStudentActual(
   const headers = headerRes.data.values[0];
 
   const actualIdx = headers.indexOf(actualColumnName);
-  const urlIdx = headers.indexOf(urlColumnName);
+  const urlIdx = urlColumnName ? headers.indexOf(urlColumnName) : -1;
 
   if (actualIdx === -1) {
     throw new Error("Column not found: " + actualColumnName);
   }
-  if (urlIdx === -1) {
+  if (urlColumnName && urlIdx === -1) {
     throw new Error("Column not found: " + urlColumnName);
   }
 
   const updates = [];
 
-  export async function writeStudentActual(
-  sheetId,
-  rowNumber,
-  actualColumn,
-  urlColumn,
-  date,
-  fileURL
-) {
-  const updates = {
-    [actualColumn]: date
-  };
-
-  // Only include URL column if it exists
-  if (urlColumn) {
-    updates[urlColumn] = fileURL;
+  // Write Actual Date
+  if (actualDate !== undefined && actualDate !== null) {
+    updates.push({
+      range: `MasterTracking!${toColLetter(actualIdx)}${rowNumber}`,
+      values: [[actualDate]]
+    });
   }
 
-  await writeToSheet(sheetId, rowNumber, updates);
-}
-
-
-  // Write File URL
-  if (url) {
+  // Write File URL (optional)
+  if (urlColumnName && url !== undefined && url !== null) {
     updates.push({
       range: `MasterTracking!${toColLetter(urlIdx)}${rowNumber}`,
       values: [[url]]
@@ -115,7 +108,7 @@ export async function writeStudentActual(
 
   if (updates.length === 0) return true;
 
-  // Send both updates in 1 request
+  // Batch update both columns
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: sheetId,
     requestBody: {
@@ -126,6 +119,8 @@ export async function writeStudentActual(
 
   return true;
 }
+
+/** Deprecated Placeholder (to avoid import errors) */
 export function writeToSheet() {
   throw new Error("writeToSheet is deprecated. Use writeStudentActual instead.");
 }
