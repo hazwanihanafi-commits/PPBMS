@@ -1,4 +1,4 @@
-import { readMasterTracking, writeToSheet } from "../services/googleSheets.js";
+import { readMasterTracking, writeToSheet } from "../services/googleSheets.mjs";
 
 const MSC_MAPPING = {
   "Development Plan & Learning Contract": 0,
