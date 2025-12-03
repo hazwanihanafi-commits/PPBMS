@@ -2,10 +2,8 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 
 export default function LoginPage() {
-  // Next.js replaces this at build time (browser safe)
-  const API = process.env.NEXT_PUBLIC_API_BASE ?? "";
-
-  console.log("🔧 API BASE =", API);
+  const API = process.env.NEXT_PUBLIC_API_BASE || "";
+  console.log("API BASE =", API);
 
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -22,10 +20,7 @@ export default function LoginPage() {
       const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: cleanEmail,
-          password,
-        }),
+        body: JSON.stringify({ email: cleanEmail, password }),
       });
 
       const data = await res.json();
@@ -35,17 +30,11 @@ export default function LoginPage() {
         return;
       }
 
-      // Save session
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_user_email", cleanEmail);
       localStorage.setItem("ppbms_role", data.role || "student");
 
-      // Redirect based on role
-      if (data.role === "supervisor") {
-        router.push("/supervisor");
-      } else {
-        router.push("/student/me");
-      }
+      router.push(data.role === "supervisor" ? "/supervisor" : "/student/me");
     } catch (err) {
       console.error("Login error:", err);
       setError("Unable to connect to server");
