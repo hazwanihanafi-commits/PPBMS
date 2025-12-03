@@ -1,6 +1,9 @@
+// backend/services/googleSheets.js
 import { google } from "googleapis";
 
-/** Internal Auth Helper */
+/* --------------------------------------------
+   AUTH HELPER
+---------------------------------------------*/
 function getAuth(readonly = true) {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (!raw) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -17,7 +20,9 @@ function getAuth(readonly = true) {
   });
 }
 
-/** Read full MasterTracking sheet */
+/* --------------------------------------------
+   READ MASTER TRACKING
+---------------------------------------------*/
 export async function readMasterTracking(sheetId) {
   const auth = getAuth(true);
   const client = await auth.getClient();
@@ -31,18 +36,18 @@ export async function readMasterTracking(sheetId) {
   const rows = res.data.values || [];
   if (rows.length < 2) return [];
 
-  const header = rows[0];
-  const output = rows.slice(1).map(r => {
+  const headers = rows[0];
+  return rows.slice(1).map((r) => {
     const obj = {};
-    header.forEach((h, i) => obj[h] = r[i] || "");
+    headers.forEach((h, i) => (obj[h] = r[i] || ""));
     return obj;
   });
-
-  return output;
 }
 
-/** Convert number to sheet letters (A, B… AA, AB…) */
-function toColLetter(idx) {
+/* --------------------------------------------
+   COLUMN → LETTER (A, B, C, … AA)
+---------------------------------------------*/
+function colLetter(idx) {
   let s = "";
   while (idx >= 0) {
     s = String.fromCharCode((idx % 26) + 65) + s;
@@ -51,26 +56,21 @@ function toColLetter(idx) {
   return s;
 }
 
-/**
- * Write Date + URL to Google Sheet
- * - actualColumnName = "Development Plan & Learning Contract - Actual" OR "Exp: ..."
- * - urlColumnName    = "Development Plan & Learning Contract - FileURL" OR null
- * - actualDate       = "2025-01-01" (string)
- * - url              = Google Drive file link OR null
- */
+/* --------------------------------------------
+   WRITE ACTUAL + FILEURL
+---------------------------------------------*/
 export async function writeStudentActual(
   sheetId,
   rowNumber,
   actualColumnName,
   urlColumnName,
-  actualDate,
-  url
+  dateValue,
+  fileURL
 ) {
   const auth = getAuth(false);
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
 
-  // Get sheet headers
   const headerRes = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
     range: "MasterTracking!A1:ZZ1"
@@ -81,46 +81,40 @@ export async function writeStudentActual(
   const actualIdx = headers.indexOf(actualColumnName);
   const urlIdx = urlColumnName ? headers.indexOf(urlColumnName) : -1;
 
-  if (actualIdx === -1) {
-    throw new Error("Column not found: " + actualColumnName);
-  }
-  if (urlColumnName && urlIdx === -1) {
-    throw new Error("Column not found: " + urlColumnName);
-  }
+  if (actualIdx === -1) throw new Error("Column not found: " + actualColumnName);
 
-  const updates = [];
+  const data = [];
 
-  // Write Actual Date
-  if (actualDate !== undefined && actualDate !== null) {
-    updates.push({
-      range: `MasterTracking!${toColLetter(actualIdx)}${rowNumber}`,
-      values: [[actualDate]]
+  if (dateValue !== undefined && dateValue !== null) {
+    data.push({
+      range: `MasterTracking!${colLetter(actualIdx)}${rowNumber}`,
+      values: [[dateValue]]
     });
   }
 
-  // Write File URL (optional)
-  if (urlColumnName && url !== undefined && url !== null) {
-    updates.push({
-      range: `MasterTracking!${toColLetter(urlIdx)}${rowNumber}`,
-      values: [[url]]
+  if (urlColumnName && fileURL !== undefined && fileURL !== null) {
+    if (urlIdx === -1)
+      throw new Error("Column not found: " + urlColumnName);
+
+    data.push({
+      range: `MasterTracking!${colLetter(urlIdx)}${rowNumber}`,
+      values: [[fileURL]]
     });
   }
 
-  if (updates.length === 0) return true;
+  if (data.length === 0) return true;
 
-  // Batch update both columns
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: sheetId,
-    requestBody: {
-      valueInputOption: "USER_ENTERED",
-      data: updates
-    }
+    requestBody: { valueInputOption: "USER_ENTERED", data }
   });
 
   return true;
 }
 
-/** Deprecated Placeholder (to avoid import errors) */
+/* --------------------------------------------
+   DEPRECATED PLACEHOLDER
+---------------------------------------------*/
 export function writeToSheet() {
-  throw new Error("writeToSheet is deprecated. Use writeStudentActual instead.");
+  throw new Error("writeToSheet is deprecated. Use writeStudentActual.");
 }
