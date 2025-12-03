@@ -11,47 +11,58 @@ import auth from "../utils/authMiddleware.js";
 
 console.log("TASKS ROUTER LOADED");
 
-// Enable SendGrid only if key exists AND starts with "SG."
+// --------------------------------------------------------------
+// ENABLE SENDGRID ONLY IF KEY EXISTS + VALID
+// --------------------------------------------------------------
+let emailEnabled = false;
+
 if (
   process.env.SENDGRID_API_KEY &&
   process.env.SENDGRID_API_KEY.startsWith("SG.")
 ) {
-  sendgrid.setApiKey(process.env.SENDGRID_API_KEY);   // ✅ correct use
-  console.log("SendGrid enabled");
+  try {
+    sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+    emailEnabled = true;
+    console.log("SendGrid enabled");
+  } catch (err) {
+    console.log("⚠ Failed to initialize SendGrid:", err.message);
+  }
 } else {
-  console.log("⚠ SendGrid disabled — missing or invalid SENDGRID_API_KEY");
+  console.log("⚠ SendGrid disabled (missing or invalid SENDGRID_API_KEY)");
 }
 
 const router = express.Router();
 
 // --------------------------------------------------------------
-// Find row number in MasterTracking by student email
+// FIND STUDENT ROW BY EMAIL
 // --------------------------------------------------------------
 async function findRowNumberByEmail(sheetId, studentEmail) {
   const rows = await readMasterTracking(sheetId);
+
   const index = rows.findIndex(
     (r) =>
       (r["Student's Email"] || "").toLowerCase().trim() ===
       (studentEmail || "").toLowerCase().trim()
   );
+
   if (index === -1) return null;
-  return index + 2; // Row 2 = first student entry
+  return index + 2; // Row 2 = first student
 }
 
 // --------------------------------------------------------------
-// PDF UPLOAD ROUTE
+// MAIN UPLOAD ROUTE
 // --------------------------------------------------------------
 router.post("/upload", auth, async (req, res) => {
   const form = formidable({
     multiples: false,
     keepExtensions: true,
-    maxFileSize: 30 * 1024 * 1024,
+    maxFileSize: 30 * 1024 * 1024, // 30MB
   });
 
   form.parse(req, async (err, fields, files) => {
     try {
       if (err) {
-        console.error("FORM PARSE ERROR:", err);
+        console.error("Form parse error:", err);
         return res.status(400).json({ error: "Invalid form data" });
       }
 
@@ -59,17 +70,13 @@ router.post("/upload", auth, async (req, res) => {
       const file = files.file;
 
       if (!studentEmail || !activity) {
-        return res
-          .status(400)
-          .json({ error: "Missing studentEmail or activity" });
+        return res.status(400).json({ error: "Missing studentEmail or activity" });
       }
-
       if (!file) {
         return res.status(400).json({ error: "File not found" });
       }
-
       if (file.mimetype !== "application/pdf") {
-        return res.status(400).json({ error: "Only PDF files are allowed." });
+        return res.status(400).json({ error: "Only PDF files allowed" });
       }
 
       const filePath = file.filepath;
@@ -107,17 +114,18 @@ router.post("/upload", auth, async (req, res) => {
       const fileId = uploadRes.data.id;
       const fileURL = `https://drive.google.com/file/d/${fileId}/view`;
 
+      // make public
       try {
         await drive.permissions.create({
           fileId,
           requestBody: { role: "reader", type: "anyone" },
         });
       } catch (e) {
-        console.warn("Permission error:", e.message);
+        console.warn("Drive permission warning:", e.message);
       }
 
       // ---------------------------------------------------------
-      // FIND SHEET ROW
+      // UPDATE GOOGLE SHEET
       // ---------------------------------------------------------
       const rowNumber = await findRowNumberByEmail(
         process.env.SHEET_ID,
@@ -125,9 +133,7 @@ router.post("/upload", auth, async (req, res) => {
       );
 
       if (!rowNumber) {
-        return res
-          .status(404)
-          .json({ error: "Student email not found in sheet" });
+        return res.status(404).json({ error: "Student email not found" });
       }
 
       const actualColumn = `${activity} - Actual`;
@@ -144,38 +150,40 @@ router.post("/upload", auth, async (req, res) => {
       );
 
       // ---------------------------------------------------------
-      // SEND SUPERVISOR EMAIL (ONLY IF VALID API KEY)
+      // SEND SUPERVISOR EMAIL (ONLY IF ENABLED)
       // ---------------------------------------------------------
-      try {
-        const rows = await readMasterTracking(process.env.SHEET_ID);
-        const studentRow = rows[rowNumber - 2];
+      if (emailEnabled) {
+        try {
+          const rows = await readMasterTracking(process.env.SHEET_ID);
+          const studentRow = rows[rowNumber - 2];
+          const supervisorEmail =
+            studentRow["Main Supervisor's Email"] ||
+            studentRow["Main Supervisor"];
 
-        const supervisorEmail =
-          studentRow["Main Supervisor's Email"] ||
-          studentRow["Main Supervisor"];
-
-        if (
-          supervisorEmail &&
-          process.env.SENDGRID_API_KEY &&
-          process.env.SENDGRID_API_KEY.startsWith("SG.")
-        ) {
-          await sendgrid.send({
-            to: supervisorEmail,
-            from: process.env.NOTIFY_FROM_EMAIL,
-            subject: `PPBMS: ${studentRow["Student Name"]} uploaded ${activity}`,
-            text: `${studentRow["Student Name"]} uploaded "${activity}". Please review.`,
-          });
+          if (supervisorEmail) {
+            await sendgrid.send({
+              to: supervisorEmail,
+              from: process.env.NOTIFY_FROM_EMAIL,
+              subject: `PPBMS: ${studentRow["Student Name"]} uploaded ${activity}`,
+              text: `${studentRow["Student Name"]} uploaded "${activity}". Please review:\n${fileURL}`,
+            });
+            console.log("Email sent to supervisor:", supervisorEmail);
+          }
+        } catch (emailErr) {
+          console.warn("Email failed:", emailErr.message);
         }
-      } catch (emailError) {
-        console.warn("Email send failed:", emailError?.message);
       }
 
+      // ---------------------------------------------------------
+      // SUCCESS RESPONSE
+      // ---------------------------------------------------------
       return res.json({
         ok: true,
         message: "Upload successful. Sheet updated.",
         url: fileURL,
         date: today,
       });
+
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: e.message });
