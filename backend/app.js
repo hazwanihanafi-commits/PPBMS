@@ -78,12 +78,17 @@ app.get("/zz-test", (req, res) => {
   res.send("YES — backend code is running");
 });
 
-// 404 Handler
-app.use((req, res) => res.status(404).json({ error: "Not Found" }));
-
 // ----------------------
 // 404 handler
 // ----------------------
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
+
+console.log("Registered routes:");
+app._router.stack.forEach((layer) => {
+  if (layer.route) {
+    console.log(layer.route.path);
+  }
+});
+
 
 export default app;
