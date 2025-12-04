@@ -103,25 +103,26 @@ router.get("/students", auth, async (req, res) => {
 });
 
 /* -------------------------------------------------------
-   GET ONE STUDENT FULL PROFILE
    GET /api/supervisor/student/:email
+   Supervisor views ONE student's full progress
 ------------------------------------------------------- */
 router.get("/student/:email", auth, async (req, res) => {
   try {
-    const emailParam = (req.params.email || "").toLowerCase().trim();
-
+    const targetEmail = (req.params.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const raw = rows.find(
-      (r) => getStudentEmail(r) === emailParam
-    );
+    const raw = rows.find((r) => getStudentEmail(r) === targetEmail);
 
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+    if (!raw) {
+      return res.status(404).json({ error: "Student not found" });
+    }
 
     const timeline = buildTimelineForRow(raw);
+    const progressPercent = calcProgress(timeline);
     const rowNumber = rows.indexOf(raw) + 2;
 
     return res.json({
+      // NEW fields added
       matric:
         raw["Matric"] ||
         raw["Matric No"] ||
@@ -132,16 +133,14 @@ router.get("/student/:email", auth, async (req, res) => {
       name: raw["Student Name"] || "-",
       email: getStudentEmail(raw),
       programme: raw["Programme"] || "-",
+      start_date: raw["Start Date"] || "-",
       field: raw["Field"] || "-",
       department: raw["Department"] || "-",
-      start_date: raw["Start Date"] || "-",
-
       supervisor: raw["Main Supervisor"] || "-",
-      cosupervisor: raw["Co-Supervisor(s)"] || "-",
+      cosupervisor: raw["Co-Supervisor(s)"] || raw["Co Supervisor"] || "-",
       supervisorEmail: raw["Main Supervisor's Email"] || "-",
 
-      progress: calcProgress(timeline),
-
+      progress: progressPercent,
       rowNumber,
       timeline
     });
@@ -150,5 +149,6 @@ router.get("/student/:email", auth, async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
 
 export default router;
