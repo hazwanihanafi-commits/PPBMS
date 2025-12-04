@@ -28,8 +28,10 @@ export default function SupervisorStudentDetails() {
       const json = await res.json();
       if (!res.ok) return setErr(json.error || "Failed to load student data");
 
+      // Backend must return { row: {...} }
       setData(json.row);
       setTimeline(json.row.timeline || []);
+
     } catch (e) {
       console.error(e);
       setErr("Unable to load student profile.");
@@ -37,39 +39,40 @@ export default function SupervisorStudentDetails() {
     setLoading(false);
   }
 
-  if (loading) return <div className="p-6 text-gray-600">Loading…</div>;
-  if (err) return <div className="p-6 text-red-600">{err}</div>;
+  if (loading) return <div className="p-6 text-center text-gray-600">Loading…</div>;
+  if (err) return <div className="p-6 text-center text-red-600">{err}</div>;
   if (!data) return <div className="p-6">No student data found.</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
-      {/* BACK BUTTON */}
+
+      {/* Back Button */}
       <button
-        className="text-purple-700 mb-4 hover:underline"
+        className="text-purple-700 hover:underline mb-6"
         onClick={() => router.push("/supervisor")}
       >
         ← Back to Supervisor Dashboard
       </button>
 
-      {/* PAGE TITLE */}
+      {/* Page Title */}
       <h1 className="text-3xl font-extrabold text-gray-900 mb-6">
-        Student Overview
+        Student Progress Overview
       </h1>
 
       {/* ============================
-          STUDENT PROFILE CARD
+          PROFILE CARD
       ============================= */}
-      <div className="bg-white border border-gray-100 shadow-card rounded-2xl p-6 mb-10">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">
+      <div className="bg-white shadow-card border border-gray-100 rounded-2xl p-6 mb-10">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
           {data.student_name}
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
           <p><strong>Email:</strong> {data.email}</p>
           <p><strong>Matric:</strong> {data.student_id}</p>
           <p><strong>Programme:</strong> {data.programme}</p>
-          <p><strong>Field:</strong> {data.field || "-"}</p>
-          <p><strong>Department:</strong> {data.department || "-"}</p>
+          <p><strong>Field:</strong> {data.field}</p>
+          <p><strong>Department:</strong> {data.department}</p>
           <p><strong>Start Date:</strong> {data.start_date}</p>
           <p><strong>Main Supervisor:</strong> {data.supervisor}</p>
           <p><strong>Co-Supervisor(s):</strong> {data.cosupervisor || "-"}</p>
@@ -77,14 +80,15 @@ export default function SupervisorStudentDetails() {
       </div>
 
       {/* ============================
-          DOCUMENTS SECTION
+          DOCUMENT SECTION
       ============================= */}
       <div className="mb-10">
-        <h3 className="text-xl font-bold mb-3 text-purple-700">
+        <h3 className="text-xl font-bold mb-4 text-purple-700">
           📄 Submitted Documents
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
           <DocumentCard
             title="Development Plan & Learning Contract (DPLC)"
             url={data.documents?.dplc}
@@ -108,7 +112,7 @@ export default function SupervisorStudentDetails() {
       </div>
 
       {/* ============================
-          TIMELINE SECTION
+          TIMELINE TABLE
       ============================= */}
       <div className="bg-white border border-gray-100 shadow-card rounded-2xl p-6">
         <h3 className="text-lg font-bold mb-4">📅 Expected vs Actual Timeline</h3>
@@ -126,15 +130,36 @@ export default function SupervisorStudentDetails() {
             </thead>
 
             <tbody>
-              {timeline.map((t, i) => (
-                <tr key={i} className="border-t hover:bg-gray-50">
-                  <td className="p-3">{t.activity}</td>
-                  <td className="p-3">{t.expected || "-"}</td>
-                  <td className="p-3">{t.actual || "-"}</td>
-                  <td className="p-3">{t.status}</td>
-                  <td className="p-3">{t.remaining_days}</td>
-                </tr>
-              ))}
+              {timeline.map((t, i) => {
+                const late = !t.actual && t.remaining_days < 0;
+
+                return (
+                  <tr key={i} className="border-t hover:bg-gray-50">
+                    <td className="p-3">{t.activity}</td>
+                    <td className="p-3">{t.expected || "-"}</td>
+                    <td className="p-3">{t.actual || "-"}</td>
+
+                    <td className="p-3">
+                      <span
+                        className={
+                          "px-2 py-1 text-xs font-semibold rounded-full " +
+                          (t.status === "Completed"
+                            ? "bg-green-100 text-green-700"
+                            : late
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-700")
+                        }
+                      >
+                        {late ? "Delayed" : t.status}
+                      </span>
+                    </td>
+
+                    <td className={`p-3 ${late ? "text-red-600 font-semibold" : ""}`}>
+                      {t.remaining_days}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
 
           </table>
@@ -144,7 +169,9 @@ export default function SupervisorStudentDetails() {
   );
 }
 
-/* COMPONENT: DOCUMENT CARD */
+/* =======================================
+      Document Card Component
+======================================= */
 function DocumentCard({ title, url }) {
   return (
     <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow">
@@ -154,7 +181,7 @@ function DocumentCard({ title, url }) {
         <a
           href={url}
           target="_blank"
-          className="text-purple-600 font-semibold hover:underline"
+          className="text-purple-600 font-medium hover:underline"
         >
           View Document →
         </a>
