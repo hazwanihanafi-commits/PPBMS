@@ -35,7 +35,7 @@ export default function Home() {
         </div>
 
         <h2 className="text-5xl font-extrabold leading-tight text-gray-900 mb-6">
-          Monitor postgraduate <span className="text-purple-700">research progress</span>
+          Monitor postgraduate <span className="text-purple-700">research progress</span><br />
           in one simple dashboard.
         </h2>
 
@@ -44,11 +44,7 @@ export default function Home() {
           and documentation — tailored for IPPT / USM research programmes.
         </p>
 
-        {/* REMOVE THESE — the top login buttons */}
-        {/* ❌ Login as Student / Supervisor / Admin */}
-
-
-        {/* KEEP THESE — THE LOGIN CARDS */}
+        {/* LOGIN CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
 
           {/* STUDENT CARD */}
@@ -121,6 +117,7 @@ export default function Home() {
       <footer className="text-center py-6 text-gray-500 text-sm">
         © 2025 PPBMS · Universiti Sains Malaysia · Built with ❤️
       </footer>
+
     </div>
   );
 }
