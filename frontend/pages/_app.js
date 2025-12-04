@@ -1,21 +1,19 @@
+// frontend/pages/_app.js
 import "../styles/globals.css";
 import Head from "next/head";
 
-function MyApp({ Component, pageProps }) {
+export default function MyApp({ Component, pageProps }) {
   return (
     <>
       <Head>
         <title>PPBMS — Student Progress & Milestones</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#6B21A8" />
       </Head>
 
-      {/* Page wrapper */}
-      <div className="min-h-screen bg-gradient-to-b from-[#faf7ff] to-white">
+      {/* Only your page, no header/footer */}
+      <div className="min-h-screen bg-gradient-to-b from-[#f4efff] to-white">
         <Component {...pageProps} />
       </div>
     </>
   );
 }
-
-export default MyApp;
