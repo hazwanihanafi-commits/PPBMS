@@ -23,21 +23,21 @@ export default function Home() {
 
           <div className="flex gap-4 flex-wrap">
             <a
-              href="/student/login"
+              href="/student"
               className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl shadow hover:bg-purple-700"
             >
               Login as Student
             </a>
 
             <a
-              href="/supervisor/login"
+              href="/supervisor"
               className="px-6 py-3 bg-white border border-purple-300 text-purple-700 font-semibold rounded-xl shadow hover:bg-purple-50"
             >
               Login as Supervisor
             </a>
 
             <a
-              href="/admin/login"
+              href="/admin"
               className="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-xl shadow hover:bg-gray-100"
             >
               Login as Admin
