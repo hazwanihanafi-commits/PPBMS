@@ -164,7 +164,7 @@ export default function SupervisorDashboard() {
             <button
               onClick={() =>
                 router.push(
-                  `/supervisor/student/${encodeURIComponent(st.email)}`
+                  `/supervisor/${encodeURIComponent(st.email)}`
                 )
               }
               className="mt-4 text-purple-700 font-medium hover:underline"
