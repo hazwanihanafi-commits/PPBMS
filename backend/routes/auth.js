@@ -53,34 +53,33 @@ router.post("/login", async (req, res) => {
   }
 });
 
-/* ============================================================
-   ADMIN LOGIN (Separate Route)
-   ------------------------------------------------------------
-   - Only for listed admin emails
-   - Password must match ADMIN_PASS
-===============================================================*/
+// ADMIN LOGIN (Universal password)
 router.post("/admin-login", async (req, res) => {
   const { email, password } = req.body;
 
+  // Approved admin list
   const admins = [
     "hazwanihanafi@usm.my",
     "ppbms.admin@usm.my"
   ];
 
-  // Check if valid admin email
-  if (!admins.includes(email.toLowerCase()))
+  const cleanEmail = email.toLowerCase().trim();
+
+  // Check email
+  if (!admins.includes(cleanEmail)) {
     return res.status(401).json({ error: "Not an admin" });
+  }
 
-  // Check admin password
-  if (password !== process.env.ADMIN_PASS)
+  // ⭐ UNIVERSAL PASSWORD
+  const UNIVERSAL_ADMIN_PASSWORD = "admin123";
+
+  if (password !== UNIVERSAL_ADMIN_PASSWORD) {
     return res.status(401).json({ error: "Wrong password" });
+  }
 
-  // Sign admin token
+  // Issue JWT token
   const token = jwt.sign(
-    {
-      email: email.toLowerCase(),
-      role: "admin",
-    },
+    { email: cleanEmail, role: "admin" },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
