@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { API_BASE } from "../../../utils/api";
+import { API_BASE } from "../../utils/api";
 
 export default function SupervisorStudentView() {
   const router = useRouter();
