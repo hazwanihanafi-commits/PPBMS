@@ -116,7 +116,7 @@ export default function SupervisorDashboard() {
               key={index}
               className="bg-white rounded-2xl p-6 shadow-card border border-gray-100 hover:shadow-xl transition cursor-pointer"
               onClick={() =>
-                router.push(`/supervisor/student/${encodeURIComponent(s.email)}`)
+                router.push(`/supervisor/${encodeURIComponent(s.email)}`)
               }
             >
               {/* Header */}
