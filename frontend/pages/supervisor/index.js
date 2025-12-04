@@ -4,79 +4,133 @@ import { API_BASE } from "../../utils/api";
 
 export default function SupervisorDashboard() {
   const router = useRouter();
+
   const [students, setStudents] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("most-late");
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
 
   useEffect(() => {
-    load();
+    loadStudents();
   }, []);
 
-  async function load() {
+  async function loadStudents() {
     setLoading(true);
+
     try {
       const res = await fetch(`${API_BASE}/api/supervisor/students`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("ppbms_token")}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
       });
 
       const json = await res.json();
-      if (!res.ok) return setErr(json.error || "Unable to load students");
-      setStudents(json.students || []);
+      if (json.students) {
+        setStudents(json.students);
+        setFiltered(json.students);
+      }
     } catch (e) {
       console.error(e);
-      setErr("Unable to fetch data.");
     }
+
     setLoading(false);
   }
 
-  if (loading) return <div className="p-6 text-gray-600">Loading…</div>;
-  if (err) return <div className="p-6 text-red-600">{err}</div>;
+  // SEARCH + SORT
+  useEffect(() => {
+    let list = students;
+
+    if (query.trim() !== "") {
+      const q = query.toLowerCase();
+      list = students.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.email.toLowerCase().includes(q) ||
+          String(s.id || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (sort === "most-late") {
+      list = [...list].sort((a, b) => b.progressPercent - a.progressPercent);
+    } else if (sort === "least-late") {
+      list = [...list].sort((a, b) => a.progressPercent - b.progressPercent);
+    }
+
+    setFiltered(list);
+  }, [query, sort, students]);
+
+  if (loading) return <div className="p-6">Loading students…</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
-      
-      <h1 className="text-3xl font-bold mb-6">Supervisor Dashboard</h1>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-extrabold text-purple-800 mb-6">
+        Supervisor Dashboard
+      </h1>
 
+      {/* SEARCH & SORT */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search student..."
+          className="border rounded-xl px-4 py-2 flex-1"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+
+        <select
+          className="border rounded-xl px-4 py-2 w-48"
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+        >
+          <option value="most-late">Most Late</option>
+          <option value="least-late">Least Late</option>
+        </select>
+      </div>
+
+      {/* STUDENT CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        {students.map((s, idx) => (
+        {filtered.map((s, i) => (
           <div
-            key={idx}
-            className="p-6 bg-white rounded-2xl shadow-card border border-gray-100 hover:shadow-lg transition"
+            key={i}
+            className="bg-white shadow-card border border-gray-100 rounded-2xl p-6"
           >
-            <h2 className="text-xl font-bold text-gray-900 mb-1">{s.name}</h2>
-            <p className="text-gray-600 mb-3">{s.email}</p>
-
-            <p className="text-sm text-gray-700"><strong>Programme:</strong> {s.programme}</p>
-            <p className="text-sm text-gray-700"><strong>Start Date:</strong> {s.start_date}</p>
-            <p className="text-sm text-gray-700"><strong>Field:</strong> {s.field}</p>
-
-            {/* PROGRESS BAR */}
-            <div className="mt-4">
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Progress</span>
-                <span className="text-sm font-semibold text-purple-700">{s.progressPercent}%</span>
-              </div>
-
-              <div className="w-full bg-gray-200 h-3 rounded-full">
-                <div
-                  className="bg-purple-600 h-3 rounded-full"
-                  style={{ width: `${s.progressPercent}%` }}
-                />
-              </div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">{s.name}</h2>
+              <span className="text-sm font-medium text-purple-700">
+                {s.progressPercent}% Progress
+              </span>
             </div>
 
+            {/* Info */}
+            <div className="text-sm text-gray-700 space-y-1 mb-4">
+              <p><strong>Email:</strong> {s.email}</p>
+              <p><strong>Matric:</strong> {s.id}</p>
+              <p><strong>Programme:</strong> {s.programme}</p>
+              <p><strong>Field:</strong> {s.field}</p>
+              <p><strong>Department:</strong> {s.department}</p>
+              <p><strong>Start Date:</strong> {s.start_date}</p>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden mb-4">
+              <div
+                className="h-2 bg-purple-600"
+                style={{ width: `${s.progressPercent}%` }}
+              />
+            </div>
+
+            {/* BUTTON */}
             <button
-              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-xl w-full font-semibold hover:bg-purple-700 transition"
+              className="text-purple-600 font-semibold hover:underline"
               onClick={() =>
-                router.push(`/supervisor/student/${encodeURIComponent(s.email)}`)
+                router.push(`/supervisor/${encodeURIComponent(s.email)}`)
               }
             >
               View Full Progress →
             </button>
           </div>
         ))}
-
       </div>
     </div>
   );
