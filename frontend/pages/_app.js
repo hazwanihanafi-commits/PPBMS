@@ -1,9 +1,7 @@
 import "../styles/globals.css";
 import Head from "next/head";
-import Header from "../components/ui/Header";
-import Footer from "../components/ui/Footer";
 
-function App({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
   return (
     <>
       <Head>
@@ -12,15 +10,7 @@ function App({ Component, pageProps }) {
         <meta name="theme-color" content="#6B21A8" />
       </Head>
 
-      <Header />
-
-      <main className="min-h-[calc(100vh-160px)] bg-gray-50">
-        <Component {...pageProps} />
-      </main>
-
-      <Footer />
+      <Component {...pageProps} />
     </>
   );
 }
-
-export default App;
