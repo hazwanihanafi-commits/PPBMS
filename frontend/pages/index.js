@@ -1,134 +1,107 @@
-// frontend/pages/index.js
+import Link from "next/link";
+
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f5f1ff] to-white">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
       
-      {/* TOP NAV */}
-      <header className="w-full py-6 px-8 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-orange-400 flex items-center justify-center text-white font-bold shadow">
-            P
-          </div>
-          <div>
-            <h1 className="font-bold text-xl text-gray-900">PPBMS</h1>
-            <p className="text-sm text-gray-500 -mt-1">
-              Postgraduate Progress & Benchmarking System
-            </p>
-          </div>
+      {/* Top Badge */}
+      <section className="max-w-6xl mx-auto px-6 pt-20">
+        <div className="inline-block bg-purple-100 text-purple-700 px-4 py-1 rounded-full text-sm font-medium mb-6">
+          IPPT · USM · Research Progress
         </div>
 
-        <a
-          href="/login"
-          className="px-6 py-2 rounded-xl bg-purple-600 text-white font-semibold shadow hover:bg-purple-700"
-        >
-          General Login
-        </a>
-      </header>
-
-      {/* HERO SECTION */}
-      <section className="px-8 mt-10 max-w-6xl mx-auto">
-        <span className="inline-block px-4 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold">
-          IPPT · USM · Research Progress
-        </span>
-
-        <h2 className="mt-6 text-5xl font-extrabold leading-[1.15] text-gray-900">
+        {/* Main Heading */}
+        <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight">
           Monitor postgraduate <br />
-          <span className="text-purple-600">research progress</span> in <br />
-          one simple dashboard.
-        </h2>
+          <span className="text-purple-600">research progress</span> <br />
+          in one simple dashboard.
+        </h1>
 
-        <p className="mt-6 text-gray-600 text-lg max-w-2xl">
+        <p className="mt-6 text-lg text-gray-700 max-w-3xl">
           Secure web platform for tracking MSc and PhD milestones, supervisor monitoring,
           and documentation — tailored for IPPT / USM research programmes.
         </p>
 
-        {/* LOGIN BUTTONS */}
-        <div className="flex flex-wrap gap-4 mt-8">
-          <a href="/student/login" className="btn bg-purple-600 text-white rounded-xl px-6 py-3 font-semibold shadow">
-            Login as Student
-          </a>
-          <a href="/supervisor/login" className="btn bg-purple-100 text-purple-700 rounded-xl px-6 py-3 font-semibold">
-            Login as Supervisor
-          </a>
-          <a href="/admin/login" className="btn bg-gray-200 text-gray-700 rounded-xl px-6 py-3 font-semibold">
-            Login as Admin
-          </a>
+        {/* Login Buttons */}
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link href="/login?role=student">
+            <span className="px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold shadow hover:bg-purple-700 cursor-pointer">
+              Login as Student
+            </span>
+          </Link>
+
+          <Link href="/login?role=supervisor">
+            <span className="px-6 py-3 bg-white border border-purple-300 text-purple-700 rounded-xl font-semibold hover:bg-purple-50 cursor-pointer">
+              Login as Supervisor
+            </span>
+          </Link>
+
+          <Link href="/login?role=admin">
+            <span className="px-6 py-3 bg-white border border-purple-300 text-purple-700 rounded-xl font-semibold hover:bg-purple-50 cursor-pointer">
+              Login as Admin
+            </span>
+          </Link>
         </div>
       </section>
 
-      {/* ROLE CARDS */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-8 mt-14 max-w-6xl mx-auto">
-        
-        {/* STUDENT */}
-        <div className="card p-6 rounded-2xl shadow bg-white border border-gray-100">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-500 text-white flex items-center justify-center font-bold">
-              ST
-            </div>
-            <div>
-              <h3 className="font-bold text-lg">Student</h3>
-              <span className="text-purple-600 text-xs font-semibold">SECURE LOGIN</span>
-            </div>
+      {/* Cards Section */}
+      <section className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+        {/* Student Card */}
+        <div className="p-6 bg-white rounded-2xl shadow">
+          <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-bold">
+            ST
           </div>
-
-          <p className="text-gray-600 text-sm">
-            View your expected vs actual timeline, upload documents, and track progress
-            toward completion.
+          <h3 className="mt-4 text-xl font-semibold">Student</h3>
+          <p className="text-sm text-purple-600 font-semibold">SECURE LOGIN</p>
+          <p className="text-gray-600 mt-2">
+            View your expected vs actual timeline, upload documents, and
+            track progress toward completion.
           </p>
-
-          <a href="/student/login" className="block mt-4 text-purple-600 font-medium hover:underline">
-            Go to student login →
-          </a>
+          <Link href="/login?role=student">
+            <span className="text-purple-600 font-medium mt-3 inline-block cursor-pointer">
+              Go to student login →
+            </span>
+          </Link>
         </div>
 
-        {/* SUPERVISOR */}
-        <div className="card p-6 rounded-2xl shadow bg-white border border-gray-100">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-400 text-white flex items-center justify-center font-bold">
-              SV
-            </div>
-            <div>
-              <h3 className="font-bold text-lg">Supervisor</h3>
-              <span className="text-purple-600 text-xs font-semibold">SECURE LOGIN</span>
-            </div>
+        {/* Supervisor Card */}
+        <div className="p-6 bg-white rounded-2xl shadow">
+          <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-bold">
+            SV
           </div>
-
-          <p className="text-gray-600 text-sm">
-            Monitor all your supervisees, identify at-risk progress, and support timely completion.
+          <h3 className="mt-4 text-xl font-semibold">Supervisor</h3>
+          <p className="text-sm text-purple-600 font-semibold">SECURE LOGIN</p>
+          <p className="text-gray-600 mt-2">
+            Monitor your supervisees, identify at-risk students,
+            and support timely completion.
           </p>
-
-          <a href="/supervisor/login" className="block mt-4 text-purple-600 font-medium hover:underline">
-            Go to supervisor login →
-          </a>
+          <Link href="/login?role=supervisor">
+            <span className="text-purple-600 font-medium mt-3 inline-block cursor-pointer">
+              Go to supervisor login →
+            </span>
+          </Link>
         </div>
 
-        {/* ADMIN */}
-        <div className="card p-6 rounded-2xl shadow bg-white border border-gray-100">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-orange-400 text-white flex items-center justify-center font-bold">
-              AD
-            </div>
-            <div>
-              <h3 className="font-bold text-lg">Admin</h3>
-              <span className="text-purple-600 text-xs font-semibold">SECURE LOGIN</span>
-            </div>
+        {/* Admin Card */}
+        <div className="p-6 bg-white rounded-2xl shadow">
+          <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg font-bold">
+            AD
           </div>
-
-          <p className="text-gray-600 text-sm">
-            Configure programmes, monitor cohorts, and generate reports for quality assurance.
+          <h3 className="mt-4 text-xl font-semibold">Admin</h3>
+          <p className="text-sm text-purple-600 font-semibold">SECURE LOGIN</p>
+          <p className="text-gray-600 mt-2">
+            Configure programmes, monitor cohorts, and generate reports for
+            quality assurance.
           </p>
-
-          <a href="/admin/login" className="block mt-4 text-purple-600 font-medium hover:underline">
-            Go to admin login →
-          </a>
+          <Link href="/login?role=admin">
+            <span className="text-purple-600 font-medium mt-3 inline-block cursor-pointer">
+              Go to admin login →
+            </span>
+          </Link>
         </div>
 
       </section>
-
-      {/* FOOTER */}
-      <footer className="text-center text-gray-500 text-sm py-12 mt-16">
-        © 2025 PPBMS · Universiti Sains Malaysia · Built with ❤
-      </footer>
     </div>
   );
 }
