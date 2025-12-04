@@ -112,14 +112,15 @@ export default function SupervisorDashboard() {
             </div>
 
             {/* Info rows */}
-            <div className="text-sm space-y-1 mb-4">
-              <p><strong>Matric:</strong> {s.id || "-"}</p>
-              <p><strong>Email:</strong> {s.email}</p>
-              <p><strong>Programme:</strong> {s.programme || "-"}</p>
-              <p><strong>Field:</strong> {s.field || "-"}</p>
-              <p><strong>Department:</strong> {s.raw["Department"] || "-"}</p>
-              <p><strong>Start Date:</strong> {s.start_date || "-"}</p>
-            </div>
+           <div className="text-sm space-y-1 mb-4">
+            <p><strong>Matric:</strong> {s.id || "-"}</p>
+            <p><strong>Email:</strong> {s.email}</p>
+            <p><strong>Programme:</strong> {s.programme || "-"}</p>
+            <p><strong>Field:</strong> {s.field || "-"}</p>
+            <p><strong>Department:</strong> {s.raw?.["Department"] || "-"}</p>
+            <p><strong>Start Date:</strong> {s.start_date || "-"}</p>
+          </div>
+
 
             {/* Progress bar */}
             <div className="mt-4">
