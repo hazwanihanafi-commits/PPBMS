@@ -8,9 +8,16 @@ function MyApp({ Component, pageProps }) {
   return (
     <>
       <Head>
-        <title>PPBMS — Student Progress</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+  <title>PPBMS — Student Progress</title>
+
+  {/* Correct 2025 viewport */}
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  {/* Theme colors */}
+  <meta name="theme-color" content="#6B21A8" />
+  <meta name="color-scheme" content="light dark" />
+</Head>
+
 
       <Header />
 
