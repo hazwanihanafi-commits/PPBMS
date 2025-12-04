@@ -48,7 +48,7 @@ export default function SupervisorStudentView() {
       {/* ==============================
           STUDENT PROFILE
       =============================== */}
-      <div className="bg-white shadow rounded p-6 mb-6">
+  <div className="bg-white shadow rounded p-6 mb-6">
   <h2 className="text-xl font-semibold mb-4">{data.name}</h2>
 
   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -67,10 +67,13 @@ export default function SupervisorStudentView() {
 
     <p><strong>Supervisor Email:</strong> {data.supervisorEmail}</p>
 
-    <p className="mt-2 col-span-2"><strong>Progress:</strong> {data.progress}%</p>
+    <p className="mt-2 col-span-2">
+      <strong>Progress:</strong> {data.progress}%
+    </p>
   </div>
 </div>
 
+      
 
       {/* ==============================
           TIMELINE TABLE
