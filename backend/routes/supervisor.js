@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { readMasterTracking } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
-const router = express.Router();   // ⭐ VERY IMPORTANT
+const router = express.Router();
 
 /* -------------------------------------------------------
    AUTH MIDDLEWARE
@@ -41,6 +41,7 @@ function calcProgress(timeline) {
 
 /* -------------------------------------------------------
    GET ALL STUDENTS UNDER SUPERVISOR
+   (Now includes status + severity ranking)
 ------------------------------------------------------- */
 router.get("/students", auth, async (req, res) => {
   try {
@@ -56,6 +57,31 @@ router.get("/students", auth, async (req, res) => {
       const timeline = buildTimelineForRow(raw);
       const progressPercent = calcProgress(timeline);
 
+      /* -----------------------------------------
+         RISK STATUS CALCULATION
+      ----------------------------------------- */
+      let status = "On Track";
+      let severity = 2; // 0 = At Risk, 1 = Slightly Late, 2 = On Track
+
+      const lateTasks = timeline.filter(
+        (t) => !t.actual && t.remaining_days < 0
+      );
+
+      if (lateTasks.length > 0) {
+        const worst = Math.min(...lateTasks.map((t) => t.remaining_days));
+
+        if (worst < -30) {
+          status = "At Risk";
+          severity = 0;
+        } else {
+          status = "Slightly Late";
+          severity = 1;
+        }
+      }
+
+      /* -----------------------------------------
+         RETURN STUDENT RECORD
+      ----------------------------------------- */
       return {
         id:
           raw["Matric"] ||
@@ -70,11 +96,14 @@ router.get("/students", auth, async (req, res) => {
         field: raw["Field"] || "-",
         department: raw["Department"] || "-",
         progressPercent,
+        status,    // ⭐ Added
+        severity,  // ⭐ Added (for sorting)
         timeline,
       };
     });
 
     return res.json({ students });
+
   } catch (err) {
     console.error("supervisor/students error:", err);
     return res.status(500).json({ error: err.message });
@@ -89,16 +118,14 @@ router.get("/student/:email", auth, async (req, res) => {
     const targetEmail = (req.params.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const raw = rows.find(r => getStudentEmail(r) === targetEmail);
-
-    if (!raw)
-      return res.status(404).json({ error: "Student not found" });
+    const raw = rows.find((r) => getStudentEmail(r) === targetEmail);
+    if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const timeline = buildTimelineForRow(raw);
     const progress = calcProgress(timeline);
     const rowNumber = rows.indexOf(raw) + 2;
 
-    // ⭐ Document links (same fields as student page)
+    // Document URLs
     const documents = {
       dplc: raw["Development Plan & Learning Contract - FileURL"] || "",
       apr1: raw["Annual Progress Review (Year 1) - FileURL"] || "",
@@ -106,7 +133,6 @@ router.get("/student/:email", auth, async (req, res) => {
       fpr3: raw["Final Progress Review (Year 3) - FileURL"] || ""
     };
 
-    // ⭐ MATCH student page structure EXACTLY
     return res.json({
       row: {
         student_id:
