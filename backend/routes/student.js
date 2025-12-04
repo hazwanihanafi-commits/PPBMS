@@ -19,10 +19,14 @@ function auth(req, res, next) {
   }
 }
 
-// GET /api/student/me  ---------------------------------------
+
+/* ============================================================
+    GET /api/student/me
+   ============================================================ */
 router.get("/me", auth, async (req, res) => {
   try {
     const email = (req.user.email || "").toLowerCase().trim();
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const raw = rows.find(
@@ -31,7 +35,7 @@ router.get("/me", auth, async (req, res) => {
 
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
-    // Profile info
+    // 1️⃣ Build student profile
     const profile = {
       student_id:
         raw["Matric"] ||
@@ -49,7 +53,7 @@ router.get("/me", auth, async (req, res) => {
       raw
     };
 
-    // NEW: Document links (auto-updated from JotForm → Google Sheets)
+    // 2️⃣ Extract JotForm document URLs
     const documents = {
       dplc: raw["Development Plan & Learning Contract - FileURL"] || "",
       apr1: raw["Annual Progress Review (Year 1) - FileURL"] || "",
@@ -57,8 +61,10 @@ router.get("/me", auth, async (req, res) => {
       fpr3: raw["Final Progress Review (Year 3) - FileURL"] || ""
     };
 
+    // 3️⃣ Build timeline
     const timeline = buildTimelineForRow(raw);
 
+    // 4️⃣ Return merged student data
     return res.json({
       row: {
         ...profile,
@@ -73,16 +79,22 @@ router.get("/me", auth, async (req, res) => {
   }
 });
 
-// POST /api/student/update-actual ------------------------------
+
+
+/* ============================================================
+    POST /api/student/update-actual
+   ============================================================ */
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { activity, date } = req.body;
+
     if (!activity || !date)
       return res.status(400).json({ error: "Missing data" });
 
     const email = (req.user.email || "").toLowerCase().trim();
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
+
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
@@ -102,5 +114,6 @@ router.post("/update-actual", auth, async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 });
+
 
 export default router;
