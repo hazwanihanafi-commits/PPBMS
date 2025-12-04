@@ -5,7 +5,6 @@ import studentRoutes from "./routes/student.js";
 import supervisorRoutes from "./routes/supervisor.js";
 import tasksRoutes from "./routes/tasks.js";
 import apiRoutes from "./routes/api.js";
-import jotformDplc from "./routes/jotform_dplc.js";
 
 const app = express();
 
@@ -30,9 +29,6 @@ app.use("/tasks", tasksRoutes);
 
 // Generic API
 app.use("/api", apiRoutes);
-
-// ⭐ JotForm Webhook MUST be before the fallback 404
-app.use("/api", jotformDplc);
 
 // ❗ Fallback 404 must be last
 app.use((req, res) => {
