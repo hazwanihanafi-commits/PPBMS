@@ -2,10 +2,8 @@
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
-      {/* =======================
-          NAVBAR
-      ========================== */}
+    <div className="min-h-screen bg-gradient-to-b from-purple-50/60 to-white">
+      {/* NAVBAR */}
       <header className="w-full py-5 px-8 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-orange-400 flex items-center justify-center text-white text-lg font-bold">
@@ -27,15 +25,13 @@ export default function Home() {
         </a>
       </header>
 
-      {/* =======================
-          HERO SECTION
-      ========================== */}
+      {/* HERO SECTION */}
       <main className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* LEFT SIDE */}
         <div>
-          <div className="text-sm text-purple-700 bg-purple-100 inline-block px-4 py-1 rounded-full font-medium mb-5">
+          <span className="text-sm text-purple-700 bg-purple-100 inline-block px-4 py-1 rounded-full font-medium mb-5">
             IPPT · USM · Research Progress
-          </div>
+          </span>
 
           <h2 className="text-5xl font-extrabold leading-tight text-gray-900 mb-6">
             Monitor postgraduate <br />
@@ -50,24 +46,24 @@ export default function Home() {
           </p>
 
           {/* BUTTONS */}
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <a
               href="/student/login"
-              className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl shadow hover:bg-purple-700"
+              className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl shadow hover:bg-purple-700 transition"
             >
               Login as Student
             </a>
 
             <a
               href="/supervisor/login"
-              className="px-6 py-3 bg-white border border-purple-300 text-purple-700 font-semibold rounded-xl shadow hover:bg-purple-50"
+              className="px-6 py-3 bg-white border border-purple-300 text-purple-700 font-semibold rounded-xl shadow hover:bg-purple-50 transition"
             >
               Login as Supervisor
             </a>
 
             <a
               href="/admin/login"
-              className="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-xl shadow hover:bg-gray-100"
+              className="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-xl shadow hover:bg-gray-100 transition"
             >
               Login as Admin
             </a>
@@ -159,9 +155,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* =======================
-          FOOTER
-      ========================== */}
+      {/* FOOTER */}
       <footer className="text-center py-6 text-gray-500 text-sm">
         © 2025 PPBMS · Universiti Sains Malaysia · Built with ♥
       </footer>
