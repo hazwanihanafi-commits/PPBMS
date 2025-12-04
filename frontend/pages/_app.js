@@ -9,12 +9,12 @@ function MyApp({ Component, pageProps }) {
     <>
       <Head>
         <title>PPBMS — Student Progress</title>
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       <Header />
 
-      <main className="min-h-[calc(100vh-160px)]">
+      <main className="min-h-[calc(100vh-160px)] bg-gray-50">
         <Component {...pageProps} />
       </main>
 
