@@ -22,7 +22,7 @@ function auth(req, res, next) {
 }
 
 /* -------------------------------------------------------
-   NORMALIZE STUDENT EMAIL FROM GOOGLE SHEETS
+   NORMALIZE EMAIL FROM SHEET
 ------------------------------------------------------- */
 function getStudentEmail(r) {
   return (
@@ -37,37 +37,34 @@ function getStudentEmail(r) {
 }
 
 /* -------------------------------------------------------
-   CALCULATE PROGRESS (%)
+   CALCULATE PROGRESS %
 ------------------------------------------------------- */
 function calcProgress(timeline) {
   if (!timeline || timeline.length === 0) return 0;
-
   const total = timeline.length;
   const completed = timeline.filter((i) => i.actual).length;
-
   return Math.round((completed / total) * 100);
 }
 
 /* -------------------------------------------------------
+   GET ALL STUDENTS UNDER SUPERVISOR
    GET /api/supervisor/students
-   Return all supervised students
 ------------------------------------------------------- */
 router.get("/students", auth, async (req, res) => {
   try {
-    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
+    const spvEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // Filter rows where supervisor matches
-    const supervisedRows = rows.filter(
+    const supervised = rows.filter(
       (r) =>
         (r["Main Supervisor's Email"] || "")
           .toLowerCase()
-          .trim() === supervisorEmail
+          .trim() === spvEmail
     );
 
-    const students = supervisedRows.map((raw) => {
+    const students = supervised.map((raw) => {
       const timeline = buildTimelineForRow(raw);
-      const progressPercent = calcProgress(timeline);
+      const progress = calcProgress(timeline);
 
       return {
         id:
@@ -79,16 +76,18 @@ router.get("/students", auth, async (req, res) => {
 
         name: raw["Student Name"] || "-",
         email: getStudentEmail(raw),
+        programme: raw["Programme"] || "-",
         start_date: raw["Start Date"] || "-",
         field: raw["Field"] || "-",
-        programme: raw["Programme"] || "-",
-        progressPercent,
+        department: raw["Department"] || "-",
+
+        progressPercent: progress,
         timeline,
 
         status:
-          progressPercent === 100
+          progress === 100
             ? "Completed"
-            : progressPercent === 0
+            : progress === 0
             ? "Not Started"
             : "In Progress",
 
@@ -104,37 +103,45 @@ router.get("/students", auth, async (req, res) => {
 });
 
 /* -------------------------------------------------------
+   GET ONE STUDENT FULL PROFILE
    GET /api/supervisor/student/:email
-   Supervisor views ONE student's full progress
 ------------------------------------------------------- */
 router.get("/student/:email", auth, async (req, res) => {
   try {
-    const targetEmail = (req.params.email || "").toLowerCase().trim();
+    const emailParam = (req.params.email || "").toLowerCase().trim();
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const raw = rows.find((r) => getStudentEmail(r) === targetEmail);
+    const raw = rows.find(
+      (r) => getStudentEmail(r) === emailParam
+    );
 
-    if (!raw) {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const timeline = buildTimelineForRow(raw);
-    const rowNumber = rows.indexOf(raw) + 2; // sheet row number
+    const rowNumber = rows.indexOf(raw) + 2;
 
     return res.json({
-      id:
+      matric:
         raw["Matric"] ||
         raw["Matric No"] ||
         raw["Student ID"] ||
         raw["StudentID"] ||
         "",
 
-      name: raw["Student Name"],
+      name: raw["Student Name"] || "-",
       email: getStudentEmail(raw),
-      programme: raw["Programme"],
-      start_date: raw["Start Date"],
-      field: raw["Field"],
-      supervisor: raw["Main Supervisor"],
+      programme: raw["Programme"] || "-",
+      field: raw["Field"] || "-",
+      department: raw["Department"] || "-",
+      start_date: raw["Start Date"] || "-",
+
+      supervisor: raw["Main Supervisor"] || "-",
+      cosupervisor: raw["Co-Supervisor(s)"] || "-",
+      supervisorEmail: raw["Main Supervisor's Email"] || "-",
+
+      progress: calcProgress(timeline),
+
       rowNumber,
       timeline
     });
