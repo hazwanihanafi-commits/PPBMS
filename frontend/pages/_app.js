@@ -3,27 +3,23 @@ import Head from "next/head";
 import NewHeader from "../components/ui/NewHeader";
 import NewFooter from "../components/ui/NewFooter";
 
-export default function App({ Component, pageProps, router }) {
-
-  // Landing page should NOT use header/footer
-  const noLayoutPages = ["/"];
-  const hideLayout = noLayoutPages.includes(router.route);
-
+function App({ Component, pageProps }) {
   return (
     <>
       <Head>
-        <title>PPBMS — Student Progress System</title>
+        <title>PPBMS — Student Progress</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#6B21A8" />
       </Head>
 
-      {!hideLayout && <NewHeader />}
+      <NewHeader />
 
-      <main className="min-h-[calc(100vh-160px)]">
+      <main className="min-h-[calc(100vh-160px)] bg-gradient-to-b from-purple-50 to-white">
         <Component {...pageProps} />
       </main>
 
-      {!hideLayout && <NewFooter />}
+      <NewFooter />
     </>
   );
 }
+
+export default App;
