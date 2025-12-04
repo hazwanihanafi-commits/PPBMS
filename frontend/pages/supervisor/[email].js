@@ -1,11 +1,11 @@
-// frontend/pages/supervisor/student/[id].js
+// frontend/pages/supervisor/[email].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../../../utils/api";  // ← FIXED PATH
+import { API_BASE } from "../../utils/api";
 
-export default function SupervisorViewStudent() {
+export default function SupervisorStudentDetails() {
   const router = useRouter();
-  const { id } = router.query;
+  const { email } = router.query;
 
   const [data, setData] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -13,45 +13,37 @@ export default function SupervisorViewStudent() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (!router.isReady) return; // ← PREVENTS EARLY LOAD
-    if (id) load();
-  }, [router.isReady, id]);
+    if (email) loadStudent();
+  }, [email]);
 
-  async function load() {
+  async function loadStudent() {
     setLoading(true);
-
     try {
-      const res = await fetch(`${API_BASE}/api/supervisor/student/${id}`, {
+      const res = await fetch(`${API_BASE}/api/supervisor/student/${email}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
         },
       });
 
       const json = await res.json();
-      if (!res.ok) {
-        setErr(json.error || "Failed to load student data.");
-        setLoading(false);
-        return;
-      }
+      if (!res.ok) return setErr(json.error || "Failed to load student data");
 
       setData(json.row);
       setTimeline(json.row.timeline || []);
-
     } catch (e) {
       console.error(e);
-      setErr("Unable to load student data.");
+      setErr("Unable to load student profile.");
     }
-
     setLoading(false);
   }
 
-  if (loading) return <div className="p-6">Loading…</div>;
+  if (loading) return <div className="p-6 text-gray-600">Loading…</div>;
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!data) return <div className="p-6">No student data found.</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
-      
+      {/* BACK BUTTON */}
       <button
         className="text-purple-700 mb-4 hover:underline"
         onClick={() => router.push("/supervisor")}
@@ -59,41 +51,67 @@ export default function SupervisorViewStudent() {
         ← Back to Supervisor Dashboard
       </button>
 
-      <h1 className="text-3xl font-bold mb-6">Student Progress</h1>
+      {/* PAGE TITLE */}
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-6">
+        Student Overview
+      </h1>
 
-      {/* STUDENT INFORMATION */}
-      <div className="bg-white shadow rounded-2xl p-6 mb-8 border border-gray-100">
-        <h2 className="text-xl font-bold mb-3">{data.student_name}</h2>
+      {/* ============================
+          STUDENT PROFILE CARD
+      ============================= */}
+      <div className="bg-white border border-gray-100 shadow-card rounded-2xl p-6 mb-10">
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">
+          {data.student_name}
+        </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-700">
-          <p><strong>Matric:</strong> {data.student_id}</p>
           <p><strong>Email:</strong> {data.email}</p>
+          <p><strong>Matric:</strong> {data.student_id}</p>
           <p><strong>Programme:</strong> {data.programme}</p>
+          <p><strong>Field:</strong> {data.field || "-"}</p>
+          <p><strong>Department:</strong> {data.department || "-"}</p>
           <p><strong>Start Date:</strong> {data.start_date}</p>
-          <p><strong>Field:</strong> {data.field}</p>
-          <p><strong>Department:</strong> {data.department}</p>
           <p><strong>Main Supervisor:</strong> {data.supervisor}</p>
           <p><strong>Co-Supervisor(s):</strong> {data.cosupervisor || "-"}</p>
         </div>
       </div>
 
-      {/* DOCUMENTS SECTION */}
+      {/* ============================
+          DOCUMENTS SECTION
+      ============================= */}
       <div className="mb-10">
-        <h3 className="text-xl font-bold mb-3 text-purple-700">📄 Submitted Documents</h3>
+        <h3 className="text-xl font-bold mb-3 text-purple-700">
+          📄 Submitted Documents
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <DocumentCard
+            title="Development Plan & Learning Contract (DPLC)"
+            url={data.documents?.dplc}
+          />
 
-          <DocumentCard title="Development Plan & Learning Contract (DPLC)" url={data.documents?.dplc} />
-          <DocumentCard title="Annual Progress Review (Year 1)" url={data.documents?.apr1} />
-          <DocumentCard title="Annual Progress Review (Year 2)" url={data.documents?.apr2} />
-          <DocumentCard title="Final Progress Review (Year 3)" url={data.documents?.fpr3} />
+          <DocumentCard
+            title="Annual Progress Review (Year 1)"
+            url={data.documents?.apr1}
+          />
 
+          <DocumentCard
+            title="Annual Progress Review (Year 2)"
+            url={data.documents?.apr2}
+          />
+
+          <DocumentCard
+            title="Final Progress Review (Year 3)"
+            url={data.documents?.fpr3}
+          />
         </div>
       </div>
 
-      {/* TIMELINE SECTION */}
-      <div className="bg-white p-6 shadow rounded-2xl border border-gray-100">
-        <h3 className="text-lg font-bold mb-4">📅 Expected vs Actual</h3>
+      {/* ============================
+          TIMELINE SECTION
+      ============================= */}
+      <div className="bg-white border border-gray-100 shadow-card rounded-2xl p-6">
+        <h3 className="text-lg font-bold mb-4">📅 Expected vs Actual Timeline</h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -126,14 +144,18 @@ export default function SupervisorViewStudent() {
   );
 }
 
-/* DOCUMENT CARD COMPONENT */
+/* COMPONENT: DOCUMENT CARD */
 function DocumentCard({ title, url }) {
   return (
-    <div className="p-4 bg-white rounded-2xl shadow border border-gray-100">
+    <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow">
       <h4 className="font-semibold text-gray-900 mb-2">{title}</h4>
 
       {url ? (
-        <a href={url} target="_blank" className="text-purple-600 font-semibold hover:underline">
+        <a
+          href={url}
+          target="_blank"
+          className="text-purple-600 font-semibold hover:underline"
+        >
           View Document →
         </a>
       ) : (
