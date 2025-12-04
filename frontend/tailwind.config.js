@@ -1,9 +1,9 @@
 module.exports = {
   content: [
-    "./frontend/**/*.{js,jsx,ts,tsx}",
-    "./frontend/pages/**/*.{js,jsx,ts,tsx}",
-    "./frontend/components/**/*.{js,jsx,ts,tsx}",
-    "./frontend/app/**/*.{js,jsx,ts,tsx}"
+    "./pages/**/*.{js,jsx,ts,tsx}",
+    "./components/**/*.{js,jsx,ts,tsx}",
+    "./styles/**/*.{js,jsx,ts,tsx}",
+    "./utils/**/*.{js,jsx,ts,tsx}"
   ],
   theme: {
     extend: {
@@ -16,7 +16,7 @@ module.exports = {
           700: "#6B21A8",
           900: "#3C0F54"
         },
-        accent: "#FF8A3D", // orange accent
+        accent: "#FF8A3D",
       },
       borderRadius: {
         xl: "1rem",
