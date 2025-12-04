@@ -8,7 +8,15 @@ import auth from "../utils/authMiddleware.js";
 
 const router = express.Router();
 
-// Use Multer with memory storage (NO file path needed)
+// ONLY THESE ACTIVITIES ALLOW DOCUMENT UPLOADS
+const ALLOWED_UPLOADS = [
+  "Development Plan & Learning Contract",
+  "Annual Progress Review (Year 1)",
+  "Annual Progress Review (Year 2)",
+  "Final Progress Review (Year 3)",
+];
+
+// memory storage
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/upload", auth, upload.single("file"), async (req, res) => {
@@ -19,10 +27,17 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
     if (!studentEmail || !activity)
       return res.status(400).json({ error: "Missing fields" });
 
+    // ❗ Reject uploads for unsupported activities
+    if (!ALLOWED_UPLOADS.includes(activity)) {
+      return res.status(403).json({
+        error: `Uploads are NOT allowed for: ${activity}`
+      });
+    }
+
     if (!file)
       return res.status(400).json({ error: "File missing" });
 
-    // Google Drive Auth
+    // Google Drive auth
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
     const authClient = new google.auth.GoogleAuth({
       credentials,
@@ -32,7 +47,7 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
     const client = await authClient.getClient();
     const drive = google.drive({ version: "v3", auth: client });
 
-    // Upload using buffer — NO PATH REQUIRED
+    // Upload using buffer
     const uploadRes = await drive.files.create({
       requestBody: {
         name: file.originalname,
@@ -58,7 +73,7 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
       console.warn("Permission error:", e.message);
     }
 
-    // Find student row
+    // find student row
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase().trim() === studentEmail.toLowerCase().trim()
@@ -70,7 +85,7 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
     const rowNumber = idx + 2;
     const today = new Date().toISOString().substring(0, 10);
 
-    // Update actual date + file URL
+    // write date + fileURL
     await writeStudentActual(
       process.env.SHEET_ID,
       rowNumber,
