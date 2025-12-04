@@ -1,179 +1,152 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "../../utils/api";
+import { useRouter } from "next/router";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
+export default function SupervisorDashboard() {
+  const router = useRouter();
 
-export default function SupervisorPage() {
-  const [token, setToken] = useState(null);
   const [students, setStudents] = useState([]);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("late");
+  const [filtered, setFiltered] = useState([]);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("most-late");
 
   useEffect(() => {
-    const t = localStorage.getItem("ppbms_token");
-    if (t) setToken(t);
+    loadStudents();
   }, []);
 
-  useEffect(() => {
-    if (!token) return;
-
-    (async () => {
-      const res = await fetch(`${API}/api/supervisor/students`, {
-        headers: { Authorization: `Bearer ${token}` },
+  async function loadStudents() {
+    try {
+      const res = await fetch(`${API_BASE}/api/supervisor/students`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
       });
-      const data = await res.json();
-      setStudents(data.students || []);
-    })();
-  }, [token]);
 
-  // --- Search Filter ---
-  const filtered = students.filter((s) =>
-    `${s.student_name} ${s.email} ${s.field} ${s.department}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+      const json = await res.json();
+      if (json.students) {
+        setStudents(json.students);
+        setFiltered(json.students);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
-  // --- Sorting ---
-  filtered.sort((a, b) => {
-    if (sort === "late") return a.progress_percent - b.progress_percent; // lowest progress → top
-    if (sort === "progress") return b.progress_percent - a.progress_percent; // highest first
-    if (sort === "az") return a.student_name.localeCompare(b.student_name);
-    return 0;
-  });
+  /* ---------------------------
+      SEARCH FILTER
+  ---------------------------- */
+  useEffect(() => {
+    let list = students;
+
+    if (query.trim() !== "") {
+      const q = query.toLowerCase();
+      list = students.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.email.toLowerCase().includes(q) ||
+          String(s.matric || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Sorting
+    if (sort === "most-late") {
+      list = [...list].sort((a, b) => b.progressPercent - a.progressPercent);
+    }
+    if (sort === "least-late") {
+      list = [...list].sort((a, b) => a.progressPercent - b.progressPercent);
+    }
+
+    setFiltered(list);
+  }, [query, sort, students]);
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <h1 className="text-4xl font-bold text-purple-700">
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold text-purple-700 mb-6">
         Students Under My Supervision
       </h1>
 
-      {/* Search + Sort Row */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between">
+      {/* SEARCH + SORT */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
         <input
           type="text"
           placeholder="Search student..."
-          className="px-4 py-2 border rounded-lg w-full md:w-72"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          className="border rounded px-4 py-2 flex-1"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
         />
 
         <select
-          className="px-4 py-2 border rounded-lg w-full md:w-48"
+          className="border rounded px-4 py-2 w-48"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
         >
-          <option value="late">Most Late</option>
-          <option value="progress">Most Progress</option>
-          <option value="az">A–Z</option>
+          <option value="most-late">Most Late</option>
+          <option value="least-late">Least Late</option>
         </select>
       </div>
 
-      {/* Student Cards */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {filtered.map((s, idx) => (
-          <StudentCard key={idx} s={s} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ======================================================
-   STUDENT CARD COMPONENT (Improved 2025 UI)
-====================================================== */
-
-function StudentCard({ s }) {
-  const initials = (s.student_name || "")
-    .split(" ")
-    .map((v) => v[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  const statusColor =
-    s.progress_percent === 100
-      ? "bg-green-100 text-green-700"
-      : s.progress_percent > 40
-      ? "bg-blue-100 text-blue-700"
-      : "bg-red-100 text-red-700";
-
-  const borderColor =
-    s.progress_percent === 100
-      ? "border-green-400"
-      : s.progress_percent > 40
-      ? "border-blue-400"
-      : "border-red-400";
-
-  return (
-    <div
-      className={`rounded-2xl border-l-8 ${borderColor} bg-white shadow-md p-6 flex flex-col gap-5`}
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-xl font-bold">{s.student_name}</h2>
-          <p className="text-gray-600 text-sm">{s.programme}</p>
-
-          <div className="flex gap-2 mt-2 text-xs flex-wrap">
-            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
-              {s.field || "-"}
-            </span>
-            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
-              {s.department || "-"}
-            </span>
-          </div>
-        </div>
-
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}
-        >
-          {s.progress_percent === 100
-            ? "Completed"
-            : s.progress_percent > 40
-            ? "On Track"
-            : "Late"}
-        </span>
-      </div>
-
-      <div className="flex gap-4 items-center">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white flex items-center justify-center font-bold text-lg">
-          {initials}
-        </div>
-
-        <div className="text-sm space-y-1">
-          <p>
-            <strong>Email:</strong> {s.email}
-          </p>
-          <p>
-            <strong>Start Date:</strong> {s.start_date}
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex justify-between text-sm text-gray-600 mb-1">
-          <span>
-            {s.completed} / {s.total} completed
-          </span>
-          <span className="font-semibold text-gray-900">
-            {s.progress_percent}%
-          </span>
-        </div>
-
-        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+      {/* STUDENT CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filtered.map((s, index) => (
           <div
-            className="h-full bg-purple-600 rounded-full"
-            style={{ width: `${s.progress_percent}%` }}
-          />
-        </div>
-      </div>
+            key={index}
+            className="bg-white shadow rounded-xl p-6 border border-gray-200"
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">
+                {s.name || "Unnamed Student"}
+              </h2>
 
-      {/* FIXED LINK */}
-      <div className="text-right">
-        <a
-          href={`/supervisor/${encodeURIComponent(s.email)}`}
-          className="text-purple-700 font-semibold hover:underline"
-        >
-          View Full Progress →
-        </a>
+              <span
+                className={`px-3 py-1 text-xs rounded-full ${
+                  s.status === "Late"
+                    ? "bg-red-100 text-red-600"
+                    : s.status === "Completed"
+                    ? "bg-green-100 text-green-600"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
+                {s.status}
+              </span>
+            </div>
+
+            {/* Info rows */}
+            <div className="text-sm space-y-1 mb-4">
+              <p><strong>Matric:</strong> {s.id || "-"}</p>
+              <p><strong>Email:</strong> {s.email}</p>
+              <p><strong>Programme:</strong> {s.programme || "-"}</p>
+              <p><strong>Field:</strong> {s.field || "-"}</p>
+              <p><strong>Department:</strong> {s.raw["Department"] || "-"}</p>
+              <p><strong>Start Date:</strong> {s.start_date || "-"}</p>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-4">
+              <div className="flex justify-between text-sm mb-1">
+                <span>Progress</span>
+                <span>{s.progressPercent}%</span>
+              </div>
+
+              <div className="w-full bg-gray-200 h-2 rounded-full">
+                <div
+                  className="h-2 bg-purple-500 rounded-full"
+                  style={{ width: `${s.progressPercent}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Link */}
+            <button
+              className="mt-4 text-purple-600 font-medium hover:underline"
+              onClick={() =>
+                router.push(`/supervisor/${encodeURIComponent(s.email)}`)
+              }
+            >
+              View Full Progress →
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
