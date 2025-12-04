@@ -2,18 +2,25 @@ import "../styles/globals.css";
 import Head from "next/head";
 
 export default function MyApp({ Component, pageProps }) {
-  const getLayout = Component.getLayout || ((page) => page);
-
   return (
     <>
       <Head>
-        <title>PPBMS — Student Progress</title>
+        <title>PPBMS — Student Progress & Milestones</title>
+
+        {/* Modern viewport */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        {/* Theme color for browsers */}
         <meta name="theme-color" content="#6B21A8" />
-        <meta name="color-scheme" content="light dark" />
+
+        {/* Safari compatibility */}
+        <meta name="color-scheme" content="light" />
       </Head>
 
-      {getLayout(<Component {...pageProps} />)}
+      {/* Global background */}
+      <main className="min-h-screen bg-gradient-to-b from-[#faf7ff] to-[#ffffff]">
+        <Component {...pageProps} />
+      </main>
     </>
   );
 }
