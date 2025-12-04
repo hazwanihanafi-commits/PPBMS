@@ -82,40 +82,52 @@ router.get("/students", auth, async (req, res) => {
 });
 
 /* -------------------------------------------------------
-   GET ONE STUDENT PROFILE + TIMELINE
+   GET ONE STUDENT PROFILE + TIMELINE + DOCUMENTS
 ------------------------------------------------------- */
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const targetEmail = (req.params.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const raw = rows.find((r) => getStudentEmail(r) === targetEmail);
+    const raw = rows.find(r => getStudentEmail(r) === targetEmail);
 
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+    if (!raw)
+      return res.status(404).json({ error: "Student not found" });
 
     const timeline = buildTimelineForRow(raw);
     const progress = calcProgress(timeline);
     const rowNumber = rows.indexOf(raw) + 2;
 
+    // ⭐ Document links (same fields as student page)
+    const documents = {
+      dplc: raw["Development Plan & Learning Contract - FileURL"] || "",
+      apr1: raw["Annual Progress Review (Year 1) - FileURL"] || "",
+      apr2: raw["Annual Progress Review (Year 2) - FileURL"] || "",
+      fpr3: raw["Final Progress Review (Year 3) - FileURL"] || ""
+    };
+
+    // ⭐ MATCH student page structure EXACTLY
     return res.json({
-      matric:
-        raw["Matric"] ||
-        raw["Matric No"] ||
-        raw["Student ID"] ||
-        raw["StudentID"] ||
-        "",
-      name: raw["Student Name"] || "-",
-      email: getStudentEmail(raw),
-      programme: raw["Programme"] || "-",
-      start_date: raw["Start Date"] || "-",
-      field: raw["Field"] || "-",
-      department: raw["Department"] || "-",
-      supervisor: raw["Main Supervisor"] || "-",
-      cosupervisor: raw["Co-Supervisor(s)"] || "-",
-      supervisorEmail: raw["Main Supervisor's Email"] || "-",
-      progress,
-      rowNumber,
-      timeline,
+      row: {
+        student_id:
+          raw["Matric"] ||
+          raw["Matric No"] ||
+          raw["Student ID"] ||
+          raw["StudentID"] ||
+          "",
+        student_name: raw["Student Name"] || "-",
+        email: getStudentEmail(raw),
+        programme: raw["Programme"] || "-",
+        start_date: raw["Start Date"] || "-",
+        field: raw["Field"] || "-",
+        department: raw["Department"] || "-",
+        supervisor: raw["Main Supervisor"] || "-",
+        cosupervisor: raw["Co-Supervisor(s)"] || "-",
+        progress,
+        rowNumber,
+        documents,
+        timeline,
+      },
     });
 
   } catch (err) {
