@@ -4,11 +4,12 @@ import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/**
- * LOGIN:
- * - Accept ANY email that exists in MasterTracking Sheet
- * - Password = "1234" for now
- */
+/* ============================================================
+   UNIVERSAL LOGIN (Student + Supervisor)
+   ------------------------------------------------------------
+   - Checks Google Sheet for matching email
+   - Determines role based on columns
+===============================================================*/
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -16,41 +17,75 @@ router.post("/login", async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ error: "Missing credentials" });
 
-    // For now, universal password (you can upgrade later)
     if (password !== "1234")
       return res.status(401).json({ error: "Wrong password" });
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Read Google Sheet
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // Find student
     const student = rows.find(
       (r) =>
         (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail
     );
 
-    // Find supervisor
     const supervisor = rows.find(
       (r) =>
         (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
     );
 
-    if (!student && !supervisor) {
+    // student OR supervisor must exist
+    if (!student && !supervisor)
       return res.status(401).json({ error: "Email not found in system" });
-    }
 
     const role = supervisor ? "supervisor" : "student";
 
-    const token = jwt.sign({ email: cleanEmail, role }, process.env.JWT_SECRET);
+    const token = jwt.sign(
+      { email: cleanEmail, role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     return res.json({ token, role });
-
   } catch (err) {
     console.error("LOGIN ERROR:", err);
     return res.status(500).json({ error: err.message });
   }
+});
+
+/* ============================================================
+   ADMIN LOGIN (Separate Route)
+   ------------------------------------------------------------
+   - Only for listed admin emails
+   - Password must match ADMIN_PASS
+===============================================================*/
+router.post("/admin-login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const admins = [
+    "hazwanihanafi@usm.my",
+    "ppbms.admin@usm.my"
+  ];
+
+  // Check if valid admin email
+  if (!admins.includes(email.toLowerCase()))
+    return res.status(401).json({ error: "Not an admin" });
+
+  // Check admin password
+  if (password !== process.env.ADMIN_PASS)
+    return res.status(401).json({ error: "Wrong password" });
+
+  // Sign admin token
+  const token = jwt.sign(
+    {
+      email: email.toLowerCase(),
+      role: "admin",
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  return res.json({ token, role: "admin" });
 });
 
 export default router;
