@@ -1,69 +1,57 @@
-// pages/admin/index.js
-import { useEffect, useState } from "react";
-import AdminAnalytics from "../../components/AdminAnalytics";
-import SupervisorStudentTable from "../../components/SupervisorStudentTable";
+{/* ============================
+    STATUS RULES SECTION
+============================= */}
+<div className="bg-white shadow-card rounded-2xl p-6 border border-gray-100 mt-10">
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
+  <h2 className="text-2xl font-bold text-purple-700 mb-4">
+    📊 Progress Status Classification Rules
+  </h2>
 
-export default function AdminHome() {
-  const [token, setToken] = useState(null);
-  const [students, setStudents] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  <p className="text-gray-600 mb-6">
+    These rules determine whether students are <strong>On Track</strong>, 
+    <strong>Slightly Late</strong>, or <strong>At Risk</strong> based on their 
+    expected vs actual timeline milestones.
+  </p>
 
-  useEffect(() => { setToken(localStorage.getItem("ppbms_token")); }, []);
+  {/* Rule Cards */}
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-  useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      setError("Not logged in");
-      return;
-    }
-    (async () => {
-      try {
-        const [sRes, aRes] = await Promise.all([
-          fetch(`${API}/api/admin/all-students`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API}/api/admin/analytics`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        if (!sRes.ok) throw new Error(await sRes.text());
-        if (!aRes.ok) throw new Error(await aRes.text());
-        const sData = await sRes.json();
-        const aData = await aRes.json();
-        setStudents(sData.students || sData);
-        setAnalytics(aData);
-      } catch (err) {
-        setError(err.message || "Failed to load admin data");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [token]);
-
-  if (loading) return <div className="p-8">Loading…</div>;
-  if (error) return <div className="p-8 text-red-600">{error}</div>;
-
-  return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Admin dashboard</h1>
-      </div>
-
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-5">
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="font-semibold text-lg mb-3">Analytics</h3>
-            <AdminAnalytics analytics={analytics} />
-          </div>
-        </div>
-
-        <div className="col-span-7">
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="font-semibold text-lg mb-3">All students</h3>
-            <SupervisorStudentTable students={students} showSupervisorColumn showActionsForAdmin />
-          </div>
-        </div>
-      </div>
+    {/* On Track */}
+    <div className="p-5 rounded-2xl border border-green-200 bg-green-50">
+      <h3 className="font-bold text-green-700 mb-2">🟢 On Track</h3>
+      <ul className="text-gray-700 text-sm space-y-1">
+        <li>• All due milestones completed on time</li>
+        <li>• Next milestone deadline ≥ <strong>7 days</strong> away</li>
+        <li>• Progress aligns with programme expectations</li>
+      </ul>
     </div>
-  );
-}
+
+    {/* Slightly Late */}
+    <div className="p-5 rounded-2xl border border-yellow-200 bg-yellow-50">
+      <h3 className="font-bold text-yellow-700 mb-2">🟡 Slightly Late</h3>
+      <ul className="text-gray-700 text-sm space-y-1">
+        <li>• Missed a deadline by up to <strong>14 days</strong></li>
+        <li>• Remaining days between <strong>0 and -14</strong></li>
+        <li>• Indicates minor scheduling delay</li>
+      </ul>
+    </div>
+
+    {/* At Risk */}
+    <div className="p-5 rounded-2xl border border-red-200 bg-red-50">
+      <h3 className="font-bold text-red-700 mb-2">🔴 At Risk</h3>
+      <ul className="text-gray-700 text-sm space-y-1">
+        <li>• Milestone overdue by more than <strong>14 days</strong></li>
+        <li>• Progress significantly behind expectations</li>
+        <li>• May require supervisor intervention</li>
+      </ul>
+    </div>
+
+  </div>
+
+  {/* Footer Note */}
+  <p className="text-sm text-gray-500 mt-6">
+    These thresholds are automatically calculated based on Google Sheet data and 
+    applied consistently across all students.
+  </p>
+
+</div>
