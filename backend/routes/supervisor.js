@@ -52,3 +52,5 @@ router.get("/student/:email", auth, async (req, res) => {
   }
 });
 
+export default router;
+
