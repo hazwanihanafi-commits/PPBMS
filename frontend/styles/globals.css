@@ -1,15 +1,66 @@
-/* styles/globals.css */
-
-/* Tailwind core — ONLY in globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body, #__next {
+/* Custom variables */
+:root{
+  --color-primary: #6B21A8;
+  --color-primary-light: #A78BFA;
+  --color-accent: #06B6D4;
+  --radius-card: 1rem;
+}
+
+/* Body */
+html,body,#__next{
   height: 100%;
 }
-body {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  background: #f7fafc;
-  margin: 0;
+body{
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #111827;
+  background: linear-gradient(180deg, #F8F5FF 0%, #FFFFFF 100%);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Utility focus */
+:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(167,139,250,0.18);
+  border-radius: 6px;
+}
+
+/* Card */
+.card {
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 30px rgba(15,23,42,0.06);
+  background: white;
+  overflow: hidden;
+}
+
+/* Buttons */
+.btn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight:600;
+}
+.btn-primary {
+  background: var(--color-primary);
+  color:#fff;
+}
+.btn-ghost {
+  background: transparent;
+  border:1px solid rgba(15,23,42,0.06);
+}
+
+/* Badge small */
+.badge {
+  display:inline-block;
+  padding:0.25rem 0.6rem;
+  border-radius:999px;
+  font-size:0.75rem;
+  font-weight:700;
 }
