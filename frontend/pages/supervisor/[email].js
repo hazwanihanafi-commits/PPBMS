@@ -1,7 +1,7 @@
 // frontend/pages/supervisor/student/[id].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../../utils/api";
+import { API_BASE } from "../../../utils/api";  // ← FIXED PATH
 
 export default function SupervisorViewStudent() {
   const router = useRouter();
@@ -13,8 +13,9 @@ export default function SupervisorViewStudent() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    if (!router.isReady) return; // ← PREVENTS EARLY LOAD
     if (id) load();
-  }, [id]);
+  }, [router.isReady, id]);
 
   async function load() {
     setLoading(true);
@@ -27,22 +28,26 @@ export default function SupervisorViewStudent() {
       });
 
       const json = await res.json();
-      if (!res.ok) return setErr(json.error || "Failed to load");
+      if (!res.ok) {
+        setErr(json.error || "Failed to load student data.");
+        setLoading(false);
+        return;
+      }
 
       setData(json.row);
       setTimeline(json.row.timeline || []);
 
     } catch (e) {
-      setErr("Unable to load student data.");
       console.error(e);
+      setErr("Unable to load student data.");
     }
 
     setLoading(false);
   }
 
-  if (loading) return <div className="p-4">Loading…</div>;
-  if (err) return <div className="p-4 text-red-600">{err}</div>;
-  if (!data) return <div className="p-4">No student data.</div>;
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (err) return <div className="p-6 text-red-600">{err}</div>;
+  if (!data) return <div className="p-6">No student data found.</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
@@ -56,9 +61,7 @@ export default function SupervisorViewStudent() {
 
       <h1 className="text-3xl font-bold mb-6">Student Progress</h1>
 
-      {/* =========================
-          STUDENT INFO CARD
-      ========================== */}
+      {/* STUDENT INFORMATION */}
       <div className="bg-white shadow rounded-2xl p-6 mb-8 border border-gray-100">
         <h2 className="text-xl font-bold mb-3">{data.student_name}</h2>
 
@@ -74,43 +77,21 @@ export default function SupervisorViewStudent() {
         </div>
       </div>
 
-      {/* =========================
-          DOCUMENTS SECTION
-      ========================== */}
+      {/* DOCUMENTS SECTION */}
       <div className="mb-10">
         <h3 className="text-xl font-bold mb-3 text-purple-700">📄 Submitted Documents</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          {/* DPLC */}
-          <DocumentCard
-            title="Development Plan & Learning Contract (DPLC)"
-            url={data.documents?.dplc}
-          />
+          <DocumentCard title="Development Plan & Learning Contract (DPLC)" url={data.documents?.dplc} />
+          <DocumentCard title="Annual Progress Review (Year 1)" url={data.documents?.apr1} />
+          <DocumentCard title="Annual Progress Review (Year 2)" url={data.documents?.apr2} />
+          <DocumentCard title="Final Progress Review (Year 3)" url={data.documents?.fpr3} />
 
-          {/* APR 1 */}
-          <DocumentCard
-            title="Annual Progress Review (Year 1)"
-            url={data.documents?.apr1}
-          />
-
-          {/* APR 2 */}
-          <DocumentCard
-            title="Annual Progress Review (Year 2)"
-            url={data.documents?.apr2}
-          />
-
-          {/* FPR 3 */}
-          <DocumentCard
-            title="Final Progress Review (Year 3)"
-            url={data.documents?.fpr3}
-          />
         </div>
       </div>
 
-      {/* =========================
-          TIMELINE TABLE
-      ========================== */}
+      {/* TIMELINE SECTION */}
       <div className="bg-white p-6 shadow rounded-2xl border border-gray-100">
         <h3 className="text-lg font-bold mb-4">📅 Expected vs Actual</h3>
 
@@ -145,20 +126,14 @@ export default function SupervisorViewStudent() {
   );
 }
 
-/* =============================
-    DOCUMENT CARD COMPONENT
-============================= */
+/* DOCUMENT CARD COMPONENT */
 function DocumentCard({ title, url }) {
   return (
     <div className="p-4 bg-white rounded-2xl shadow border border-gray-100">
       <h4 className="font-semibold text-gray-900 mb-2">{title}</h4>
 
       {url ? (
-        <a
-          href={url}
-          target="_blank"
-          className="text-purple-600 font-semibold hover:underline"
-        >
+        <a href={url} target="_blank" className="text-purple-600 font-semibold hover:underline">
           View Document →
         </a>
       ) : (
