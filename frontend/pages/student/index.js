@@ -111,6 +111,90 @@ export default function StudentPage() {
         </div>
       </div>
 
+{/* ================================
+     DOCUMENTS SECTION (JOTFORM)
+================================ */}
+<div className="mb-10">
+  <h3 className="text-xl font-bold mb-4 text-purple-700">
+    📄 Submitted Documents
+  </h3>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    {/* DPLC */}
+    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
+      <h4 className="font-semibold text-gray-800 mb-2">
+        Development Plan & Learning Contract (DPLC)
+      </h4>
+      {profile.documents?.dplc ? (
+        <a
+          href={profile.documents.dplc}
+          target="_blank"
+          className="text-purple-600 font-medium hover:underline"
+        >
+          View Document →
+        </a>
+      ) : (
+        <p className="text-gray-400 text-sm">No document submitted yet.</p>
+      )}
+    </div>
+
+    {/* APR 1 */}
+    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
+      <h4 className="font-semibold text-gray-800 mb-2">
+        Annual Progress Review (Year 1)
+      </h4>
+      {profile.documents?.apr1 ? (
+        <a
+          href={profile.documents.apr1}
+          target="_blank"
+          className="text-purple-600 font-medium hover:underline"
+        >
+          View Document →
+        </a>
+      ) : (
+        <p className="text-gray-400 text-sm">No document submitted yet.</p>
+      )}
+    </div>
+
+    {/* APR 2 */}
+    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
+      <h4 className="font-semibold text-gray-800 mb-2">
+        Annual Progress Review (Year 2)
+      </h4>
+      {profile.documents?.apr2 ? (
+        <a
+          href={profile.documents.apr2}
+          target="_blank"
+          className="text-purple-600 font-medium hover:underline"
+        >
+          View Document →
+        </a>
+      ) : (
+        <p className="text-gray-400 text-sm">No document submitted yet.</p>
+      )}
+    </div>
+
+    {/* FPR Year 3 */}
+    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
+      <h4 className="font-semibold text-gray-800 mb-2">
+        Final Progress Review (Year 3)
+      </h4>
+      {profile.documents?.fpr3 ? (
+        <a
+          href={profile.documents.fpr3}
+          target="_blank"
+          className="text-purple-600 font-medium hover:underline"
+        >
+          View Document →
+        </a>
+      ) : (
+        <p className="text-gray-400 text-sm">No document submitted yet.</p>
+      )}
+    </div>
+  </div>
+</div>
+
       {/* TIMELINE TABLE */}
       <div className="bg-white shadow-card rounded-2xl p-6 border border-gray-100">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
