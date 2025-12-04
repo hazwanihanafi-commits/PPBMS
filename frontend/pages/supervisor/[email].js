@@ -49,29 +49,28 @@ export default function SupervisorStudentView() {
           STUDENT PROFILE
       =============================== */}
       <div className="bg-white shadow rounded p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">{data.name}</h2>
+  <h2 className="text-xl font-semibold mb-4">{data.name}</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
 
-          <p><strong>Matric:</strong> {data.matric}</p>
-          <p><strong>Email:</strong> {data.email}</p>
+    <p><strong>Matric:</strong> {data.matric}</p>
+    <p><strong>Email:</strong> {data.email}</p>
 
-          <p><strong>Programme:</strong> {data.programme}</p>
-          <p><strong>Start Date:</strong> {data.start_date}</p>
+    <p><strong>Programme:</strong> {data.programme}</p>
+    <p><strong>Start Date:</strong> {data.start_date}</p>
 
-          <p><strong>Field:</strong> {data.field}</p>
-          <p><strong>Department:</strong> {data.department}</p>
+    <p><strong>Field:</strong> {data.field}</p>
+    <p><strong>Department:</strong> {data.department}</p>
 
-          <p><strong>Main Supervisor:</strong> {data.supervisor}</p>
-          <p><strong>Co-Supervisor(s):</strong> {data.cosupervisor}</p>
+    <p><strong>Main Supervisor:</strong> {data.supervisor}</p>
+    <p><strong>Co-Supervisor(s):</strong> {data.cosupervisor}</p>
 
-          <p><strong>Supervisor Email:</strong> {data.supervisorEmail}</p>
+    <p><strong>Supervisor Email:</strong> {data.supervisorEmail}</p>
 
-          <p className="mt-2 col-span-2">
-            <strong>Progress:</strong> {data.progress}%
-          </p>
-        </div>
-      </div>
+    <p className="mt-2 col-span-2"><strong>Progress:</strong> {data.progress}%</p>
+  </div>
+</div>
+
 
       {/* ==============================
           TIMELINE TABLE
