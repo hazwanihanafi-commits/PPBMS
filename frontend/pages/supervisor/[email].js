@@ -1,7 +1,7 @@
 // frontend/pages/supervisor/student/[id].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../../../utils/api";
+import { API_BASE } from "../../utils/api";
 
 export default function SupervisorViewStudent() {
   const router = useRouter();
