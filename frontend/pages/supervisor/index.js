@@ -1,3 +1,4 @@
+// frontend/pages/supervisor/index.js
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
 import { useRouter } from "next/router";
@@ -10,6 +11,7 @@ export default function SupervisorDashboard() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("most-late");
 
+  // Load students
   useEffect(() => {
     loadStudents();
   }, []);
@@ -32,8 +34,9 @@ export default function SupervisorDashboard() {
     }
   }
 
+  // Search + Sort
   useEffect(() => {
-    let list = students;
+    let list = [...students];
 
     if (query.trim() !== "") {
       const q = query.toLowerCase();
@@ -41,135 +44,133 @@ export default function SupervisorDashboard() {
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.email.toLowerCase().includes(q) ||
-          String(s.id || "").toLowerCase().includes(q)
+          String(s.id).toLowerCase().includes(q)
       );
     }
 
     if (sort === "most-late") {
-      list = [...list].sort((a, b) => b.progressPercent - a.progressPercent);
-    }
-    if (sort === "least-late") {
-      list = [...list].sort((a, b) => a.progressPercent - b.progressPercent);
+      list.sort((a, b) => b.progressPercent - a.progressPercent);
+    } else {
+      list.sort((a, b) => a.progressPercent - b.progressPercent);
     }
 
     setFiltered(list);
   }, [query, sort, students]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white px-6 py-10">
+    <div className="min-h-screen p-8 bg-gradient-to-br from-purple-50 to-purple-100">
 
-      {/* HEADER */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold text-purple-700">
-          Students Under My Supervision
+      {/* PAGE HEADER */}
+      <div className="mb-10">
+        <h1 className="text-4xl font-extrabold text-gray-900">
+          👩‍🏫 Supervisor Dashboard
         </h1>
-        <p className="text-gray-600 text-lg mt-2">
-          Track progress, deadlines, and milestones — all in one place.
+        <p className="text-gray-600 mt-2">
+          Monitor research progress for all your supervisees.
         </p>
       </div>
 
-      {/* SEARCH & SORT PANEL */}
-      <div className="max-w-5xl mx-auto mb-10">
-        <div className="bg-white shadow-md rounded-xl p-6 border border-purple-100">
-          <div className="flex flex-col md:flex-row gap-4">
+      {/* SEARCH + SORT PANEL */}
+      <div className="bg-white rounded-2xl shadow-card p-6 border border-gray-100 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            {/* SEARCH BOX */}
+          {/* Search */}
+          <div className="col-span-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Search Student
+            </label>
             <input
               type="text"
-              placeholder="Search student name, matric, or email..."
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400"
+              placeholder="Type name, matric or email…"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-300"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+          </div>
 
-            {/* SORT SELECT */}
+          {/* Sort */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Sort Progress
+            </label>
             <select
-              className="px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 w-full md:w-48"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-300"
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
               <option value="most-late">Most Late</option>
               <option value="least-late">Least Late</option>
             </select>
-
           </div>
+
         </div>
       </div>
 
-      {/* STUDENT CARDS */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* STUDENT CARDS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {filtered.map((s, index) => {
+          const late = s.progressPercent < 50;
 
-        {filtered.map((s, index) => (
-          <div
-            key={index}
-            className="bg-white shadow-xl hover:shadow-2xl border border-purple-100 
-                       rounded-2xl p-6 transition transform hover:-translate-y-1 cursor-pointer"
-          >
-            {/* NAME + STATUS */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">{s.name}</h2>
-
-              <span
-                className={`px-3 py-1 text-xs rounded-full font-semibold ${
-                  s.status === "Late"
-                    ? "bg-red-100 text-red-700"
-                    : s.status === "Completed"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-yellow-100 text-yellow-700"
-                }`}
-              >
-                {s.status}
-              </span>
-            </div>
-
-            {/* BADGES */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
-                {s.programme}
-              </span>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
-                {s.field}
-              </span>
-            </div>
-
-            {/* DETAILS */}
-            <div className="text-sm text-gray-700 space-y-1">
-              <p><strong>Matric:</strong> {s.id}</p>
-              <p><strong>Email:</strong> {s.email}</p>
-              <p><strong>Department:</strong> {s.raw?.["Department"] || "-"}</p>
-              <p><strong>Start Date:</strong> {s.start_date}</p>
-            </div>
-
-            {/* PROGRESS BAR */}
-            <div className="mt-4">
-              <div className="flex justify-between text-sm mb-1 text-gray-600">
-                <span>Progress</span>
-                <span>{s.progressPercent}%</span>
-              </div>
-
-              <div className="w-full h-2 bg-gray-200 rounded-full">
-                <div
-                  className="h-2 bg-purple-600 rounded-full"
-                  style={{ width: `${s.progressPercent}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* BUTTON */}
-            <button
+          return (
+            <div
+              key={index}
+              className="bg-white rounded-2xl p-6 shadow-card border border-gray-100 hover:shadow-xl transition cursor-pointer"
               onClick={() =>
-                router.push(`/supervisor/${encodeURIComponent(s.email)}`)
+                router.push(`/supervisor/student/${encodeURIComponent(s.email)}`)
               }
-              className="mt-5 w-full bg-purple-600 hover:bg-purple-700 text-white 
-                         font-semibold py-2 rounded-lg transition"
             >
-              View Full Progress →
-            </button>
+              {/* Header */}
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{s.name}</h2>
+                  <p className="text-gray-500 text-sm">{s.email}</p>
+                </div>
 
-          </div>
-        ))}
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    late
+                      ? "bg-red-100 text-red-700"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {late ? "At Risk" : "On Track"}
+                </span>
+              </div>
+
+              {/* Details */}
+              <div className="space-y-1 text-sm text-gray-700 mb-5">
+                <p><strong>Matric:</strong> {s.id}</p>
+                <p><strong>Programme:</strong> {s.programme}</p>
+                <p><strong>Field:</strong> {s.field}</p>
+                <p><strong>Dept:</strong> {s.department}</p>
+                <p><strong>Start:</strong> {s.start_date}</p>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Progress</span>
+                  <span className="font-semibold">{s.progressPercent}%</span>
+                </div>
+
+                <div className="w-full h-3 bg-gray-200 rounded-full">
+                  <div
+                    className="h-3 rounded-full bg-gradient-to-r from-purple-600 to-purple-400"
+                    style={{ width: `${s.progressPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* View Button */}
+              <div className="mt-5 text-right">
+                <button className="text-purple-700 font-semibold hover:underline">
+                  View Full Progress →
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
-
     </div>
   );
 }
