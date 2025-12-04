@@ -1,176 +1,126 @@
-// frontend/pages/supervisor/index.js
-import { useEffect, useState } from "react";
-import { API_BASE } from "../../utils/api";
-import { useRouter } from "next/router";
-
-export default function SupervisorDashboard() {
-  const router = useRouter();
-
-  const [students, setStudents] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("most-late");
-
-  // Load students
-  useEffect(() => {
-    loadStudents();
-  }, []);
-
-  async function loadStudents() {
-    try {
-      const res = await fetch(`${API_BASE}/api/supervisor/students`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
-      });
-
-      const json = await res.json();
-      if (json.students) {
-        setStudents(json.students);
-        setFiltered(json.students);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  // Search + Sort
-  useEffect(() => {
-    let list = [...students];
-
-    if (query.trim() !== "") {
-      const q = query.toLowerCase();
-      list = students.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.email.toLowerCase().includes(q) ||
-          String(s.id).toLowerCase().includes(q)
-      );
-    }
-
-    if (sort === "most-late") {
-      list.sort((a, b) => b.progressPercent - a.progressPercent);
-    } else {
-      list.sort((a, b) => a.progressPercent - b.progressPercent);
-    }
-
-    setFiltered(list);
-  }, [query, sort, students]);
-
+export default function Home() {
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-br from-purple-50 to-purple-100">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
 
-      {/* PAGE HEADER */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-extrabold text-gray-900">
-          👩‍🏫 Supervisor Dashboard
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Monitor research progress for all your supervisees.
+      {/* HEADER */}
+      <header className="w-full py-5 px-8 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-orange-400 
+            flex items-center justify-center text-white text-lg font-bold">
+            P
+          </div>
+          <div>
+            <h1 className="font-semibold text-lg text-gray-900">PPBMS</h1>
+            <p className="text-xs text-gray-500 -mt-1">
+              Postgraduate Progress & Benchmarking System
+            </p>
+          </div>
+        </div>
+
+        {/* ⭐ Only ONE login button */}
+        <a
+          href="/login"
+          className="px-6 py-2 rounded-full bg-purple-600 text-white font-medium 
+          hover:bg-purple-700 transition"
+        >
+          General Login
+        </a>
+      </header>
+
+      {/* HERO SECTION */}
+      <main className="max-w-6xl mx-auto px-6 py-16">
+        <div className="text-sm text-purple-700 bg-purple-100 inline-block px-4 py-1 
+          rounded-full font-medium mb-5">
+          IPPT · USM · Research Progress
+        </div>
+
+        <h2 className="text-5xl font-extrabold leading-tight text-gray-900 mb-6">
+          Monitor postgraduate <span className="text-purple-700">research progress</span>
+          in one simple dashboard.
+        </h2>
+
+        <p className="text-gray-600 text-lg max-w-3xl mb-10">
+          Secure web platform for tracking MSc and PhD milestones, supervisor monitoring, 
+          and documentation — tailored for IPPT / USM research programmes.
         </p>
-      </div>
 
-      {/* SEARCH + SORT PANEL */}
-      <div className="bg-white rounded-2xl shadow-card p-6 border border-gray-100 mb-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* REMOVE THESE — the top login buttons */}
+        {/* ❌ Login as Student / Supervisor / Admin */}
 
-          {/* Search */}
-          <div className="col-span-2">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Search Student
-            </label>
-            <input
-              type="text"
-              placeholder="Type name, matric or email…"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-300"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+
+        {/* KEEP THESE — THE LOGIN CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+
+          {/* STUDENT CARD */}
+          <div className="p-6 bg-white rounded-2xl shadow-card border border-gray-100">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-600 to-purple-300 
+                flex items-center justify-center text-white font-bold text-lg">
+                ST
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Student</p>
+                <p className="text-xs text-purple-600 font-medium">SECURE LOGIN</p>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-4">
+              View expected vs actual timeline, upload documents, and track progress.
+            </p>
+
+            <a href="/login" className="text-purple-600 font-medium hover:underline">
+              Go to student login →
+            </a>
           </div>
 
-          {/* Sort */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Sort Progress
-            </label>
-            <select
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-300"
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-            >
-              <option value="most-late">Most Late</option>
-              <option value="least-late">Least Late</option>
-            </select>
+          {/* SUPERVISOR CARD */}
+          <div className="p-6 bg-white rounded-2xl shadow-card border border-gray-100">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-600 to-purple-300 
+                flex items-center justify-center text-white font-bold text-lg">
+                SV
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Supervisor</p>
+                <p className="text-xs text-purple-600 font-medium">SECURE LOGIN</p>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Monitor supervisees, identify at-risk progress, and support timely completion.
+            </p>
+
+            <a href="/login" className="text-purple-600 font-medium hover:underline">
+              Go to supervisor login →
+            </a>
+          </div>
+
+          {/* ADMIN CARD */}
+          <div className="p-6 bg-white rounded-2xl shadow-card border border-gray-100">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-300 
+                flex items-center justify-center text-white font-bold text-lg">
+                AD
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Admin</p>
+                <p className="text-xs text-purple-600 font-medium">SECURE LOGIN</p>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Configure programmes, monitor cohorts, and generate reports.
+            </p>
+
+            <a href="/login" className="text-purple-600 font-medium hover:underline">
+              Go to admin login →
+            </a>
           </div>
 
         </div>
-      </div>
+      </main>
 
-      {/* STUDENT CARDS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {filtered.map((s, index) => {
-          const late = s.progressPercent < 50;
-
-          return (
-            <div
-              key={index}
-              className="bg-white rounded-2xl p-6 shadow-card border border-gray-100 hover:shadow-xl transition cursor-pointer"
-              onClick={() =>
-                router.push(`/supervisor/${encodeURIComponent(s.email)}`)
-              }
-            >
-              {/* Header */}
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{s.name}</h2>
-                  <p className="text-gray-500 text-sm">{s.email}</p>
-                </div>
-
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    late
-                      ? "bg-red-100 text-red-700"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {late ? "At Risk" : "On Track"}
-                </span>
-              </div>
-
-              {/* Details */}
-              <div className="space-y-1 text-sm text-gray-700 mb-5">
-                <p><strong>Matric:</strong> {s.id}</p>
-                <p><strong>Programme:</strong> {s.programme}</p>
-                <p><strong>Field:</strong> {s.field}</p>
-                <p><strong>Dept:</strong> {s.department}</p>
-                <p><strong>Start:</strong> {s.start_date}</p>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Progress</span>
-                  <span className="font-semibold">{s.progressPercent}%</span>
-                </div>
-
-                <div className="w-full h-3 bg-gray-200 rounded-full">
-                  <div
-                    className="h-3 rounded-full bg-gradient-to-r from-purple-600 to-purple-400"
-                    style={{ width: `${s.progressPercent}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* View Button */}
-              <div className="mt-5 text-right">
-                <button className="text-purple-700 font-semibold hover:underline">
-                  View Full Progress →
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* FOOTER */}
+      <footer className="text-center py-6 text-gray-500 text-sm">
+        © 2025 PPBMS · Universiti Sains Malaysia · Built with ❤️
+      </footer>
     </div>
   );
 }
