@@ -90,25 +90,32 @@ export default function Home() {
           </div>
 
           {/* ADMIN CARD */}
-          <div className="p-6 bg-white rounded-2xl shadow-card border border-gray-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-300 
-                flex items-center justify-center text-white font-bold text-lg">
-                AD
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">Admin</p>
-                <p className="text-xs text-purple-600 font-medium">SECURE LOGIN</p>
-              </div>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Configure programmes, monitor cohorts, and generate reports.
-            </p>
+<div className="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition col-span-1 md:col-span-2">
+  <div className="flex items-center gap-3 mb-4">
+    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-300 flex items-center justify-center text-white font-bold text-lg">
+      AD
+    </div>
+    <div>
+      <p className="font-semibold text-gray-900">Admin</p>
+      <p className="text-xs text-purple-600 font-medium">
+        SECURE LOGIN
+      </p>
+    </div>
+  </div>
 
-            <a href="/login" className="text-purple-600 font-medium hover:underline">
-              Go to admin login →
-            </a>
-          </div>
+  <p className="text-gray-600 mb-4">
+    Configure programmes, monitor cohorts, and generate reports.
+  </p>
+
+  {/* FIXED LINK */}
+  <a
+    href="/admin/login"
+    className="text-purple-600 font-medium hover:underline"
+  >
+    Go to admin login →
+  </a>
+</div>
+
 
         </div>
       </main>
