@@ -53,38 +53,44 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// ADMIN LOGIN (Universal password)
+// ADMIN LOGIN (uses .env)
 router.post("/admin-login", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  // Approved admin list
-  const admins = [
-    "hazwanihanafi@usm.my",
-    "ppbms.admin@usm.my"
-  ];
+    if (!email || !password)
+      return res.status(400).json({ error: "Missing credentials" });
 
-  const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = email.toLowerCase().trim();
 
-  // Check email
-  if (!admins.includes(cleanEmail)) {
-    return res.status(401).json({ error: "Not an admin" });
+    // Read from .env
+    const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").toLowerCase().trim();
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+
+    // Check email
+    if (cleanEmail !== ADMIN_EMAIL) {
+      return res.status(401).json({ error: "Not an admin" });
+    }
+
+    // Check password
+    if (password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ error: "Wrong password" });
+    }
+
+    // Issue token
+    const token = jwt.sign(
+      { email: cleanEmail, role: "admin" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({ token, role: "admin" });
+
+  } catch (err) {
+    console.error("ADMIN LOGIN ERROR:", err);
+    return res.status(500).json({ error: "Server error" });
   }
-
-  // ⭐ UNIVERSAL PASSWORD
-  const UNIVERSAL_ADMIN_PASSWORD = "admin123";
-
-  if (password !== UNIVERSAL_ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "Wrong password" });
-  }
-
-  // Issue JWT token
-  const token = jwt.sign(
-    { email: cleanEmail, role: "admin" },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  return res.json({ token, role: "admin" });
 });
+
 
 export default router;
