@@ -27,6 +27,58 @@ function adminOnly(req, res, next) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
+/* ============================================================
+   GET AT-RISK STUDENTS
+   - A student is “late” if any Expected date < today AND Actual is empty
+===============================================================*/
+router.get("/at-risk", adminOnly, async (req, res) => {
+  try {
+    const rows = await getCachedSheet(process.env.SHEET_ID);
+    const today = new Date();
+
+    const atRisk = [];
+
+    rows.forEach((row) => {
+      const student = {
+        name: row["Student Name"] || "-",
+        email: row["Student's Email"] || "-",
+        supervisor: row["Main Supervisor"] || "-",
+        lateActivities: []
+      };
+
+      // Loop through all columns to find timeline fields
+      Object.keys(row).forEach((col) => {
+        if (col.includes("Expected")) {
+          const activity = col.replace(" - Expected", "");
+          const expected = row[col];
+          const actual = row[`${activity} - Actual`];
+
+          if (expected && !actual) {
+            const expDate = new Date(expected);
+
+            if (expDate < today) {
+              student.lateActivities.push({
+                activity,
+                expected,
+                actual: actual || null
+              });
+            }
+          }
+        }
+      });
+
+      if (student.lateActivities.length > 0) {
+        atRisk.push(student);
+      }
+    });
+
+    return res.json({ atRisk });
+
+  } catch (err) {
+    console.error("AT-RISK ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 /* ============================================================
    GET ALL STUDENTS (FULL GOOGLE SHEET)
