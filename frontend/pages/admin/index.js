@@ -1,3 +1,4 @@
+// frontend/pages/admin/index.js
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
 
@@ -6,15 +7,19 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /* ============================
+      LOAD STUDENTS
+  ============================ */
   async function loadStudents() {
     setLoading(true);
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE}/admin/all-students`, {
+      const res = await fetch(`${API_BASE}/api/admin/all-students`, {
+        method: "GET",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
       });
 
       const data = await res.json();
@@ -31,6 +36,26 @@ export default function AdminDashboard() {
     setLoading(false);
   }
 
+  /* ============================
+      RESET CACHE
+  ============================ */
+  async function resetCache() {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/reset-cache`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok) alert("Cache cleared successfully!");
+      else alert("Failed: " + data.error);
+    } catch {
+      alert("Error communicating with server");
+    }
+  }
+
   return (
     <div className="p-10 max-w-5xl mx-auto">
       <h1 className="text-4xl font-bold text-purple-700 mb-4">
@@ -38,11 +63,10 @@ export default function AdminDashboard() {
       </h1>
 
       <p className="text-gray-600 mb-8">
-        Welcome to the PPBMS Admin Panel. Manage programmes, cohorts, supervisors,
-        and student progress.
+        Manage programmes, cohorts, supervisors, cache, and system data.
       </p>
 
-      {/* SYSTEM TOOLS */}
+      {/* SYSTEM TOOLS CARD */}
       <div className="bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
         <h2 className="text-2xl font-semibold mb-4">System Tools</h2>
 
@@ -50,33 +74,31 @@ export default function AdminDashboard() {
           <li className="flex items-center gap-3">
             <span className="text-purple-600 text-xl">📄</span>
             <button
-              className="text-purple-700 hover:underline"
               onClick={loadStudents}
+              className="text-purple-700 hover:underline"
             >
               View all students from Google Sheet
             </button>
           </li>
 
           <li className="flex items-center gap-3">
-            <span className="text-purple-600 text-xl">⚠️</span>
-            <span>Monitor late / at-risk students</span>
-          </li>
-
-          <li className="flex items-center gap-3">
             <span className="text-purple-600 text-xl">🔄</span>
-            <button className="text-purple-700 hover:underline">
+            <button
+              onClick={resetCache}
+              className="text-purple-700 hover:underline"
+            >
               Reset Google Sheet cache
             </button>
           </li>
 
           <li className="flex items-center gap-3">
-            <span className="text-purple-600 text-xl">⚙️</span>
-            <span>Configure roles (coming soon)</span>
+            <span className="text-purple-600 text-xl">⚠️</span>
+            Monitor late / at-risk students (coming soon)
           </li>
         </ul>
       </div>
 
-      {/* SHOW STUDENT TABLE BELOW */}
+      {/* STUDENT TABLE */}
       {loading && <p className="mt-6 text-purple-600">Loading students…</p>}
       {error && <p className="mt-6 text-red-600">{error}</p>}
 
