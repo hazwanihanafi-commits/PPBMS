@@ -1,4 +1,3 @@
-// backend/routes/auth.js
 import express from "express";
 import jwt from "jsonwebtoken";
 import { readMasterTracking } from "../services/googleSheets.js";
@@ -6,42 +5,49 @@ import { readMasterTracking } from "../services/googleSheets.js";
 const router = express.Router();
 
 /* ============================================================
-   UNIVERSAL LOGIN (STUDENT + SUPERVISOR)
-   - Students login using Student’s Email
-   - Supervisors login using Main Supervisor’s Email
-   - Password for both = "1234"
-   ============================================================ */
+   UNIVERSAL LOGIN (Student + Supervisor)
+   ------------------------------------------------------------
+   - Reads Google Sheet
+   - Matches email in:
+       • Student's Email
+       • Main Supervisor's Email
+   - Password for both = STUDENT_SUPERVISOR_PASSWORD (env)
+===============================================================*/
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-
+    const { email, password } = req.body || {};
     if (!email || !password)
       return res.status(400).json({ error: "Missing credentials" });
 
-    if (password !== "1234")
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Load universal password for students/supervisors
+    const UNIV_PASS = process.env.STUDENT_SUPERVISOR_PASSWORD || "1234";
+
+    if (password !== UNIV_PASS)
       return res.status(401).json({ error: "Wrong password" });
 
-    const cleanEmail = email.toLowerCase().trim();
+    // Read Google Sheet
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    // Check if email matches student
+    // Check student row
     const student = rows.find(
-      (r) =>
-        (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail
+      r => (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail
     );
 
-    // Check if email matches supervisor
+    // Check supervisor row
     const supervisor = rows.find(
-      (r) =>
-        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
+      r => (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
     );
 
+    // No match
     if (!student && !supervisor)
       return res.status(401).json({ error: "Email not found in system" });
 
+    // Determine role
     const role = supervisor ? "supervisor" : "student";
 
-    // JWT Token
+    // Create token
     const token = jwt.sign(
       { email: cleanEmail, role },
       process.env.JWT_SECRET,
@@ -49,63 +55,47 @@ router.post("/login", async (req, res) => {
     );
 
     return res.json({ token, role });
+
   } catch (err) {
     console.error("LOGIN ERROR:", err);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: err.message });
   }
 });
 
+
 /* ============================================================
-   ADMIN LOGIN (EMAIL + PASSWORD FROM ENV)
-   - ADMIN_EMAIL
-   - ADMIN_PASSWORD
-   ------------------------------------------------------------
-   Env example:
-   ADMIN_EMAIL=ppbmsadmin@usm.my
-   ADMIN_PASSWORD=BAA1234
-   ============================================================ */
+   ADMIN LOGIN (separate credentials)
+===============================================================*/
 router.post("/admin-login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-
+    const { email, password } = req.body || {};
     if (!email || !password)
-      return res.status(400).json({ error: "Missing email or password" });
+      return res.status(400).json({ error: "Missing credentials" });
 
-    const cleanEmail = email.toLowerCase().trim();
+    const adminEmail = (process.env.ADMIN_EMAIL || "").toLowerCase().trim();
+    const adminPassword = process.env.ADMIN_PASSWORD || "";
 
-    // Load ENV credentials
-    const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").toLowerCase().trim();
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
-
-    // Validate env variables exist
-    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-      console.error("❌ ADMIN_EMAIL or ADMIN_PASSWORD not set in server environment");
-      return res.status(500).json({
-        error: "Admin login is not configured on the server (missing env variables)",
-      });
+    if (!adminEmail || !adminPassword) {
+      return res.status(500).json({ error: "Admin credentials missing" });
     }
 
-    // Validate email
-    if (cleanEmail !== ADMIN_EMAIL) {
-      return res.status(401).json({ error: "Email not recognized as admin" });
-    }
-
-    // Validate password
-    if (password !== ADMIN_PASSWORD) {
+    // Compare login input with env
+    if (email.toLowerCase().trim() !== adminEmail || password !== adminPassword) {
       return res.status(401).json({ error: "Wrong password" });
     }
 
-    // Issue token
+    // Generate token for admin
     const token = jwt.sign(
-      { email: cleanEmail, role: "admin" },
+      { email: adminEmail, role: "admin" },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
     return res.json({ token, role: "admin" });
+
   } catch (err) {
     console.error("ADMIN LOGIN ERROR:", err);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: err.message });
   }
 });
 
