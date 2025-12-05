@@ -6,12 +6,13 @@ import { useRouter } from "next/router";
 export default function SupervisorLogin() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   async function login(e) {
     e.preventDefault();
     setError("");
+
+    const password = "1234"; // 🔥 fixed password required by backend
 
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
@@ -24,13 +25,11 @@ export default function SupervisorLogin() {
 
       if (!res.ok) return setError(json.error || "Login failed");
 
-      // Save token
       localStorage.setItem("ppbms_token", json.token);
 
-      // Redirect to supervisor dashboard
       router.push("/supervisor");
     } catch (err) {
-      setError("Unable to login");
+      setError("Unable to connect to server");
     }
   }
 
@@ -45,14 +44,7 @@ export default function SupervisorLogin() {
           className="w-full border p-2 rounded"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border p-2 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          required
         />
 
         <button className="w-full bg-purple-600 text-white py-2 rounded">
