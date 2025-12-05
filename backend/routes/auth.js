@@ -53,27 +53,35 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// ADMIN LOGIN (uses .env)
+// ADMIN LOGIN (env-backed, safer messages)
 router.post("/admin-login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Missing email or password" });
+    }
 
-    if (!email || !password)
-      return res.status(400).json({ error: "Missing credentials" });
+    const cleanEmail = String(email).toLowerCase().trim();
 
-    const cleanEmail = email.toLowerCase().trim();
-
-    // Read from .env
+    // Read from env
     const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").toLowerCase().trim();
     const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 
-    // Check email
-    if (cleanEmail !== ADMIN_EMAIL) {
-      return res.status(401).json({ error: "Not an admin" });
+    // Fail early if env not set (helps debug)
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      console.error("ADMIN login attempt but ADMIN_EMAIL or ADMIN_PASSWORD not configured in env");
+      return res.status(500).json({ error: "Admin credentials are not configured on the server" });
     }
 
-    // Check password
+    // Check email
+    if (cleanEmail !== ADMIN_EMAIL) {
+      return res.status(401).json({ error: "Email not recognized as admin" });
+    }
+
+    // Check password (exact match)
     if (password !== ADMIN_PASSWORD) {
+      // don't log password; but log that it failed for debugging
+      console.warn(`Failed admin password attempt for ${cleanEmail}`);
       return res.status(401).json({ error: "Wrong password" });
     }
 
@@ -85,7 +93,6 @@ router.post("/admin-login", async (req, res) => {
     );
 
     return res.json({ token, role: "admin" });
-
   } catch (err) {
     console.error("ADMIN LOGIN ERROR:", err);
     return res.status(500).json({ error: "Server error" });
