@@ -7,46 +7,75 @@ export default function SupervisorStudentDetails() {
   const router = useRouter();
   const { email } = router.query;
 
-  const [data, setData] = useState(null);
+  const [student, setStudent] = useState(null);
+  const [documents, setDocuments] = useState([]);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (email) loadStudent();
+    if (email) loadAll();
   }, [email]);
 
-  async function loadStudent() {
+  async function loadAll() {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/supervisor/student/${email}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
-      });
+      const token = localStorage.getItem("ppbms_token");
 
-      const json = await res.json();
-      if (!res.ok) return setErr(json.error || "Failed to load student data");
+      /* =====================
+         STUDENT PROFILE
+      ===================== */
+      const resStudent = await fetch(
+        `${API_BASE}/api/supervisor/student/${email}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      // Backend must return { row: {...} }
-      setData(json.row);
-      setTimeline(json.row.timeline || []);
+      const studentJson = await resStudent.json();
+      if (!resStudent.ok) {
+        setErr(studentJson.error || "Failed to load student");
+        return;
+      }
+
+      setStudent(studentJson.row);
+      setTimeline(studentJson.row.timeline || []);
+
+      /* =====================
+         DOCUMENTS
+      ===================== */
+      const resDocs = await fetch(
+        `${API_BASE}/api/supervisor/documents/${email}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const docsJson = await resDocs.json();
+      setDocuments(Array.isArray(docsJson) ? docsJson : []);
 
     } catch (e) {
       console.error(e);
-      setErr("Unable to load student profile.");
+      setErr("Unable to load student data.");
     }
     setLoading(false);
   }
 
-  if (loading) return <div className="p-6 text-center text-gray-600">Loading…</div>;
-  if (err) return <div className="p-6 text-center text-red-600">{err}</div>;
-  if (!data) return <div className="p-6">No student data found.</div>;
+  if (loading)
+    return <div className="p-6 text-center text-gray-600">Loading…</div>;
+
+  if (err)
+    return <div className="p-6 text-center text-red-600">{err}</div>;
+
+  if (!student)
+    return <div className="p-6">No student data found.</div>;
+
+  const groupedDocs = groupBySection(documents);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
 
-      {/* Back Button */}
+      {/* Back */}
       <button
         className="text-purple-700 hover:underline mb-6"
         onClick={() => router.push("/supervisor")}
@@ -54,68 +83,80 @@ export default function SupervisorStudentDetails() {
         ← Back to Supervisor Dashboard
       </button>
 
-      {/* Page Title */}
+      {/* Title */}
       <h1 className="text-3xl font-extrabold text-gray-900 mb-6">
         Student Progress Overview
       </h1>
 
-      {/* ============================
-          PROFILE CARD
-      ============================= */}
-      <div className="bg-white shadow-card border border-gray-100 rounded-2xl p-6 mb-10">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          {data.student_name}
-        </h2>
+      {/* ================= PROFILE ================= */}
+      <div className="bg-white shadow border rounded-2xl p-6 mb-10">
+        <h2 className="text-2xl font-bold mb-4">{student.student_name}</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
-          <p><strong>Email:</strong> {data.email}</p>
-          <p><strong>Matric:</strong> {data.student_id}</p>
-          <p><strong>Programme:</strong> {data.programme}</p>
-          <p><strong>Field:</strong> {data.field}</p>
-          <p><strong>Department:</strong> {data.department}</p>
-          <p><strong>Start Date:</strong> {data.start_date}</p>
-          <p><strong>Main Supervisor:</strong> {data.supervisor}</p>
-          <p><strong>Co-Supervisor(s):</strong> {data.cosupervisor || "-"}</p>
+          <p><strong>Email:</strong> {student.email}</p>
+          <p><strong>Matric:</strong> {student.student_id}</p>
+          <p><strong>Programme:</strong> {student.programme}</p>
+          <p><strong>Field:</strong> {student.field}</p>
+          <p><strong>Department:</strong> {student.department}</p>
+          <p><strong>Start Date:</strong> {student.start_date}</p>
+          <p><strong>Main Supervisor:</strong> {student.supervisor}</p>
+          <p><strong>Co-Supervisor(s):</strong> {student.cosupervisor || "-"}</p>
         </div>
       </div>
 
-      {/* ============================
-          DOCUMENT SECTION
-      ============================= */}
+      {/* ================= DOCUMENTS ================= */}
       <div className="mb-10">
         <h3 className="text-xl font-bold mb-4 text-purple-700">
           📄 Submitted Documents
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.keys(groupedDocs).length === 0 && (
+          <p className="text-gray-500">No documents submitted yet.</p>
+        )}
 
-          <DocumentCard
-            title="Development Plan & Learning Contract (DPLC)"
-            url={data.documents?.dplc}
-          />
+        {Object.entries(groupedDocs).map(([section, items]) => (
+          <div
+            key={section}
+            className="bg-white border rounded-2xl p-4 mb-5"
+          >
+            <h4 className="font-semibold mb-3">{section}</h4>
 
-          <DocumentCard
-            title="Annual Progress Review (Year 1)"
-            url={data.documents?.apr1}
-          />
+            <ul className="space-y-2">
+              {items.map(doc => (
+                <li
+                  key={doc.document_id}
+                  className="flex justify-between items-center border-b pb-2"
+                >
+                  <span className="text-sm">
+                    {doc.file_url ? "✅" : "⬜"} {doc.document_type}
+                  </span>
 
-          <DocumentCard
-            title="Annual Progress Review (Year 2)"
-            url={data.documents?.apr2}
-          />
-
-          <DocumentCard
-            title="Final Progress Review (Year 3)"
-            url={data.documents?.fpr3}
-          />
-        </div>
+                  {doc.file_url ? (
+                    <a
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-purple-600 text-sm hover:underline"
+                    >
+                      View →
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-400">
+                      Not submitted
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
 
-      {/* ============================
-          TIMELINE TABLE
-      ============================= */}
-      <div className="bg-white border border-gray-100 shadow-card rounded-2xl p-6">
-        <h3 className="text-lg font-bold mb-4">📅 Expected vs Actual Timeline</h3>
+      {/* ================= TIMELINE ================= */}
+      <div className="bg-white border shadow rounded-2xl p-6">
+        <h3 className="text-lg font-bold mb-4">
+          📅 Expected vs Actual Timeline
+        </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -134,7 +175,7 @@ export default function SupervisorStudentDetails() {
                 const late = !t.actual && t.remaining_days < 0;
 
                 return (
-                  <tr key={i} className="border-t hover:bg-gray-50">
+                  <tr key={i} className="border-t">
                     <td className="p-3">{t.activity}</td>
                     <td className="p-3">{t.expected || "-"}</td>
                     <td className="p-3">{t.actual || "-"}</td>
@@ -142,7 +183,7 @@ export default function SupervisorStudentDetails() {
                     <td className="p-3">
                       <span
                         className={
-                          "px-2 py-1 text-xs font-semibold rounded-full " +
+                          "px-2 py-1 text-xs rounded-full font-semibold " +
                           (t.status === "Completed"
                             ? "bg-green-100 text-green-700"
                             : late
@@ -161,7 +202,6 @@ export default function SupervisorStudentDetails() {
                 );
               })}
             </tbody>
-
           </table>
         </div>
       </div>
@@ -169,25 +209,11 @@ export default function SupervisorStudentDetails() {
   );
 }
 
-/* =======================================
-      Document Card Component
-======================================= */
-function DocumentCard({ title, url }) {
-  return (
-    <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow">
-      <h4 className="font-semibold text-gray-900 mb-2">{title}</h4>
-
-      {url ? (
-        <a
-          href={url}
-          target="_blank"
-          className="text-purple-600 font-medium hover:underline"
-        >
-          View Document →
-        </a>
-      ) : (
-        <p className="text-gray-400 text-sm">No document submitted yet.</p>
-      )}
-    </div>
-  );
+/* ================= UTIL ================= */
+function groupBySection(docs) {
+  return docs.reduce((acc, d) => {
+    acc[d.section] = acc[d.section] || [];
+    acc[d.section].push(d);
+    return acc;
+  }, {});
 }
