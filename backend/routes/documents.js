@@ -4,6 +4,7 @@ import verifyToken from "../middleware/verifyToken.js";
 import {
   getMyDocuments,
   uploadDocument,
+  getDocumentById
 } from "../services/documentsService.js";
 
 const router = express.Router();
@@ -11,32 +12,16 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * GET my submitted documents
- * IMPORTANT:
- * - Must ALWAYS return an array
- * - Never return { error } for this endpoint
  */
 router.get("/my", verifyToken, async (req, res) => {
   try {
     const email = req.user?.email;
-
-    if (!email) {
-      // Safety: no email → return empty list
-      return res.status(200).json([]);
-    }
+    if (!email) return res.status(200).json([]);
 
     const docs = await getMyDocuments(email);
-
-    // Safety: ensure array
-    if (!Array.isArray(docs)) {
-      return res.status(200).json([]);
-    }
-
-    res.status(200).json(docs);
+    res.status(200).json(Array.isArray(docs) ? docs : []);
   } catch (err) {
     console.error("GET /api/documents/my failed:", err);
-
-    // ⬇️ CRITICAL DESIGN CHOICE
-    // Frontend must never crash due to documents
     res.status(200).json([]);
   }
 });
@@ -75,17 +60,12 @@ router.post(
 router.get("/:id", verifyToken, async (req, res) => {
   try {
     const doc = await getDocumentById(req.params.id);
-
-    if (!doc) {
-      return res.status(404).json({ error: "Document not found" });
-    }
-
+    if (!doc) return res.status(404).json({ error: "Document not found" });
     res.json(doc);
   } catch (err) {
     console.error("GET /api/documents/:id failed", err);
     res.status(500).json({ error: "Failed to load document" });
   }
 });
-
 
 export default router;
