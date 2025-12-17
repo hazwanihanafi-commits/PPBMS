@@ -9,22 +9,32 @@ export default function StudentPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    load();
+    if (typeof window !== "undefined") {
+      load();
+    }
   }, []);
 
   async function load() {
     setLoading(true);
+
+    const token = localStorage.getItem("ppbms_token");
+    if (!token) {
+      setError("Not authenticated");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/student/me`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await res.json();
 
-      if (data.error) {
-        setError(data.error);
+      if (!res.ok || data.error) {
+        setError(data.error || "Failed to load student data");
       } else {
         setProfile(data.row);
         setTimeline(data.row.timeline || []);
@@ -33,10 +43,14 @@ export default function StudentPage() {
       console.error(e);
       setError("Unable to load student data.");
     }
+
     setLoading(false);
   }
 
   async function markCompleted(activity) {
+    const token = localStorage.getItem("ppbms_token");
+    if (!token) return;
+
     const date = new Date().toISOString().slice(0, 10);
 
     try {
@@ -44,20 +58,15 @@ export default function StudentPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ activity, date }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        alert("Failed: " + (data.error || "Unknown error"));
-        return;
-      }
-
-      load();
-    } catch (e) {
-      alert("Failed to update actual date");
+      if (res.ok) load();
+      else alert("Failed to update actual date");
+    } catch {
+      alert("Failed to update");
     }
   }
 
@@ -105,16 +114,30 @@ export default function StudentPage() {
           {profile.student_name}
         </h2>
 
-        <p className="text-gray-600 mb-1">{profile.email}</p>
+        <p className="text-gray-600 mb-1">
+          <strong>Matric:</strong> {profile.matric}
+        </p>
+
+        <p className="text-gray-600 mb-1">
+          <strong>Email:</strong> {profile.email}
+        </p>
+
         <p className="text-gray-600 mb-1">
           <strong>Programme:</strong> {profile.programme}
         </p>
-        <p className="text-gray-600 mb-1">
-          <strong>Supervisor:</strong> {profile.supervisor}
-        </p>
+
         <p className="text-gray-600 mb-1">
           <strong>Field:</strong> {profile.field}
         </p>
+
+        <p className="text-gray-600 mb-1">
+          <strong>Department:</strong> {profile.department}
+        </p>
+
+        <p className="text-gray-600 mb-1">
+          <strong>Main Supervisor:</strong> {profile.supervisor}
+        </p>
+
         <p className="text-gray-600 mb-4">
           <strong>Start Date:</strong> {profile.start_date}
         </p>
@@ -143,7 +166,7 @@ export default function StudentPage() {
           STUDENT CHECKLIST (A–F)
       =============================== */}
       <div className="mb-10">
-        <ChecklistPage />
+        <Checklist />
       </div>
 
       {/* ===============================
