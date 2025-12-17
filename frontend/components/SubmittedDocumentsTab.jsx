@@ -1,123 +1,165 @@
 import { useEffect, useState } from "react";
-import { apiGet, apiPost } from "../utils/api";
+import { API_BASE } from "../utils/api";
 
-const ITEMS = [
-  "Development Plan & Learning Contract (DPLC)",
-  "Student Supervision Logbook",
-  "Annual Progress Review – Year 1",
-  "Annual Progress Review – Year 2",
-  "Annual Progress Review – Year 3 (Final Year)",
+/**
+ * Document definitions (same for Student & Supervisor)
+ */
+const DOCUMENTS = [
+  {
+    section: "Monitoring & Supervision",
+    items: [
+      "Development Plan & Learning Contract (DPLC)",
+      "Student Supervision Logbook",
+      "Annual Progress Review – Year 1",
+      "Annual Progress Review – Year 2",
+      "Annual Progress Review – Year 3 (Final Year)",
+    ],
+  },
 ];
 
 export default function SubmittedDocumentsTab() {
-  const [docs, setDocs] = useState({});
-  const [inputs, setInputs] = useState({}); // 🔑 PER-ITEM STATE
+  const [docs, setDocs] = useState([]);
+  const [links, setLinks] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiGet("/api/documents/my").then((rows) => {
-      const map = {};
-      rows.forEach((r) => {
-        map[r.document_type] = r;
-      });
-      setDocs(map);
-      setLoading(false);
-    });
+    loadDocs();
   }, []);
 
-  function onChange(item, value) {
-    setInputs((prev) => ({ ...prev, [item]: value }));
+  async function loadDocs() {
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/my`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
+      });
+      const data = await res.json();
+      setDocs(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("Failed to load documents", e);
+      setDocs([]);
+    }
+    setLoading(false);
   }
 
-  async function saveLink(item) {
-    const link = inputs[item]?.trim();
+  function getDoc(type) {
+    return docs.find(
+      (d) => d.document_type === type && d.status !== "removed"
+    );
+  }
 
-    if (!link) {
+  async function saveLink(section, type) {
+    const url = links[type];
+    if (!url) {
       alert("Paste a link first");
       return;
     }
 
-    const saved = await apiPost("/api/documents/save-link", {
-      document_type: item,
-      file_url: link,
-      section: "Monitoring & Supervision",
+    await fetch(`${API_BASE}/api/documents/save-link`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+      },
+      body: JSON.stringify({
+        section,
+        document_type: type,
+        file_url: url,
+      }),
     });
 
-    setDocs((prev) => ({ ...prev, [item]: saved }));
-    setInputs((prev) => ({ ...prev, [item]: "" }));
+    setLinks((p) => ({ ...p, [type]: "" }));
+    loadDocs();
   }
 
-  async function removeDoc(item) {
+  async function removeDoc(id) {
     if (!confirm("Remove this document?")) return;
 
-    await apiPost("/api/documents/remove", {
-      document_type: item,
+    await fetch(`${API_BASE}/api/documents/remove`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+      },
+      body: JSON.stringify({ document_id: id }),
     });
 
-    setDocs((prev) => {
-      const copy = { ...prev };
-      delete copy[item];
-      return copy;
-    });
+    loadDocs();
   }
 
-  if (loading) return <p>Loading documents…</p>;
+  if (loading) {
+    return <p className="text-gray-500">Loading documents…</p>;
+  }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">📄 Submitted Documents</h3>
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">📄 Submitted Documents</h2>
 
-      {ITEMS.map((item) => {
-        const doc = docs[item];
+      {DOCUMENTS.map((group) => (
+        <div
+          key={group.section}
+          className="bg-white border rounded-2xl p-5 shadow"
+        >
+          <h3 className="font-semibold mb-4">{group.section}</h3>
 
-        return (
-          <div
-            key={item}
-            className="border rounded-lg p-3 bg-white space-y-2"
-          >
-            <div className="font-medium">
-              {doc ? "✅" : "⬜"} {item}
-            </div>
+          <ul className="space-y-3">
+            {group.items.map((type) => {
+              const doc = getDoc(type);
 
-            {doc ? (
-              <div className="flex gap-3 text-sm">
-                <a
-                  href={doc.file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-purple-600 underline"
+              return (
+                <li
+                  key={type}
+                  className="border-b pb-3 flex flex-col gap-2"
                 >
-                  View
-                </a>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">
+                      {doc ? "✅" : "⬜"} {type}
+                    </span>
 
-                <button
-                  onClick={() => removeDoc(item)}
-                  className="text-red-500"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={inputs[item] || ""}
-                  onChange={(e) => onChange(item, e.target.value)}
-                  placeholder="Paste document link (https://...)"
-                  className="flex-1 border rounded px-2 py-1 text-sm"
-                />
+                    {doc && (
+                      <div className="flex gap-4 text-sm">
+                        <a
+                          href={doc.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-600"
+                        >
+                          View
+                        </a>
+                        <button
+                          onClick={() => removeDoc(doc.document_id)}
+                          className="text-red-600"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                <button
-                  onClick={() => saveLink(item)}
-                  className="bg-purple-600 text-white px-3 rounded text-sm"
-                >
-                  Save
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  {/* Paste link input */}
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="Paste document link (https://...)"
+                      value={links[type] || ""}
+                      onChange={(e) =>
+                        setLinks((p) => ({ ...p, [type]: e.target.value }))
+                      }
+                      className="flex-1 border rounded px-3 py-1 text-sm"
+                    />
+                    <button
+                      onClick={() => saveLink(group.section, type)}
+                      className="px-4 py-1 bg-purple-600 text-white rounded text-sm"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
