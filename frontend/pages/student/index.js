@@ -1,6 +1,7 @@
 // frontend/pages/student/index.js
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
+import SubmittedDocumentsTab from "../../components/SubmittedDocumentsTab";
 
 export default function StudentPage() {
   const [profile, setProfile] = useState(null);
@@ -16,7 +17,9 @@ export default function StudentPage() {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/student/me`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("ppbms_token")}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
       });
 
       const data = await res.json();
@@ -55,11 +58,22 @@ export default function StudentPage() {
     }
   }
 
-  if (loading) return <div className="p-6 text-center text-gray-600">Loading student data…</div>;
-  if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
-  if (!profile) return <div className="p-6">No profile found.</div>;
+  if (loading)
+    return (
+      <div className="p-6 text-center text-gray-600">
+        Loading student data…
+      </div>
+    );
 
-  // Progress %
+  if (error)
+    return (
+      <div className="p-6 text-center text-red-600">{error}</div>
+    );
+
+  if (!profile)
+    return <div className="p-6">No profile found.</div>;
+
+  // Overall progress %
   const progress = timeline.length
     ? Math.round(
         (timeline.filter((t) => t.status === "Completed").length /
@@ -98,8 +112,12 @@ export default function StudentPage() {
         {/* PROGRESS BAR */}
         <div className="mt-4">
           <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium text-gray-700">Overall Progress</span>
-            <span className="text-sm font-semibold text-purple-700">{progress}%</span>
+            <span className="text-sm font-medium text-gray-700">
+              Overall Progress
+            </span>
+            <span className="text-sm font-semibold text-purple-700">
+              {progress}%
+            </span>
           </div>
 
           <div className="w-full bg-gray-200 h-3 rounded-full">
@@ -111,91 +129,16 @@ export default function StudentPage() {
         </div>
       </div>
 
-{/* ================================
-     DOCUMENTS SECTION (JOTFORM)
-================================ */}
-<div className="mb-10">
-  <h3 className="text-xl font-bold mb-4 text-purple-700">
-    📄 Submitted Documents
-  </h3>
+      {/* ================================
+          SUBMITTED DOCUMENTS (PPBMS)
+      ================================ */}
+      <div className="mb-10">
+        <SubmittedDocumentsTab />
+      </div>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-    {/* DPLC */}
-    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
-      <h4 className="font-semibold text-gray-800 mb-2">
-        Development Plan & Learning Contract (DPLC)
-      </h4>
-      {profile.documents?.dplc ? (
-        <a
-          href={profile.documents.dplc}
-          target="_blank"
-          className="text-purple-600 font-medium hover:underline"
-        >
-          View Document →
-        </a>
-      ) : (
-        <p className="text-gray-400 text-sm">No document submitted yet.</p>
-      )}
-    </div>
-
-    {/* APR 1 */}
-    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
-      <h4 className="font-semibold text-gray-800 mb-2">
-        Annual Progress Review (Year 1)
-      </h4>
-      {profile.documents?.apr1 ? (
-        <a
-          href={profile.documents.apr1}
-          target="_blank"
-          className="text-purple-600 font-medium hover:underline"
-        >
-          View Document →
-        </a>
-      ) : (
-        <p className="text-gray-400 text-sm">No document submitted yet.</p>
-      )}
-    </div>
-
-    {/* APR 2 */}
-    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
-      <h4 className="font-semibold text-gray-800 mb-2">
-        Annual Progress Review (Year 2)
-      </h4>
-      {profile.documents?.apr2 ? (
-        <a
-          href={profile.documents.apr2}
-          target="_blank"
-          className="text-purple-600 font-medium hover:underline"
-        >
-          View Document →
-        </a>
-      ) : (
-        <p className="text-gray-400 text-sm">No document submitted yet.</p>
-      )}
-    </div>
-
-    {/* FPR Year 3 */}
-    <div className="p-4 bg-white rounded-2xl shadow card border border-gray-100">
-      <h4 className="font-semibold text-gray-800 mb-2">
-        Final Progress Review (Year 3)
-      </h4>
-      {profile.documents?.fpr3 ? (
-        <a
-          href={profile.documents.fpr3}
-          target="_blank"
-          className="text-purple-600 font-medium hover:underline"
-        >
-          View Document →
-        </a>
-      ) : (
-        <p className="text-gray-400 text-sm">No document submitted yet.</p>
-      )}
-    </div>
-  </div>
-</div>
-
-      {/* TIMELINE TABLE */}
+      {/* ================================
+          EXPECTED vs ACTUAL TIMELINE
+      ================================ */}
       <div className="bg-white shadow-card rounded-2xl p-6 border border-gray-100">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
           📅 Expected vs Actual Timeline
@@ -222,8 +165,12 @@ export default function StudentPage() {
                 return (
                   <tr key={i} className="border-t hover:bg-gray-50">
                     <td className="p-3">{t.activity}</td>
-                    <td className="p-3 text-gray-700">{t.expected || "-"}</td>
-                    <td className="p-3 text-gray-700">{t.actual || "-"}</td>
+                    <td className="p-3 text-gray-700">
+                      {t.expected || "-"}
+                    </td>
+                    <td className="p-3 text-gray-700">
+                      {t.actual || "-"}
+                    </td>
 
                     {/* STATUS */}
                     <td
@@ -247,7 +194,7 @@ export default function StudentPage() {
                       {t.remaining_days}
                     </td>
 
-                    {/* ACTION BUTTON */}
+                    {/* ACTION */}
                     <td className="p-3">
                       {!t.actual && (
                         <button
