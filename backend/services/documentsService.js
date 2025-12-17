@@ -2,7 +2,7 @@ import { saveFileToStorage } from "./storage.js";
 import { readSheet, appendRow } from "./googleSheets.js";
 
 const SHEET_NAME = "DOCUMENTS";
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
+const SPREADSHEET_ID = process.env.SHEET_ID;
 
 /**
  * Get documents for logged-in student
