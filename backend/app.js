@@ -1,17 +1,20 @@
 import express from "express";
 import cors from "cors";
 
+
 import authRoutes from "./routes/auth.js";
 import studentRoutes from "./routes/student.js";
 import supervisorRoutes from "./routes/supervisor.js";
 import tasksRoutes from "./routes/tasks.js";
 import apiRoutes from "./routes/api.js";
 import adminRoutes from "./routes/admin.js";   // ✅ ADD THIS
+import documentsRoutes from "./routes/documents.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/documents", documentsRoutes);
 
 app.get("/", (req, res) => {
   res.json({ status: "Backend running", time: new Date() });
