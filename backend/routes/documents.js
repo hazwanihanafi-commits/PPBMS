@@ -69,4 +69,23 @@ router.post(
   }
 );
 
+/**
+ * View single document (for viewer page)
+ */
+router.get("/:id", verifyToken, async (req, res) => {
+  try {
+    const doc = await getDocumentById(req.params.id);
+
+    if (!doc) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+
+    res.json(doc);
+  } catch (err) {
+    console.error("GET /api/documents/:id failed", err);
+    res.status(500).json({ error: "Failed to load document" });
+  }
+});
+
+
 export default router;
