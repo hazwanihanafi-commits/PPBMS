@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiGet, apiUpload } from "../utils/api";
+import { apiGet, apiUpload, apiPost } from "../utils/api";
 
 const SECTIONS = [
   {
@@ -48,8 +48,6 @@ export default function SubmittedDocumentsTab() {
     async function loadDocuments() {
       try {
         const res = await apiGet("/api/documents/my");
-
-        // SAFETY: backend must always return array, but UI must be defensive
         const list = Array.isArray(res) ? res : [];
 
         const map = {};
@@ -61,10 +59,10 @@ export default function SubmittedDocumentsTab() {
 
         setDocs(map);
       } catch (err) {
-        console.error("Failed to load documents:", err);
+        console.error("Failed to load documents", err);
         setDocs({});
       } finally {
-        setLoading(false); // ⬅️ NEVER get stuck
+        setLoading(false);
       }
     }
 
@@ -83,6 +81,28 @@ export default function SubmittedDocumentsTab() {
     setDocs((prev) => ({ ...prev, [item]: saved }));
   }
 
+  async function handleRemove(item) {
+    const confirm = window.confirm(
+      `Are you sure you want to remove "${item}"?\nYou can upload a new file later.`
+    );
+    if (!confirm) return;
+
+    try {
+      // optimistic UI update
+      setDocs((prev) => {
+        const copy = { ...prev };
+        delete copy[item];
+        return copy;
+      });
+
+      // OPTIONAL backend call (recommended)
+      await apiPost("/api/documents/remove", { document_type: item });
+    } catch (err) {
+      alert("Failed to remove document.");
+      console.error(err);
+    }
+  }
+
   if (loading) {
     return <div className="text-gray-500">Loading documents…</div>;
   }
@@ -96,7 +116,9 @@ export default function SubmittedDocumentsTab() {
           <h3 className="font-medium mb-3">
             {sec.title}
             {sec.locked && (
-              <span className="ml-2 text-xs text-purple-600">(Locked)</span>
+              <span className="ml-2 text-xs text-purple-600">
+                (Structure Locked)
+              </span>
             )}
           </h3>
 
@@ -113,20 +135,20 @@ export default function SubmittedDocumentsTab() {
                     {doc ? "✅" : "⬜"} {item}
                   </span>
 
-                  {doc ? (
-                    <a
-                      href={doc.file_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 text-xs font-medium"
-                    >
-                      View
-                    </a>
-                  ) : sec.locked ? (
-                    <span className="text-xs text-gray-400">Auto</span>
-                  ) : (
+                  <div className="flex items-center gap-3">
+                    {doc && (
+                      <a
+                        href={doc.file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 text-xs font-medium"
+                      >
+                        View
+                      </a>
+                    )}
+
                     <label className="text-xs bg-purple-600 text-white px-3 py-1 rounded cursor-pointer">
-                      Upload
+                      {doc ? "Replace" : "Upload"}
                       <input
                         type="file"
                         className="hidden"
@@ -135,7 +157,16 @@ export default function SubmittedDocumentsTab() {
                         }
                       />
                     </label>
-                  )}
+
+                    {doc && (
+                      <button
+                        onClick={() => handleRemove(item)}
+                        className="text-xs text-red-500 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}
