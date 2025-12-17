@@ -1,10 +1,11 @@
 import { saveFileToStorage } from "./storage.js";
-import { appendRow, readSheet } from "./googleSheets.js";
+import { readSheet, appendRow } from "./googleSheets.js";
 
 const SHEET_NAME = "DOCUMENTS";
+const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 export async function getMyDocuments(studentEmail) {
-  const rows = await readSheet(SHEET_NAME);
+  const rows = await readSheet(SPREADSHEET_ID, SHEET_NAME);
 
   return rows
     .filter(r => r.student_email === studentEmail)
@@ -23,8 +24,10 @@ export async function uploadDocument({
   section,
   documentType,
 }) {
+  // 1️⃣ Upload to Google Drive
   const fileUrl = await saveFileToStorage(file);
 
+  // 2️⃣ Append metadata to DOCUMENTS sheet
   const row = {
     id: Date.now().toString(),
     student_email: studentEmail,
@@ -34,7 +37,7 @@ export async function uploadDocument({
     uploaded_at: new Date().toISOString(),
   };
 
-  await appendRow(SHEET_NAME, row);
+  await appendRow(SPREADSHEET_ID, SHEET_NAME, row);
 
   return row;
 }
