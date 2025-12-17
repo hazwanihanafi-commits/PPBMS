@@ -10,44 +10,55 @@ const ITEMS = [
 ];
 
 export default function SubmittedDocumentsTab() {
-  const [rows, setRows] = useState([]);
-  const [inputs, setInputs] = useState({});
+  const [docs, setDocs] = useState({});
+  const [inputs, setInputs] = useState({}); // 🔑 PER-ITEM STATE
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
+    apiGet("/api/documents/my").then((rows) => {
+      const map = {};
+      rows.forEach((r) => {
+        map[r.document_type] = r;
+      });
+      setDocs(map);
+      setLoading(false);
+    });
   }, []);
 
-  async function load() {
-    setLoading(true);
-    const data = await apiGet("/api/documents/my");
-    setRows(Array.isArray(data) ? data : []);
-    setLoading(false);
+  function onChange(item, value) {
+    setInputs((prev) => ({ ...prev, [item]: value }));
   }
 
-  function findDoc(type) {
-    return rows.find(r => r.document_type === type);
-  }
+  async function saveLink(item) {
+    const link = inputs[item]?.trim();
 
-  async function saveLink(type) {
-    const link = inputs[type]?.trim();
-    if (!link) return alert("Paste a link first");
+    if (!link) {
+      alert("Paste a link first");
+      return;
+    }
 
-    await apiPost("/api/documents/save-link", {
-      document_type: type,
+    const saved = await apiPost("/api/documents/save-link", {
+      document_type: item,
       file_url: link,
       section: "Monitoring & Supervision",
     });
 
-    setInputs(p => ({ ...p, [type]: "" }));
-    load(); // 🔥 reload from backend
+    setDocs((prev) => ({ ...prev, [item]: saved }));
+    setInputs((prev) => ({ ...prev, [item]: "" }));
   }
 
-  async function removeDoc(type) {
+  async function removeDoc(item) {
     if (!confirm("Remove this document?")) return;
 
-    await apiPost("/api/documents/remove", { document_type: type });
-    load(); // 🔥 reload from backend
+    await apiPost("/api/documents/remove", {
+      document_type: item,
+    });
+
+    setDocs((prev) => {
+      const copy = { ...prev };
+      delete copy[item];
+      return copy;
+    });
   }
 
   if (loading) return <p>Loading documents…</p>;
@@ -56,17 +67,20 @@ export default function SubmittedDocumentsTab() {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">📄 Submitted Documents</h3>
 
-      {ITEMS.map(type => {
-        const doc = findDoc(type);
+      {ITEMS.map((item) => {
+        const doc = docs[item];
 
         return (
-          <div key={type} className="border rounded-lg p-3 bg-white space-y-2">
+          <div
+            key={item}
+            className="border rounded-lg p-3 bg-white space-y-2"
+          >
             <div className="font-medium">
-              {doc ? "✅" : "⬜"} {type}
+              {doc ? "✅" : "⬜"} {item}
             </div>
 
             {doc ? (
-              <div className="flex gap-4 text-sm">
+              <div className="flex gap-3 text-sm">
                 <a
                   href={doc.file_url}
                   target="_blank"
@@ -75,8 +89,9 @@ export default function SubmittedDocumentsTab() {
                 >
                   View
                 </a>
+
                 <button
-                  onClick={() => removeDoc(type)}
+                  onClick={() => removeDoc(item)}
                   className="text-red-500"
                 >
                   Remove
@@ -86,15 +101,14 @@ export default function SubmittedDocumentsTab() {
               <div className="flex gap-2">
                 <input
                   type="url"
-                  value={inputs[type] || ""}
-                  onChange={e =>
-                    setInputs(p => ({ ...p, [type]: e.target.value }))
-                  }
+                  value={inputs[item] || ""}
+                  onChange={(e) => onChange(item, e.target.value)}
                   placeholder="Paste document link (https://...)"
                   className="flex-1 border rounded px-2 py-1 text-sm"
                 />
+
                 <button
-                  onClick={() => saveLink(type)}
+                  onClick={() => saveLink(item)}
                   className="bg-purple-600 text-white px-3 rounded text-sm"
                 >
                   Save
