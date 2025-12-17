@@ -13,7 +13,7 @@ const SECTIONS = [
       "Degree Scroll and Academic Transcript (Entry Qualification)",
       "EMGS Support Letter",
       "LKM100 / LKM111",
-      "TRX500,
+      "TRX500",
     ],
   },
   {
