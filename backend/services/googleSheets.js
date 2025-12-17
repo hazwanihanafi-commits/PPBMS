@@ -126,3 +126,49 @@ export async function writeStudentActual(sheetId, rowNumber, actualColumnName, u
 
   return true;
 }
+
+/* =========================================================
+   DOCUMENTS SHEET HELPERS (PPBMS – Fail Pelajar)
+   Safe to add – does NOT affect MasterTracking
+========================================================= */
+
+/** Read generic sheet into array of objects */
+export async function readSheet(sheetId, sheetName) {
+  const auth = getAuth(true);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: `${sheetName}!A1:ZZ999`,
+  });
+
+  const rows = res.data.values || [];
+  if (rows.length < 2) return [];
+
+  const header = rows[0].map(h => (h || "").toString());
+  return rows.slice(1).map((r) => {
+    const obj = {};
+    header.forEach((h, i) => (obj[h] = r[i] || ""));
+    return obj;
+  });
+}
+
+/** Append one row to a sheet (DOCUMENTS) */
+export async function appendRow(sheetId, sheetName, data) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: sheetId,
+    range: `${sheetName}!A1`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [Object.values(data)],
+    },
+  });
+
+  return true;
+}
+
