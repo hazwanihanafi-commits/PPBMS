@@ -3,34 +3,38 @@ import { apiGet, apiUpload } from "../utils/api";
 
 const SECTIONS = [
   {
-    title: "Maklumat Asas & Pendaftaran",
+    title: "Basic Information & Registration",
     locked: true,
     items: [
-      "Surat Tawaran",
-      "Salinan KP / Passport",
-      "Borang Pengesahan Pendaftaran",
-      "Profil Pelajar (SMU)",
-      "Skrol dan Transkrip (Kelayakan Masuk)",
-      "Surat Sokongan EMGS",
+      "Offer Letter",
+      "Copy of Identity Card / Passport",
+      "Registration Confirmation Form",
+      "Student Profile (SMU)",
+      "Degree Scroll and Academic Transcript (Entry Qualification)",
+      "EMGS Support Letter",
       "LKM100 / LKM111",
     ],
   },
   {
-    title: "Pemantauan & Penyeliaan",
+    title: "Monitoring & Supervision",
+    locked: false,
     items: [
       "Development Plan & Learning Contract (DPLC)",
-      "Buku Log Penyeliaan Pelajar",
-      "Laporan Kemajuan Pelajar (CampusOnline)",
+      "Student Supervision Logbook",
+      "Annual Progress Review Report – Year 1",
+      "Annual Progress Review Report – Year 2",
+      "Annual Progress Review Report – Year 3 (Final Year)",
     ],
   },
   {
-    title: "Tesis & Pemeriksaan",
+    title: "Thesis & Examination",
+    locked: false,
     items: [
-      "Borang Serahan Draf Tesis",
-      "Minit Jemaah Pemeriksaan Tesis",
-      "Keputusan Panel Pemeriksa",
-      "Laporan Pemeriksa Tesis",
-      "Borang Serah Tesis Mutakhir",
+      "Thesis Draft Submission Form",
+      "Minutes of the Thesis Examination Panel Meeting",
+      "Thesis Examination Panel Decision",
+      "Thesis Examiners’ Reports",
+      "Final Thesis Submission Form",
     ],
   },
 ];
@@ -40,12 +44,30 @@ export default function SubmittedDocumentsTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiGet("/api/documents/my").then((rows) => {
-      const map = {};
-      rows.forEach((r) => (map[r.document_type] = r));
-      setDocs(map);
-      setLoading(false);
-    });
+    async function loadDocuments() {
+      try {
+        const res = await apiGet("/api/documents/my");
+
+        // SAFETY: backend must always return array, but UI must be defensive
+        const list = Array.isArray(res) ? res : [];
+
+        const map = {};
+        list.forEach((r) => {
+          if (r?.document_type) {
+            map[r.document_type] = r;
+          }
+        });
+
+        setDocs(map);
+      } catch (err) {
+        console.error("Failed to load documents:", err);
+        setDocs({});
+      } finally {
+        setLoading(false); // ⬅️ NEVER get stuck
+      }
+    }
+
+    loadDocuments();
   }, []);
 
   async function handleUpload(item, section, file) {
@@ -80,6 +102,7 @@ export default function SubmittedDocumentsTab() {
           <ul className="space-y-2">
             {sec.items.map((item) => {
               const doc = docs[item];
+
               return (
                 <li
                   key={item}
@@ -94,7 +117,7 @@ export default function SubmittedDocumentsTab() {
                       href={doc.file_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-blue-600 text-xs"
+                      className="text-blue-600 text-xs font-medium"
                     >
                       View
                     </a>
