@@ -10,70 +10,44 @@ const ITEMS = [
 ];
 
 export default function SubmittedDocumentsTab() {
-  const [docs, setDocs] = useState({});
+  const [rows, setRows] = useState([]);
   const [inputs, setInputs] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDocs();
+    load();
   }, []);
 
-  /** 🔑 ALWAYS rebuild docs from backend */
-  async function loadDocs() {
+  async function load() {
     setLoading(true);
-
-    const rows = await apiGet("/api/documents/my");
-
-    const map = {};
-
-    // 👇 CRITICAL FIX: normalize + latest wins
-    rows.forEach((r) => {
-      if (!r.document_type) return;
-
-      const key = ITEMS.find(
-        (i) =>
-          i.toLowerCase().trim() ===
-          r.document_type.toLowerCase().trim()
-      );
-
-      if (key) {
-        map[key] = r; // overwrite = latest survives
-      }
-    });
-
-    setDocs(map);
+    const data = await apiGet("/api/documents/my");
+    setRows(Array.isArray(data) ? data : []);
     setLoading(false);
   }
 
-  function onChange(item, value) {
-    setInputs((prev) => ({ ...prev, [item]: value }));
+  function findDoc(type) {
+    return rows.find(r => r.document_type === type);
   }
 
-  async function saveLink(item) {
-    const link = inputs[item]?.trim();
-    if (!link) {
-      alert("Paste a link first");
-      return;
-    }
+  async function saveLink(type) {
+    const link = inputs[type]?.trim();
+    if (!link) return alert("Paste a link first");
 
     await apiPost("/api/documents/save-link", {
-      document_type: item,
+      document_type: type,
       file_url: link,
       section: "Monitoring & Supervision",
     });
 
-    setInputs((prev) => ({ ...prev, [item]: "" }));
-    loadDocs(); // ✅ FORCE reload → View persists
+    setInputs(p => ({ ...p, [type]: "" }));
+    load(); // 🔥 reload from backend
   }
 
-  async function removeDoc(item) {
+  async function removeDoc(type) {
     if (!confirm("Remove this document?")) return;
 
-    await apiPost("/api/documents/remove", {
-      document_type: item,
-    });
-
-    loadDocs(); // ✅ FORCE reload → state stays correct
+    await apiPost("/api/documents/remove", { document_type: type });
+    load(); // 🔥 reload from backend
   }
 
   if (loading) return <p>Loading documents…</p>;
@@ -82,20 +56,17 @@ export default function SubmittedDocumentsTab() {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">📄 Submitted Documents</h3>
 
-      {ITEMS.map((item) => {
-        const doc = docs[item];
+      {ITEMS.map(type => {
+        const doc = findDoc(type);
 
         return (
-          <div
-            key={item}
-            className="border rounded-lg p-3 bg-white space-y-2"
-          >
+          <div key={type} className="border rounded-lg p-3 bg-white space-y-2">
             <div className="font-medium">
-              {doc ? "✅" : "⬜"} {item}
+              {doc ? "✅" : "⬜"} {type}
             </div>
 
             {doc ? (
-              <div className="flex gap-3 text-sm">
+              <div className="flex gap-4 text-sm">
                 <a
                   href={doc.file_url}
                   target="_blank"
@@ -104,9 +75,8 @@ export default function SubmittedDocumentsTab() {
                 >
                   View
                 </a>
-
                 <button
-                  onClick={() => removeDoc(item)}
+                  onClick={() => removeDoc(type)}
                   className="text-red-500"
                 >
                   Remove
@@ -116,14 +86,15 @@ export default function SubmittedDocumentsTab() {
               <div className="flex gap-2">
                 <input
                   type="url"
-                  value={inputs[item] || ""}
-                  onChange={(e) => onChange(item, e.target.value)}
+                  value={inputs[type] || ""}
+                  onChange={e =>
+                    setInputs(p => ({ ...p, [type]: e.target.value }))
+                  }
                   placeholder="Paste document link (https://...)"
                   className="flex-1 border rounded px-2 py-1 text-sm"
                 />
-
                 <button
-                  onClick={() => saveLink(item)}
+                  onClick={() => saveLink(type)}
                   className="bg-purple-600 text-white px-3 rounded text-sm"
                 >
                   Save
