@@ -1,57 +1,46 @@
 import express from "express";
-import multer from "multer";
 import verifyToken from "../middleware/verifyToken.js";
-import {
-  getMyDocuments,
-  saveDocumentLink,
-  removeDocument
-} from "../services/documentsService.js";
+import { saveLink, getMyDocuments } from "../services/documentsService.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 /**
- * GET my submitted documents
+ * GET my documents
  */
 router.get("/my", verifyToken, async (req, res) => {
   try {
-    const email = req.user?.email;
-    if (!email) return res.status(200).json([]);
-
+    const email = req.user.email;
     const docs = await getMyDocuments(email);
-    res.status(200).json(Array.isArray(docs) ? docs : []);
-  } catch (err) {
-    console.error("GET /api/documents/my failed:", err);
-    res.status(200).json([]);
+    return res.json(docs);
+  } catch (e) {
+    console.error("GET /my error", e);
+    return res.json([]);
   }
 });
 
 /**
- * Upload document
+ * SAVE LINK (PASTE MODE)
  */
-router.post(
-  "/upload",
-  verifyToken,
-  upload.single("file"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
+router.post("/save-link", verifyToken, async (req, res) => {
+  try {
+    const { document_type, section, file_url } = req.body;
 
-      const doc = await uploadDocument({
-        file: req.file,
-        studentEmail: req.user.email,
-        section: req.body.section,
-        documentType: req.body.document_type,
-      });
-
-      res.status(200).json(doc);
-    } catch (err) {
-      console.error("POST /api/documents/upload failed:", err);
-      res.status(500).json({ error: "Upload failed" });
+    if (!file_url || !document_type) {
+      return res.status(400).json({ error: "Missing data" });
     }
+
+    const row = await saveLink({
+      studentEmail: req.user.email,
+      documentType: document_type,
+      section,
+      fileUrl: file_url,
+    });
+
+    return res.json(row);
+  } catch (e) {
+    console.error("POST /save-link error", e);
+    return res.status(500).json({ error: "Failed to save link" });
   }
-);
+});
 
 export default router;
