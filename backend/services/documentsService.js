@@ -1,38 +1,30 @@
 import crypto from "crypto";
-import { readSheet, appendRow } from "./googleSheets.js";
+import { readSheet, appendRow, writeSheetCell } from "./googleSheets.js";
 
+const SHEET = "DOCUMENTS";
 const SHEET_ID = process.env.SHEET_ID;
-const SHEET_NAME = "DOCUMENTS";
 
-/**
- * Get documents for student
- */
-export async function getMyDocuments(email) {
-  const rows = await readSheet(SHEET_ID, SHEET_NAME);
-
-  return rows
-    .filter(
-      r =>
-        r.student_email === email &&
-        r.status !== "removed"
-    )
-    .map(r => ({
-      document_type: r.document_type,
-      section: r.section,
-      file_url: r.file_url,
-      uploaded_at: r.uploaded_at,
-    }));
-}
-
-/**
- * Save pasted link
- */
-export async function saveLink({
+export async function saveDocumentLink({
   studentEmail,
-  documentType,
   section,
+  documentType,
   fileUrl,
 }) {
+  const rows = await readSheet(SHEET_ID, SHEET);
+
+  // 1️⃣ Supersede existing ACTIVE documents of same type
+  rows.forEach((r, idx) => {
+    if (
+      r.student_email === studentEmail &&
+      r.document_type === documentType &&
+      r.status === "active"
+    ) {
+      const rowNumber = idx + 2; // header + 1-indexed
+      writeSheetCell(SHEET_ID, "status", rowNumber, "superseded");
+    }
+  });
+
+  // 2️⃣ Insert NEW active row
   const row = {
     document_id: crypto.randomUUID(),
     student_email: studentEmail,
@@ -43,6 +35,6 @@ export async function saveLink({
     uploaded_at: new Date().toISOString(),
   };
 
-  await appendRow(SHEET_ID, SHEET_NAME, row);
+  await appendRow(SHEET_ID, SHEET, row);
   return row;
 }
