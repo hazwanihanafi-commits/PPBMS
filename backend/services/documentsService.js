@@ -1,70 +1,52 @@
-import crypto from "crypto"; // ✅ REQUIRED
+import crypto from "crypto";
 import { saveFileToStorage } from "./storage.js";
-import { readSheet, appendRow } from "./googleSheets.js";
+import { readSheet, appendRow, writeSheetCell } from "./googleSheets.js";
 
-const SHEET_NAME = "DOCUMENTS";
-const SPREADSHEET_ID = process.env.SHEET_ID;
+const SHEET = "DOCUMENTS";
+const SHEET_ID = process.env.SHEET_ID;
 
-/**
- * Get documents for logged-in student
- */
-export async function getMyDocuments(studentEmail) {
-  const rows = await readSheet(SPREADSHEET_ID, SHEET_NAME);
-
-  return rows
-    .filter((r) => r.student_email === studentEmail && r.status !== "removed")
-    .map((r) => ({
-      document_id: r.document_id,
-      section: r.section,
-      document_type: r.document_type,
-      file_url: r.file_url,
-      uploaded_at: r.uploaded_at,
-    }));
-}
-
-/**
- * Get single document (for Viewer page)
- */
-export async function getDocumentById(documentId) {
-  const rows = await readSheet(SPREADSHEET_ID, SHEET_NAME);
-
-  const doc = rows.find(
-    (r) => r.document_id === documentId && r.status !== "removed"
-  );
-
-  if (!doc) return null;
-
-  return {
-    document_id: doc.document_id,
-    section: doc.section,
-    document_type: doc.document_type,
-    file_url: doc.file_url,
-    uploaded_at: doc.uploaded_at,
-    student_email: doc.student_email,
-  };
-}
-
-/**
- * Upload document
- */
-export async function uploadDocument({
+export async function replaceDocument({
   file,
   studentEmail,
   section,
   documentType,
+  uploadedBy = "student",
 }) {
+  const rows = await readSheet(SHEET_ID, SHEET);
+
+  const active = rows.find(
+    r =>
+      r.student_email === studentEmail &&
+      r.document_type === documentType &&
+      r.status === "active"
+  );
+
+  let nextVersion = 1;
+
+  // 1️⃣ Supersede old version
+  if (active) {
+    nextVersion = Number(active.version || 1) + 1;
+
+    const rowNumber = rows.indexOf(active) + 2; // +2 for header + 1-based
+    await writeSheetCell(SHEET_ID, "status", rowNumber, "superseded");
+  }
+
+  // 2️⃣ Upload new file
   const fileUrl = await saveFileToStorage(file);
 
+  // 3️⃣ Append new version
   const row = {
     document_id: crypto.randomUUID(),
     student_email: studentEmail,
     section,
     document_type: documentType,
     file_url: fileUrl,
+    version: nextVersion,
     status: "active",
+    uploaded_by: uploadedBy,
     uploaded_at: new Date().toISOString(),
   };
 
-  await appendRow(SPREADSHEET_ID, SHEET_NAME, row);
+  await appendRow(SHEET_ID, SHEET, row);
   return row;
 }
