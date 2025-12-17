@@ -4,27 +4,37 @@ import { readSheet, appendRow, writeSheetCell } from "./googleSheets.js";
 const SHEET = "DOCUMENTS";
 const SHEET_ID = process.env.SHEET_ID;
 
-export async function saveDocumentLink({
+/**
+ * ✅ Get documents for logged-in student
+ */
+export async function getMyDocuments(studentEmail) {
+  const rows = await readSheet(SHEET_ID, SHEET);
+
+  return rows.filter(
+    r => r.student_email === studentEmail && r.status === "active"
+  );
+}
+
+/**
+ * ✅ Get documents for supervisor (by student email)
+ */
+export async function getDocumentsByStudent(studentEmail) {
+  const rows = await readSheet(SHEET_ID, SHEET);
+
+  return rows.filter(
+    r => r.student_email === studentEmail && r.status === "active"
+  );
+}
+
+/**
+ * ✅ Save pasted document link (NO Google Drive upload)
+ */
+export async function saveLink({
   studentEmail,
   section,
   documentType,
   fileUrl,
 }) {
-  const rows = await readSheet(SHEET_ID, SHEET);
-
-  // 1️⃣ Supersede existing ACTIVE documents of same type
-  rows.forEach((r, idx) => {
-    if (
-      r.student_email === studentEmail &&
-      r.document_type === documentType &&
-      r.status === "active"
-    ) {
-      const rowNumber = idx + 2; // header + 1-indexed
-      writeSheetCell(SHEET_ID, "status", rowNumber, "superseded");
-    }
-  });
-
-  // 2️⃣ Insert NEW active row
   const row = {
     document_id: crypto.randomUUID(),
     student_email: studentEmail,
