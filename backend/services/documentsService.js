@@ -1,3 +1,4 @@
+import crypto from "crypto"; // ✅ REQUIRED
 import { saveFileToStorage } from "./storage.js";
 import { readSheet, appendRow } from "./googleSheets.js";
 
@@ -13,7 +14,7 @@ export async function getMyDocuments(studentEmail) {
   return rows
     .filter((r) => r.student_email === studentEmail && r.status !== "removed")
     .map((r) => ({
-      document_id: r.document_id, // ✅ CONSISTENT
+      document_id: r.document_id,
       section: r.section,
       document_type: r.document_type,
       file_url: r.file_url,
@@ -44,7 +45,7 @@ export async function getDocumentById(documentId) {
 }
 
 /**
- * Upload (or replace) document
+ * Upload document
  */
 export async function uploadDocument({
   file,
@@ -52,12 +53,10 @@ export async function uploadDocument({
   section,
   documentType,
 }) {
-  // 1️⃣ Upload to Google Drive
   const fileUrl = await saveFileToStorage(file);
 
-  // 2️⃣ Prepare metadata row
   const row = {
-    document_id: crypto.randomUUID(), // ✅ STRONG ID
+    document_id: crypto.randomUUID(),
     student_email: studentEmail,
     section,
     document_type: documentType,
@@ -66,8 +65,6 @@ export async function uploadDocument({
     uploaded_at: new Date().toISOString(),
   };
 
-  // 3️⃣ Save to DOCUMENTS sheet
   await appendRow(SPREADSHEET_ID, SHEET_NAME, row);
-
   return row;
 }
