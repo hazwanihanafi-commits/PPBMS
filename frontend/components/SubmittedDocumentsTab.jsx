@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "../utils/api";
 
-/**
- * Canonical UI labels
- */
 const ITEMS = [
   "Development Plan & Learning Contract (DPLC)",
   "Student Supervision Logbook",
@@ -18,44 +15,33 @@ export default function SubmittedDocumentsTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDocuments();
+    loadDocs();
   }, []);
 
-  /**
-   * Load documents from backend
-   * Always rebuild state from server
-   */
-  async function loadDocuments() {
+  /** 🔑 ALWAYS rebuild docs from backend */
+  async function loadDocs() {
     setLoading(true);
 
-    try {
-      const rows = await apiGet("/api/documents/my");
+    const rows = await apiGet("/api/documents/my");
 
-      const map = {};
+    const map = {};
 
-      // 🔑 IMPORTANT:
-      // Match by "includes", not exact equality
-      ITEMS.forEach((label) => {
-        const found = rows
-          .filter(
-            (r) =>
-              (r.document_type || "")
-                .toLowerCase()
-                .includes(label.toLowerCase())
-          )
-          .pop(); // latest wins
+    // 👇 CRITICAL FIX: normalize + latest wins
+    rows.forEach((r) => {
+      if (!r.document_type) return;
 
-        if (found) {
-          map[label] = found;
-        }
-      });
+      const key = ITEMS.find(
+        (i) =>
+          i.toLowerCase().trim() ===
+          r.document_type.toLowerCase().trim()
+      );
 
-      setDocs(map);
-    } catch (e) {
-      console.error("Failed to load documents", e);
-      setDocs({});
-    }
+      if (key) {
+        map[key] = r; // overwrite = latest survives
+      }
+    });
 
+    setDocs(map);
     setLoading(false);
   }
 
@@ -63,9 +49,6 @@ export default function SubmittedDocumentsTab() {
     setInputs((prev) => ({ ...prev, [item]: value }));
   }
 
-  /**
-   * Save / replace link
-   */
   async function saveLink(item) {
     const link = inputs[item]?.trim();
     if (!link) {
@@ -80,12 +63,9 @@ export default function SubmittedDocumentsTab() {
     });
 
     setInputs((prev) => ({ ...prev, [item]: "" }));
-    loadDocuments(); // ✅ ALWAYS reload from backend
+    loadDocs(); // ✅ FORCE reload → View persists
   }
 
-  /**
-   * Remove document
-   */
   async function removeDoc(item) {
     if (!confirm("Remove this document?")) return;
 
@@ -93,10 +73,10 @@ export default function SubmittedDocumentsTab() {
       document_type: item,
     });
 
-    loadDocuments(); // ✅ ALWAYS reload from backend
+    loadDocs(); // ✅ FORCE reload → state stays correct
   }
 
-  if (loading) return <p className="text-gray-500">Loading documents…</p>;
+  if (loading) return <p>Loading documents…</p>;
 
   return (
     <div className="space-y-4">
@@ -114,13 +94,12 @@ export default function SubmittedDocumentsTab() {
               {doc ? "✅" : "⬜"} {item}
             </div>
 
-            {/* VIEW / REMOVE */}
             {doc ? (
-              <div className="flex gap-4 text-sm">
+              <div className="flex gap-3 text-sm">
                 <a
                   href={doc.file_url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noreferrer"
                   className="text-purple-600 underline"
                 >
                   View
@@ -134,7 +113,6 @@ export default function SubmittedDocumentsTab() {
                 </button>
               </div>
             ) : (
-              /* PASTE LINK */
               <div className="flex gap-2">
                 <input
                   type="url"
