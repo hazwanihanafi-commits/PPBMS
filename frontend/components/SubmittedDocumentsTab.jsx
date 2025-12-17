@@ -16,16 +16,13 @@ const SECTIONS = [
 
 export default function SubmittedDocumentsTab() {
   const [docs, setDocs] = useState({});
-  const [loading, setLoading] = useState(true);
   const [inputs, setInputs] = useState({});
-
-  useEffect(() => {
-    loadDocs();
-  }, []);
+  const [loading, setLoading] = useState(true);
 
   async function loadDocs() {
     const rows = await apiGet("/api/documents/my");
 
+    // 🔑 CRITICAL FIX: array → map
     const map = {};
     rows.forEach((r) => {
       map[r.document_type] = r;
@@ -35,12 +32,13 @@ export default function SubmittedDocumentsTab() {
     setLoading(false);
   }
 
+  useEffect(() => {
+    loadDocs();
+  }, []);
+
   async function saveLink(item, section) {
     const link = inputs[item];
-    if (!link || !link.startsWith("http")) {
-      alert("Please paste a valid link");
-      return;
-    }
+    if (!link) return alert("Paste a link first");
 
     await apiPost("/api/documents/save-link", {
       document_type: item,
@@ -53,86 +51,78 @@ export default function SubmittedDocumentsTab() {
   }
 
   async function removeDoc(item) {
-    if (!confirm("Remove this document?")) return;
-
     await apiPost("/api/documents/remove", {
       document_type: item,
     });
-
     loadDocs();
   }
 
-  if (loading) return <div className="text-gray-500">Loading documents…</div>;
+  if (loading) return <div>Loading documents…</div>;
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">📄 Submitted Documents</h2>
+      <h2 className="text-xl font-bold">📄 Submitted Documents</h2>
 
       {SECTIONS.map((sec) => (
-        <div key={sec.title} className="bg-white rounded-xl shadow p-5">
-          <h3 className="font-medium mb-4">{sec.title}</h3>
+        <div key={sec.title} className="bg-white rounded-xl p-5 shadow">
+          <h3 className="font-semibold mb-4">{sec.title}</h3>
 
-          <ul className="space-y-3">
-            {sec.items.map((item) => {
-              const doc = docs[item];
+          {sec.items.map((item) => {
+            const doc = docs[item];
 
-              return (
-                <li
-                  key={item}
-                  className="border-b pb-3 flex flex-col gap-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {doc ? "✅" : "⬜"} {item}
-                    </span>
+            return (
+              <div
+                key={item}
+                className="border-b py-3 flex flex-col gap-2"
+              >
+                <div className="font-medium">
+                  {doc ? "✅" : "⬜"} {item}
+                </div>
 
-                    {doc?.file_url && (
-                      <div className="flex gap-3 text-sm">
-                        <a
-                          href={doc.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-purple-600 underline"
-                        >
-                          View
-                        </a>
+                {doc ? (
+                  <div className="flex gap-3">
+                    <a
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-purple-600 underline"
+                    >
+                      View
+                    </a>
 
-                        <button
-                          onClick={() => removeDoc(item)}
-                          className="text-red-600"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => removeDoc(item)}
+                      className="text-red-600"
+                    >
+                      Remove
+                    </button>
                   </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Paste document link (https://...)"
+                      value={inputs[item] || ""}
+                      onChange={(e) =>
+                        setInputs((p) => ({
+                          ...p,
+                          [item]: e.target.value,
+                        }))
+                      }
+                      className="border rounded px-3 py-1 flex-1"
+                    />
 
-                  {!doc && (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Paste document link (https://...)"
-                        className="flex-1 border rounded px-3 py-1 text-sm"
-                        value={inputs[item] || ""}
-                        onChange={(e) =>
-                          setInputs((p) => ({
-                            ...p,
-                            [item]: e.target.value,
-                          }))
-                        }
-                      />
-                      <button
-                        onClick={() => saveLink(item, sec.title)}
-                        className="bg-purple-600 text-white px-4 py-1 rounded text-sm"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                    <button
+                      onClick={() => saveLink(item, sec.title)}
+                      className="bg-purple-600 text-white px-4 rounded"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>
