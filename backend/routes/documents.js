@@ -5,12 +5,13 @@ import {
   getDocumentsByStudent,
   saveLink,
 } from "../services/documentsService.js";
+import { updateChecklistCell } from "../services/masterTracking.js";
 
 const router = express.Router();
 
-/**
- * Student: get own documents
- */
+/* =====================================================
+   STUDENT: GET OWN SUBMISSION HISTORY (READ-ONLY)
+===================================================== */
 router.get("/my", verifyToken, async (req, res) => {
   try {
     const docs = await getMyDocuments(req.user.email);
@@ -21,9 +22,9 @@ router.get("/my", verifyToken, async (req, res) => {
   }
 });
 
-/**
- * Supervisor: get student documents
- */
+/* =====================================================
+   SUPERVISOR: GET STUDENT SUBMISSION HISTORY (READ-ONLY)
+===================================================== */
 router.get("/student/:email", verifyToken, async (req, res) => {
   try {
     const docs = await getDocumentsByStudent(req.params.email);
@@ -34,25 +35,52 @@ router.get("/student/:email", verifyToken, async (req, res) => {
   }
 });
 
-/**
- * Student: save pasted link
- */
+/* =====================================================
+   SAVE LINK (STUDENT / SUPERVISOR)
+   ✔ Documents Sheet (history)
+   ✔ Master Tracking (checklist)
+===================================================== */
 router.post("/save-link", verifyToken, async (req, res) => {
   try {
-    const { section, document_type, file_url } = req.body;
+    const {
+      section,
+      document_type,   // MUST match Master Tracking header (e.g. DPLC)
+      file_url,
+      student_email    // optional (for supervisor)
+    } = req.body;
 
-    if (!file_url) {
-      return res.status(400).json({ error: "Missing file URL" });
+    if (!file_url || !document_type) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Determine target student
+    const targetEmail =
+      req.user.role === "supervisor" && student_email
+        ? student_email
+        : req.user.email;
+
+    /* ---------- 1️⃣ SAVE HISTORY ---------- */
     const row = await saveLink({
-      studentEmail: req.user.email,
+      studentEmail: targetEmail,
       section,
       documentType: document_type,
       fileUrl: file_url,
+      uploadedBy: req.user.role
     });
 
-    res.json(row);
+    /* ---------- 2️⃣ UPDATE CHECKLIST ---------- */
+    await updateChecklistCell(
+      process.env.MASTER_TRACKING_SHEET_ID,
+      targetEmail,
+      document_type,  // header key
+      file_url
+    );
+
+    res.json({
+      ok: true,
+      document_key: document_type,
+      file_url
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Save failed" });
