@@ -1,61 +1,72 @@
-// frontend/components/SubmissionFolder.jsx
 import { useState } from "react";
-import { API_BASE } from "../utils/api";
+import { apiUpload } from "../utils/api";
 
-export default function SubmissionFolder({ raw = {}, studentEmail }) {
+export default function SubmissionFolder({ studentEmail }) {
   const [activity, setActivity] = useState("");
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
 
-  // derive activities from expected columns or actual pattern
-  const activities = Object.keys(raw)
-    .filter(k => k.endsWith(" - Actual"))
-    .map(k => k.replace(" - Actual", ""));
+  const activities = [
+    "Development Plan & Learning Contract (DPLC)",
+    "Annual Progress Review Report – Year 1",
+    "Annual Progress Review Report – Year 2",
+    "Annual Progress Review Report – Year 3 (Final Year)",
+  ];
 
   const handleUpload = async () => {
-    if (!activity) return setMessage("Choose activity");
+    if (!activity) return setMessage("Choose document");
     if (!file) return setMessage("Choose PDF");
-    if (!file.name.toLowerCase().endsWith(".pdf")) return setMessage("Only PDF allowed");
+    if (!file.name.toLowerCase().endsWith(".pdf"))
+      return setMessage("Only PDF allowed");
 
     setMessage("Uploading...");
-    const form = new FormData();
-    form.append("studentEmail", studentEmail);
-    form.append("activity", activity);
-    form.append("file", file);
 
-    const token = localStorage.getItem("ppbms_token") || "";
-    const res = await fetch(`${API_BASE}/tasks/upload`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form
-    });
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("document_type", activity);
+    fd.append("section", "Monitoring & Supervision");
 
-    const data = await res.json();
-    if (!res.ok) {
-      setMessage("Upload failed: " + (data.error || JSON.stringify(data)));
-      return;
+    try {
+      await apiUpload("/api/documents/upload", fd);
+      setMessage("Uploaded successfully");
+    } catch (err) {
+      console.error(err);
+      setMessage("Upload failed");
     }
-
-    setMessage("Uploaded successfully");
-    // Optionally refresh page to show Actual date
   };
 
   return (
-    <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 8 }}>
-      <h4>Upload document</h4>
+    <div className="p-4 border rounded">
+      <h4 className="font-semibold mb-2">Upload Document</h4>
 
-      <select value={activity} onChange={e => setActivity(e.target.value)}>
-        <option value="">-- Select activity --</option>
-        {activities.map(a => <option key={a} value={a}>{a}</option>)}
+      <select
+        value={activity}
+        onChange={(e) => setActivity(e.target.value)}
+        className="border p-1 mb-2 w-full"
+      >
+        <option value="">-- Select document --</option>
+        {activities.map((a) => (
+          <option key={a} value={a}>
+            {a}
+          </option>
+        ))}
       </select>
 
-      <div style={{ marginTop: 8 }}>
-        <input type="file" accept="application/pdf" onChange={e => setFile(e.target.files[0])} />
-      </div>
+      <input
+        type="file"
+        accept="application/pdf"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="mb-2"
+      />
 
-      <button onClick={handleUpload} style={{ marginTop: 8 }}>Upload PDF</button>
+      <button
+        onClick={handleUpload}
+        className="bg-purple-600 text-white px-3 py-1 rounded"
+      >
+        Upload PDF
+      </button>
 
-      {message && <div style={{ marginTop: 8 }}>{message}</div>}
+      {message && <div className="mt-2 text-sm">{message}</div>}
     </div>
   );
 }
