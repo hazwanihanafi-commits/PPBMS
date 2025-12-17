@@ -1,7 +1,6 @@
-// frontend/pages/student/index.js
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
-import SubmittedDocumentsTab from "../../components/SubmittedDocumentsTab";
+import ChecklistPage from "../ChecklistPage";
 
 export default function StudentPage() {
   const [profile, setProfile] = useState(null);
@@ -23,6 +22,7 @@ export default function StudentPage() {
       });
 
       const data = await res.json();
+
       if (data.error) {
         setError(data.error);
       } else {
@@ -30,8 +30,8 @@ export default function StudentPage() {
         setTimeline(data.row.timeline || []);
       }
     } catch (e) {
-      setError("Unable to load student data.");
       console.error(e);
+      setError("Unable to load student data.");
     }
     setLoading(false);
   }
@@ -50,28 +50,36 @@ export default function StudentPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) return alert("Failed: " + (data.error || JSON.stringify(data)));
+      if (!res.ok) {
+        alert("Failed: " + (data.error || "Unknown error"));
+        return;
+      }
 
       load();
     } catch (e) {
-      alert("Failed to update");
+      alert("Failed to update actual date");
     }
   }
 
-  if (loading)
+  if (loading) {
     return (
       <div className="p-6 text-center text-gray-600">
         Loading student data…
       </div>
     );
+  }
 
-  if (error)
+  if (error) {
     return (
-      <div className="p-6 text-center text-red-600">{error}</div>
+      <div className="p-6 text-center text-red-600">
+        {error}
+      </div>
     );
+  }
 
-  if (!profile)
+  if (!profile) {
     return <div className="p-6">No profile found.</div>;
+  }
 
   // Overall progress %
   const progress = timeline.length
@@ -89,7 +97,9 @@ export default function StudentPage() {
         🎓 Student Dashboard
       </h1>
 
-      {/* STUDENT CARD */}
+      {/* ===============================
+          STUDENT PROFILE CARD
+      =============================== */}
       <div className="bg-white shadow-card rounded-2xl p-6 mb-10 border border-gray-100">
         <h2 className="text-xl font-bold text-gray-900 mb-3">
           {profile.student_name}
@@ -129,16 +139,16 @@ export default function StudentPage() {
         </div>
       </div>
 
-      {/* ================================
-          SUBMITTED DOCUMENTS (PPBMS)
-      ================================ */}
+      {/* ===============================
+          STUDENT CHECKLIST (A–F)
+      =============================== */}
       <div className="mb-10">
-        <SubmittedDocumentsTab />
+        <ChecklistPage />
       </div>
 
-      {/* ================================
+      {/* ===============================
           EXPECTED vs ACTUAL TIMELINE
-      ================================ */}
+      =============================== */}
       <div className="bg-white shadow-card rounded-2xl p-6 border border-gray-100">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
           📅 Expected vs Actual Timeline
@@ -165,14 +175,9 @@ export default function StudentPage() {
                 return (
                   <tr key={i} className="border-t hover:bg-gray-50">
                     <td className="p-3">{t.activity}</td>
-                    <td className="p-3 text-gray-700">
-                      {t.expected || "-"}
-                    </td>
-                    <td className="p-3 text-gray-700">
-                      {t.actual || "-"}
-                    </td>
+                    <td className="p-3">{t.expected || "-"}</td>
+                    <td className="p-3">{t.actual || "-"}</td>
 
-                    {/* STATUS */}
                     <td
                       className={`p-3 font-medium ${
                         t.status === "Completed"
@@ -185,7 +190,6 @@ export default function StudentPage() {
                       {isLate ? "Delayed" : t.status}
                     </td>
 
-                    {/* REMAINING DAYS */}
                     <td
                       className={`p-3 ${
                         isLate ? "text-red-600 font-semibold" : ""
@@ -194,7 +198,6 @@ export default function StudentPage() {
                       {t.remaining_days}
                     </td>
 
-                    {/* ACTION */}
                     <td className="p-3">
                       {!t.actual && (
                         <button
