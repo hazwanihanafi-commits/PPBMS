@@ -1,40 +1,25 @@
+// frontend/components/SubmittedDocumentsTab.jsx
 import { useEffect, useState } from "react";
-import { apiGet, apiUpload, apiPost } from "../utils/api";
+import { apiGet, apiPost } from "../utils/api";
 
 const SECTIONS = [
   {
-    title: "Basic Information & Registration",
-    locked: true,
-    items: [
-      "Offer Letter",
-      "Copy of Identity Card / Passport",
-      "Registration Confirmation Form",
-      "Student Profile (SMU)",
-      "Degree Scroll and Academic Transcript (Entry Qualification)",
-      "EMGS Support Letter",
-      "LKM100 / LKM111",
-      "TRX500",
-    ],
-  },
-  {
-    title: "Monitoring & Supervision",
-    locked: false,
+    title: "📝 Monitoring & Supervision",
     items: [
       "Development Plan & Learning Contract (DPLC)",
       "Student Supervision Logbook",
-      "Annual Progress Review Report – Year 1",
-      "Annual Progress Review Report – Year 2",
-      "Annual Progress Review Report – Year 3 (Final Year)",
+      "Annual Progress Review – Year 1",
+      "Annual Progress Review – Year 2",
+      "Annual Progress Review – Year 3 (Final Year)",
     ],
   },
   {
-    title: "Thesis & Examination",
-    locked: false,
+    title: "📘 Thesis & Examination",
     items: [
       "Thesis Draft Submission Form",
-      "Minutes of the Thesis Examination Panel Meeting",
+      "Examination Committee Minutes",
       "Thesis Examination Panel Decision",
-      "Thesis Examiners’ Reports",
+      "Thesis Examiner Report",
       "Final Thesis Submission Form",
     ],
   },
@@ -42,65 +27,54 @@ const SECTIONS = [
 
 export default function SubmittedDocumentsTab() {
   const [docs, setDocs] = useState({});
+  const [linkInputs, setLinkInputs] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadDocuments() {
-      try {
-        const res = await apiGet("/api/documents/my");
-        const list = Array.isArray(res) ? res : [];
-
-        const map = {};
-        list.forEach((r) => {
-          if (r?.document_type) {
-            map[r.document_type] = r;
-          }
-        });
-
-        setDocs(map);
-      } catch (err) {
-        console.error("Failed to load documents", err);
-        setDocs({});
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadDocuments();
   }, []);
 
-  async function handleUpload(item, section, file) {
-    if (!file) return;
-
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("document_type", item);
-    fd.append("section", section);
-
-    const saved = await apiUpload("/api/documents/upload", fd);
-    setDocs((prev) => ({ ...prev, [item]: saved }));
+  async function loadDocuments() {
+    const rows = await apiGet("/api/documents/my");
+    const map = {};
+    rows.forEach((r) => {
+      map[r.document_type] = r;
+    });
+    setDocs(map);
+    setLoading(false);
   }
 
-  async function handleRemove(item) {
-    const confirm = window.confirm(
-      `Are you sure you want to remove "${item}"?\nYou can upload a new file later.`
-    );
-    if (!confirm) return;
-
-    try {
-      // optimistic UI update
-      setDocs((prev) => {
-        const copy = { ...prev };
-        delete copy[item];
-        return copy;
-      });
-
-      // OPTIONAL backend call (recommended)
-      await apiPost("/api/documents/remove", { document_type: item });
-    } catch (err) {
-      alert("Failed to remove document.");
-      console.error(err);
+  async function saveLink(section, documentType) {
+    const fileUrl = linkInputs[documentType];
+    if (!fileUrl) {
+      alert("Please paste a document link.");
+      return;
     }
+
+    const saved = await apiPost("/api/documents/save-link", {
+      section,
+      document_type: documentType,
+      file_url: fileUrl,
+    });
+
+    setDocs((prev) => ({ ...prev, [documentType]: saved }));
+    setLinkInputs((prev) => ({ ...prev, [documentType]: "" }));
+  }
+
+  async function removeDocument(documentId, documentType) {
+    if (!confirm("Remove this document? This action can be restored by admin.")) {
+      return;
+    }
+
+    await apiPost("/api/documents/remove", {
+      document_id: documentId,
+    });
+
+    setDocs((prev) => {
+      const copy = { ...prev };
+      delete copy[documentType];
+      return copy;
+    });
   }
 
   if (loading) {
@@ -111,62 +85,75 @@ export default function SubmittedDocumentsTab() {
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">📄 Submitted Documents</h2>
 
+      <p className="text-sm text-gray-600">
+        Upload your document to Google Drive / JotForm / LMS, set access to
+        <strong> “Anyone with the link – Viewer”</strong>, then paste the link
+        below.
+      </p>
+
       {SECTIONS.map((sec) => (
         <div key={sec.title} className="bg-white rounded-xl shadow p-5">
-          <h3 className="font-medium mb-3">
-            {sec.title}
-            {sec.locked && (
-              <span className="ml-2 text-xs text-purple-600">
-                (Structure Locked)
-              </span>
-            )}
-          </h3>
+          <h3 className="font-medium mb-4">{sec.title}</h3>
 
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {sec.items.map((item) => {
               const doc = docs[item];
 
               return (
                 <li
                   key={item}
-                  className="flex items-center justify-between border-b pb-2"
+                  className="border-b pb-3 flex flex-col gap-2"
                 >
-                  <span className="text-sm">
-                    {doc ? "✅" : "⬜"} {item}
-                  </span>
-
-                  <div className="flex items-center gap-3">
-                    {doc && (
-                      <a
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 text-xs font-medium"
-                      >
-                        View
-                      </a>
-                    )}
-
-                    <label className="text-xs bg-purple-600 text-white px-3 py-1 rounded cursor-pointer">
-                      {doc ? "Replace" : "Upload"}
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) =>
-                          handleUpload(item, sec.title, e.target.files[0])
-                        }
-                      />
-                    </label>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">
+                      {doc ? "✅" : "⬜"} {item}
+                    </span>
 
                     {doc && (
-                      <button
-                        onClick={() => handleRemove(item)}
-                        className="text-xs text-red-500 hover:underline"
-                      >
-                        Remove
-                      </button>
+                      <div className="flex gap-3 text-xs">
+                        <button
+                          onClick={() => window.open(doc.file_url, "_blank")}
+                          className="text-blue-600 hover:underline"
+                        >
+                          View
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            removeDocument(doc.document_id, item)
+                          }
+                          className="text-red-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     )}
                   </div>
+
+                  {/* INPUT AREA */}
+                  {!doc && (
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="Paste document link here"
+                        value={linkInputs[item] || ""}
+                        onChange={(e) =>
+                          setLinkInputs((prev) => ({
+                            ...prev,
+                            [item]: e.target.value,
+                          }))
+                        }
+                        className="flex-1 border rounded px-3 py-1 text-sm"
+                      />
+
+                      <button
+                        onClick={() => saveLink(sec.title, item)}
+                        className="bg-purple-600 text-white px-4 py-1 rounded text-sm"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
                 </li>
               );
             })}
