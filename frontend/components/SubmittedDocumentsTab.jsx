@@ -9,16 +9,20 @@ const ITEMS = [
   "Annual Progress Review – Year 3 (Final Year)",
 ];
 
+function normalizeKey(str) {
+  return str.replace(/–/g, "-").replace(/\s+/g, " ").trim();
+}
+
 export default function SubmittedDocumentsTab() {
   const [docs, setDocs] = useState({});
-  const [inputs, setInputs] = useState({}); // 🔑 PER-ITEM STATE
+  const [inputs, setInputs] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiGet("/api/documents/my").then((rows) => {
       const map = {};
       rows.forEach((r) => {
-        map[r.document_type] = r;
+        map[normalizeKey(r.document_type)] = r;
       });
       setDocs(map);
       setLoading(false);
@@ -26,38 +30,34 @@ export default function SubmittedDocumentsTab() {
   }, []);
 
   function onChange(item, value) {
-    setInputs((prev) => ({ ...prev, [item]: value }));
+    setInputs((p) => ({ ...p, [item]: value }));
   }
 
   async function saveLink(item) {
     const link = inputs[item]?.trim();
-
-    if (!link) {
-      alert("Paste a link first");
-      return;
-    }
+    if (!link) return alert("Paste a link first");
 
     const saved = await apiPost("/api/documents/save-link", {
-      document_type: item,
+      document_type: normalizeKey(item),
       file_url: link,
       section: "Monitoring & Supervision",
     });
 
-    setDocs((prev) => ({ ...prev, [item]: saved }));
-    setInputs((prev) => ({ ...prev, [item]: "" }));
+    setDocs((p) => ({ ...p, [normalizeKey(item)]: saved }));
+    setInputs((p) => ({ ...p, [item]: "" }));
   }
 
   async function removeDoc(item) {
     if (!confirm("Remove this document?")) return;
 
     await apiPost("/api/documents/remove", {
-      document_type: item,
+      document_type: normalizeKey(item),
     });
 
-    setDocs((prev) => {
-      const copy = { ...prev };
-      delete copy[item];
-      return copy;
+    setDocs((p) => {
+      const c = { ...p };
+      delete c[normalizeKey(item)];
+      return c;
     });
   }
 
@@ -68,13 +68,10 @@ export default function SubmittedDocumentsTab() {
       <h3 className="text-lg font-semibold">📄 Submitted Documents</h3>
 
       {ITEMS.map((item) => {
-        const doc = docs[item];
+        const doc = docs[normalizeKey(item)];
 
         return (
-          <div
-            key={item}
-            className="border rounded-lg p-3 bg-white space-y-2"
-          >
+          <div key={item} className="border rounded-lg p-3 bg-white space-y-2">
             <div className="font-medium">
               {doc ? "✅" : "⬜"} {item}
             </div>
@@ -89,7 +86,6 @@ export default function SubmittedDocumentsTab() {
                 >
                   View
                 </a>
-
                 <button
                   onClick={() => removeDoc(item)}
                   className="text-red-500"
@@ -106,7 +102,6 @@ export default function SubmittedDocumentsTab() {
                   placeholder="Paste document link (https://...)"
                   className="flex-1 border rounded px-2 py-1 text-sm"
                 />
-
                 <button
                   onClick={() => saveLink(item)}
                   className="bg-purple-600 text-white px-3 rounded text-sm"
