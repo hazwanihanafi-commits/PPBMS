@@ -20,35 +20,43 @@ export default function SubmittedDocumentsTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDocuments();
+    load();
   }, []);
 
-  async function loadDocuments() {
+  async function load() {
     const rows = await apiGet("/api/documents/my");
-
     const map = {};
     rows.forEach((r) => {
       map[r.document_type] = r;
     });
-
     setDocs(map);
     setLoading(false);
   }
 
-  function normalizeUrl(url) {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    return `https://${url}`;
-  }
+  /** 🔒 HARD URL NORMALISER */
+  function safeUrl(raw) {
+    if (!raw) return null;
 
-  async function saveLink(section, type) {
-    const rawUrl = inputs[type]?.trim();
-    if (!rawUrl) {
-      alert("Please paste a document link.");
-      return;
+    // Remove whitespace + newlines
+    const trimmed = raw.toString().trim();
+
+    if (!trimmed) return null;
+
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return encodeURI(trimmed);
     }
 
-    const url = normalizeUrl(rawUrl);
+    return encodeURI(`https://${trimmed}`);
+  }
+
+  async function save(section, type) {
+    const raw = inputs[type];
+    const url = safeUrl(raw);
+
+    if (!url) {
+      alert("Please paste a valid document link.");
+      return;
+    }
 
     const saved = await apiPost("/api/documents/save-link", {
       section,
@@ -56,27 +64,23 @@ export default function SubmittedDocumentsTab() {
       file_url: url,
     });
 
-    setDocs((prev) => ({ ...prev, [type]: saved }));
-    setInputs((prev) => ({ ...prev, [type]: "" }));
+    setDocs((p) => ({ ...p, [type]: saved }));
+    setInputs((p) => ({ ...p, [type]: "" }));
   }
 
-  async function removeDocument(docId, type) {
-    if (!confirm("Are you sure you want to remove this document?")) return;
+  async function remove(docId, type) {
+    if (!confirm("Remove this document?")) return;
 
-    await apiPost("/api/documents/remove", {
-      document_id: docId,
-    });
+    await apiPost("/api/documents/remove", { document_id: docId });
 
-    setDocs((prev) => {
-      const copy = { ...prev };
-      delete copy[type];
-      return copy;
+    setDocs((p) => {
+      const c = { ...p };
+      delete c[type];
+      return c;
     });
   }
 
-  if (loading) {
-    return <div className="text-gray-500">Loading documents…</div>;
-  }
+  if (loading) return <div>Loading…</div>;
 
   return (
     <div className="space-y-6">
@@ -89,6 +93,12 @@ export default function SubmittedDocumentsTab() {
           <ul className="space-y-4">
             {sec.items.map((item) => {
               const doc = docs[item];
+              const viewUrl = safeUrl(doc?.file_url);
+
+              // 🔍 DEBUG (REMOVE LATER)
+              if (doc && !viewUrl) {
+                console.warn("Invalid URL detected:", doc.file_url);
+              }
 
               return (
                 <li key={item} className="border-b pb-4">
@@ -97,11 +107,10 @@ export default function SubmittedDocumentsTab() {
                       {doc ? "✅" : "⬜"} {item}
                     </span>
 
-                    {doc && (
+                    {viewUrl && (
                       <div className="flex gap-4 text-xs">
-                        {/* ✅ SAFE VIEW LINK */}
                         <a
-                          href={normalizeUrl(doc.file_url)}
+                          href={viewUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline"
@@ -110,9 +119,7 @@ export default function SubmittedDocumentsTab() {
                         </a>
 
                         <button
-                          onClick={() =>
-                            removeDocument(doc.document_id, item)
-                          }
+                          onClick={() => remove(doc.document_id, item)}
                           className="text-red-600 hover:underline"
                         >
                           Remove
@@ -124,12 +131,12 @@ export default function SubmittedDocumentsTab() {
                   {!doc && (
                     <div className="flex gap-2 mt-3">
                       <input
-                        type="url"
+                        type="text"
                         placeholder="Paste document link (https://...)"
                         value={inputs[item] || ""}
                         onChange={(e) =>
-                          setInputs((prev) => ({
-                            ...prev,
+                          setInputs((p) => ({
+                            ...p,
                             [item]: e.target.value,
                           }))
                         }
@@ -137,8 +144,8 @@ export default function SubmittedDocumentsTab() {
                       />
 
                       <button
-                        onClick={() => saveLink(sec.title, item)}
-                        className="bg-purple-600 text-white px-4 py-1 rounded text-sm hover:opacity-90"
+                        onClick={() => save(sec.title, item)}
+                        className="bg-purple-600 text-white px-4 py-1 rounded text-sm"
                       >
                         Save
                       </button>
