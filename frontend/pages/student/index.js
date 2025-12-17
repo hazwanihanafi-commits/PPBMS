@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
-import ChecklistPage from "../ChecklistPage";
+import Checklist from "../../components/Checklist";
 
 export default function StudentPage() {
   const [profile, setProfile] = useState(null);
