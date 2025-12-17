@@ -3,7 +3,7 @@ import { apiGet, apiPost } from "../utils/api";
 
 const SECTIONS = [
   {
-    title: "📝 Monitoring & Supervision",
+    title: "Monitoring & Supervision",
     items: [
       "Development Plan & Learning Contract (DPLC)",
       "Student Supervision Logbook",
@@ -16,111 +16,90 @@ const SECTIONS = [
 
 export default function SubmittedDocumentsTab() {
   const [docs, setDocs] = useState({});
-  const [inputs, setInputs] = useState({});
   const [loading, setLoading] = useState(true);
+  const [inputs, setInputs] = useState({});
 
   useEffect(() => {
-    load();
+    loadDocs();
   }, []);
 
-  async function load() {
+  async function loadDocs() {
     const rows = await apiGet("/api/documents/my");
+
     const map = {};
     rows.forEach((r) => {
       map[r.document_type] = r;
     });
+
     setDocs(map);
     setLoading(false);
   }
 
-  /** 🔒 HARD URL NORMALISER */
-  function safeUrl(raw) {
-    if (!raw) return null;
-
-    // Remove whitespace + newlines
-    const trimmed = raw.toString().trim();
-
-    if (!trimmed) return null;
-
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-      return encodeURI(trimmed);
-    }
-
-    return encodeURI(`https://${trimmed}`);
-  }
-
-  async function save(section, type) {
-    const raw = inputs[type];
-    const url = safeUrl(raw);
-
-    if (!url) {
-      alert("Please paste a valid document link.");
+  async function saveLink(item, section) {
+    const link = inputs[item];
+    if (!link || !link.startsWith("http")) {
+      alert("Please paste a valid link");
       return;
     }
 
-    const saved = await apiPost("/api/documents/save-link", {
+    await apiPost("/api/documents/save-link", {
+      document_type: item,
       section,
-      document_type: type,
-      file_url: url,
+      file_url: link,
     });
 
-    setDocs((p) => ({ ...p, [type]: saved }));
-    setInputs((p) => ({ ...p, [type]: "" }));
+    setInputs((p) => ({ ...p, [item]: "" }));
+    loadDocs();
   }
 
-  async function remove(docId, type) {
+  async function removeDoc(item) {
     if (!confirm("Remove this document?")) return;
 
-    await apiPost("/api/documents/remove", { document_id: docId });
-
-    setDocs((p) => {
-      const c = { ...p };
-      delete c[type];
-      return c;
+    await apiPost("/api/documents/remove", {
+      document_type: item,
     });
+
+    loadDocs();
   }
 
-  if (loading) return <div>Loading…</div>;
+  if (loading) return <div className="text-gray-500">Loading documents…</div>;
 
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">📄 Submitted Documents</h2>
 
       {SECTIONS.map((sec) => (
-        <div key={sec.title} className="bg-white p-5 rounded-xl shadow">
+        <div key={sec.title} className="bg-white rounded-xl shadow p-5">
           <h3 className="font-medium mb-4">{sec.title}</h3>
 
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {sec.items.map((item) => {
               const doc = docs[item];
-              const viewUrl = safeUrl(doc?.file_url);
-
-              // 🔍 DEBUG (REMOVE LATER)
-              if (doc && !viewUrl) {
-                console.warn("Invalid URL detected:", doc.file_url);
-              }
 
               return (
-                <li key={item} className="border-b pb-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">
+                <li
+                  key={item}
+                  className="border-b pb-3 flex flex-col gap-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
                       {doc ? "✅" : "⬜"} {item}
                     </span>
 
-                    {viewUrl && (
-                      <div className="flex gap-4 text-xs">
+                    {doc?.file_url && (
+                      <div className="flex gap-3 text-sm">
                         <a
-                          href={viewUrl}
+                          href={doc.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          className="text-purple-600 underline"
                         >
                           View
                         </a>
 
                         <button
-                          onClick={() => remove(doc.document_id, item)}
-                          className="text-red-600 hover:underline"
+                          onClick={() => removeDoc(item)}
+                          className="text-red-600"
                         >
                           Remove
                         </button>
@@ -129,10 +108,11 @@ export default function SubmittedDocumentsTab() {
                   </div>
 
                   {!doc && (
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         placeholder="Paste document link (https://...)"
+                        className="flex-1 border rounded px-3 py-1 text-sm"
                         value={inputs[item] || ""}
                         onChange={(e) =>
                           setInputs((p) => ({
@@ -140,11 +120,9 @@ export default function SubmittedDocumentsTab() {
                             [item]: e.target.value,
                           }))
                         }
-                        className="flex-1 border rounded px-3 py-1 text-sm"
                       />
-
                       <button
-                        onClick={() => save(sec.title, item)}
+                        onClick={() => saveLink(item, sec.title)}
                         className="bg-purple-600 text-white px-4 py-1 rounded text-sm"
                       >
                         Save
