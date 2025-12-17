@@ -18,3 +18,14 @@ export async function apiPost(path, body) {
   });
   return res.json();
 }
+export async function apiUpload(path, formData) {
+  const token = localStorage.getItem("ppbms_token") || "";
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`, // ⚠️ JANGAN set Content-Type
+    },
+    body: formData,
+  });
+  return res.json();
+}
