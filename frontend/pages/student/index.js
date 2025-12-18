@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
-import Checklist from "../../components/Checklist";
+import StudentChecklist from "../../components/StudentChecklist"; // ✅ FIX
 
 export default function StudentPage() {
   const [profile, setProfile] = useState(null);
@@ -165,9 +165,9 @@ export default function StudentPage() {
       {/* ===============================
           STUDENT CHECKLIST (A–F)
       =============================== */}
-      <div className="mb-10">
-        <Checklist />
-      </div>
+     <div className="mb-10">
+  <StudentChecklist initialDocuments={profile.documents} /> {/* ✅ FIX */}
+</div>
 
       {/* ===============================
           EXPECTED vs ACTUAL TIMELINE
