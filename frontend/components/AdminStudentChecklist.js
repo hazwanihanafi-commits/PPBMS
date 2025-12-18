@@ -1,48 +1,32 @@
 import { useState } from "react";
 import { API_BASE } from "../utils/api";
 
-const SECTIONS = [
-  {
-    title: "Monitoring & Supervision",
-    items: [
-      "Development Plan & Learning Contract (DPLC)",
-      "Student Supervision Logbook",
-      "Annual Progress Review – Year 1",
-      "Annual Progress Review – Year 2",
-      "Annual Progress Review – Year 3 (Final Year)",
-    ],
-  },
-  {
-    title: "Ethics & Publications",
-    items: [
-      "Ethics Approval",
-      "Publication Acceptance",
-      "Proof of Submission",
-      "Conference Presentation",
-    ],
-  },
-  {
-    title: "Thesis & Viva",
-    items: [
-      "Thesis Notice",
-      "Viva Report",
-      "Correction Verification",
-      "Final Thesis",
-    ],
-  },
-];
+const SECTIONS = {
+  "Monitoring & Supervision": [
+    "Development Plan & Learning Contract (DPLC)",
+    "Student Supervision Logbook",
+    "Annual Progress Review – Year 1",
+    "Annual Progress Review – Year 2",
+    "Annual Progress Review – Year 3 (Final Year)",
+  ],
+  "Ethics & Publications": [
+    "Ethics Approval",
+    "Publication Acceptance",
+    "Proof of Submission",
+    "Conference Presentation",
+  ],
+  "Thesis & Viva": [
+    "Thesis Notice",
+    "Viva Report",
+    "Correction Verification",
+    "Final Thesis",
+  ],
+};
 
 export default function AdminStudentChecklist({ studentEmail, documents }) {
   const [inputs, setInputs] = useState({});
-  const [saving, setSaving] = useState(false);
 
-  function handleChange(label, value) {
-    setInputs((p) => ({ ...p, [label]: value }));
-  }
-
-  async function saveDoc(label, value = null) {
-    setSaving(true);
-
+  async function save(doc) {
     await fetch(`${API_BASE}/api/admin/save-document`, {
       method: "POST",
       headers: {
@@ -51,77 +35,63 @@ export default function AdminStudentChecklist({ studentEmail, documents }) {
       },
       body: JSON.stringify({
         student_email: studentEmail,
-        document_type: label,
-        file_url: value,
-      }),
+        document_type: doc,
+        file_url: inputs[doc] || ""
+      })
     });
+    location.reload();
+  }
 
-    window.location.reload(); // 🔥 force sync with MasterTracking
+  async function remove(doc) {
+    if (!confirm("Remove this document?")) return;
+    await save(doc);
   }
 
   return (
-    <div className="space-y-10">
-      {SECTIONS.map((section) => (
-        <div key={section.title}>
-          <h3 className="text-xl font-bold text-purple-700 mb-4">
-            {section.title}
-          </h3>
+    <div className="space-y-8">
+      {Object.entries(SECTIONS).map(([section, items]) => (
+        <div key={section}>
+          <h3 className="text-lg font-bold text-purple-700 mb-4">{section}</h3>
 
-          <div className="space-y-4">
-            {section.items.map((label) => {
-              const saved = documents[label];
-
-              return (
-                <div
-                  key={label}
-                  className="bg-white border rounded-xl p-4"
-                >
-                  <div className="font-medium">{label}</div>
-
-                  {saved ? (
-                    <div className="flex gap-4 mt-2 text-sm">
-                      <a
-                        href={saved}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-purple-700 underline"
-                      >
-                        View document
-                      </a>
-
-                      <button
-                        onClick={() => saveDoc(label, "")}
-                        className="text-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2 mt-3">
-                      <input
-                        type="url"
-                        className="flex-1 border px-2 py-1 text-sm"
-                        placeholder="Paste link here"
-                        value={inputs[label] || ""}
-                        onChange={(e) =>
-                          handleChange(label, e.target.value)
-                        }
-                      />
-                      <button
-                        disabled={saving}
-                        onClick={() =>
-                          saveDoc(label, inputs[label])
-                        }
-                        className="bg-purple-600 text-white px-4 rounded"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          {items.map(doc => (
+            <div key={doc} className="bg-white border rounded p-4 mb-3">
+              {documents[doc] ? (
+                <>
+                  <div className="font-semibold">✅ {doc}</div>
+                  <a
+                    href={documents[doc]}
+                    target="_blank"
+                    className="text-purple-600 underline mr-4"
+                  >
+                    View document
+                  </a>
+                  <button
+                    onClick={() => remove(doc)}
+                    className="text-red-600"
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="font-semibold">⬜ {doc}</div>
+                  <input
+                    className="border px-2 py-1 w-full mt-2"
+                    placeholder="Paste link here"
+                    onChange={e =>
+                      setInputs({ ...inputs, [doc]: e.target.value })
+                    }
+                  />
+                  <button
+                    onClick={() => save(doc)}
+                    className="mt-2 bg-purple-600 text-white px-4 py-1 rounded"
+                  >
+                    Save
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
         </div>
       ))}
     </div>
