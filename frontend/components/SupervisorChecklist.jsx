@@ -1,173 +1,81 @@
-import { useEffect, useState } from "react";
-import { API_BASE } from "../utils/api";
-
-/* 🔑 LABEL → MASTER TRACKING COLUMN */
-const DOCUMENTS = [
+const ITEMS = [
   {
     section: "Monitoring & Supervision",
-    label: "Development Plan & Learning Contract (DPLC)",
-    key: "DPLC",
+    items: [
+      "Development Plan & Learning Contract (DPLC)",
+      "Student Supervision Logbook",
+      "Annual Progress Review – Year 1",
+      "Annual Progress Review – Year 2",
+      "Annual Progress Review – Year 3 (Final Year)",
+    ],
   },
   {
-    section: "Monitoring & Supervision",
-    label: "Student Supervision Logbook",
-    key: "SUPERVISION_LOG",
+    section: "Ethics & Research Outputs",
+    items: [
+      "ETHICS_APPROVAL",
+      "PUBLICATION_ACCEPTANCE",
+      "PROOF_OF_SUBMISSION",
+      "CONFERENCE_PRESENTATION",
+    ],
   },
   {
-    section: "Monitoring & Supervision",
-    label: "Annual Progress Review – Year 1",
-    key: "APR_Y1",
+    section: "Thesis & Viva",
+    items: [
+      "THESIS_NOTICE",
+      "VIVA_REPORT",
+      "CORRECTION_VERIFICATION",
+      "FINAL_THESIS",
+    ],
   },
-  {
-    section: "Monitoring & Supervision",
-    label: "Annual Progress Review – Year 2",
-    key: "APR_Y2",
-  },
-  {
-    section: "Monitoring & Supervision",
-    label: "Annual Progress Review – Year 3 (Final Year)",
-    key: "APR_Y3",
-  },
-
-  { section: "Ethics & Publications", label: "Ethics Approval", key: "ETHICS_APPROVAL" },
-  { section: "Ethics & Publications", label: "Publication Acceptance", key: "PUBLICATION_ACCEPTANCE" },
-  { section: "Ethics & Publications", label: "Proof of Submission", key: "PROOF_OF_SUBMISSION" },
-  { section: "Ethics & Publications", label: "Conference Presentation", key: "CONFERENCE_PRESENTATION" },
-
-  { section: "Thesis & Viva", label: "Thesis Notice", key: "THESIS_NOTICE" },
-  { section: "Thesis & Viva", label: "Viva Report", key: "VIVA_REPORT" },
-  { section: "Thesis & Viva", label: "Correction Verification", key: "CORRECTION_VERIFICATION" },
-  { section: "Thesis & Viva", label: "Final Thesis", key: "FINAL_THESIS" },
 ];
 
-export default function StudentChecklist({ initialDocuments = {} }) {
-  const [documents, setDocuments] = useState({});
-  const [inputs, setInputs] = useState({});
-  const [saving, setSaving] = useState(false);
-
-  /* hydrate from MasterTracking */
-  useEffect(() => {
-    setDocuments(initialDocuments || {});
-  }, [initialDocuments]);
-
-  function handleChange(key, value) {
-    setInputs((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function saveLink(doc) {
-    const url = inputs[doc.key]?.trim();
-    if (!url) return alert("Paste a link first");
-
-    setSaving(true);
-    const token = localStorage.getItem("ppbms_token");
-
-    const res = await fetch(`${API_BASE}/api/student/save-document`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        document_type: doc.label, // 🔑 backend maps label → column
-        file_url: url,
-      }),
-    });
-
-    setSaving(false);
-    if (!res.ok) return alert("Save failed");
-
-    setDocuments((prev) => ({ ...prev, [doc.label]: url }));
-    setInputs((prev) => ({ ...prev, [doc.key]: "" }));
-  }
-
-  async function removeLink(doc) {
-    if (!confirm("Remove this document?")) return;
-
-    const token = localStorage.getItem("ppbms_token");
-
-    const res = await fetch(`${API_BASE}/api/student/save-document`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        document_type: doc.label,
-        file_url: "", // 🔥 clear cell
-      }),
-    });
-
-    if (!res.ok) return alert("Remove failed");
-
-    setDocuments((prev) => ({ ...prev, [doc.label]: "" }));
-  }
-
-  let currentSection = "";
-
+export default function SupervisorChecklist({ documents = {} }) {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">📁 Student Checklist</h3>
+      <h3 className="text-xl font-semibold text-purple-700">
+        📄 Submitted Documents
+      </h3>
 
-      {DOCUMENTS.map((doc) => {
-        const savedUrl = documents[doc.label];
-        const showSection = doc.section !== currentSection;
-        currentSection = doc.section;
+      {ITEMS.map((group) => (
+        <div
+          key={group.section}
+          className="bg-white border rounded-2xl p-5 shadow"
+        >
+          <h4 className="font-semibold mb-4">{group.section}</h4>
 
-        return (
-          <div key={doc.key}>
-            {/* ✅ SECTION HEADER */}
-            {showSection && (
-              <h4 className="mt-4 mb-2 font-semibold text-purple-700">
-                {doc.section}
-              </h4>
-            )}
+          <ul className="space-y-3">
+            {group.items.map((label) => {
+              const url = documents[label];
 
-            <div className="border p-3 rounded bg-white">
-              <div className="font-medium mb-1">
-                {savedUrl ? "✅" : "⬜"} {doc.label}
-              </div>
+              return (
+                <li
+                  key={label}
+                  className="flex justify-between items-center border-b pb-2"
+                >
+                  <span className="text-sm font-medium">
+                    {url ? "✅" : "⬜"} {label}
+                  </span>
 
-              {savedUrl ? (
-                <div className="flex gap-4 text-sm">
-                  <a
-                    href={savedUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-purple-600 underline"
-                  >
-                    View document
-                  </a>
-                  <button
-                    onClick={() => removeLink(doc)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="url"
-                    placeholder="Paste link here"
-                    className="flex-1 border px-2 py-1 text-sm"
-                    value={inputs[doc.key] || ""}
-                    onChange={(e) =>
-                      handleChange(doc.key, e.target.value)
-                    }
-                  />
-                  <button
-                    onClick={() => saveLink(doc)}
-                    disabled={saving}
-                    className="bg-purple-600 text-white px-3 rounded text-sm"
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+                  {url ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-purple-600 text-sm hover:underline"
+                    >
+                      View →
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-400">
+                      Not submitted
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
