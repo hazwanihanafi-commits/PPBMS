@@ -17,11 +17,10 @@ export default function AdminStudentPage() {
       `${API_BASE}/api/admin/student/${email}`,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`
+        }
       }
     );
-
     const data = await res.json();
     setStudent(data.row);
   }
