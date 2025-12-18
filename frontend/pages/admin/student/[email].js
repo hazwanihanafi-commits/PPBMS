@@ -40,6 +40,22 @@ export default function AdminStudentPage() {
         {student.student_name}
       </h1>
 
+          <div className="mb-6 flex items-center gap-3">
+  <a
+    href="https://webcentral2.usm.my/sccentral/smup/ptj_profilpelajar.asp?tag=search"
+    target="_blank"
+    rel="noreferrer"
+    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold"
+  >
+    📄 Open Official USM Student CV
+  </a>
+
+  <span className="text-xs text-gray-500">
+    (Requires USM login)
+  </span>
+</div>
+
+
       <AdminStudentChecklist
         studentEmail={student.email}
         documents={student.documents}
