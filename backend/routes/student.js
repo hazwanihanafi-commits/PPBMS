@@ -6,7 +6,9 @@ import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
-// AUTH MIDDLEWARE
+/* =========================
+   AUTH MIDDLEWARE
+========================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -19,10 +21,21 @@ function auth(req, res, next) {
   }
 }
 
+/* =========================
+   DOCUMENT → COLUMN MAP
+========================= */
+const DOC_COLUMN_MAP = {
+  "Development Plan & Learning Contract (DPLC)": "DPLC",
+  "Student Supervision Logbook": "SUPERVISION_LOG",
+  "Annual Progress Review – Year 1": "APR_Y1",
+  "Annual Progress Review – Year 2": "APR_Y2",
+  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
+};
 
 /* ============================================================
-    GET /api/student/me
-   ============================================================ */
+   GET /api/student/me
+   → READ EVERYTHING FROM MASTER TRACKING
+============================================================ */
 router.get("/me", auth, async (req, res) => {
   try {
     const email = (req.user.email || "").toLowerCase().trim();
@@ -34,7 +47,7 @@ router.get("/me", auth, async (req, res) => {
 
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
-    // 1️⃣ Student profile
+    /* ---------- PROFILE ---------- */
     const profile = {
       student_id:
         raw["Matric"] ||
@@ -51,19 +64,15 @@ router.get("/me", auth, async (req, res) => {
       field: raw["Field"] || "-"
     };
 
-    // 2️⃣ Documents (FROM MASTER TRACKING — CORRECT)
-    const documents = {
-      "Development Plan & Learning Contract (DPLC)": raw["DPLC"] || "",
-      "Student Supervision Logbook": raw["SUPERVISION_LOG"] || "",
-      "Annual Progress Review – Year 1": raw["APR_Y1"] || "",
-      "Annual Progress Review – Year 2": raw["APR_Y2"] || "",
-      "Annual Progress Review – Year 3 (Final Year)": raw["APR_Y3"] || ""
-    };
+    /* ---------- DOCUMENTS (FROM MASTER TRACKING) ---------- */
+    const documents = {};
+    Object.entries(DOC_COLUMN_MAP).forEach(([label, col]) => {
+      documents[label] = raw[col] || "";
+    });
 
-    // 3️⃣ Timeline (NOW BUILT BEFORE RETURN)
+    /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-    // 4️⃣ SINGLE RETURN (FIXED)
     return res.json({
       row: {
         ...profile,
@@ -79,30 +88,30 @@ router.get("/me", auth, async (req, res) => {
 });
 
 /* ============================================================
-    POST /api/student/update-actual
-   ============================================================ */
+   POST /api/student/update-actual
+============================================================ */
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { activity, date } = req.body;
-
     if (!activity || !date)
       return res.status(400).json({ error: "Missing data" });
 
-    const email = (req.user.email || "").toLowerCase().trim();
-
+    const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const idx = rows.findIndex(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === email
+      r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
     if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
 
-    const rowNumber = idx + 2;
-    const actualCol = `${activity} - Actual`;
-
-    await writeSheetCell(process.env.SHEET_ID, actualCol, rowNumber, date);
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      `${activity} - Actual`,
+      idx + 2,
+      date
+    );
 
     return res.json({ success: true });
 
@@ -113,54 +122,47 @@ router.post("/update-actual", auth, async (req, res) => {
 });
 
 /* ============================================================
-    POST /api/student/save-document
-    (writes directly into MasterTracking FileURL columns)
-   ============================================================ */
+   POST /api/student/save-document
+   → WRITE DIRECTLY INTO MASTER TRACKING
+============================================================ */
 router.post("/save-document", auth, async (req, res) => {
   try {
-    const { key, url } = req.body;
+    const { document_type, file_url } = req.body;
 
-    if (!key || !url)
-      return res.status(400).json({ error: "Missing key or url" });
+    if (!document_type || !file_url)
+      return res.status(400).json({ error: "Missing data" });
 
-    const email = (req.user.email || "").toLowerCase().trim();
+    const column = DOC_COLUMN_MAP[document_type];
+    if (!column)
+      return res.status(400).json({ error: "Invalid document type" });
+
+    const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const idx = rows.findIndex(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === email
+      r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
     if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
 
-    const rowNumber = idx + 2;
-
-    // 🔑 MAP UI KEY → EXACT COLUMN NAME
-    const COLUMN_MAP = {
-      dplc: "Development Plan & Learning Contract - FileURL",
-      apr1: "Annual Progress Review (Year 1) - FileURL",
-      apr2: "Annual Progress Review (Year 2) - FileURL",
-      fpr3: "Final Progress Review (Year 3) - FileURL",
-    };
-
-    const columnName = COLUMN_MAP[key];
-    if (!columnName)
-      return res.status(400).json({ error: "Invalid document key" });
-
     await writeSheetCell(
       process.env.SHEET_ID,
-      columnName,
-      rowNumber,
-      url
+      column,
+      idx + 2,
+      file_url
     );
 
-    return res.json({ success: true });
+    return res.json({
+      success: true,
+      document_type,
+      file_url
+    });
 
   } catch (e) {
     console.error("save-document error:", e);
     return res.status(500).json({ error: e.message });
   }
 });
-
 
 export default router;
