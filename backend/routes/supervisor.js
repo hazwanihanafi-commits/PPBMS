@@ -113,45 +113,51 @@ router.get("/students", auth, async (req, res) => {
 /* -------------------------------------------------------
    GET ONE STUDENT PROFILE + TIMELINE + DOCUMENTS
 ------------------------------------------------------- */
+// backend/routes/supervisor.js
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const targetEmail = (req.params.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const raw = rows.find((r) => getStudentEmail(r) === targetEmail);
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+    const raw = rows.find(
+      r => (r["Student's Email"] || "").toLowerCase().trim() === targetEmail
+    );
+
+    if (!raw) {
+      return res.status(404).json({ error: "Student not found" });
+    }
 
     const timeline = buildTimelineForRow(raw);
-    const progress = calcProgress(timeline);
-    const rowNumber = rows.indexOf(raw) + 2;
 
-    // Document URLs
+    // ✅ SAME AS STUDENT PAGE
     const documents = {
-      dplc: raw["Development Plan & Learning Contract - FileURL"] || "",
-      apr1: raw["Annual Progress Review (Year 1) - FileURL"] || "",
-      apr2: raw["Annual Progress Review (Year 2) - FileURL"] || "",
-      fpr3: raw["Final Progress Review (Year 3) - FileURL"] || ""
+      "Development Plan & Learning Contract (DPLC)": raw["DPLC"] || "",
+      "Student Supervision Logbook": raw["SUPERVISION_LOG"] || "",
+      "Annual Progress Review – Year 1": raw["APR_Y1"] || "",
+      "Annual Progress Review – Year 2": raw["APR_Y2"] || "",
+      "Annual Progress Review – Year 3 (Final Year)": raw["APR_Y3"] || "",
+      "ETHICS_APPROVAL": raw["ETHICS_APPROVAL"] || "",
+      "PUBLICATION_ACCEPTANCE": raw["PUBLICATION_ACCEPTANCE"] || "",
+      "PROOF_OF_SUBMISSION": raw["PROOF_OF_SUBMISSION"] || "",
+      "CONFERENCE_PRESENTATION": raw["CONFERENCE_PRESENTATION"] || "",
+      "THESIS_NOTICE": raw["THESIS_NOTICE"] || "",
+      "VIVA_REPORT": raw["VIVA_REPORT"] || "",
+      "CORRECTION_VERIFICATION": raw["CORRECTION_VERIFICATION"] || "",
+      "FINAL_THESIS": raw["FINAL_THESIS"] || "",
     };
 
     return res.json({
       row: {
-        student_id:
-          raw["Matric"] ||
-          raw["Matric No"] ||
-          raw["Student ID"] ||
-          raw["StudentID"] ||
-          "",
-        student_name: raw["Student Name"] || "-",
-        email: getStudentEmail(raw),
-        programme: raw["Programme"] || "-",
-        start_date: raw["Start Date"] || "-",
-        field: raw["Field"] || "-",
-        department: raw["Department"] || "-",
-        supervisor: raw["Main Supervisor"] || "-",
-        cosupervisor: raw["Co-Supervisor(s)"] || "-",
-        progress,
-        rowNumber,
-        documents,
+        student_id: raw["Matric"] || "",
+        student_name: raw["Student Name"] || "",
+        email: raw["Student's Email"] || "",
+        programme: raw["Programme"] || "",
+        start_date: raw["Start Date"] || "",
+        field: raw["Field"] || "",
+        department: raw["Department"] || "",
+        supervisor: raw["Main Supervisor"] || "",
+        cosupervisor: raw["Co-Supervisor(s)"] || "",
+        documents,        // ✅ THIS IS THE KEY
         timeline,
       },
     });
