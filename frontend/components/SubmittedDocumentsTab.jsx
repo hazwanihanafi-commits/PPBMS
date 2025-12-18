@@ -14,11 +14,17 @@ export default function SubmittedDocumentsTab() {
   const [inputs, setInputs] = useState({});
   const [loading, setLoading] = useState(true);
 
+  /* =========================
+     LOAD FROM MASTER TRACKING
+  ========================= */
+  async function load() {
+    const res = await apiGet("/api/student/me");
+    setDocs(res.row.documents || {});
+    setLoading(false);
+  }
+
   useEffect(() => {
-    apiGet("/api/student/me").then(res => {
-      setDocs(res.row.documents || {});
-      setLoading(false);
-    });
+    load();
   }, []);
 
   async function save(item) {
@@ -30,11 +36,11 @@ export default function SubmittedDocumentsTab() {
       file_url: link,
     });
 
-    setDocs(prev => ({ ...prev, [item]: link }));
+    await load(); // 🔑 reload from sheet
     setInputs(prev => ({ ...prev, [item]: "" }));
   }
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <p>Loading documents…</p>;
 
   return (
     <div className="space-y-4">
@@ -42,20 +48,20 @@ export default function SubmittedDocumentsTab() {
 
       {ITEMS.map(item => {
         const url = docs[item];
-        const hasDoc = typeof url === "string" && url.trim().length > 0;
+        const submitted = typeof url === "string" && url.trim() !== "";
 
         return (
           <div key={item} className="border rounded p-3 bg-white space-y-2">
             <div className="font-medium">
-              {hasDoc ? "✅" : "⬜"} {item}
+              {submitted ? "✅" : "⬜"} {item}
             </div>
 
-            {hasDoc ? (
+            {submitted ? (
               <a
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="text-purple-600 underline inline-block"
+                className="text-purple-600 underline"
               >
                 View document
               </a>
