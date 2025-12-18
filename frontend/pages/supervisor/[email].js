@@ -72,6 +72,15 @@ export default function SupervisorStudentDetails() {
       {/* ================= PROFILE ================= */}
       <div className="bg-white shadow rounded-2xl p-6 mb-10">
         <h2 className="text-2xl font-bold mb-4">{student.student_name}</h2>
+        <a
+  href="https://webcentral2.usm.my/sccentral/smup/ptj_profilpelajar.asp?tag=search"
+  target="_blank"
+  rel="noreferrer"
+  className="inline-block mb-4 text-sm text-blue-600 underline"
+>
+  📄 View Official USM Student CV (login required)
+</a>
+
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
           <p><strong>Email:</strong> {student.email}</p>
