@@ -124,7 +124,7 @@ export default function AdminDashboard() {
       {error && <p className="text-red-600 mb-6">{error}</p>}
       {loading && <p className="text-purple-600 mb-6">Loading…</p>}
 
-      {{/* ================= ALL STUDENTS TABLE ================= */}
+      {/* ================= ALL STUDENTS TABLE ================= */}
 {students.length > 0 && (
   <div className="bg-white rounded-2xl shadow-lg p-8 mb-12">
     <h3 className="text-2xl font-bold mb-4">
