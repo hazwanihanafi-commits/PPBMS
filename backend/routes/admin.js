@@ -77,6 +77,23 @@ router.get("/at-risk", adminOnly, async (req, res) => {
 });
 
 /* ============================================================
+   ✅ ADMIN VIEW ALL STUDENTS (RAW MASTER TRACKING)
+============================================================ */
+router.get("/all-students", adminOnly, async (req, res) => {
+  try {
+    const rows = await getCachedSheet(process.env.SHEET_ID);
+
+    return res.json({
+      total: rows.length,
+      students: rows,
+    });
+  } catch (err) {
+    console.error("ADMIN all-students error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/* ============================================================
    ✅ ADMIN VIEW ONE STUDENT (LIVE – FIXED)
 ============================================================ */
 router.get("/student/:email", adminOnly, async (req, res) => {
