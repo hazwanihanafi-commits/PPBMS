@@ -1,59 +1,41 @@
-// frontend/pages/supervisor/[email].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
+import SupervisorChecklist from "../../components/SupervisorChecklist";
 
 export default function SupervisorStudentDetails() {
   const router = useRouter();
   const { email } = router.query;
 
   const [student, setStudent] = useState(null);
-  const [documents, setDocuments] = useState([]);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (email) loadAll();
+    if (email) loadStudent();
   }, [email]);
 
-  async function loadAll() {
+  async function loadStudent() {
     setLoading(true);
     try {
       const token = localStorage.getItem("ppbms_token");
 
-      /* =====================
-         STUDENT PROFILE
-      ===================== */
-      const resStudent = await fetch(
+      const res = await fetch(
         `${API_BASE}/api/supervisor/student/${email}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      const studentJson = await resStudent.json();
-      if (!resStudent.ok) {
-        setErr(studentJson.error || "Failed to load student");
+      const json = await res.json();
+      if (!res.ok) {
+        setErr(json.error || "Failed to load student");
         return;
       }
 
-      setStudent(studentJson.row);
-      setTimeline(studentJson.row.timeline || []);
-
-      /* =====================
-         DOCUMENTS
-      ===================== */
-      const resDocs = await fetch(
-        `${API_BASE}/api/supervisor/documents/${email}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      const docsJson = await resDocs.json();
-      setDocuments(Array.isArray(docsJson) ? docsJson : []);
-
+      setStudent(json.row);
+      setTimeline(json.row.timeline || []);
     } catch (e) {
       console.error(e);
       setErr("Unable to load student data.");
@@ -70,12 +52,10 @@ export default function SupervisorStudentDetails() {
   if (!student)
     return <div className="p-6">No student data found.</div>;
 
-  const groupedDocs = groupBySection(documents);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
 
-      {/* Back */}
+      {/* BACK */}
       <button
         className="text-purple-700 hover:underline mb-6"
         onClick={() => router.push("/supervisor")}
@@ -83,14 +63,16 @@ export default function SupervisorStudentDetails() {
         ← Back to Supervisor Dashboard
       </button>
 
-      {/* Title */}
+      {/* TITLE */}
       <h1 className="text-3xl font-extrabold text-gray-900 mb-6">
         Student Progress Overview
       </h1>
 
       {/* ================= PROFILE ================= */}
       <div className="bg-white shadow border rounded-2xl p-6 mb-10">
-        <h2 className="text-2xl font-bold mb-4">{student.student_name}</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          {student.student_name}
+        </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
           <p><strong>Email:</strong> {student.email}</p>
@@ -104,52 +86,9 @@ export default function SupervisorStudentDetails() {
         </div>
       </div>
 
-      {/* ================= DOCUMENTS ================= */}
+      {/* ================= CHECKLIST (SAME AS STUDENT) ================= */}
       <div className="mb-10">
-        <h3 className="text-xl font-bold mb-4 text-purple-700">
-          📄 Submitted Documents
-        </h3>
-
-        {Object.keys(groupedDocs).length === 0 && (
-          <p className="text-gray-500">No documents submitted yet.</p>
-        )}
-
-        {Object.entries(groupedDocs).map(([section, items]) => (
-          <div
-            key={section}
-            className="bg-white border rounded-2xl p-4 mb-5"
-          >
-            <h4 className="font-semibold mb-3">{section}</h4>
-
-            <ul className="space-y-2">
-              {items.map(doc => (
-                <li
-                  key={doc.document_id}
-                  className="flex justify-between items-center border-b pb-2"
-                >
-                  <span className="text-sm">
-                    {doc.file_url ? "✅" : "⬜"} {doc.document_type}
-                  </span>
-
-                  {doc.file_url ? (
-                    <a
-                      href={doc.file_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-purple-600 text-sm hover:underline"
-                    >
-                      View →
-                    </a>
-                  ) : (
-                    <span className="text-xs text-gray-400">
-                      Not submitted
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <SupervisorChecklist documents={student.documents} />
       </div>
 
       {/* ================= TIMELINE ================= */}
@@ -207,13 +146,4 @@ export default function SupervisorStudentDetails() {
       </div>
     </div>
   );
-}
-
-/* ================= UTIL ================= */
-function groupBySection(docs) {
-  return docs.reduce((acc, d) => {
-    acc[d.section] = acc[d.section] || [];
-    acc[d.section].push(d);
-    return acc;
-  }, {});
 }
