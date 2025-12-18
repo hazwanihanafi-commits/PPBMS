@@ -1,37 +1,27 @@
-// backend/routes/admin.js
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet, resetSheetCache } from "../utils/sheetCache.js";
-import { writeSheetCell } from "../services/googleSheets.js";
+import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/* ============================================================
-   ADMIN MIDDLEWARE (JWT + role check)
-===============================================================*/
+/* ================= ADMIN AUTH ================= */
 function adminOnly(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
-
-  if (!token)
-    return res.status(401).json({ error: "Missing token" });
+  if (!token) return res.status(401).json({ error: "Missing token" });
 
   try {
     const data = jwt.verify(token, process.env.JWT_SECRET);
-
     if (data.role !== "admin")
       return res.status(401).json({ error: "Admin only" });
-
     req.user = data;
     next();
-  } catch (err) {
-    console.error("adminOnly error:", err);
-    return res.status(401).json({ error: "Invalid or expired token" });
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-/* ============================================================
-   DOCUMENT → MASTER TRACKING COLUMN MAP
-===============================================================*/
+/* ================= DOCUMENT MAP ================= */
 const DOC_COLUMN_MAP = {
   "Development Plan & Learning Contract (DPLC)": "DPLC",
   "Student Supervision Logbook": "SUPERVISION_LOG",
@@ -49,13 +39,12 @@ const DOC_COLUMN_MAP = {
 };
 
 /* ============================================================
-   GET AT-RISK STUDENTS
-===============================================================*/
+   ✅ AT-RISK STUDENTS (CACHED – KEEP THIS)
+============================================================ */
 router.get("/at-risk", adminOnly, async (req, res) => {
   try {
     const rows = await getCachedSheet(process.env.SHEET_ID);
     const today = new Date();
-
     const atRisk = [];
 
     rows.forEach((row) => {
@@ -63,74 +52,50 @@ router.get("/at-risk", adminOnly, async (req, res) => {
         name: row["Student Name"] || "-",
         email: row["Student's Email"] || "-",
         supervisor: row["Main Supervisor"] || "-",
-        lateActivities: []
+        lateActivities: [],
       };
 
       Object.keys(row).forEach((col) => {
-        if (col.includes("Expected")) {
+        if (col.endsWith(" - Expected")) {
           const activity = col.replace(" - Expected", "");
           const expected = row[col];
           const actual = row[`${activity} - Actual`];
 
-          if (expected && !actual) {
-            const expDate = new Date(expected);
-            if (expDate < today) {
-              student.lateActivities.push({
-                activity,
-                expected,
-                actual: actual || null
-              });
-            }
+          if (expected && !actual && new Date(expected) < today) {
+            student.lateActivities.push({ activity, expected });
           }
         }
       });
 
-      if (student.lateActivities.length > 0) {
-        atRisk.push(student);
-      }
+      if (student.lateActivities.length > 0) atRisk.push(student);
     });
 
-    return res.json({ atRisk });
-  } catch (err) {
-    console.error("AT-RISK ERROR:", err);
-    return res.status(500).json({ error: err.message });
+    res.json({ atRisk });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
 /* ============================================================
-   GET ALL STUDENTS (RAW MASTER TRACKING)
-===============================================================*/
-router.get("/all-students", adminOnly, async (req, res) => {
-  try {
-    const rows = await getCachedSheet(process.env.SHEET_ID);
-    return res.json({ total: rows.length, students: rows });
-  } catch (err) {
-    console.error("ADMIN all-students error:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-/* ============================================================
-   GET ONE STUDENT + DOCUMENTS (FROM MASTER TRACKING)
-===============================================================*/
+   ✅ ADMIN VIEW ONE STUDENT (LIVE – FIXED)
+============================================================ */
 router.get("/student/:email", adminOnly, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
-    const rows = await getCachedSheet(process.env.SHEET_ID);
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
 
-    if (!raw)
-      return res.status(404).json({ error: "Student not found" });
+    if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const documents = {};
     Object.entries(DOC_COLUMN_MAP).forEach(([label, col]) => {
       documents[label] = raw[col] || "";
     });
 
-    return res.json({
+    res.json({
       row: {
         student_name: raw["Student Name"] || "-",
         email: raw["Student's Email"] || "-",
@@ -139,39 +104,30 @@ router.get("/student/:email", adminOnly, async (req, res) => {
         documents,
       },
     });
-
-  } catch (err) {
-    console.error("ADMIN student error:", err);
-    return res.status(500).json({ error: err.message });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
 /* ============================================================
-   ADMIN SAVE / REMOVE DOCUMENT (MASTER TRACKING)
-===============================================================*/
+   ✅ ADMIN SAVE / REMOVE DOCUMENT (LIVE)
+============================================================ */
 router.post("/save-document", adminOnly, async (req, res) => {
   try {
     const { student_email, document_type, file_url } = req.body;
 
-    if (!student_email || !document_type)
-      return res.status(400).json({ error: "Missing data" });
-
     const column = DOC_COLUMN_MAP[document_type];
-    if (!column)
-      return res.status(400).json({ error: "Invalid document type" });
+    if (!column) return res.status(400).json({ error: "Invalid document type" });
 
-    const rows = await getCachedSheet(process.env.SHEET_ID);
-
+    const rows = await readMasterTracking(process.env.SHEET_ID);
     const idx = rows.findIndex(
       r =>
         (r["Student's Email"] || "").toLowerCase().trim() ===
         student_email.toLowerCase().trim()
     );
 
-    if (idx === -1)
-      return res.status(404).json({ error: "Student not found" });
+    if (idx === -1) return res.status(404).json({ error: "Student not found" });
 
-    // empty string = REMOVE document
     await writeSheetCell(
       process.env.SHEET_ID,
       column,
@@ -179,26 +135,11 @@ router.post("/save-document", adminOnly, async (req, res) => {
       file_url || ""
     );
 
-    resetSheetCache(); // 🔥 ensure all pages refresh
+    resetSheetCache(); // refresh dashboard summaries
 
-    return res.json({ ok: true });
-
-  } catch (err) {
-    console.error("ADMIN save-document error:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-/* ============================================================
-   CLEAR GOOGLE SHEET CACHE
-===============================================================*/
-router.post("/reset-cache", adminOnly, (req, res) => {
-  try {
-    resetSheetCache();
-    return res.json({ ok: true, message: "Cache cleared successfully" });
-  } catch (err) {
-    console.error("reset-cache error:", err);
-    return res.status(500).json({ error: err.message });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
