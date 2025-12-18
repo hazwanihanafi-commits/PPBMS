@@ -124,60 +124,78 @@ export default function AdminDashboard() {
       {error && <p className="text-red-600 mb-6">{error}</p>}
       {loading && <p className="text-purple-600 mb-6">Loading…</p>}
 
-      {/* ================= ALL STUDENTS TABLE ================= */}
-      {students.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-12">
-          <h3 className="text-2xl font-bold mb-4">
-            All Students ({students.length})
-          </h3>
+      {{/* ================= ALL STUDENTS TABLE ================= */}
+{students.length > 0 && (
+  <div className="bg-white rounded-2xl shadow-lg p-8 mb-12">
+    <h3 className="text-2xl font-bold mb-4">
+      All Students ({students.length})
+    </h3>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 text-left">Name</th>
-                <th className="p-3 text-left">Email</th>
-                <th className="p-3 text-left">Programme</th>
-                <th className="p-3 text-left">Supervisor</th>
-              </tr>
-            </thead>
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="bg-gray-100">
+          <th className="p-3 text-left">Name</th>
+          <th className="p-3 text-left">Email</th>
+          <th className="p-3 text-left">Programme</th>
+          <th className="p-3 text-left">Supervisor</th>
+          <th className="p-3 text-left">Profile</th>
+        </tr>
+      </thead>
 
-            <tbody>
-              {students.map((s, i) => {
-                const email = encodeURIComponent(
-                  s["Student's Email"] || ""
-                );
+      <tbody>
+        {students.map((s, i) => {
+          const email = encodeURIComponent(
+            s["Student's Email"] || ""
+          );
 
-                return (
-                  <tr
-                    key={i}
-                    onClick={() =>
-                      router.push(`/admin/student/${email}`)
-                    }
-                    className="border-b hover:bg-purple-50 cursor-pointer"
-                  >
-                    <td className="p-3 font-semibold text-purple-700 underline">
-                      {s["Student Name"] || "-"}
-                    </td>
+          return (
+            <tr
+              key={i}
+              className="border-b hover:bg-purple-50"
+            >
+              {/* NAME → INTERNAL ADMIN PAGE */}
+              <td className="p-3 font-semibold">
+                <a
+                  href={`/admin/student/${email}`}
+                  className="text-purple-700 underline"
+                >
+                  {s["Student Name"] || "-"}
+                </a>
+              </td>
 
-                    <td className="p-3 text-purple-600">
-                      {s["Student's Email"] || "-"}
-                    </td>
+              {/* EMAIL */}
+              <td className="p-3 text-gray-700">
+                {s["Student's Email"] || "-"}
+              </td>
 
-                    <td className="p-3">
-                      {s["Programme"] || "-"}
-                    </td>
+              {/* PROGRAMME */}
+              <td className="p-3">
+                {s["Programme"] || "-"}
+              </td>
 
-                    <td className="p-3">
-                      {s["Main Supervisor"] || "-"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+              {/* SUPERVISOR */}
+              <td className="p-3">
+                {s["Main Supervisor"] || "-"}
+              </td>
 
+              {/* EXTERNAL CV (SMUP) */}
+              <td className="p-3">
+                <a
+                  href="https://webcentral2.usm.my/sccentral/smup/ptj_profilpelajar.asp?tag=search"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 underline text-sm"
+                >
+                  View CV
+                </a>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+)}
       {/* ================= AT-RISK STUDENTS ================= */}
       {atRisk.length > 0 && (
         <div className="bg-white border border-red-200 rounded-2xl p-8">
