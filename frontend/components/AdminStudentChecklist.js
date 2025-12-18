@@ -1,28 +1,14 @@
 import { useState } from "react";
+import { CHECKLIST_SECTIONS } from "./checklistConfig";
 import { API_BASE } from "../utils/api";
-
-const SECTIONS = {
-  "Monitoring & Supervision": [
-    "Development Plan & Learning Contract (DPLC)",
-    "Student Supervision Logbook",
-    "Annual Progress Review – Year 1",
-    "Annual Progress Review – Year 2",
-    "Annual Progress Review – Year 3 (Final Year)",
-  ],
-  "Thesis & Examination": [
-    "Ethics Approval",
-    "Publication Acceptance",
-    "Proof of Submission",
-    "Conference Presentation",
-    "Thesis Notice",
-    "Viva Report",
-    "Correction Verification",
-    "Final Thesis",
-  ],
-};
 
 export default function AdminStudentChecklist({ studentEmail, documents }) {
   const [inputs, setInputs] = useState({});
+  const token = localStorage.getItem("ppbms_token");
+
+  function handleChange(label, value) {
+    setInputs((p) => ({ ...p, [label]: value }));
+  }
 
   async function save(label) {
     const url = inputs[label];
@@ -32,7 +18,7 @@ export default function AdminStudentChecklist({ studentEmail, documents }) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         student_email: studentEmail,
@@ -41,48 +27,59 @@ export default function AdminStudentChecklist({ studentEmail, documents }) {
       }),
     });
 
-    location.reload();
+    window.location.reload();
   }
 
   async function remove(label) {
-    if (!confirm("Remove document?")) return;
-
-    await fetch(`${API_BASE}/api/admin/remove-document`, {
+    await fetch(`${API_BASE}/api/admin/save-document`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         student_email: studentEmail,
         document_type: label,
+        file_url: "",
       }),
     });
 
-    location.reload();
+    window.location.reload();
   }
 
   return (
-    <div className="space-y-6">
-      {Object.entries(SECTIONS).map(([section, items]) => (
-        <div key={section} className="bg-white border rounded-xl p-4">
-          <h3 className="font-semibold mb-3">{section}</h3>
+    <div className="space-y-8">
+      {CHECKLIST_SECTIONS.map((section) => (
+        <div key={section.title}>
+          <h3 className="text-lg font-bold text-purple-700 mb-4">
+            {section.title}
+          </h3>
 
-          {items.map(label => {
-            const url = documents[label];
+          {section.items.map((label) => {
+            const saved = documents[label];
 
             return (
-              <div key={label} className="border-b py-2">
-                <div className="font-medium text-sm">{label}</div>
+              <div
+                key={label}
+                className="bg-white border rounded-xl p-4 mb-3"
+              >
+                <div className="font-medium">
+                  {saved ? "✅" : "⬜"} {label}
+                </div>
 
-                {url ? (
-                  <div className="flex gap-4 text-sm mt-1">
-                    <a href={url} target="_blank" className="text-purple-600">
-                      View
+                {saved ? (
+                  <div className="flex gap-4 mt-2">
+                    <a
+                      href={saved}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-purple-600 underline"
+                    >
+                      View document
                     </a>
                     <button
                       onClick={() => remove(label)}
-                      className="text-red-600"
+                      className="text-red-600 text-sm"
                     >
                       Remove
                     </button>
@@ -91,10 +88,10 @@ export default function AdminStudentChecklist({ studentEmail, documents }) {
                   <div className="flex gap-2 mt-2">
                     <input
                       type="url"
+                      placeholder="Paste link here"
                       className="flex-1 border px-2 py-1 text-sm"
-                      placeholder="Paste link"
-                      onChange={e =>
-                        setInputs(p => ({ ...p, [label]: e.target.value }))
+                      onChange={(e) =>
+                        handleChange(label, e.target.value)
                       }
                     />
                     <button
