@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiGet, apiPost } from "../utils/api";
+import { API_BASE } from "../utils/api";
 
 const ITEMS = [
   "Development Plan & Learning Contract (DPLC)",
@@ -9,75 +9,77 @@ const ITEMS = [
   "Annual Progress Review – Year 3 (Final Year)",
 ];
 
-export default function SubmittedDocumentsTab() {
-  const [docs, setDocs] = useState({});
+export default function StudentChecklist({ documents = {} }) {
   const [inputs, setInputs] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  /* =========================
-     LOAD FROM MASTER TRACKING
-  ========================= */
-  async function load() {
-    const res = await apiGet("/api/student/me");
-    setDocs(res.row.documents || {});
-    setLoading(false);
+  function handleChange(label, value) {
+    setInputs(prev => ({ ...prev, [label]: value }));
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  async function save(label) {
+    const url = inputs[label]?.trim();
+    if (!url) {
+      alert("Paste link first");
+      return;
+    }
 
-  async function save(item) {
-    const link = inputs[item]?.trim();
-    if (!link) return alert("Paste link first");
+    setSaving(true);
 
-    await apiPost("/api/student/save-document", {
-      document_type: item,
-      file_url: link,
+    const res = await fetch(`${API_BASE}/api/student/save-document`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+      },
+      body: JSON.stringify({
+        document_type: label,   // 🔑 MUST MATCH DOC_COLUMN_MAP
+        file_url: url,
+      }),
     });
 
-    await load(); // 🔑 reload from sheet
-    setInputs(prev => ({ ...prev, [item]: "" }));
-  }
+    if (!res.ok) {
+      alert("Save failed");
+    } else {
+      alert("Saved. Refresh page.");
+    }
 
-  if (loading) return <p>Loading documents…</p>;
+    setSaving(false);
+  }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">📄 Student Checklist</h3>
+      <h3 className="text-lg font-semibold">📁 Student Checklist</h3>
 
-      {ITEMS.map(item => {
-        const url = docs[item];
-        const submitted = typeof url === "string" && url.trim() !== "";
+      {ITEMS.map(label => {
+        const savedUrl = documents[label];
 
         return (
-          <div key={item} className="border rounded p-3 bg-white space-y-2">
-            <div className="font-medium">
-              {submitted ? "✅" : "⬜"} {item}
-            </div>
+          <div key={label} className="border p-3 rounded bg-white">
+            <div className="font-medium">{label}</div>
 
-            {submitted ? (
+            {savedUrl ? (
               <a
-                href={url}
+                href={savedUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-purple-600 underline"
+                className="text-purple-600 underline text-sm"
               >
                 View document
               </a>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-2">
                 <input
-                  className="flex-1 border rounded px-2 py-1"
+                  type="url"
                   placeholder="Paste link here"
-                  value={inputs[item] || ""}
-                  onChange={e =>
-                    setInputs(p => ({ ...p, [item]: e.target.value }))
-                  }
+                  className="flex-1 border px-2 py-1 text-sm"
+                  value={inputs[label] || ""}
+                  onChange={e => handleChange(label, e.target.value)}
                 />
                 <button
-                  onClick={() => save(item)}
-                  className="bg-purple-600 text-white px-3 rounded"
+                  onClick={() => save(label)}
+                  disabled={saving}
+                  className="bg-purple-600 text-white px-3 rounded text-sm"
                 >
                   Save
                 </button>
