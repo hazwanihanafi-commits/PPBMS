@@ -1,120 +1,136 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "../utils/api";
 
-/**
- * Document definitions
- * key MUST match backend COLUMN_MAP
- */
-const DOCUMENTS = [
-  {
-    key: "dplc",
-    label: "Development Plan & Learning Contract (DPLC)",
-  },
-  {
-    key: "apr1",
-    label: "Annual Progress Review – Year 1",
-  },
-  {
-    key: "apr2",
-    label: "Annual Progress Review – Year 2",
-  },
-  {
-    key: "fpr3",
-    label: "Annual Progress Review – Year 3 (Final Year)",
-  },
+const ITEMS = [
+  "Development Plan & Learning Contract (DPLC)",
+  "Student Supervision Logbook",
+  "Annual Progress Review – Year 1",
+  "Annual Progress Review – Year 2",
+  "Annual Progress Review – Year 3 (Final Year)",
 ];
 
 export default function SubmittedDocumentsTab() {
-  const [documents, setDocuments] = useState({});
+  const [docs, setDocs] = useState({});
   const [inputs, setInputs] = useState({});
   const [loading, setLoading] = useState(true);
 
-  /* ============================================================
-      LOAD FROM /api/student/me (MASTERTRACKING)
-     ============================================================ */
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await apiGet("/api/student/me");
-        setDocuments(res.row?.documents || {});
-      } catch (e) {
-        console.error("Failed to load documents", e);
-      }
-      setLoading(false);
-    }
+  /* ===============================
+     LOAD SAVED LINKS FROM SHEET
+  =============================== */
+  async function loadDocs() {
+    setLoading(true);
+    const rows = await apiGet("/api/documents/my");
 
-    load();
+    const map = {};
+    rows.forEach((r) => {
+      map[r.document_type] = r;
+    });
+
+    setDocs(map);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadDocs();
   }, []);
 
-  /* ============================================================
-      SAVE LINK → MASTERTRACKING
-     ============================================================ */
-  async function saveLink(key) {
-    const url = (inputs[key] || "").trim();
-    if (!url) {
-      alert("Paste a document link first");
+  function onChange(item, value) {
+    setInputs((prev) => ({ ...prev, [item]: value }));
+  }
+
+  /* ===============================
+     SAVE / REPLACE LINK
+  =============================== */
+  async function saveLink(item) {
+    const link = inputs[item]?.trim();
+    if (!link) {
+      alert("Paste a link first");
       return;
     }
 
-    await apiPost("/api/student/save-document", {
-      key,
-      url,
+    await apiPost("/api/documents/save-link", {
+      document_type: item,
+      file_url: link,
+      section: "Monitoring & Supervision",
     });
 
-    // update UI immediately
-    setDocuments((prev) => ({ ...prev, [key]: url }));
-    setInputs((prev) => ({ ...prev, [key]: "" }));
+    setInputs((prev) => ({ ...prev, [item]: "" }));
+    loadDocs(); // 🔑 reload from sheet
   }
 
-  if (loading) return <p className="text-gray-500">Loading documents…</p>;
+  /* ===============================
+     REMOVE LINK
+  =============================== */
+  async function removeDoc(item) {
+    if (!confirm("Remove this document?")) return;
+
+    await apiPost("/api/documents/remove", {
+      document_type: item,
+    });
+
+    loadDocs();
+  }
+
+  if (loading) return <p>Loading documents…</p>;
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">📄 Submitted Documents</h3>
 
-      {DOCUMENTS.map(({ key, label }) => {
-        const url = documents[key];
+      {ITEMS.map((item) => {
+        const doc = docs[item];
 
         return (
           <div
-            key={key}
-            className="border rounded-lg p-3 bg-white space-y-2"
+            key={item}
+            className="border rounded-lg p-4 bg-white space-y-2"
           >
             <div className="font-medium">
-              {url ? "✅" : "⬜"} {label}
+              {doc ? "✅" : "⬜"} {item}
             </div>
 
-            {url ? (
-              <div className="flex gap-3 text-sm">
+            {/* VIEW / REMOVE */}
+            {doc && (
+              <div className="flex gap-4 text-sm">
                 <a
-                  href={url}
+                  href={doc.file_url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noreferrer"
                   className="text-purple-600 underline"
                 >
                   View
                 </a>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={inputs[key] || ""}
-                  onChange={(e) =>
-                    setInputs((p) => ({ ...p, [key]: e.target.value }))
-                  }
-                  placeholder="Paste document link (https://...)"
-                  className="flex-1 border rounded px-2 py-1 text-sm"
-                />
 
                 <button
-                  onClick={() => saveLink(key)}
-                  className="bg-purple-600 text-white px-3 rounded text-sm"
+                  onClick={() => removeDoc(item)}
+                  className="text-red-500"
                 >
-                  Save
+                  Remove
                 </button>
               </div>
             )}
+
+            {/* ALWAYS SHOW INPUT + SAVE */}
+            <div className="flex gap-2 pt-1">
+              <input
+                type="url"
+                value={inputs[item] || ""}
+                onChange={(e) => onChange(item, e.target.value)}
+                placeholder={
+                  doc
+                    ? "Paste new link to replace existing"
+                    : "Paste document link (https://...)"
+                }
+                className="flex-1 border rounded px-2 py-1 text-sm"
+              />
+
+              <button
+                onClick={() => saveLink(item)}
+                className="bg-purple-600 text-white px-3 rounded text-sm"
+              >
+                Save
+              </button>
+            </div>
           </div>
         );
       })}
