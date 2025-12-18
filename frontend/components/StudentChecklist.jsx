@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../utils/api";
 
-const ITEMS = [
-  "Development Plan & Learning Contract (DPLC)",
-  "Student Supervision Logbook",
-  "Annual Progress Review – Year 1",
-  "Annual Progress Review – Year 2",
-  "Annual Progress Review – Year 3 (Final Year)",
+/* 🔑 LABEL → MASTER TRACKING COLUMN */
+const DOCUMENTS = [
+  { label: "Development Plan & Learning Contract (DPLC)", key: "DPLC" },
+  { label: "Student Supervision Logbook", key: "SUPERVISION_LOG" },
+  { label: "Annual Progress Review – Year 1", key: "APR_Y1" },
+  { label: "Annual Progress Review – Year 2", key: "APR_Y2" },
+  { label: "Annual Progress Review – Year 3 (Final Year)", key: "APR_Y3" },
+
+  { label: "Ethics Approval", key: "ETHICS_APPROVAL" },
+  { label: "Publication Acceptance", key: "PUBLICATION_ACCEPTANCE" },
+  { label: "Proof of Submission", key: "PROOF_OF_SUBMISSION" },
+  { label: "Conference Presentation", key: "CONFERENCE_PRESENTATION" },
+  { label: "Thesis Notice", key: "THESIS_NOTICE" },
+  { label: "Viva Report", key: "VIVA_REPORT" },
+  { label: "Correction Verification", key: "CORRECTION_VERIFICATION" },
+  { label: "Final Thesis", key: "FINAL_THESIS" },
 ];
 
 export default function StudentChecklist({ initialDocuments = {} }) {
@@ -14,17 +24,17 @@ export default function StudentChecklist({ initialDocuments = {} }) {
   const [inputs, setInputs] = useState({});
   const [saving, setSaving] = useState(false);
 
-  /* 🔑 hydrate from MasterTracking on load / refresh */
+  /* hydrate from MasterTracking */
   useEffect(() => {
     setDocuments(initialDocuments || {});
   }, [initialDocuments]);
 
-  function handleChange(label, value) {
-    setInputs((prev) => ({ ...prev, [label]: value }));
+  function handleChange(key, value) {
+    setInputs((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function saveLink(label) {
-    const url = inputs[label]?.trim();
+  async function saveLink(doc) {
+    const url = inputs[doc.key]?.trim();
     if (!url) {
       alert("Paste a link first");
       return;
@@ -41,7 +51,7 @@ export default function StudentChecklist({ initialDocuments = {} }) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        document_type: label,   // MUST match DOC_COLUMN_MAP
+        document_type: doc.label, // backend maps label → column
         file_url: url,
       }),
     });
@@ -52,13 +62,13 @@ export default function StudentChecklist({ initialDocuments = {} }) {
       return;
     }
 
-    /* 🔥 update UI immediately */
+    /* update UI */
     setDocuments((prev) => ({
       ...prev,
-      [label]: url,
+      [doc.label]: url,
     }));
 
-    setInputs((prev) => ({ ...prev, [label]: "" }));
+    setInputs((prev) => ({ ...prev, [doc.key]: "" }));
     setSaving(false);
   }
 
@@ -66,12 +76,12 @@ export default function StudentChecklist({ initialDocuments = {} }) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">📁 Student Checklist</h3>
 
-      {ITEMS.map((label) => {
-        const savedUrl = documents[label];
+      {DOCUMENTS.map((doc) => {
+        const savedUrl = documents[doc.label];
 
         return (
-          <div key={label} className="border p-3 rounded bg-white">
-            <div className="font-medium mb-1">{label}</div>
+          <div key={doc.key} className="border p-3 rounded bg-white">
+            <div className="font-medium mb-1">{doc.label}</div>
 
             {savedUrl ? (
               <a
@@ -88,13 +98,13 @@ export default function StudentChecklist({ initialDocuments = {} }) {
                   type="url"
                   placeholder="Paste link here"
                   className="flex-1 border px-2 py-1 text-sm"
-                  value={inputs[label] || ""}
+                  value={inputs[doc.key] || ""}
                   onChange={(e) =>
-                    handleChange(label, e.target.value)
+                    handleChange(doc.key, e.target.value)
                   }
                 />
                 <button
-                  onClick={() => saveLink(label)}
+                  onClick={() => saveLink(doc)}
                   disabled={saving}
                   className="bg-purple-600 text-white px-3 rounded text-sm"
                 >
