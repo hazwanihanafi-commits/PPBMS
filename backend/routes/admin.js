@@ -158,4 +158,37 @@ router.post("/reset-cache", adminOnly, (req, res) => {
   }
 });
 
+router.get("/student/:email", adminOnly, async (req, res) => {
+  try {
+    const email = req.params.email.toLowerCase().trim();
+    const rows = await getCachedSheet(process.env.SHEET_ID);
+
+    const raw = rows.find(
+      r => (r["Student's Email"] || "").toLowerCase().trim() === email
+    );
+
+    if (!raw)
+      return res.status(404).json({ error: "Student not found" });
+
+    const documents = {};
+    Object.entries(DOC_COLUMN_MAP).forEach(([label, col]) => {
+      documents[label] = raw[col] || "";
+    });
+
+    return res.json({
+      row: {
+        student_name: raw["Student Name"] || "-",
+        email: raw["Student's Email"] || "-",
+        programme: raw["Programme"] || "-",
+        department: raw["Department"] || "-",
+        documents,
+      },
+    });
+
+  } catch (err) {
+    console.error("ADMIN student error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
