@@ -1,65 +1,54 @@
 import { google } from "googleapis";
 
-const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
-  scopes: ["https://www.googleapis.com/auth/spreadsheets"]
-});
+/* ============================================================
+   SAFE GOOGLE AUTH (NO CRASH IF ENV MISSING)
+   ============================================================ */
 
-const sheets = google.sheets({ version: "v4", auth });
+function getAuth() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 
-export async function getChecklistRow(sheetId, studentEmail) {
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: "A1:ZZ"
+  if (!raw) {
+    throw new Error(
+      "GOOGLE_SERVICE_ACCOUNT_JSON is missing in environment variables"
+    );
+  }
+
+  let credentials;
+  try {
+    credentials = JSON.parse(raw);
+  } catch (e) {
+    throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_JSON format");
+  }
+
+  return new google.auth.GoogleAuth({
+    credentials,
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive.readonly",
+    ],
   });
-
-  const [headers, ...rows] = res.data.values;
-
-  const row = rows.find(
-    r => (r[headers.indexOf("Student's Email")] || "")
-      .toLowerCase() === studentEmail.toLowerCase()
-  );
-
-  if (!row) return {};
-
-  const checklist = {};
-  headers.forEach((h, i) => {
-    if (h === h.toUpperCase()) checklist[h] = row[i] || "";
-  });
-
-  return checklist;
 }
 
-export async function updateChecklistCell(
-  sheetId,
-  studentEmail,
-  headerKey,
-  fileUrl
-) {
+/* ============================================================
+   READ MASTERTRACKING
+   ============================================================ */
+export async function readMasterTracking(sheetId) {
+  const auth = getAuth();
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "A1:ZZ"
+    range: "MasterTracking!A1:ZZ999",
   });
 
-  const headers = res.data.values[0];
-  const colIndex = headers.indexOf(headerKey);
-  const emailIndex = headers.indexOf("Student's Email");
+  const rows = res.data.values || [];
+  if (rows.length < 2) return [];
 
-  const rows = res.data.values.slice(1);
-  const rowIndex = rows.findIndex(
-    r => (r[emailIndex] || "")
-      .toLowerCase() === studentEmail.toLowerCase()
-  );
-
-  if (colIndex === -1 || rowIndex === -1) return;
-
-  const colLetter = String.fromCharCode(65 + colIndex);
-  const rowNumber = rowIndex + 2;
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: sheetId,
-    range: `${colLetter}${rowNumber}`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[fileUrl]] }
+  const header = rows[0];
+  return rows.slice(1).map((r) => {
+    const obj = {};
+    header.forEach((h, i) => (obj[h] = r[i] || ""));
+    return obj;
   });
 }
