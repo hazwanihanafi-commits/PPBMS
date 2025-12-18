@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { API_BASE } from "../utils/api";
 
 const ITEMS = [
@@ -9,7 +9,7 @@ const ITEMS = [
   "Annual Progress Review – Year 3 (Final Year)",
 ];
 
-export default function StudentChecklist({ documents = {} }) {
+export default function StudentChecklist({ documents = {}, onSaved }) {
   const [inputs, setInputs] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -20,31 +20,39 @@ export default function StudentChecklist({ documents = {} }) {
   async function save(label) {
     const url = inputs[label]?.trim();
     if (!url) {
-      alert("Paste link first");
+      alert("Paste a link first");
       return;
     }
 
-    setSaving(true);
+    try {
+      setSaving(true);
 
-    const res = await fetch(`${API_BASE}/api/student/save-document`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-      },
-      body: JSON.stringify({
-        document_type: label,   // 🔑 MUST MATCH DOC_COLUMN_MAP
-        file_url: url,
-      }),
-    });
+      const res = await fetch(`${API_BASE}/api/student/save-document`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
+        body: JSON.stringify({
+          document_type: label, // 🔑 must match DOC_COLUMN_MAP
+          file_url: url,
+        }),
+      });
 
-    if (!res.ok) {
+      if (!res.ok) throw new Error("Save failed");
+
+      // clear input
+      setInputs(prev => ({ ...prev, [label]: "" }));
+
+      // 🔥 tell parent to reload /student/me
+      if (onSaved) onSaved();
+
+    } catch (e) {
       alert("Save failed");
-    } else {
-      alert("Saved. Refresh page.");
+      console.error(e);
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
   return (
