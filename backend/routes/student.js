@@ -115,5 +115,55 @@ router.post("/update-actual", auth, async (req, res) => {
   }
 });
 
+/* ============================================================
+    POST /api/student/save-document
+    (writes directly into MasterTracking FileURL columns)
+   ============================================================ */
+router.post("/save-document", auth, async (req, res) => {
+  try {
+    const { key, url } = req.body;
+
+    if (!key || !url)
+      return res.status(400).json({ error: "Missing key or url" });
+
+    const email = (req.user.email || "").toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const idx = rows.findIndex(
+      r => (r["Student's Email"] || "").toLowerCase().trim() === email
+    );
+
+    if (idx === -1)
+      return res.status(404).json({ error: "Student not found" });
+
+    const rowNumber = idx + 2;
+
+    // 🔑 MAP UI KEY → EXACT COLUMN NAME
+    const COLUMN_MAP = {
+      dplc: "Development Plan & Learning Contract - FileURL",
+      apr1: "Annual Progress Review (Year 1) - FileURL",
+      apr2: "Annual Progress Review (Year 2) - FileURL",
+      fpr3: "Final Progress Review (Year 3) - FileURL",
+    };
+
+    const columnName = COLUMN_MAP[key];
+    if (!columnName)
+      return res.status(400).json({ error: "Invalid document key" });
+
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      columnName,
+      rowNumber,
+      url
+    );
+
+    return res.json({ success: true });
+
+  } catch (e) {
+    console.error("save-document error:", e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 
 export default router;
