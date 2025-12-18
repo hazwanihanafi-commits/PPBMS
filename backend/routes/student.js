@@ -26,7 +26,6 @@ function auth(req, res, next) {
 router.get("/me", auth, async (req, res) => {
   try {
     const email = (req.user.email || "").toLowerCase().trim();
-
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const raw = rows.find(
@@ -35,7 +34,7 @@ router.get("/me", auth, async (req, res) => {
 
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
-    // 1️⃣ Build student profile
+    // 1️⃣ Student profile
     const profile = {
       student_id:
         raw["Matric"] ||
@@ -49,22 +48,22 @@ router.get("/me", auth, async (req, res) => {
       supervisor: raw["Main Supervisor"] || "",
       start_date: raw["Start Date"] || "",
       department: raw["Department"] || "-",
-      field: raw["Field"] || "-",
-      raw
+      field: raw["Field"] || "-"
     };
 
-    // 2️⃣ Extract JotForm document URLs
+    // 2️⃣ Documents (FROM MASTER TRACKING — CORRECT)
     const documents = {
-      dplc: raw["Development Plan & Learning Contract - FileURL"] || "",
-      apr1: raw["Annual Progress Review (Year 1) - FileURL"] || "",
-      apr2: raw["Annual Progress Review (Year 2) - FileURL"] || "",
-      fpr3: raw["Final Progress Review (Year 3) - FileURL"] || ""
+      "Development Plan & Learning Contract (DPLC)": raw["DPLC"] || "",
+      "Student Supervision Logbook": raw["SUPERVISION_LOG"] || "",
+      "Annual Progress Review – Year 1": raw["APR_Y1"] || "",
+      "Annual Progress Review – Year 2": raw["APR_Y2"] || "",
+      "Annual Progress Review – Year 3 (Final Year)": raw["APR_Y3"] || ""
     };
 
-    // 3️⃣ Build timeline
+    // 3️⃣ Timeline (NOW BUILT BEFORE RETURN)
     const timeline = buildTimelineForRow(raw);
 
-    // 4️⃣ Return merged student data
+    // 4️⃣ SINGLE RETURN (FIXED)
     return res.json({
       row: {
         ...profile,
@@ -78,8 +77,6 @@ router.get("/me", auth, async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 });
-
-
 
 /* ============================================================
     POST /api/student/update-actual
