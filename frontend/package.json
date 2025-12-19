@@ -23,7 +23,7 @@
     "date-fns": "^3.6.0",
     "react-chartjs-2": "^5.2.0",
     "chart.js": "^4.4.0",
-    "recharts": "^2.x.x",
+    "recharts": "^2.8.0",
     "react-icons": "^4.11.0"
   },
 
