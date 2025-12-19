@@ -74,6 +74,7 @@ router.get("/student/:email", auth, async (req, res) => {
     );
 
     const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
+    console.log("CQI rows:", studentAssessments);
 
     /* ---- RESPONSE ---- */
     res.json({
