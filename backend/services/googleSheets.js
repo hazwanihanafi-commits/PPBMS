@@ -195,7 +195,6 @@ export async function readASSESSMENT_PLO(sheetId) {
 
   return rows.slice(1).map(row => {
     const obj = {};
-
     headers.forEach((h, i) => {
       let v = row[i] ?? "";
       if (typeof v === "string") v = v.trim();
@@ -204,10 +203,8 @@ export async function readASSESSMENT_PLO(sheetId) {
     });
 
     return {
-      student_email: (obj.students_email || "").toLowerCase(),
+      matric: obj.matric || "",
       assessment_type: (obj.assessment_type || "").replace(/\s+/g, ""),
-      academic_year: obj.academic_year || "",
-      scoring_type: obj.scoring_type || "",
       ...obj
     };
   });
