@@ -207,7 +207,7 @@ export default function SupervisorStudentDetails() {
     Indicator based on TRX500 Research Methodology Presentation.
   </p>
 
-  {Object.keys(cqiByAssessment || {}).length === 0 ? (
+  {(!cqiByAssessment || Object.keys(cqiByAssessment).length === 0) ? (
     <p className="text-sm text-gray-500">CQI data not available yet.</p>
   ) : (
     <>
@@ -231,9 +231,10 @@ export default function SupervisorStudentDetails() {
       <div className="mb-4">
         <h4 className="font-semibold text-sm mb-1">📌 CQI Narrative</h4>
         <ul className="list-disc list-inside text-sm text-gray-700">
-          {student.cqiNarrative.map((n, i) => (
-            <li key={i}>{n}</li>
-          ))}
+          {Array.isArray(student.cqiNarrative) &&
+            student.cqiNarrative.map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
         </ul>
       </div>
 
