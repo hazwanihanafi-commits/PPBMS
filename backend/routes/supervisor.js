@@ -1,7 +1,8 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 
-import { readMasterTracking, readAssessmentPLO } from "../services/googleSheets.js";
+import { readMasterTracking } from "../services/googleSheets.js";
+import { readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 
@@ -25,7 +26,7 @@ router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
 
-    // 🔹 MasterTracking
+    /* ---- MASTER TRACKING ---- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
@@ -37,28 +38,32 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    // 🔹 Assessment PLO (THIS WAS WRONG BEFORE)
+    /* ---- ASSESSMENT_PLO (THIS WAS WRONG BEFORE) ---- */
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
 
+    // ✅ USE Student_Email (NORMALISED FIELD)
     const trxAssessments = assessments.filter(
       a =>
-        a.Student_Email === email &&   // ✅ CORRECT FIELD
-        a.Assessment_Type === "TRX500"
+        a.Student_Email === email &&
+        (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
     );
 
-    console.log("TRX500 rows:", trxAssessments); // YOU SAW THIS ✔
+    console.log("TRX500 rows used for CQI:", trxAssessments);
 
     const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
 
+    /* ---- RESPONSE ---- */
     res.json({
       row: {
         student_id: raw["Matric"] || "",
         student_name: raw["Student Name"] || "",
         email,
         programme: raw["Programme"] || "",
+        field: raw["Field"] || "",
+        department: raw["Department"] || "",
         timeline,
         documents: {},
-        cqiByAssessment
+        cqiByAssessment // ✅ WILL NOW CONTAIN PLO1..PLO11
       }
     });
 
