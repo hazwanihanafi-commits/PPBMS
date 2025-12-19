@@ -1,3 +1,10 @@
+function safeText(value) {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return value.toString();
+  return "-"; // 🚫 BLOCK OBJECTS
+}
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
