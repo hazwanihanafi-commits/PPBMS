@@ -34,19 +34,21 @@ export default function SupervisorStudentDetails() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
 
-      setStudent(json.row);
-      setTimeline(Array.isArray(json.row.timeline) ? json.row.timeline : []);
+      setStudent(json.row || {});
+      setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : []);
+
+      // ✅ NORMALISE CQI ONCE
       const safeCQI =
-  json.row &&
-  json.row.cqiByAssessment &&
-  typeof json.row.cqiByAssessment === "object" &&
-  !Array.isArray(json.row.cqiByAssessment)
-    ? json.row.cqiByAssessment
-    : {};
+        json.row &&
+        json.row.cqiByAssessment &&
+        typeof json.row.cqiByAssessment === "object" &&
+        !Array.isArray(json.row.cqiByAssessment)
+          ? json.row.cqiByAssessment
+          : {};
 
-setCqiByAssessment(safeCQI);
+      setCqi(safeCQI);
 
-      console.log("CQI FRONTEND:", json.row.cqiByAssessment);
+      console.log("CQI FRONTEND FINAL:", safeCQI);
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -94,7 +96,7 @@ setCqiByAssessment(safeCQI);
         )}
       </div>
 
-      {/* ===== CQI STATUS (THIS WILL SHOW) ===== */}
+      {/* ===== CQI STATUS ===== */}
       <div className="bg-white rounded-xl p-4">
         <h3 className="font-semibold mb-3">
           🎯 CQI by Assessment (TRX500)
