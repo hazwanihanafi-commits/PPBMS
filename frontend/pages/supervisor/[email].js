@@ -1,13 +1,13 @@
-function safeText(value) {
-  if (value === null || value === undefined) return "-";
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return value.toString();
-  return "-"; // 🚫 BLOCK OBJECTS
-}
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
+
+/* ================= SAFE RENDER ================= */
+function renderText(v) {
+  if (v === null || v === undefined) return "-";
+  if (typeof v === "string" || typeof v === "number") return v;
+  return "-";
+}
 
 export default function SupervisorStudentDetails() {
   const router = useRouter();
@@ -15,18 +15,17 @@ export default function SupervisorStudentDetails() {
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [documents, setDocuments] = useState({});
   const [cqiByAssessment, setCqiByAssessment] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (email) fetchStudent();
+    if (email) loadStudent();
   }, [email]);
 
-  async function fetchStudent() {
+  async function loadStudent() {
     setLoading(true);
-    setError("");
+    setErr("");
 
     try {
       const token = localStorage.getItem("ppbms_token");
@@ -36,71 +35,65 @@ export default function SupervisorStudentDetails() {
       );
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to load");
+      if (!res.ok) throw new Error(json.error || "Load failed");
 
-      setStudent(json.row);
-      setTimeline(json.row.timeline || []);
-      setDocuments(json.row.documents || {});
-      setCqiByAssessment(json.row.cqiByAssessment || {});
-    } catch (err) {
-      setError(err.message);
+      setStudent(json.row || {});
+      setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : []);
+      setCqiByAssessment(
+        typeof json.row?.cqiByAssessment === "object"
+          ? json.row.cqiByAssessment
+          : {}
+      );
+    } catch (e) {
+      setErr(e.message);
     } finally {
       setLoading(false);
     }
   }
 
   if (loading) return <div className="p-6">Loading…</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
-  if (!student) return <div className="p-6">No student data</div>;
+  if (err) return <div className="p-6 text-red-600">{err}</div>;
 
   return (
     <div className="min-h-screen bg-purple-50 p-6">
       <button
+        className="text-purple-700 underline mb-4"
         onClick={() => router.push("/supervisor")}
-        className="text-purple-700 underline mb-6"
       >
         ← Back
       </button>
 
       <h1 className="text-2xl font-bold mb-4">
-        {student.student_name}
+        {renderText(student.student_name)}
       </h1>
 
-      {/* PROFILE */}
+      {/* ================= PROFILE ================= */}
       <div className="bg-white rounded-xl p-4 mb-6">
-        <p><strong>Email:</strong> {student.email}</p>
-        <p><strong>Matric:</strong> {student.student_id}</p>
-        <p><strong>Programme:</strong> {student.programme}</p>
-        <p><strong>Field:</strong> {student.field}</p>
-        <p><strong>Department:</strong> {student.department}</p>
+        <p><b>Email:</b> {renderText(student.email)}</p>
+        <p><b>Matric:</b> {renderText(student.student_id)}</p>
+        <p><b>Programme:</b> {renderText(student.programme)}</p>
+        <p><b>Field:</b> {renderText(student.field)}</p>
+        <p><b>Department:</b> {renderText(student.department)}</p>
       </div>
 
-      {/* DOCUMENTS */}
-      <DocumentSection
-        title="Submitted Documents"
-        documents={documents}
-      />
-
-      {/* TIMELINE */}
-      <div className="bg-white rounded-xl p-4 mt-6">
-        <h3 className="font-semibold mb-2">📅 Timeline</h3>
+      {/* ================= TIMELINE ================= */}
+      <div className="bg-white rounded-xl p-4 mb-6">
+        <h3 className="font-semibold mb-2">Timeline</h3>
         <ul className="list-disc ml-6 text-sm">
           {timeline.map((t, i) => (
-            <li key={i}>{t.activity}</li>
+            <li key={i}>{renderText(t.activity)}</li>
           ))}
         </ul>
       </div>
 
-      {/* ================= CQI (ABSOLUTELY SAFE) ================= */}
-      <div className="bg-white rounded-xl p-4 mt-6">
+      {/* ================= CQI ================= */}
+      <div className="bg-white rounded-xl p-4">
         <h3 className="font-semibold mb-2">
           🎯 CQI by Assessment (TRX500)
         </h3>
 
         {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">
-            CQI data not available
-          </p>
+          <p className="text-sm text-gray-500">No CQI data</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {Object.entries(cqiByAssessment).map(([plo, status]) => (
@@ -118,41 +111,6 @@ export default function SupervisorStudentDetails() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ================= DOCUMENT SECTION ================= */
-function DocumentSection({ title, documents }) {
-  const labels = Object.keys(documents);
-
-  return (
-    <div className="bg-white rounded-xl p-4 mb-6">
-      <h3 className="font-semibold mb-2">{title}</h3>
-
-      {labels.length === 0 ? (
-        <p className="text-sm text-gray-500">No documents</p>
-      ) : (
-        <ul className="space-y-2 text-sm">
-          {labels.map(label => (
-            <li key={label} className="flex justify-between">
-              <span>{label}</span>
-              {documents[label] ? (
-                <a
-                  href={documents[label]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-purple-600 underline"
-                >
-                  View
-                </a>
-              ) : (
-                <span className="text-gray-400">Not submitted</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
