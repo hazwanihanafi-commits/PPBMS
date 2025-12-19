@@ -85,8 +85,6 @@ console.log("TRX500 MATCHED:", trxAssessments.length);
 
 const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
 
-console.log("CQI RESULT:", cqiByAssessment);
-
     /* ---- RESPONSE ---- */
     res.json({
       row: {
