@@ -149,9 +149,16 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- CQI (FROM ASSESSMENT_PLO TAB) ---------- */
     const allAssessments = await readAssessmentPLO(process.env.SHEET_ID);
 
-    const studentAssessments = allAssessments.filter(
-      (a) => a.Student_Email === targetEmail
-    );
+    const studentAssessments = allAssessments.filter((a) => {
+  const email =
+    (a["Student_Email"] ||
+     a["Student's Email"] ||
+     a["Student Email"] ||
+     "").toLowerCase().trim();
+
+  return email === targetEmail;
+});
+
 
     const cqi = deriveCQI(studentAssessments);
 
