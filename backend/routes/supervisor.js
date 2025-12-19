@@ -66,6 +66,8 @@ router.get("/student/:email", auth, async (req, res) => {
 
     /* ---- ASSESSMENT (TRX500 ONLY) ---- */
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
+    console.log("TOTAL assessments rows:", assessments.length);
+console.log("Sample assessment row:", assessments[0]);
 
     const trxAssessments = assessments.filter(
       a =>
