@@ -1,4 +1,3 @@
-// backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
 
@@ -26,7 +25,7 @@ router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
 
-    /* -------- MASTER TRACKING -------- */
+    // 🔹 MasterTracking
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
@@ -38,30 +37,28 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    /* -------- ASSESSMENT_PLO -------- */
+    // 🔹 Assessment PLO (THIS WAS WRONG BEFORE)
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
 
-    // 🔥 THIS IS THE IMPORTANT FILTER
-    const trxRows = assessments.filter(r =>
-      (r["Student's Email"] || "").toLowerCase().trim() === email &&
-      (r["Assessment_Type"] || "").trim() === "TRX500"
+    const trxAssessments = assessments.filter(
+      a =>
+        a.Student_Email === email &&   // ✅ CORRECT FIELD
+        a.Assessment_Type === "TRX500"
     );
 
-    // 🔥 CQI DERIVATION
-    const cqiByAssessment = deriveCQIByAssessment(trxRows);
+    console.log("TRX500 rows:", trxAssessments); // YOU SAW THIS ✔
 
-    /* -------- RESPONSE -------- */
+    const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
+
     res.json({
       row: {
         student_id: raw["Matric"] || "",
         student_name: raw["Student Name"] || "",
         email,
         programme: raw["Programme"] || "",
-        field: raw["Field"] || "",
-        department: raw["Department"] || "",
         timeline,
         documents: {},
-        cqiByAssessment // ✅ OBJECT WITH PLO STATUS
+        cqiByAssessment
       }
     });
 
