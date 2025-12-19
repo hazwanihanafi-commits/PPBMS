@@ -1,40 +1,36 @@
 /* utils/cqiAggregate.js */
 
 /**
- * Percent-based CQI classification
- * GREEN ≥ 70
- * AMBER 46–69
- * RED < 46
+ * Input: array of assessment rows (TRX500 only)
+ * Output: { PLO1: "GREEN", PLO2: "AMBER", ... }
  */
 
-export function deriveCQIByAssessment(assessments) {
+export function deriveCQIByAssessment(rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0) return {};
+
   const result = {};
 
-  if (!Array.isArray(assessments) || assessments.length === 0) {
-    return result;
-  }
+  // We only care about PLO1–PLO11
+  const PLOS = [
+    "PLO1","PLO2","PLO3","PLO4","PLO5","PLO6",
+    "PLO7","PLO8","PLO9","PLO10","PLO11"
+  ];
 
-  // Only TRX500 (percent-based)
-  const trx = assessments.filter(
-    a =>
-      (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
-  );
+  PLOS.forEach(plo => {
+    // Collect numeric scores for this PLO
+    const scores = rows
+      .map(r => Number(r[plo]))
+      .filter(v => !isNaN(v));
 
-  if (trx.length === 0) return result;
+    if (scores.length === 0) return;
 
-  // Use latest TRX500 record
-  const row = trx[trx.length - 1];
+    // Average score (percent)
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
 
-  Object.keys(row).forEach((key) => {
-    if (!key.startsWith("PLO")) return;
-
-    const value = Number(row[key]);
-
-    if (isNaN(value)) return;
-
-    if (value >= 70) result[key] = "GREEN";
-    else if (value >= 46) result[key] = "AMBER";
-    else result[key] = "RED";
+    // CQI thresholds (based on your rule)
+    if (avg >= 70) result[plo] = "GREEN";
+    else if (avg >= 46) result[plo] = "AMBER";
+    else result[plo] = "RED";
   });
 
   return result;
