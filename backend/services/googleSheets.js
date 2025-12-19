@@ -173,13 +173,20 @@ export async function appendRow(sheetId, sheetName, data) {
 }
 
 export async function readAssessmentPLO(sheetId) {
-  const rows = await readMasterTracking(sheetId, "ASSESSMENT_PLO");
+  const rows = await readSheet(sheetId, "ASSESSMENT_PLO");
 
   return rows.map(r => ({
-    Student_Email: (r["Student_Email"] || "").toLowerCase().trim(),
-    Assessment_Type: r["Assessment_Type"],
-    Academic_Year: r["Academic_Year"],
-    Scoring_Type: r["Scoring_Type"],
+    Student_Email: (
+      r["Student_Email"] ||
+      r["Student's Email"] ||
+      r["Student Email"] ||
+      ""
+    ).toLowerCase().trim(),
+
+    Assessment_Type: r["Assessment_Type"] || "",
+    Academic_Year: r["Academic_Year"] || "",
+    Scoring_Type: r["Scoring_Type"] || "",
+
     ...r
   }));
 }
