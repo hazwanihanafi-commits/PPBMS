@@ -1,7 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 
-import { readMasterTracking, readAssessmentPLO } from "../services/googleSheets.js";
+import { readMasterTracking, readASSESSMENT_PLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 
@@ -65,7 +65,7 @@ router.get("/student/:email", auth, async (req, res) => {
     const timeline = buildTimelineForRow(raw);
 
     /* ---- ASSESSMENT PLO ---- */
-    const assessments = await readAssessmentPLO(process.env.SHEET_ID);
+    const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
     console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
