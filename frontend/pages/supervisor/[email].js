@@ -13,8 +13,7 @@ export default function SupervisorStudentDetails() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (!email) return;
-    loadStudent();
+    if (email) loadStudent();
   }, [email]);
 
   async function loadStudent() {
@@ -26,20 +25,22 @@ export default function SupervisorStudentDetails() {
 
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${email}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to load");
-      }
+      if (!res.ok) throw new Error(json.error || "Failed");
 
       setStudent(json.row);
-      setTimeline(Array.isArray(json.row.timeline) ? json.row.timeline : {});
+
+      // ✅ ALWAYS ARRAY
+      setTimeline(
+        Array.isArray(json.row.timeline) ? json.row.timeline : []
+      );
+
+      // ✅ ALWAYS OBJECT
       setCqiByAssessment(
+        json.row.cqiByAssessment &&
         typeof json.row.cqiByAssessment === "object"
           ? json.row.cqiByAssessment
           : {}
@@ -63,10 +64,10 @@ export default function SupervisorStudentDetails() {
         className="text-purple-700 underline mb-4"
         onClick={() => router.push("/supervisor")}
       >
-        ← Back to Supervisor
+        ← Back
       </button>
 
-      <h1 className="text-2xl font-bold mb-2">
+      <h1 className="text-2xl font-bold mb-4">
         {student.student_name}
       </h1>
 
@@ -96,7 +97,7 @@ export default function SupervisorStudentDetails() {
         </h3>
 
         {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">CQI data not available</p>
+          <p className="text-sm text-gray-500">CQI not available</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {Object.entries(cqiByAssessment).map(([plo, status]) => (
