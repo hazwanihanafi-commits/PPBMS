@@ -65,20 +65,20 @@ router.get("/student/:email", auth, async (req, res) => {
     const timeline = buildTimelineForRow(raw);
 
     /* ---- ASSESSMENT PLO ---- */
-    const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
+const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
+console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
-    const trxAssessments = assessments.filter(a =>
-  (a["Student's Email"] || "").toLowerCase().trim() === email &&
-  (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
+const trxAssessments = assessments.filter(a =>
+  a.student_email === email &&
+  a.assessment_type === "TRX500"
 );
 
-    console.log("TRX500 MATCHED:", trxAssessments);
+console.log("TRX500 MATCHED:", trxAssessments.length);
 
-    const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
+const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
 
-    console.log("CQI RESULT:", cqiByAssessment);
+console.log("CQI RESULT:", cqiByAssessment);
 
     /* ---- RESPONSE ---- */
     res.json({
