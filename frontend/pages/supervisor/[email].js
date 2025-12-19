@@ -101,44 +101,35 @@ export default function SupervisorStudentDetails() {
         </ul>
       </div>
 
-      {/* ================= CQI (SAFE) ================= */}
-      <div className="bg-white shadow rounded-2xl p-6 mt-10">
-        <h3 className="text-xl font-bold mb-2 text-purple-700">
-          🎯 CQI by Assessment Component (TRX500)
-        </h3>
+     {/* ================= CQI (SAFE) ================= */}
+<div className="bg-white shadow rounded-2xl p-6 mt-10">
+  <h3 className="text-xl font-bold mb-2 text-purple-700">
+    🎯 CQI by Assessment Component (TRX500)
+  </h3>
 
-        {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">CQI data not available.</p>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-3 mb-4">
-              {Object.entries(cqiByAssessment).map(([plo, status]) => (
-                <span
-                  key={plo}
-                  className={`px-3 py-1 rounded-full text-sm font-semibold
-                    ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
-                    ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
-                    ${status === "RED" ? "bg-red-100 text-red-700" : ""}
-                  `}
-                >
-                  {plo}: {status}
-                </span>
-              ))}
-            </div>
+  {(!cqiByAssessment || typeof cqiByAssessment !== "object") && (
+    <p className="text-sm text-gray-500">CQI data not available.</p>
+  )}
 
-            {cqiNarrative.length > 0 && (
-              <ul className="list-disc list-inside text-sm text-gray-700">
-                {cqiNarrative.map((n, i) => (
-                  <li key={i}>{n}</li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
+  {cqiByAssessment &&
+    typeof cqiByAssessment === "object" &&
+    Object.keys(cqiByAssessment).length > 0 && (
+      <div className="flex flex-wrap gap-3">
+        {Object.entries(cqiByAssessment).map(([plo, status]) => (
+          <span
+            key={plo}
+            className={`px-3 py-1 rounded-full text-sm font-semibold
+              ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
+              ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
+              ${status === "RED" ? "bg-red-100 text-red-700" : ""}
+            `}
+          >
+            {plo}: {status}
+          </span>
+        ))}
       </div>
-    </div>
-  );
-}
+    )}
+</div>
 
 /* DOCUMENT SECTION */
 function DocumentSection({ title, items, documents }) {
