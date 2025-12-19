@@ -70,14 +70,14 @@ export default function SupervisorStudentDetails() {
           {student.student_name}
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
-          <p><strong>Email:</strong> {student.email}</p>
-          <p><strong>Matric:</strong> {student.student_id}</p>
-          <p><strong>Programme:</strong> {student.programme}</p>
-          <p><strong>Field:</strong> {student.field}</p>
-          <p><strong>Department:</strong> {student.department}</p>
-        </div>
-      </div>
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
+  <p><strong>Email:</strong> {String(student.email || "-")}</p>
+  <p><strong>Matric:</strong> {String(student.student_id || "-")}</p>
+  <p><strong>Programme:</strong> {String(student.programme || "-")}</p>
+  <p><strong>Field:</strong> {String(student.field || "-")}</p>
+  <p><strong>Department:</strong> {String(student.department || "-")}</p>
+</div>
+
 
       {/* DOCUMENTS */}
       <DocumentSection
