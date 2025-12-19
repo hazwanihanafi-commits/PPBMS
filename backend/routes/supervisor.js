@@ -70,9 +70,9 @@ router.get("/student/:email", auth, async (req, res) => {
     console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
     const trxAssessments = assessments.filter(a =>
-      a.Student_Email === email &&
-      (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
-    );
+  (a["Student's Email"] || "").toLowerCase().trim() === email &&
+  (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
+);
 
     console.log("TRX500 MATCHED:", trxAssessments);
 
