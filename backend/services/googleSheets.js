@@ -172,23 +172,27 @@ export async function appendRow(sheetId, sheetName, data) {
   return true;
 }
 
-export async function readAssessmentPLO(sheetId) {
-  const rows = await readSheet(sheetId, "ASSESSMENT_PLO");
+export async function readASSESSMENT_PLO(sheetId) {
+  const auth = getAuth(true);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
 
-  return rows.map(r => ({
-    Student_Email: (
-      r["Student_Email"] ||
-      r["Student's Email"] ||
-      r["Student Email"] ||
-      ""
-    ).toLowerCase().trim(),
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "ASSESSMENT_PLO!A1:ZZ999", // ⚠️ MUST match sheet name
+  });
 
-    Assessment_Type: r["Assessment_Type"] || "",
-    Academic_Year: r["Academic_Year"] || "",
-    Scoring_Type: r["Scoring_Type"] || "",
+  const rows = res.data.values || [];
+  if (rows.length < 2) return [];
 
-    ...r
-  }));
+  const headers = rows[0];
+
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = row[i] || "";
+    });
+    return obj;
+  });
 }
-
 
