@@ -3,37 +3,29 @@
 export function deriveCQIByAssessment(rows = []) {
   if (!Array.isArray(rows) || rows.length === 0) return {};
 
-  // Only take TRX500
-  const trx = rows.filter(
-    r => (r["Assessment_Type"] || "").toUpperCase() === "TRX500"
-  );
+  const result = {};
 
-  if (trx.length === 0) return {};
+  // we assume TRX500 uses PERCENT scoring
+  const PLO_KEYS = [
+    "PLO1","PLO2","PLO3","PLO4","PLO5",
+    "PLO6","PLO7","PLO8","PLO9","PLO10","PLO11"
+  ];
 
-  const ploStatus = {};
+  rows.forEach(row => {
+    PLO_KEYS.forEach(plo => {
+      const raw = row[plo];
 
-  trx.forEach(row => {
-    Object.keys(row).forEach(key => {
-      if (!key.startsWith("PLO")) return;
+      if (raw === "" || raw === null || raw === undefined) return;
 
-      const value = Number(row[key]);
-      if (isNaN(value)) return;
+      const score = Number(raw);
+      if (Number.isNaN(score)) return;
 
-      let status = "RED";
-      if (value >= 70) status = "GREEN";
-      else if (value >= 46) status = "AMBER";
-
-      // Keep worst status if multiple rows exist
-      if (!ploStatus[key]) {
-        ploStatus[key] = status;
-      } else {
-        const rank = { GREEN: 3, AMBER: 2, RED: 1 };
-        if (rank[status] < rank[ploStatus[key]]) {
-          ploStatus[key] = status;
-        }
-      }
+      // 🎯 CQI RULES (YOU CONFIRMED THIS)
+      if (score >= 70) result[plo] = "GREEN";
+      else if (score >= 46) result[plo] = "AMBER";
+      else result[plo] = "RED";
     });
   });
 
-  return ploStatus;
+  return result;
 }
