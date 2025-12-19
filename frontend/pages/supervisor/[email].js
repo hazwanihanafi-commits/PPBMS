@@ -27,33 +27,38 @@ export default function SupervisorStudentDetails() {
   }, [email]);
 
   async function loadStudent() {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("ppbms_token");
+  setLoading(true);
+  setErr("");
 
-      const res = await fetch(
-        `${API_BASE}/api/supervisor/student/${email}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+  try {
+    const token = localStorage.getItem("ppbms_token");
 
-      const json = await res.json();
-      if (!res.ok) {
-        setErr(json.error || "Failed to load student");
-        return;
+    const res = await fetch(
+      `${API_BASE}/api/supervisor/student/${email}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
       }
+    );
 
-      setStudent(json.row);
-      setTimeline(json.row.timeline || []);
-      setCqiByAssessment(json.row.cqiByAssessment || {});
-      setPloRadar(json.row.ploRadar || {});
-    } catch (e) {
-      console.error(e);
-      setErr("Unable to load student data.");
+    const json = await res.json();
+
+    if (!res.ok) {
+      setErr(json.error || "Failed to load student");
+      return;
     }
+
+    setStudent(json.row);
+    setTimeline(json.row.timeline || []);
+    setCqiByAssessment(json.row.cqiByAssessment || {});
+    setPloRadar(json.row.ploRadar || {});
+  } catch (e) {
+    console.error(e);
+    setErr("Unable to load student data.");
+  } finally {
+    // ✅ THIS LINE FIXES THE INFINITE "Loading…"
     setLoading(false);
   }
+}
 
   if (loading)
     return <div className="p-6 text-center text-gray-600">Loading…</div>;
