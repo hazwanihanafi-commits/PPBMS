@@ -23,14 +23,12 @@ export default function SupervisorStudentDetails() {
 
     try {
       const token = localStorage.getItem("ppbms_token");
-
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${email}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const json = await res.json();
-
       if (!res.ok) {
         setErr(json.error || "Failed to load student");
         return;
@@ -74,16 +72,10 @@ export default function SupervisorStudentDetails() {
       {/* PROFILE */}
       <div className="bg-white shadow rounded-2xl p-6 mb-10">
         <h2 className="text-2xl font-bold mb-4">{student.student_name}</h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
           <p><strong>Email:</strong> {student.email}</p>
           <p><strong>Matric:</strong> {student.student_id}</p>
           <p><strong>Programme:</strong> {student.programme}</p>
-          <p><strong>Field:</strong> {student.field}</p>
-          <p><strong>Department:</strong> {student.department}</p>
-          <p><strong>Start Date:</strong> {student.start_date}</p>
-          <p><strong>Main Supervisor:</strong> {student.supervisor}</p>
-          <p><strong>Co-Supervisor(s):</strong> {student.cosupervisor || "-"}</p>
         </div>
       </div>
 
@@ -100,60 +92,29 @@ export default function SupervisorStudentDetails() {
         documents={documents}
       />
 
-      <DocumentSection
-        title="Ethics & Research Outputs"
-        items={[
-          "ETHICS_APPROVAL",
-          "PUBLICATION_ACCEPTANCE",
-          "PROOF_OF_SUBMISSION",
-          "CONFERENCE_PRESENTATION",
-          "THESIS_NOTICE",
-          "VIVA_REPORT",
-          "CORRECTION_VERIFICATION",
-          "FINAL_THESIS",
-        ]}
-        documents={documents}
-      />
-
-      {/* TIMELINE */}
-      <div className="bg-white border shadow rounded-2xl p-6 mt-10">
-        <h3 className="text-lg font-bold mb-4">📅 Timeline</h3>
-        <table className="w-full text-sm">
-          <thead className="bg-purple-50 text-purple-700">
-            <tr>
-              <th className="p-3 text-left">Activity</th>
-              <th className="p-3">Expected</th>
-              <th className="p-3">Actual</th>
-              <th className="p-3">Remaining</th>
-            </tr>
-          </thead>
-          <tbody>
-            {timeline.map((t, i) => (
-              <tr key={i} className="border-t">
-                <td className="p-3">{t.activity}</td>
-                <td className="p-3">{t.expected || "-"}</td>
-                <td className="p-3">{t.actual || "-"}</td>
-                <td className="p-3">{t.remaining_days}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       {/* CQI */}
       <div className="bg-white shadow rounded-2xl p-6 mt-10">
-        <h3 className="text-xl font-bold text-purple-700 mb-3">
-          🎯 Current CQI by Assessment Component (TRX500)
+        <h3 className="text-xl font-bold text-purple-700 mb-2">
+          🎯 CQI by Assessment Component (TRX500)
         </h3>
 
         {Object.keys(cqiByAssessment).length === 0 ? (
           <p className="text-sm text-gray-500">CQI data not available yet.</p>
         ) : (
-          Object.entries(cqiByAssessment).map(([plo, status]) => (
-            <div key={plo} className="mb-2 text-sm">
-              <strong>{plo}</strong>: {status}
-            </div>
-          ))
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(cqiByAssessment).map(([plo, status]) => (
+              <span
+                key={plo}
+                className={`px-3 py-1 rounded-full text-sm font-semibold
+                  ${status === "GREEN" && "bg-green-100 text-green-700"}
+                  ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
+                  ${status === "RED" && "bg-red-100 text-red-700"}
+                `}
+              >
+                {plo}: {status}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -166,31 +127,23 @@ function DocumentSection({ title, items, documents }) {
     <div className="bg-white border rounded-2xl p-4 mb-6">
       <h4 className="font-semibold mb-3">{title}</h4>
       <ul className="space-y-2">
-        {items.map((label) => {
-          const url = documents[label];
-          return (
-            <li
-              key={label}
-              className="flex justify-between items-center border-b pb-2"
-            >
-              <span className="text-sm">
-                {url ? "✅" : "⬜"} {label}
-              </span>
-              {url ? (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-purple-600 text-sm hover:underline"
-                >
-                  View document →
-                </a>
-              ) : (
-                <span className="text-xs text-gray-400">Not submitted</span>
-              )}
-            </li>
-          );
-        })}
+        {items.map((label) => (
+          <li key={label} className="flex justify-between border-b pb-2">
+            <span className="text-sm">
+              {documents[label] ? "✅" : "⬜"} {label}
+            </span>
+            {documents[label] && (
+              <a
+                href={documents[label]}
+                target="_blank"
+                rel="noreferrer"
+                className="text-purple-600 text-sm hover:underline"
+              >
+                View →
+              </a>
+            )}
+          </li>
+        ))}
       </ul>
     </div>
   );
