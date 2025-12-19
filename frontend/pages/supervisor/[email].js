@@ -1,4 +1,3 @@
-// frontend/pages/supervisor/[email].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
@@ -11,6 +10,7 @@ export default function SupervisorStudentDetails() {
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [cqi, setCqi] = useState(null);
 
   useEffect(() => {
     if (email) loadStudent();
@@ -36,6 +36,7 @@ export default function SupervisorStudentDetails() {
 
       setStudent(json.row);
       setTimeline(json.row.timeline || []);
+      setCqi(json.row.cqi || null);
     } catch (e) {
       console.error(e);
       setErr("Unable to load student data.");
@@ -72,15 +73,15 @@ export default function SupervisorStudentDetails() {
       {/* ================= PROFILE ================= */}
       <div className="bg-white shadow rounded-2xl p-6 mb-10">
         <h2 className="text-2xl font-bold mb-4">{student.student_name}</h2>
-        <a
-  href="https://webcentral2.usm.my/sccentral/smup/ptj_profilpelajar.asp?tag=search"
-  target="_blank"
-  rel="noreferrer"
-  className="inline-block mb-4 text-sm text-blue-600 underline"
->
-  📄 View Official USM Student CV (login required)
-</a>
 
+        <a
+          href="https://webcentral2.usm.my/sccentral/smup/ptj_profilpelajar.asp?tag=search"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block mb-4 text-sm text-blue-600 underline"
+        >
+          📄 View Official USM Student CV (login required)
+        </a>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
           <p><strong>Email:</strong> {student.email}</p>
@@ -178,6 +179,52 @@ export default function SupervisorStudentDetails() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ================= CQI & PLO ================= */}
+      <div className="bg-white shadow rounded-2xl p-6 mt-10">
+        <h3 className="text-xl font-bold mb-2 text-purple-700">
+          🎯 CQI & PLO Monitoring
+        </h3>
+
+        <p className="text-xs text-gray-500 mb-4">
+          Derived automatically from TRX500, Annual Review (Lampiran A) and Viva Voce
+        </p>
+
+        {!cqi || Object.keys(cqi).length === 0 ? (
+          <p className="text-sm text-gray-500">
+            CQI data not available yet.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              {Object.entries(cqi).map(([plo, status]) => {
+                const color =
+                  status === "GREEN"
+                    ? "bg-green-100 text-green-700 border-green-300"
+                    : status === "AMBER"
+                    ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                    : "bg-red-100 text-red-700 border-red-300";
+
+                return (
+                  <div
+                    key={plo}
+                    className={`border rounded-xl p-4 text-center font-semibold ${color}`}
+                  >
+                    <div className="text-sm">{plo}</div>
+                    <div className="text-lg mt-1">{status}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {Object.values(cqi).includes("RED") && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-700 rounded">
+                ⚠ <strong>CQI Action Required:</strong> One or more PLOs are below the acceptable threshold.
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
