@@ -25,20 +25,64 @@ function auth(req, res, next) {
   }
 }
 
-/* ---------------- CQI HELPERS ---------------- */
+/* ---------------- HELPERS ---------------- */
+function getStudentEmail(r) {
+  return (r["Student's Email"] || "").toLowerCase().trim();
+}
+
+function calcProgress(timeline) {
+  if (!timeline?.length) return 0;
+  const completed = timeline.filter(t => t.actual).length;
+  return Math.round((completed / timeline.length) * 100);
+}
+
 function generateCQINarrative(cqiMap) {
   if (!cqiMap) return [];
-
   return Object.entries(cqiMap).map(([plo, status]) => {
-    if (status === "GREEN")
-      return `${plo} has achieved the expected standard.`;
-    if (status === "AMBER")
-      return `${plo} shows marginal attainment and should be monitored.`;
+    if (status === "GREEN") return `${plo} has achieved the expected standard.`;
+    if (status === "AMBER") return `${plo} shows marginal attainment and should be monitored.`;
     return `${plo} requires intervention due to insufficient attainment.`;
   });
 }
 
-/* ---------------- STUDENT DETAILS ---------------- */
+/* =====================================================
+   ✅ 1. SUPERVISOR STUDENT LIST (THIS FIXES 404)
+===================================================== */
+router.get("/students", auth, async (req, res) => {
+  try {
+    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const students = rows
+      .filter(
+        r =>
+          (r["Main Supervisor's Email"] || "")
+            .toLowerCase()
+            .trim() === supervisorEmail
+      )
+      .map(raw => {
+        const timeline = buildTimelineForRow(raw);
+        return {
+          id: raw["Matric"] || "",
+          name: raw["Student Name"] || "-",
+          email: getStudentEmail(raw),
+          programme: raw["Programme"] || "-",
+          progressPercent: calcProgress(timeline),
+          timeline
+        };
+      });
+
+    res.json({ students });
+
+  } catch (err) {
+    console.error("students error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* =====================================================
+   ✅ 2. SINGLE STUDENT DETAILS + CQI
+===================================================== */
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
@@ -97,7 +141,7 @@ router.get("/student/:email", auth, async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("student error:", err);
     res.status(500).json({ error: err.message });
   }
 });
