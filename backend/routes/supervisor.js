@@ -1,11 +1,13 @@
-// backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
 
 import { readMasterTracking } from "../services/googleSheets.js";
 import { readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
-import {deriveCQIByAssessment,deriveCumulativePLO} from "../utils/cqiAggregate.js";
+import {
+  deriveCQIByAssessment,
+  deriveCumulativePLO
+} from "../utils/cqiAggregate.js";
 
 const router = express.Router();
 
@@ -33,9 +35,7 @@ function getStudentEmail(r) {
     r["Student Email"] ||
     r["Email"] ||
     ""
-  )
-    .toLowerCase()
-    .trim();
+  ).toLowerCase().trim();
 }
 
 function calcProgress(timeline) {
@@ -55,7 +55,9 @@ router.get("/students", auth, async (req, res) => {
 
     const supervisedRows = rows.filter(
       (r) =>
-        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === spvEmail
+        (r["Main Supervisor's Email"] || "")
+          .toLowerCase()
+          .trim() === spvEmail
     );
 
     const students = supervisedRows.map((raw) => {
@@ -63,7 +65,7 @@ router.get("/students", auth, async (req, res) => {
       const progressPercent = calcProgress(timeline);
 
       let status = "On Track";
-      let severity = 2; // 0 = At Risk, 1 = Slightly Late, 2 = On Track
+      let severity = 2;
 
       const lateTasks = timeline.filter(
         (t) => !t.actual && t.remaining_days < 0
@@ -81,12 +83,7 @@ router.get("/students", auth, async (req, res) => {
       }
 
       return {
-        id:
-          raw["Matric"] ||
-          raw["Matric No"] ||
-          raw["Student ID"] ||
-          raw["StudentID"] ||
-          "",
+        id: raw["Matric"] || "",
         name: raw["Student Name"] || "-",
         email: getStudentEmail(raw),
         programme: raw["Programme"] || "-",
@@ -96,7 +93,7 @@ router.get("/students", auth, async (req, res) => {
         progressPercent,
         status,
         severity,
-        timeline,
+        timeline
       };
     });
 
@@ -117,7 +114,6 @@ router.get("/student/:email", auth, async (req, res) => {
 
     /* ---------- MASTER TRACKING ---------- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
-
     const raw = rows.find(
       (r) =>
         (r["Student's Email"] || "").toLowerCase().trim() === targetEmail
@@ -129,7 +125,7 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    /* ---------- DOCUMENTS ---------- */
+    /* ---------- DOCUMENTS (UNCHANGED) ---------- */
     const documents = {
       "Development Plan & Learning Contract (DPLC)": raw["DPLC"] || "",
       "Student Supervision Logbook": raw["SUPERVISION_LOG"] || "",
@@ -143,19 +139,18 @@ router.get("/student/:email", auth, async (req, res) => {
       "THESIS_NOTICE": raw["THESIS_NOTICE"] || "",
       "VIVA_REPORT": raw["VIVA_REPORT"] || "",
       "CORRECTION_VERIFICATION": raw["CORRECTION_VERIFICATION"] || "",
-      "FINAL_THESIS": raw["FINAL_THESIS"] || "",
+      "FINAL_THESIS": raw["FINAL_THESIS"] || ""
     };
 
-/* ---------- CQI ---------- */
+    /* ---------- CQI (ASSESSMENT → PROGRAMME) ---------- */
     const allAssessments = await readAssessmentPLO(process.env.SHEET_ID);
     const studentAssessments = allAssessments.filter(
-      a => a.Student_Email === targetEmail
+      (a) => a.Student_Email === targetEmail
     );
 
     const cqiByAssessment = deriveCQIByAssessment(studentAssessments);
     const ploRadar = deriveCumulativePLO(studentAssessments);
 
-     
     /* ---------- RESPONSE ---------- */
     return res.json({
       row: {
@@ -170,8 +165,13 @@ router.get("/student/:email", auth, async (req, res) => {
         cosupervisor: raw["Co-Supervisor(s)"] || "",
         documents,
         timeline,
-        cqi, // ⭐ CQI ADDED HERE
-      },
+
+        // ✅ personal CQI (TRX / APR / Viva)
+        cqiByAssessment,
+
+        // ✅ cumulative programme CQI (radar)
+        ploRadar
+      }
     });
 
   } catch (err) {
