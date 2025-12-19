@@ -67,8 +67,11 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
     const studentAssessments = assessments.filter(
-      a => a.Student_Email === email
-    );
+  a =>
+    (a["Student's Email"] || "")
+      .toLowerCase()
+      .trim() === email.toLowerCase().trim()
+);
 
     res.json({
       row: {
