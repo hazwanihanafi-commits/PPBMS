@@ -4,9 +4,7 @@ import jwt from "jsonwebtoken";
 import { readMasterTracking } from "../services/googleSheets.js";
 import { readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
-import {
-  deriveCQIByAssessment,
-} from "../utils/cqiAggregate.js";
+import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 
 const router = express.Router();
 
@@ -39,7 +37,7 @@ router.get("/students", auth, async (req, res) => {
       .map(r => ({
         id: r["Matric"] || "",
         name: r["Student Name"] || "",
-        email: (r["Student's Email"] || "").toLowerCase(),
+        email: (r["Student's Email"] || "").toLowerCase().trim(),
         programme: r["Programme"] || ""
       }));
 
@@ -53,8 +51,9 @@ router.get("/students", auth, async (req, res) => {
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
 
+    /* ---- MASTER TRACKING ---- */
+    const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
@@ -65,14 +64,18 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
+    /* ---- ASSESSMENT (TRX500 ONLY) ---- */
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
-    const studentAssessments = assessments.filter(
-  a =>
-    (a["Student's Email"] || "")
-      .toLowerCase()
-      .trim() === email.toLowerCase().trim()
-);
 
+    const trxAssessments = assessments.filter(
+      a =>
+        (a["Student's Email"] || "").toLowerCase().trim() === email &&
+        (a["Assessment_Type"] || "").toUpperCase().trim() === "TRX500"
+    );
+
+    const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
+
+    /* ---- RESPONSE ---- */
     res.json({
       row: {
         student_id: raw["Matric"] || "",
@@ -82,12 +85,13 @@ router.get("/student/:email", auth, async (req, res) => {
         timeline,
         documents: {},
 
-        // 🔒 SAFE DEFAULTS (VERY IMPORTANT)
-        cqiByAssessment: deriveCQIByAssessment(studentAssessments) || {},
+        // ✅ ALWAYS OBJECT
+        cqiByAssessment: cqiByAssessment || {}
       }
     });
 
   } catch (e) {
+    console.error("student detail error:", e);
     res.status(500).json({ error: e.message });
   }
 });
