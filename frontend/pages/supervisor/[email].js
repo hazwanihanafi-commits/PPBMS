@@ -108,48 +108,43 @@ export default function SupervisorStudentDetails() {
         )}
       </div>
 
-      {/* ================= CQI BAR (PERCENT SAFE) ================= */}
-      <div className="bg-white rounded-xl p-4">
-        <h3 className="font-semibold mb-3">
-          🎯 CQI by Assessment (TRX500)
-        </h3>
+    {/* ================= CQI (STATUS BASED – SAFE) ================= */}
+<div className="bg-white rounded-xl p-4">
+  <h3 className="font-semibold mb-3">
+    🎯 CQI by Assessment (TRX500)
+  </h3>
 
-        {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">No CQI data</p>
-        ) : (
-          <>
-            {Object.entries(cqiByAssessment).map(([plo, value]) => {
-              const percent = Number(value);
+  {Object.keys(cqiByAssessment).length === 0 ? (
+    <p className="text-sm text-gray-500">No CQI data</p>
+  ) : (
+    <div className="space-y-3">
+      {Object.entries(cqiByAssessment).map(([plo, status]) => {
+        let width = "30%";
+        let color = "bg-red-500";
 
-              if (isNaN(percent)) return null;
+        if (status === "GREEN") {
+          width = "100%";
+          color = "bg-green-500";
+        } else if (status === "AMBER") {
+          width = "60%";
+          color = "bg-yellow-400";
+        }
 
-              let barColor = "bg-red-500";
-              if (percent >= 70) barColor = "bg-green-500";
-              else if (percent >= 46) barColor = "bg-yellow-400";
-
-              return (
-                <div key={plo} className="mb-3">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span>{plo}</span>
-                    <span>{percent}%</span>
-                  </div>
-
-                  <div className="w-full bg-gray-200 rounded h-3">
-                    <div
-                      className={`${barColor} h-3 rounded`}
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-
-            <p className="text-xs text-gray-500 mt-3">
-              <strong>Legend:</strong> Green ≥ 70% | Yellow 46–69% | Red &lt; 46%
-            </p>
-          </>
-        )}
-      </div>
+        return (
+          <div key={plo}>
+            <div className="flex justify-between text-xs mb-1">
+              <span>{plo}</span>
+              <span>{status}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded h-3">
+              <div
+                className={`${color} h-3 rounded`}
+                style={{ width }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
-  );
-}
+  )}
+</div>
