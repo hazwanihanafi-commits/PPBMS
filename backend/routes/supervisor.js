@@ -73,8 +73,10 @@ router.get("/student/:email", auth, async (req, res) => {
         (a["Assessment_Type"] || "").toUpperCase().trim() === "TRX500"
     );
 
+    console.log("TRX assessments:", trxAssessments);
+
     const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
-    console.log("CQI rows:", studentAssessments);
+    
 
     /* ---- RESPONSE ---- */
     res.json({
