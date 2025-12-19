@@ -179,20 +179,44 @@ export async function readASSESSMENT_PLO(sheetId) {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "ASSESSMENT_PLO!A1:ZZ999", // ⚠️ MUST match sheet name
+    range: "ASSESSMENT_PLO!A1:ZZ999",
   });
 
   const rows = res.data.values || [];
   if (rows.length < 2) return [];
 
-  const headers = rows[0];
+  // normalize header names
+  const headers = rows[0].map(h =>
+    (h || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+  );
 
   return rows.slice(1).map(row => {
     const obj = {};
+
     headers.forEach((h, i) => {
-      obj[h] = row[i] || "";
+      let value = row[i] ?? "";
+
+      // clean strings
+      if (typeof value === "string") value = value.trim();
+
+      // convert PLOs to numbers
+      if (h.startsWith("plo")) {
+        value = value === "" ? null : Number(value);
+      }
+
+      obj[h] = value;
     });
-    return obj;
+
+    return {
+      student_email: (obj.students_email || "").toLowerCase(),
+      assessment_type: (obj.assessment_type || "").toUpperCase(),
+      academic_year: obj.academic_year || "",
+      scoring_type: obj.scoring_type || "",
+      ...obj
+    };
   });
 }
-
