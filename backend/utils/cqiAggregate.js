@@ -1,37 +1,39 @@
-/* utils/cqiAggregate.js */
-
-/**
- * Input: array of assessment rows (TRX500 only)
- * Output: { PLO1: "GREEN", PLO2: "AMBER", ... }
- */
+// backend/utils/cqiAggregate.js
 
 export function deriveCQIByAssessment(rows = []) {
   if (!Array.isArray(rows) || rows.length === 0) return {};
 
-  const result = {};
+  // Only take TRX500
+  const trx = rows.filter(
+    r => (r["Assessment_Type"] || "").toUpperCase() === "TRX500"
+  );
 
-  // We only care about PLO1–PLO11
-  const PLOS = [
-    "PLO1","PLO2","PLO3","PLO4","PLO5","PLO6",
-    "PLO7","PLO8","PLO9","PLO10","PLO11"
-  ];
+  if (trx.length === 0) return {};
 
-  PLOS.forEach(plo => {
-    // Collect numeric scores for this PLO
-    const scores = rows
-      .map(r => Number(r[plo]))
-      .filter(v => !isNaN(v));
+  const ploStatus = {};
 
-    if (scores.length === 0) return;
+  trx.forEach(row => {
+    Object.keys(row).forEach(key => {
+      if (!key.startsWith("PLO")) return;
 
-    // Average score (percent)
-    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const value = Number(row[key]);
+      if (isNaN(value)) return;
 
-    // CQI thresholds (based on your rule)
-    if (avg >= 70) result[plo] = "GREEN";
-    else if (avg >= 46) result[plo] = "AMBER";
-    else result[plo] = "RED";
+      let status = "RED";
+      if (value >= 70) status = "GREEN";
+      else if (value >= 46) status = "AMBER";
+
+      // Keep worst status if multiple rows exist
+      if (!ploStatus[key]) {
+        ploStatus[key] = status;
+      } else {
+        const rank = { GREEN: 3, AMBER: 2, RED: 1 };
+        if (rank[status] < rank[ploStatus[key]]) {
+          ploStatus[key] = status;
+        }
+      }
+    });
   });
 
-  return result;
+  return ploStatus;
 }
