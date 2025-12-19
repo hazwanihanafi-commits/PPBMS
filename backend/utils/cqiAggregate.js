@@ -39,3 +39,39 @@ export function deriveCQIByAssessment(rows) {
 
   return result;
 }
+
+/* ✅ ADD THIS EXPORT */
+export function deriveCumulativePLO(rows) {
+  const bucket = {};
+
+  rows.forEach(row => {
+    const scoringType = (row.Scoring_Type || "").toUpperCase();
+
+    Object.keys(row).forEach(key => {
+      if (!key.startsWith("PLO")) return;
+
+      let percent = null;
+
+      if (scoringType === "PERCENT") {
+        percent = Number(row[key]);
+      }
+
+      if (scoringType === "SCALE") {
+        percent = scaleToPercent(row[key]);
+      }
+
+      if (percent === null || Number.isNaN(percent)) return;
+
+      if (!bucket[key]) bucket[key] = [];
+      bucket[key].push(percent);
+    });
+  });
+
+  const result = {};
+  Object.entries(bucket).forEach(([plo, values]) => {
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    result[plo] = Math.round(avg * 10) / 10;
+  });
+
+  return result;
+}
