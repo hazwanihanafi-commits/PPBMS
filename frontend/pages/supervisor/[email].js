@@ -7,6 +7,7 @@ export default function SupervisorStudentDetails() {
   const { email } = router.query;
 
   const [student, setStudent] = useState(null);
+  const [cqiByAssessment, setCqiByAssessment] = useState({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -20,7 +21,7 @@ export default function SupervisorStudentDetails() {
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${email}`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -28,6 +29,7 @@ export default function SupervisorStudentDetails() {
       if (!res.ok) throw new Error(json.error || "Failed");
 
       setStudent(json.row);
+      setCqiByAssessment(json.row.cqiByAssessment || {});
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -48,17 +50,37 @@ export default function SupervisorStudentDetails() {
         ← Back
       </button>
 
-      <h1 className="text-2xl font-bold mb-4">
-        {String(student.student_name || "-")}
+      <h1 className="text-2xl font-bold mb-2">
+        {String(student.student_name)}
       </h1>
 
-      <p><strong>Email:</strong> {String(student.email || "-")}</p>
-      <p><strong>Programme:</strong> {String(student.programme || "-")}</p>
-      <p><strong>Supervisor:</strong> {String(student.supervisor || "-")}</p>
+      <p><strong>Email:</strong> {String(student.email)}</p>
+      <p><strong>Programme:</strong> {String(student.programme)}</p>
 
-      <div className="mt-6 bg-white rounded p-4">
-        <h3 className="font-semibold mb-2">Status</h3>
-        <p>Student record loaded successfully.</p>
+      {/* ================= CQI (SAFE) ================= */}
+      <div className="mt-6 bg-white rounded-xl p-4">
+        <h3 className="font-semibold mb-2">
+          🎯 CQI by Assessment (TRX500)
+        </h3>
+
+        {Object.keys(cqiByAssessment).length === 0 ? (
+          <p className="text-sm text-gray-500">No CQI data yet</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(cqiByAssessment).map(([plo, status]) => (
+              <span
+                key={plo}
+                className={`px-3 py-1 rounded-full text-xs font-semibold
+                  ${status === "GREEN" && "bg-green-100 text-green-700"}
+                  ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
+                  ${status === "RED" && "bg-red-100 text-red-700"}
+                `}
+              >
+                {plo}: {status}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
