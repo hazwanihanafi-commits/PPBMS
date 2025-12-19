@@ -185,7 +185,6 @@ export async function readASSESSMENT_PLO(sheetId) {
   const rows = res.data.values || [];
   if (rows.length < 2) return [];
 
-  // normalize header names
   const headers = rows[0].map(h =>
     (h || "")
       .toString()
@@ -198,22 +197,15 @@ export async function readASSESSMENT_PLO(sheetId) {
     const obj = {};
 
     headers.forEach((h, i) => {
-      let value = row[i] ?? "";
-
-      // clean strings
-      if (typeof value === "string") value = value.trim();
-
-      // convert PLOs to numbers
-      if (h.startsWith("plo")) {
-        value = value === "" ? null : Number(value);
-      }
-
-      obj[h] = value;
+      let v = row[i] ?? "";
+      if (typeof v === "string") v = v.trim();
+      if (h.startsWith("plo")) v = v === "" ? null : Number(v);
+      obj[h] = v;
     });
 
     return {
       student_email: (obj.students_email || "").toLowerCase(),
-      assessment_type: (obj.assessment_type || "").toUpperCase(),
+      assessment_type: (obj.assessment_type || "").replace(/\s+/g, ""),
       academic_year: obj.academic_year || "",
       scoring_type: obj.scoring_type || "",
       ...obj
