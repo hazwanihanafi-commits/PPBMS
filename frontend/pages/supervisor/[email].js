@@ -198,39 +198,69 @@ export default function SupervisorStudentDetails() {
       </div>
 
       {/* ================= CQI BY ASSESSMENT ================= */}
-      <div className="bg-white shadow rounded-2xl p-6 mt-10">
-        <h3 className="text-xl font-bold mb-2 text-purple-700">
-          🎯 CQI by Assessment Component
-        </h3>
+<div className="bg-white shadow rounded-2xl p-6 mt-10">
+  <h3 className="text-xl font-bold text-purple-700 mb-1">
+    🎯 Current CQI by Assessment Component (TRX500)
+  </h3>
 
-        {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">
-            CQI data not available yet.
-          </p>
-        ) : (
-          Object.entries(cqiByAssessment).map(([assessment, plos]) => (
-            <div key={assessment} className="mb-6">
-              <h4 className="font-semibold text-purple-700 mb-2">
-                {assessment}
-              </h4>
+  <p className="text-xs text-gray-500 mb-4">
+    Indicator based on TRX500 Research Methodology Presentation.
+  </p>
 
-              <div className="flex flex-wrap gap-3">
-                {Object.entries(plos).map(([plo, status]) => (
-                  <span
-                    key={plo}
-                    className={`px-4 py-1 rounded-full text-xs font-semibold
-                      ${status === "GREEN" && "bg-green-100 text-green-700"}
-                      ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
-                      ${status === "RED" && "bg-red-100 text-red-700"}`}
-                  >
-                    {plo} – {status}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))
+  {Object.keys(cqiByAssessment || {}).length === 0 ? (
+    <p className="text-sm text-gray-500">CQI data not available yet.</p>
+  ) : (
+    <>
+      {/* STATUS */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        {Object.entries(cqiByAssessment).map(([plo, status]) => (
+          <span
+            key={plo}
+            className={`px-3 py-1 rounded-full text-sm font-semibold
+              ${status === "GREEN" && "bg-green-100 text-green-700"}
+              ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
+              ${status === "RED" && "bg-red-100 text-red-700"}
+            `}
+          >
+            {plo}: {status}
+          </span>
+        ))}
+      </div>
+
+      {/* NARRATIVE */}
+      <div className="mb-4">
+        <h4 className="font-semibold text-sm mb-1">📌 CQI Narrative</h4>
+        <ul className="list-disc list-inside text-sm text-gray-700">
+          {student.cqiNarrative.map((n, i) => (
+            <li key={i}>{n}</li>
+          ))}
+        </ul>
+      </div>
+
+      {/* REMARKS */}
+      <div>
+        <h4 className="font-semibold text-sm mb-2">
+          📝 Supervisor Intervention / Remarks
+        </h4>
+
+        {Object.entries(cqiByAssessment).map(([plo, status]) =>
+          status === "GREEN" ? null : (
+            <textarea
+              key={plo}
+              className="w-full border rounded p-2 mb-3 text-sm"
+              rows={3}
+              placeholder={`Remark / corrective action for ${plo}`}
+            />
+          )
         )}
       </div>
+
+      <p className="text-xs text-gray-500 mt-4">
+        <strong>Indicator:</strong> GREEN ≥ 46% | AMBER = marginal | RED &lt; 46%
+      </p>
+    </>
+  )}
+</div>
 
       {/* ================= CUMULATIVE CQI SPIDER ================= */}
       <div className="bg-white shadow rounded-2xl p-6 mt-10">
