@@ -8,9 +8,9 @@ export default function SupervisorStudentDetails() {
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [cqiByAssessment, setCqiByAssessment] = useState({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [cqiByAssessment, setCqiByAssessment] = useState({});
 
   useEffect(() => {
     if (email) loadStudent();
@@ -28,7 +28,7 @@ export default function SupervisorStudentDetails() {
       );
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to load");
+      if (!res.ok) throw new Error(json.error || "Failed");
 
       setStudent(json.row);
       setTimeline(json.row.timeline || []);
@@ -40,44 +40,27 @@ export default function SupervisorStudentDetails() {
     }
   }
 
-  if (loading)
-    return <div className="p-6 text-center text-gray-600">Loading…</div>;
-
-  if (err)
-    return <div className="p-6 text-center text-red-600">{err}</div>;
-
-  if (!student)
-    return <div className="p-6">No student data found.</div>;
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (err) return <div className="p-6 text-red-600">{err}</div>;
+  if (!student) return <div className="p-6">No student data</div>;
 
   const documents = student.documents || {};
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
+    <div className="min-h-screen bg-purple-50 p-6">
       <button
-        className="text-purple-700 hover:underline mb-6"
+        className="text-purple-700 underline mb-4"
         onClick={() => router.push("/supervisor")}
       >
-        ← Back to Supervisor Dashboard
+        ← Back
       </button>
 
-      <h1 className="text-3xl font-extrabold text-gray-900 mb-6">
-        Student Progress Overview
+      <h1 className="text-2xl font-bold mb-4">
+        {student.student_name}
       </h1>
 
-      {/* PROFILE */}
-      <div className="bg-white shadow rounded-2xl p-6 mb-10">
-        <h2 className="text-2xl font-bold mb-4">
-          {String(student.student_name || "-")}
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
-          <p><strong>Email:</strong> {String(student.email || "-")}</p>
-          <p><strong>Matric:</strong> {String(student.student_id || "-")}</p>
-          <p><strong>Programme:</strong> {String(student.programme || "-")}</p>
-          <p><strong>Field:</strong> {String(student.field || "-")}</p>
-          <p><strong>Department:</strong> {String(student.department || "-")}</p>
-        </div>
-      </div> {/* ✅ THIS WAS MISSING */}
+      <p><strong>Email:</strong> {student.email}</p>
+      <p><strong>Programme:</strong> {student.programme}</p>
 
       {/* DOCUMENTS */}
       <DocumentSection
@@ -93,59 +76,55 @@ export default function SupervisorStudentDetails() {
       />
 
       {/* TIMELINE */}
-      <div className="bg-white border shadow rounded-2xl p-6 mt-10">
-        <h3 className="text-lg font-bold mb-4">📅 Timeline</h3>
-        <ul className="list-disc ml-6 text-sm">
+      <div className="bg-white rounded-xl p-4 mt-6">
+        <h3 className="font-semibold mb-2">Timeline</h3>
+        <ul className="list-disc ml-5 text-sm">
           {timeline.map((t, i) => (
-            <li key={i}>{String(t.activity)}</li>
+            <li key={i}>{t.activity}</li>
           ))}
         </ul>
       </div>
 
-      {/* ================= CQI (FINAL SAFE VERSION) ================= */}
-<div className="bg-white shadow rounded-2xl p-6 mt-10">
-  <h3 className="text-xl font-bold mb-2 text-purple-700">
-    🎯 CQI by Assessment Component (TRX500)
-  </h3>
+      {/* CQI (SAFE) */}
+      <div className="bg-white rounded-xl p-4 mt-6">
+        <h3 className="font-semibold mb-2">
+          🎯 CQI by Assessment (TRX500)
+        </h3>
 
-  {(!cqiByAssessment ||
-    typeof cqiByAssessment !== "object" ||
-    Object.keys(cqiByAssessment).length === 0) ? (
-    <p className="text-sm text-gray-500">CQI data not available.</p>
-  ) : (
-    <div className="flex flex-wrap gap-3">
-      {Object.entries(cqiByAssessment).map(([plo, status]) => (
-        <span
-          key={plo}
-          className={`px-3 py-1 rounded-full text-sm font-semibold
-            ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
-            ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
-            ${status === "RED" ? "bg-red-100 text-red-700" : ""}
-          `}
-        >
-          {plo}: {status}
-        </span>
-      ))}
+        {Object.keys(cqiByAssessment).length === 0 ? (
+          <p className="text-sm text-gray-500">No CQI data</p>
+        ) : (
+          <div className="flex gap-2 flex-wrap">
+            {Object.entries(cqiByAssessment).map(([plo, status]) => (
+              <span
+                key={plo}
+                className={`px-3 py-1 rounded-full text-xs font-semibold
+                  ${status === "GREEN" && "bg-green-100 text-green-700"}
+                  ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
+                  ${status === "RED" && "bg-red-100 text-red-700"}
+                `}
+              >
+                {plo}: {status}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
-  )}
-</div>
+  );
+}
 
-/* DOCUMENT SECTION */
+/* ✅ DOCUMENT SECTION MUST BE OUTSIDE */
 function DocumentSection({ title, items, documents }) {
   return (
-    <div className="bg-white border rounded-2xl p-4 mb-6">
+    <div className="bg-white border rounded-xl p-4 mb-6">
       <h4 className="font-semibold mb-3">{title}</h4>
-      <ul className="space-y-2">
-        {items.map((label) => (
+      <ul className="space-y-2 text-sm">
+        {items.map(label => (
           <li key={label} className="flex justify-between">
             <span>{label}</span>
             {documents[label] ? (
-              <a
-                href={documents[label]}
-                target="_blank"
-                rel="noreferrer"
-                className="text-purple-600 hover:underline"
-              >
+              <a href={documents[label]} target="_blank" rel="noreferrer">
                 View
               </a>
             ) : (
