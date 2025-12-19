@@ -68,7 +68,7 @@ export default function SupervisorStudentDetails() {
         {text(student.student_name)}
       </h1>
 
-      {/* ===== PROFILE (SAFE) ===== */}
+      {/* PROFILE */}
       <div className="bg-white rounded-xl p-4 mb-6">
         <p><strong>Email:</strong> {text(student.email)}</p>
         <p><strong>Matric:</strong> {text(student.student_id)}</p>
@@ -77,7 +77,7 @@ export default function SupervisorStudentDetails() {
         <p><strong>Department:</strong> {text(student.department)}</p>
       </div>
 
-      {/* ===== TIMELINE (SAFE ARRAY) ===== */}
+      {/* TIMELINE */}
       <div className="bg-white rounded-xl p-4 mb-6">
         <h3 className="font-semibold mb-2">Timeline</h3>
         {timeline.length === 0 ? (
@@ -91,34 +91,36 @@ export default function SupervisorStudentDetails() {
         )}
       </div>
 
-      {/* ===== CQI BOX (OBJECT SAFE) ===== */}
+      {/* CQI BOX (FINAL SAFE VERSION) */}
       <div className="bg-white rounded-xl p-4">
-  <h3 className="font-semibold mb-2">
-    🎯 CQI by Assessment (TRX500)
-  </h3>
+        <h3 className="font-semibold mb-2">
+          🎯 CQI by Assessment (TRX500)
+        </h3>
 
-  {typeof cqiByAssessment !== "object" ||
-  Object.keys(cqiByAssessment).length === 0 ? (
-    <p className="text-sm text-gray-500">No CQI data</p>
-  ) : (
-    <div className="flex flex-wrap gap-2">
-      {Object.entries(cqiByAssessment).map(([plo, status]) => {
-        let colour = "bg-gray-200 text-gray-700";
+        {typeof cqiByAssessment !== "object" ||
+        Object.keys(cqiByAssessment).length === 0 ? (
+          <p className="text-sm text-gray-500">No CQI data</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(cqiByAssessment).map(([plo, status]) => {
+              let colour = "bg-gray-200 text-gray-700";
 
-        if (status === "GREEN") colour = "bg-green-100 text-green-700";
-        if (status === "AMBER") colour = "bg-yellow-100 text-yellow-700";
-        if (status === "RED") colour = "bg-red-100 text-red-700";
+              if (status === "GREEN") colour = "bg-green-100 text-green-700";
+              if (status === "AMBER") colour = "bg-yellow-100 text-yellow-700";
+              if (status === "RED") colour = "bg-red-100 text-red-700";
 
-        return (
-          <span
-            key={plo}
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${colour}`}
-          >
-            {plo}: {status}
-          </span>
-        );
-      })}
+              return (
+                <span
+                  key={plo}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${colour}`}
+                >
+                  {plo}: {status}
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
-  )}
-</div>
+  );
 }
