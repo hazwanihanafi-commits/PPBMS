@@ -1,3 +1,4 @@
+// backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
 
@@ -11,7 +12,7 @@ import {
 
 const router = express.Router();
 
-/* ================= AUTH ================= */
+/* ---------------- AUTH ---------------- */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -24,72 +25,33 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= HELPERS ================= */
-function getStudentEmail(r) {
-  return (
-    r["Student's Email"] ||
-    r["Student Email"] ||
-    r["Email"] ||
-    ""
-  ).toLowerCase().trim();
+/* ---------------- CQI HELPERS ---------------- */
+function generateCQINarrative(cqiMap) {
+  if (!cqiMap) return [];
+
+  return Object.entries(cqiMap).map(([plo, status]) => {
+    if (status === "GREEN")
+      return `${plo} has achieved the expected standard.`;
+    if (status === "AMBER")
+      return `${plo} shows marginal attainment and should be monitored.`;
+    return `${plo} requires intervention due to insufficient attainment.`;
+  });
 }
 
-function calcProgress(timeline) {
-  if (!timeline || timeline.length === 0) return 0;
-  const completed = timeline.filter((i) => i.actual).length;
-  return Math.round((completed / timeline.length) * 100);
-}
-
-/* ================= LIST STUDENTS ================= */
-router.get("/students", auth, async (req, res) => {
-  try {
-    const spvEmail = (req.user.email || "").toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const students = rows
-      .filter(
-        r =>
-          (r["Main Supervisor's Email"] || "")
-            .toLowerCase()
-            .trim() === spvEmail
-      )
-      .map(raw => {
-        const timeline = buildTimelineForRow(raw);
-        return {
-          id: raw["Matric"] || "",
-          name: raw["Student Name"] || "-",
-          email: getStudentEmail(raw),
-          programme: raw["Programme"] || "-",
-          progressPercent: calcProgress(timeline),
-          timeline
-        };
-      });
-
-    res.json({ students });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ================= STUDENT DETAILS ================= */
+/* ---------------- STUDENT DETAILS ---------------- */
 router.get("/student/:email", auth, async (req, res) => {
   try {
-    const targetEmail = req.params.email.toLowerCase().trim();
+    const email = req.params.email.toLowerCase().trim();
 
-    /* ---- Master Tracking ---- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === targetEmail
+      r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
 
-    if (!raw) {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const timeline = buildTimelineForRow(raw);
 
-    /* ---- Documents ---- */
     const documents = {
       "Development Plan & Learning Contract (DPLC)": raw["DPLC"] || "",
       "Student Supervision Logbook": raw["SUPERVISION_LOG"] || "",
@@ -106,21 +68,20 @@ router.get("/student/:email", auth, async (req, res) => {
       "FINAL_THESIS": raw["FINAL_THESIS"] || ""
     };
 
-    /* ---- CQI DATA ---- */
-    const allAssessments = await readAssessmentPLO(process.env.SHEET_ID);
-    const studentAssessments = allAssessments.filter(
-      a => a.Student_Email === targetEmail
+    const assessments = await readAssessmentPLO(process.env.SHEET_ID);
+    const studentAssessments = assessments.filter(
+      a => a.Student_Email === email
     );
 
     const cqiByAssessment = deriveCQIByAssessment(studentAssessments);
     const ploRadar = deriveCumulativePLO(studentAssessments);
+    const cqiNarrative = generateCQINarrative(cqiByAssessment);
 
-    /* ---- RESPONSE ---- */
     res.json({
       row: {
         student_id: raw["Matric"] || "",
         student_name: raw["Student Name"] || "",
-        email: raw["Student's Email"] || "",
+        email,
         programme: raw["Programme"] || "",
         start_date: raw["Start Date"] || "",
         field: raw["Field"] || "",
@@ -129,59 +90,16 @@ router.get("/student/:email", auth, async (req, res) => {
         cosupervisor: raw["Co-Supervisor(s)"] || "",
         documents,
         timeline,
-
-        // ✅ used by frontend
         cqiByAssessment,
-        ploRadar
+        ploRadar,
+        cqiNarrative
       }
     });
 
   } catch (err) {
-    console.error("supervisor/student error:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
-
-/* -------------------------------------------------------
-   UPDATE CQI REMARK (Supervisor)
-------------------------------------------------------- */
-router.post("/student/cqi-remark", auth, async (req, res) => {
-  try {
-    const { studentEmail, assessmentType, plo, remark } = req.body;
-
-    if (!studentEmail || !assessmentType || !plo) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Read ASSESSMENT_PLO sheet
-    const rows = await readAssessmentPLO(process.env.SHEET_ID);
-
-    const targetRow = rows.find(
-      r =>
-        r.Student_Email === studentEmail.toLowerCase().trim() &&
-        r.Assessment_Type === assessmentType
-    );
-
-    if (!targetRow) {
-      return res.status(404).json({ error: "Assessment record not found" });
-    }
-
-    // Append / update remark (simple text, auditable)
-    const updatedRemark = `[${plo}] ${remark}`;
-
-    await writeAssessmentRemark(
-      process.env.SHEET_ID,
-      targetRow.__rowNumber,
-      updatedRemark
-    );
-
-    res.json({ success: true });
-
-  } catch (err) {
-    console.error("save CQI remark error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 
 export default router;
