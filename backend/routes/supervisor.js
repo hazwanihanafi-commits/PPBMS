@@ -8,9 +8,7 @@ import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 
 const router = express.Router();
 
-/* =====================================================
-   AUTH MIDDLEWARE
-===================================================== */
+/* ================= AUTH ================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -23,19 +21,18 @@ function auth(req, res, next) {
   }
 }
 
-/* =====================================================
-   GET STUDENTS UNDER SUPERVISOR
-===================================================== */
+/* ================= STUDENT LIST ================= */
 router.get("/students", auth, async (req, res) => {
   try {
     const supervisorEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const students = rows
-      .filter(r =>
-        (r["Main Supervisor's Email"] || "")
-          .toLowerCase()
-          .trim() === supervisorEmail
+      .filter(
+        r =>
+          (r["Main Supervisor's Email"] || "")
+            .toLowerCase()
+            .trim() === supervisorEmail
       )
       .map(r => ({
         id: r["Matric"] || "",
@@ -45,23 +42,19 @@ router.get("/students", auth, async (req, res) => {
       }));
 
     res.json({ students });
-
-  } catch (err) {
-    console.error("students list error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (e) {
+    console.error("students error:", e);
+    res.status(500).json({ error: e.message });
   }
 });
 
-/* =====================================================
-   GET STUDENT DETAILS + TRX500 CQI
-===================================================== */
+/* ================= STUDENT DETAILS ================= */
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
 
-    /* ---------- MASTER TRACKING ---------- */
+    /* ===== MASTER TRACKING ===== */
     const rows = await readMasterTracking(process.env.SHEET_ID);
-
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
@@ -72,45 +65,40 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    /* ---------- ASSESSMENT_PLO (NORMALISED) ---------- */
+    /* ===== ASSESSMENT_PLO (TRX500, PERCENT) ===== */
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
 
-    // DEBUG – KEEP FOR NOW
-    console.log("Requested student email:", email);
-    console.log("Total assessment rows:", assessments.length);
-
-    /* ---------- FILTER TRX500 ONLY ---------- */
-    const trxAssessments = assessments.filter(a =>
-      a.Student_Email === email &&
-      (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
+    // IMPORTANT: readAssessmentPLO NORMALISES email to Student_Email
+    const trxAssessments = assessments.filter(
+      a =>
+        a.Student_Email === email &&
+        (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
     );
 
-    console.log("TRX500 rows matched:", trxAssessments);
+    console.log("TRX500 rows for", email, trxAssessments);
 
-    /* ---------- CQI ---------- */
-    const cqiByAssessment =
-      trxAssessments.length > 0
-        ? deriveCQIByAssessment(trxAssessments)
-        : {};
+    const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
 
-    /* ---------- RESPONSE ---------- */
+    /* ===== RESPONSE ===== */
     res.json({
       row: {
         student_id: raw["Matric"] || "",
         student_name: raw["Student Name"] || "",
         email,
         programme: raw["Programme"] || "",
+        field: raw["Field"] || "",
+        department: raw["Department"] || "",
+        supervisor: raw["Main Supervisor"] || "",
+        cosupervisor: raw["Co-Supervisor(s)"] || "",
         timeline,
         documents: {},
-
-        // ✅ ALWAYS OBJECT (NEVER NULL / STRING)
-        cqiByAssessment
+        cqiByAssessment // ✅ ALWAYS OBJECT
       }
     });
 
-  } catch (err) {
-    console.error("student detail error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (e) {
+    console.error("student detail error:", e);
+    res.status(500).json({ error: e.message });
   }
 });
 
