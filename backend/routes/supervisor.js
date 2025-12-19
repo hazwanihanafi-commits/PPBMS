@@ -1,8 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 
-import { readMasterTracking } from "../services/googleSheets.js";
-import { readAssessmentPLO } from "../services/googleSheets.js";
+import { readMasterTracking, readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 
@@ -21,6 +20,33 @@ function auth(req, res, next) {
   }
 }
 
+/* ================= STUDENT LIST ================= */
+router.get("/students", auth, async (req, res) => {
+  try {
+    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const students = rows
+      .filter(r => {
+        const sup = (r["Main Supervisor's Email"] || "").toLowerCase().trim();
+        return sup === supervisorEmail;
+      })
+      .map(r => ({
+        id: r["Matric"] || "",
+        name: r["Student Name"] || "",
+        email: (r["Student's Email"] || "").toLowerCase().trim(),
+        programme: r["Programme"] || ""
+      }));
+
+    console.log("STUDENTS FOUND:", students.length);
+    res.json({ students });
+
+  } catch (e) {
+    console.error("student list error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /* ================= STUDENT DETAILS ================= */
 router.get("/student/:email", auth, async (req, res) => {
   try {
@@ -38,19 +64,21 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    /* ---- ASSESSMENT_PLO (THIS WAS WRONG BEFORE) ---- */
+    /* ---- ASSESSMENT PLO ---- */
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
 
-    // ✅ USE Student_Email (NORMALISED FIELD)
-    const trxAssessments = assessments.filter(
-      a =>
-        a.Student_Email === email &&
-        (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
+    console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
+
+    const trxAssessments = assessments.filter(a =>
+      a.Student_Email === email &&
+      (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
     );
 
-    console.log("TRX500 rows used for CQI:", trxAssessments);
+    console.log("TRX500 MATCHED:", trxAssessments);
 
     const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
+
+    console.log("CQI RESULT:", cqiByAssessment);
 
     /* ---- RESPONSE ---- */
     res.json({
@@ -63,7 +91,7 @@ router.get("/student/:email", auth, async (req, res) => {
         department: raw["Department"] || "",
         timeline,
         documents: {},
-        cqiByAssessment // ✅ WILL NOW CONTAIN PLO1..PLO11
+        cqiByAssessment: cqiByAssessment || {}
       }
     });
 
