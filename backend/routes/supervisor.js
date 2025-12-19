@@ -75,7 +75,8 @@ console.log("Sample assessment row:", assessments[0]);
         (a["Assessment_Type"] || "").toUpperCase().trim() === "TRX500"
     );
 
-    console.log("TRX assessments:", trxAssessments);
+    console.log("Requested email:", email);
+    console.log("TRX assessments matched:", trxAssessments);
 
     const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
     
