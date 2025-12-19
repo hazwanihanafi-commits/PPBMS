@@ -2,18 +2,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
-/* ================= SAFE RENDER ================= */
+/* ================= ABSOLUTE SAFE RENDER ================= */
 function renderText(v) {
   if (v === null || v === undefined) return "-";
-  if (typeof v === "string" || typeof v === "number") return v;
-  return "-";
+  if (typeof v === "string") return v;
+  if (typeof v === "number") return v.toString();
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return "-";
+  }
 }
 
 export default function SupervisorStudentDetails() {
   const router = useRouter();
   const { email } = router.query;
 
-  const [student, setStudent] = useState(null);
+  const [student, setStudent] = useState({});
   const [timeline, setTimeline] = useState([]);
   const [cqiByAssessment, setCqiByAssessment] = useState({});
   const [loading, setLoading] = useState(true);
@@ -67,7 +72,7 @@ export default function SupervisorStudentDetails() {
         {renderText(student.student_name)}
       </h1>
 
-      {/* ================= PROFILE ================= */}
+      {/* PROFILE */}
       <div className="bg-white rounded-xl p-4 mb-6">
         <p><b>Email:</b> {renderText(student.email)}</p>
         <p><b>Matric:</b> {renderText(student.student_id)}</p>
@@ -76,7 +81,7 @@ export default function SupervisorStudentDetails() {
         <p><b>Department:</b> {renderText(student.department)}</p>
       </div>
 
-      {/* ================= TIMELINE ================= */}
+      {/* TIMELINE */}
       <div className="bg-white rounded-xl p-4 mb-6">
         <h3 className="font-semibold mb-2">Timeline</h3>
         <ul className="list-disc ml-6 text-sm">
@@ -86,7 +91,7 @@ export default function SupervisorStudentDetails() {
         </ul>
       </div>
 
-      {/* ================= CQI ================= */}
+      {/* CQI */}
       <div className="bg-white rounded-xl p-4">
         <h3 className="font-semibold mb-2">
           🎯 CQI by Assessment (TRX500)
@@ -105,7 +110,7 @@ export default function SupervisorStudentDetails() {
                   ${status === "RED" ? "bg-red-100 text-red-700" : ""}
                 `}
               >
-                {plo}: {status}
+                {plo}: {renderText(status)}
               </span>
             ))}
           </div>
