@@ -1,8 +1,8 @@
+// backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
 
-import { readMasterTracking } from "../services/googleSheets.js";
-import { readAssessmentPLO } from "../services/googleSheets.js";
+import { readMasterTracking, readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 
@@ -21,39 +21,12 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= STUDENT LIST ================= */
-router.get("/students", auth, async (req, res) => {
-  try {
-    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const students = rows
-      .filter(
-        r =>
-          (r["Main Supervisor's Email"] || "")
-            .toLowerCase()
-            .trim() === supervisorEmail
-      )
-      .map(r => ({
-        id: r["Matric"] || "",
-        name: r["Student Name"] || "",
-        email: (r["Student's Email"] || "").toLowerCase().trim(),
-        programme: r["Programme"] || ""
-      }));
-
-    res.json({ students });
-  } catch (e) {
-    console.error("students error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 /* ================= STUDENT DETAILS ================= */
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
 
-    /* ===== MASTER TRACKING ===== */
+    /* -------- MASTER TRACKING -------- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
@@ -65,21 +38,19 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    /* ===== ASSESSMENT_PLO (TRX500, PERCENT) ===== */
+    /* -------- ASSESSMENT_PLO -------- */
     const assessments = await readAssessmentPLO(process.env.SHEET_ID);
 
-    // IMPORTANT: readAssessmentPLO NORMALISES email to Student_Email
-    const trxAssessments = assessments.filter(
-      a =>
-        a.Student_Email === email &&
-        (a.Assessment_Type || "").toUpperCase().trim() === "TRX500"
+    // 🔥 THIS IS THE IMPORTANT FILTER
+    const trxRows = assessments.filter(r =>
+      (r["Student's Email"] || "").toLowerCase().trim() === email &&
+      (r["Assessment_Type"] || "").trim() === "TRX500"
     );
 
-    console.log("TRX500 rows for", email, trxAssessments);
+    // 🔥 CQI DERIVATION
+    const cqiByAssessment = deriveCQIByAssessment(trxRows);
 
-    const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
-
-    /* ===== RESPONSE ===== */
+    /* -------- RESPONSE -------- */
     res.json({
       row: {
         student_id: raw["Matric"] || "",
@@ -88,11 +59,9 @@ router.get("/student/:email", auth, async (req, res) => {
         programme: raw["Programme"] || "",
         field: raw["Field"] || "",
         department: raw["Department"] || "",
-        supervisor: raw["Main Supervisor"] || "",
-        cosupervisor: raw["Co-Supervisor(s)"] || "",
         timeline,
         documents: {},
-        cqiByAssessment // ✅ ALWAYS OBJECT
+        cqiByAssessment // ✅ OBJECT WITH PLO STATUS
       }
     });
 
