@@ -67,17 +67,17 @@ export default function SupervisorStudentDetails() {
       {/* PROFILE */}
       <div className="bg-white shadow rounded-2xl p-6 mb-10">
         <h2 className="text-2xl font-bold mb-4">
-          {student.student_name}
+          {String(student.student_name || "-")}
         </h2>
 
-       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
-  <p><strong>Email:</strong> {String(student.email || "-")}</p>
-  <p><strong>Matric:</strong> {String(student.student_id || "-")}</p>
-  <p><strong>Programme:</strong> {String(student.programme || "-")}</p>
-  <p><strong>Field:</strong> {String(student.field || "-")}</p>
-  <p><strong>Department:</strong> {String(student.department || "-")}</p>
-</div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
+          <p><strong>Email:</strong> {String(student.email || "-")}</p>
+          <p><strong>Matric:</strong> {String(student.student_id || "-")}</p>
+          <p><strong>Programme:</strong> {String(student.programme || "-")}</p>
+          <p><strong>Field:</strong> {String(student.field || "-")}</p>
+          <p><strong>Department:</strong> {String(student.department || "-")}</p>
+        </div>
+      </div> {/* ✅ THIS WAS MISSING */}
 
       {/* DOCUMENTS */}
       <DocumentSection
@@ -97,21 +97,19 @@ export default function SupervisorStudentDetails() {
         <h3 className="text-lg font-bold mb-4">📅 Timeline</h3>
         <ul className="list-disc ml-6 text-sm">
           {timeline.map((t, i) => (
-            <li key={i}>{t.activity}</li>
+            <li key={i}>{String(t.activity)}</li>
           ))}
         </ul>
       </div>
 
-      {/* CQI (SAFE) */}
+      {/* CQI */}
       <div className="bg-white shadow rounded-2xl p-6 mt-10">
         <h3 className="text-xl font-bold mb-2 text-purple-700">
           🎯 CQI by Assessment Component (TRX500)
         </h3>
 
         {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">
-            CQI data not available.
-          </p>
+          <p className="text-sm text-gray-500">CQI data not available.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
             {Object.entries(cqiByAssessment).map(([plo, status]) => (
@@ -133,12 +131,11 @@ export default function SupervisorStudentDetails() {
   );
 }
 
-/* ================= DOCUMENT SECTION ================= */
+/* DOCUMENT SECTION */
 function DocumentSection({ title, items, documents }) {
   return (
     <div className="bg-white border rounded-2xl p-4 mb-6">
       <h4 className="font-semibold mb-3">{title}</h4>
-
       <ul className="space-y-2">
         {items.map((label) => (
           <li key={label} className="flex justify-between">
