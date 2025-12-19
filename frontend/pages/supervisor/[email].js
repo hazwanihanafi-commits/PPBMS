@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import {
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
+} from "recharts";
 import { API_BASE } from "../../utils/api";
 
 export default function SupervisorStudentDetails() {
@@ -10,7 +17,10 @@ export default function SupervisorStudentDetails() {
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [cqi, setCqi] = useState(null);
+
+  // ✅ NEW CQI STATES (ONLY THESE)
+  const [cqiByAssessment, setCqiByAssessment] = useState({});
+  const [ploRadar, setPloRadar] = useState({});
 
   useEffect(() => {
     if (email) loadStudent();
@@ -36,7 +46,8 @@ export default function SupervisorStudentDetails() {
 
       setStudent(json.row);
       setTimeline(json.row.timeline || []);
-      setCqi(json.row.cqi || null);
+      setCqiByAssessment(json.row.cqiByAssessment || {});
+      setPloRadar(json.row.ploRadar || {});
     } catch (e) {
       console.error(e);
       setErr("Unable to load student data.");
@@ -70,7 +81,7 @@ export default function SupervisorStudentDetails() {
         Student Progress Overview
       </h1>
 
-      {/* ================= PROFILE ================= */}
+      {/* ================= PROFILE (UNCHANGED) ================= */}
       <div className="bg-white shadow rounded-2xl p-6 mb-10">
         <h2 className="text-2xl font-bold mb-4">{student.student_name}</h2>
 
@@ -95,7 +106,7 @@ export default function SupervisorStudentDetails() {
         </div>
       </div>
 
-      {/* ================= DOCUMENTS ================= */}
+      {/* ================= DOCUMENTS (UNCHANGED) ================= */}
       <div className="mb-10">
         <h3 className="text-xl font-bold mb-4 text-purple-700">
           📄 Submitted Documents
@@ -129,7 +140,7 @@ export default function SupervisorStudentDetails() {
         />
       </div>
 
-      {/* ================= TIMELINE ================= */}
+      {/* ================= TIMELINE (UNCHANGED) ================= */}
       <div className="bg-white border shadow rounded-2xl p-6">
         <h3 className="text-lg font-bold mb-4">
           📅 Expected vs Actual Timeline
@@ -181,48 +192,76 @@ export default function SupervisorStudentDetails() {
         </div>
       </div>
 
-      {/* ================= CQI & PLO ================= */}
+      {/* ================= CQI BY ASSESSMENT ================= */}
       <div className="bg-white shadow rounded-2xl p-6 mt-10">
         <h3 className="text-xl font-bold mb-2 text-purple-700">
-          🎯 CQI & PLO Monitoring
+          🎯 CQI by Assessment Component
         </h3>
 
-        <p className="text-xs text-gray-500 mb-4">
-          Derived automatically from TRX500, Annual Review (Lampiran A) and Viva Voce
-        </p>
-
-        {!cqi || Object.keys(cqi).length === 0 ? (
+        {Object.keys(cqiByAssessment).length === 0 ? (
           <p className="text-sm text-gray-500">
             CQI data not available yet.
           </p>
         ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {Object.entries(cqi).map(([plo, status]) => {
-                const color =
-                  status === "GREEN"
-                    ? "bg-green-100 text-green-700 border-green-300"
-                    : status === "AMBER"
-                    ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-                    : "bg-red-100 text-red-700 border-red-300";
+          Object.entries(cqiByAssessment).map(([assessment, plos]) => (
+            <div key={assessment} className="mb-6">
+              <h4 className="font-semibold text-purple-700 mb-2">
+                {assessment}
+              </h4>
 
-                return (
-                  <div
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(plos).map(([plo, status]) => (
+                  <span
                     key={plo}
-                    className={`border rounded-xl p-4 text-center font-semibold ${color}`}
+                    className={`px-4 py-1 rounded-full text-xs font-semibold
+                      ${status === "GREEN" && "bg-green-100 text-green-700"}
+                      ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
+                      ${status === "RED" && "bg-red-100 text-red-700"}`}
                   >
-                    <div className="text-sm">{plo}</div>
-                    <div className="text-lg mt-1">{status}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {Object.values(cqi).includes("RED") && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-700 rounded">
-                ⚠ <strong>CQI Action Required:</strong> One or more PLOs are below the acceptable threshold.
+                    {plo} – {status}
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ================= CUMULATIVE CQI SPIDER ================= */}
+      <div className="bg-white shadow rounded-2xl p-6 mt-10">
+        <h3 className="text-xl font-bold mb-2 text-purple-700">
+          🕸️ Cumulative CQI & PLO Attainment
+        </h3>
+
+        {Object.keys(ploRadar).length === 0 ? (
+          <p className="text-sm text-gray-500">
+            Insufficient data to generate CQI spider web.
+          </p>
+        ) : (
+          <>
+            <RadarChart
+              width={480}
+              height={380}
+              data={Object.entries(ploRadar).map(([plo, value]) => ({
+                plo,
+                value: value ?? 0
+              }))}
+            >
+              <PolarGrid />
+              <PolarAngleAxis dataKey="plo" />
+              <PolarRadiusAxis domain={[0, 100]} />
+              <Radar
+                dataKey="value"
+                stroke="#7c3aed"
+                fill="#c4b5fd"
+                fillOpacity={0.6}
+              />
+            </RadarChart>
+
+            <p className="text-xs text-gray-500 mt-3">
+              This spider web represents cumulative Programme Learning Outcome (PLO)
+              attainment derived from all assessments.
+            </p>
           </>
         )}
       </div>
@@ -230,7 +269,7 @@ export default function SupervisorStudentDetails() {
   );
 }
 
-/* ================= DOCUMENT SECTION ================= */
+/* ================= DOCUMENT SECTION (UNCHANGED) ================= */
 function DocumentSection({ title, items, documents }) {
   return (
     <div className="bg-white border rounded-2xl p-4 mb-6">
