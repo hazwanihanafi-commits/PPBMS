@@ -36,12 +36,15 @@ export default function SupervisorStudentDetails() {
 
       setStudent(json.row);
       setTimeline(Array.isArray(json.row.timeline) ? json.row.timeline : []);
-      setCqi(
-        json.row.cqiByAssessment &&
-        typeof json.row.cqiByAssessment === "object"
-          ? json.row.cqiByAssessment
-          : {}
-      );
+      const safeCQI =
+  json.row &&
+  json.row.cqiByAssessment &&
+  typeof json.row.cqiByAssessment === "object" &&
+  !Array.isArray(json.row.cqiByAssessment)
+    ? json.row.cqiByAssessment
+    : {};
+
+setCqiByAssessment(safeCQI);
 
       console.log("CQI FRONTEND:", json.row.cqiByAssessment);
     } catch (e) {
