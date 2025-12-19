@@ -6,7 +6,6 @@ import { readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import {
   deriveCQIByAssessment,
-  deriveCumulativePLO
 } from "../utils/cqiAggregate.js";
 
 const router = express.Router();
