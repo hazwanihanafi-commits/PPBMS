@@ -70,7 +70,7 @@ const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
 const trxAssessments = assessments.filter(a =>
-  a.student_email === email &&
+  a.matric === raw["Matric"] &&
   a.assessment_type === "TRX500"
 );
 
