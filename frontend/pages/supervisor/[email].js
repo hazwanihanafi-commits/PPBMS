@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import {
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis
-} from "recharts";
 import { API_BASE } from "../../utils/api";
 
 export default function SupervisorStudentDetails() {
@@ -263,48 +256,7 @@ export default function SupervisorStudentDetails() {
   )}
 </div>
 
-      {/* ================= CUMULATIVE CQI SPIDER ================= */}
-      <div className="bg-white shadow rounded-2xl p-6 mt-10">
-        <h3 className="text-xl font-bold mb-2 text-purple-700">
-          🕸️ Cumulative CQI & PLO Attainment
-        </h3>
-
-        {Object.keys(ploRadar).length === 0 ? (
-          <p className="text-sm text-gray-500">
-            Insufficient data to generate CQI spider web.
-          </p>
-        ) : (
-          <>
-            <RadarChart
-              width={480}
-              height={380}
-              data={Object.entries(ploRadar).map(([plo, value]) => ({
-                plo,
-                value: value ?? 0
-              }))}
-            >
-              <PolarGrid />
-              <PolarAngleAxis dataKey="plo" />
-              <PolarRadiusAxis domain={[0, 100]} />
-              <Radar
-                dataKey="value"
-                stroke="#7c3aed"
-                fill="#c4b5fd"
-                fillOpacity={0.6}
-              />
-            </RadarChart>
-
-            <p className="text-xs text-gray-500 mt-3">
-              This spider web represents cumulative Programme Learning Outcome (PLO)
-              attainment derived from all assessments.
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
+    
 /* ================= DOCUMENT SECTION (UNCHANGED) ================= */
 function DocumentSection({ title, items, documents }) {
   return (
