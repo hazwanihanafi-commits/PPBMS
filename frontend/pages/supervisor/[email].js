@@ -8,19 +8,16 @@ export default function SupervisorStudentDetails() {
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-
   const [cqiByAssessment, setCqiByAssessment] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (email) loadStudent();
+    if (!email) return;
+    loadStudent();
   }, [email]);
 
   async function loadStudent() {
-    setLoading(true);
-    setErr("");
-
     try {
       const token = localStorage.getItem("ppbms_token");
       const res = await fetch(
@@ -35,36 +32,72 @@ export default function SupervisorStudentDetails() {
       setTimeline(json.row.timeline || []);
       setCqiByAssessment(json.row.cqiByAssessment || {});
     } catch (e) {
-      setErr(e.message);
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   }
 
   if (loading) return <div className="p-6">Loading…</div>;
-  if (err) return <div className="p-6 text-red-600">{err}</div>;
-  if (!student) return <div className="p-6">No student data</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
+  if (!student) return <div className="p-6">No data</div>;
 
   return (
-    <div className="min-h-screen bg-purple-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <button
-        className="text-purple-700 underline mb-4"
         onClick={() => router.push("/supervisor")}
+        className="text-purple-700 underline mb-4"
       >
         ← Back
       </button>
 
-      <h1 className="text-2xl font-bold mb-4">
+      <h1 className="text-2xl font-bold mb-2">
         {student.student_name}
       </h1>
 
-      <p><strong>Email:</strong> {student.email}</p>
-      <p><strong>Programme:</strong> {student.programme}</p>
+      <p className="mb-6 text-sm text-gray-600">
+        {student.programme}
+      </p>
+
+  {/* ================= DOCUMENTS ================= */}
+<div className="bg-white rounded-xl p-4 mb-6">
+  <h3 className="font-semibold mb-3 text-purple-700">
+    📄 Submitted Documents
+  </h3>
+
+  <DocumentSection
+    title="Monitoring & Supervision"
+    items={[
+      "Development Plan & Learning Contract (DPLC)",
+      "Student Supervision Logbook",
+      "Annual Progress Review – Year 1",
+      "Annual Progress Review – Year 2",
+      "Annual Progress Review – Year 3 (Final Year)",
+    ]}
+    documents={student.documents || {}}
+  />
+
+  <DocumentSection
+    title="Ethics & Research Outputs"
+    items={[
+      "ETHICS_APPROVAL",
+      "PUBLICATION_ACCEPTANCE",
+      "PROOF_OF_SUBMISSION",
+      "CONFERENCE_PRESENTATION",
+      "THESIS_NOTICE",
+      "VIVA_REPORT",
+      "CORRECTION_VERIFICATION",
+      "FINAL_THESIS",
+    ]}
+    documents={student.documents || {}}
+  />
+</div>
+
 
       {/* TIMELINE */}
-      <div className="bg-white rounded-xl p-4 mt-6">
+      <div className="bg-white rounded-xl p-4 mb-6">
         <h3 className="font-semibold mb-2">Timeline</h3>
-        <ul className="text-sm list-disc ml-5">
+        <ul className="list-disc ml-5 text-sm">
           {timeline.map((t, i) => (
             <li key={i}>{t.activity}</li>
           ))}
@@ -72,8 +105,8 @@ export default function SupervisorStudentDetails() {
       </div>
 
       {/* CQI */}
-      <div className="bg-white rounded-xl p-4 mt-6">
-        <h3 className="font-semibold mb-2">
+      <div className="bg-white rounded-xl p-4">
+        <h3 className="font-semibold mb-3">
           🎯 CQI by Assessment (TRX500)
         </h3>
 
@@ -85,9 +118,9 @@ export default function SupervisorStudentDetails() {
               <span
                 key={plo}
                 className={`px-3 py-1 rounded-full text-xs font-semibold
-                  ${status === "GREEN" && "bg-green-100 text-green-700"}
-                  ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
-                  ${status === "RED" && "bg-red-100 text-red-700"}
+                  ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
+                  ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
+                  ${status === "RED" ? "bg-red-100 text-red-700" : ""}
                 `}
               >
                 {plo}: {status}
@@ -98,9 +131,4 @@ export default function SupervisorStudentDetails() {
       </div>
     </div>
   );
-}
-
-/* ✅ MUST BE OUTSIDE THE COMPONENT */
-function DocumentSection({ title, items, documents }) {
-  return null;
 }
