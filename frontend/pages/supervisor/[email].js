@@ -88,34 +88,53 @@ export default function SupervisorStudentDetails() {
         )}
       </div>
 
-      {/* CQI — SAFE BOX */}
-      <div className="bg-white rounded-xl p-4">
-        <h3 className="font-semibold mb-2">
-          🎯 CQI by Assessment (TRX500)
-        </h3>
+{/* ===== CQI PERCENT BAR CHART (GOOD = 70%) ===== */}
+<div className="bg-white rounded-xl p-4 mt-6">
+  <h3 className="font-semibold mb-4">
+    📊 CQI by Assessment (TRX500) – Percent
+  </h3>
 
-        {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">No CQI data</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(cqiByAssessment).map(([plo, status]) => {
-              let colour = "bg-gray-200 text-gray-700";
-              if (status === "GREEN") colour = "bg-green-100 text-green-700";
-              if (status === "AMBER") colour = "bg-yellow-100 text-yellow-700";
-              if (status === "RED") colour = "bg-red-100 text-red-700";
+  {typeof cqiByAssessment !== "object" ||
+  Object.keys(cqiByAssessment).length === 0 ? (
+    <p className="text-sm text-gray-500">No CQI data</p>
+  ) : (
+    <div className="space-y-3">
+      {Object.entries(cqiByAssessment).map(([plo, value]) => {
+        const score = Number(value);
 
-              return (
-                <span
-                  key={plo}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${colour}`}
-                >
-                  {plo}: {status}
-                </span>
-              );
-            })}
+        if (Number.isNaN(score)) return null;
+
+        let color = "bg-red-500";
+        let label = "Intervention";
+
+        if (score >= 70) {
+          color = "bg-green-500";
+          label = "Good";
+        } else if (score >= 46) {
+          color = "bg-yellow-400";
+          label = "Monitor";
+        }
+
+        return (
+          <div key={plo}>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="font-semibold">{plo}</span>
+              <span>{score}% · {label}</span>
+            </div>
+
+            <div className="w-full bg-gray-100 rounded-full h-3">
+              <div
+                className={`${color} h-3 rounded-full`}
+                style={{ width: `${Math.min(score, 100)}%` }}
+              />
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })}
     </div>
-  );
-}
+  )}
+
+  <p className="text-xs text-gray-500 mt-4">
+    <strong>Legend:</strong> Green ≥ 70% | Yellow 46–69% | Red &lt; 46%
+  </p>
+</div>
