@@ -10,7 +10,7 @@ export default function SupervisorStudentDetails() {
   const [timeline, setTimeline] = useState([]);
   const [cqiByAssessment, setCqiByAssessment] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     if (!email) return;
@@ -18,81 +18,53 @@ export default function SupervisorStudentDetails() {
   }, [email]);
 
   async function loadStudent() {
+    setLoading(true);
+    setErr("");
+
     try {
       const token = localStorage.getItem("ppbms_token");
+
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${email}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed");
+      if (!res.ok) throw new Error(json.error || "Failed to load");
 
       setStudent(json.row);
       setTimeline(json.row.timeline || []);
       setCqiByAssessment(json.row.cqiByAssessment || {});
     } catch (e) {
-      setError(e.message);
+      setErr(e.message);
     } finally {
       setLoading(false);
     }
   }
 
+  /* ---------- GUARDS ---------- */
   if (loading) return <div className="p-6">Loading…</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
-  if (!student) return <div className="p-6">No data</div>;
+  if (err) return <div className="p-6 text-red-600">{err}</div>;
+  if (!student) return <div className="p-6">No student data</div>;
 
+  /* ---------- UI ---------- */
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-purple-50 p-6">
       <button
-        onClick={() => router.push("/supervisor")}
         className="text-purple-700 underline mb-4"
+        onClick={() => router.push("/supervisor")}
       >
-        ← Back
+        ← Back to Supervisor Dashboard
       </button>
 
       <h1 className="text-2xl font-bold mb-2">
         {student.student_name}
       </h1>
 
-      <p className="mb-6 text-sm text-gray-600">
-        {student.programme}
-      </p>
-
-  {/* ================= DOCUMENTS ================= */}
-<div className="bg-white rounded-xl p-4 mb-6">
-  <h3 className="font-semibold mb-3 text-purple-700">
-    📄 Submitted Documents
-  </h3>
-
-  <DocumentSection
-    title="Monitoring & Supervision"
-    items={[
-      "Development Plan & Learning Contract (DPLC)",
-      "Student Supervision Logbook",
-      "Annual Progress Review – Year 1",
-      "Annual Progress Review – Year 2",
-      "Annual Progress Review – Year 3 (Final Year)",
-    ]}
-    documents={student.documents || {}}
-  />
-
-  <DocumentSection
-    title="Ethics & Research Outputs"
-    items={[
-      "ETHICS_APPROVAL",
-      "PUBLICATION_ACCEPTANCE",
-      "PROOF_OF_SUBMISSION",
-      "CONFERENCE_PRESENTATION",
-      "THESIS_NOTICE",
-      "VIVA_REPORT",
-      "CORRECTION_VERIFICATION",
-      "FINAL_THESIS",
-    ]}
-    documents={student.documents || {}}
-  />
-</div>
-
+      <p className="text-sm"><strong>Email:</strong> {student.email}</p>
+      <p className="text-sm mb-4"><strong>Programme:</strong> {student.programme}</p>
 
       {/* TIMELINE */}
       <div className="bg-white rounded-xl p-4 mb-6">
@@ -106,21 +78,21 @@ export default function SupervisorStudentDetails() {
 
       {/* CQI */}
       <div className="bg-white rounded-xl p-4">
-        <h3 className="font-semibold mb-3">
+        <h3 className="font-semibold mb-2">
           🎯 CQI by Assessment (TRX500)
         </h3>
 
         {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">No CQI data</p>
+          <p className="text-sm text-gray-500">No CQI data available</p>
         ) : (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             {Object.entries(cqiByAssessment).map(([plo, status]) => (
               <span
                 key={plo}
                 className={`px-3 py-1 rounded-full text-xs font-semibold
-                  ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
-                  ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
-                  ${status === "RED" ? "bg-red-100 text-red-700" : ""}
+                  ${status === "GREEN" && "bg-green-100 text-green-700"}
+                  ${status === "AMBER" && "bg-yellow-100 text-yellow-700"}
+                  ${status === "RED" && "bg-red-100 text-red-700"}
                 `}
               >
                 {plo}: {status}
