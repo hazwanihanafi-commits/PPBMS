@@ -11,9 +11,7 @@ import {
 
 const router = express.Router();
 
-/* -------------------------------------------------------
-   AUTH MIDDLEWARE
-------------------------------------------------------- */
+/* ================= AUTH ================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -26,9 +24,7 @@ function auth(req, res, next) {
   }
 }
 
-/* -------------------------------------------------------
-   HELPERS
-------------------------------------------------------- */
+/* ================= HELPERS ================= */
 function getStudentEmail(r) {
   return (
     r["Student's Email"] ||
@@ -40,83 +36,51 @@ function getStudentEmail(r) {
 
 function calcProgress(timeline) {
   if (!timeline || timeline.length === 0) return 0;
-  const total = timeline.length;
   const completed = timeline.filter((i) => i.actual).length;
-  return Math.round((completed / total) * 100);
+  return Math.round((completed / timeline.length) * 100);
 }
 
-/* -------------------------------------------------------
-   GET ALL STUDENTS UNDER SUPERVISOR
-------------------------------------------------------- */
+/* ================= LIST STUDENTS ================= */
 router.get("/students", auth, async (req, res) => {
   try {
     const spvEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const supervisedRows = rows.filter(
-      (r) =>
-        (r["Main Supervisor's Email"] || "")
-          .toLowerCase()
-          .trim() === spvEmail
-    );
+    const students = rows
+      .filter(
+        r =>
+          (r["Main Supervisor's Email"] || "")
+            .toLowerCase()
+            .trim() === spvEmail
+      )
+      .map(raw => {
+        const timeline = buildTimelineForRow(raw);
+        return {
+          id: raw["Matric"] || "",
+          name: raw["Student Name"] || "-",
+          email: getStudentEmail(raw),
+          programme: raw["Programme"] || "-",
+          progressPercent: calcProgress(timeline),
+          timeline
+        };
+      });
 
-    const students = supervisedRows.map((raw) => {
-      const timeline = buildTimelineForRow(raw);
-      const progressPercent = calcProgress(timeline);
-
-      let status = "On Track";
-      let severity = 2;
-
-      const lateTasks = timeline.filter(
-        (t) => !t.actual && t.remaining_days < 0
-      );
-
-      if (lateTasks.length > 0) {
-        const worst = Math.min(...lateTasks.map((t) => t.remaining_days));
-        if (worst < -30) {
-          status = "At Risk";
-          severity = 0;
-        } else {
-          status = "Slightly Late";
-          severity = 1;
-        }
-      }
-
-      return {
-        id: raw["Matric"] || "",
-        name: raw["Student Name"] || "-",
-        email: getStudentEmail(raw),
-        programme: raw["Programme"] || "-",
-        start_date: raw["Start Date"] || "-",
-        field: raw["Field"] || "-",
-        department: raw["Department"] || "-",
-        progressPercent,
-        status,
-        severity,
-        timeline
-      };
-    });
-
-    return res.json({ students });
-
+    res.json({ students });
   } catch (err) {
-    console.error("supervisor/students error:", err);
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-/* -------------------------------------------------------
-   GET ONE STUDENT PROFILE + TIMELINE + DOCUMENTS + CQI
-------------------------------------------------------- */
+/* ================= STUDENT DETAILS ================= */
 router.get("/student/:email", auth, async (req, res) => {
   try {
-    const targetEmail = (req.params.email || "").toLowerCase().trim();
+    const targetEmail = req.params.email.toLowerCase().trim();
 
-    /* ---------- MASTER TRACKING ---------- */
+    /* ---- Master Tracking ---- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
-      (r) =>
-        (r["Student's Email"] || "").toLowerCase().trim() === targetEmail
+      r => (r["Student's Email"] || "").toLowerCase().trim() === targetEmail
     );
 
     if (!raw) {
@@ -125,7 +89,7 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    /* ---------- DOCUMENTS (UNCHANGED) ---------- */
+    /* ---- Documents ---- */
     const documents = {
       "Development Plan & Learning Contract (DPLC)": raw["DPLC"] || "",
       "Student Supervision Logbook": raw["SUPERVISION_LOG"] || "",
@@ -142,17 +106,17 @@ router.get("/student/:email", auth, async (req, res) => {
       "FINAL_THESIS": raw["FINAL_THESIS"] || ""
     };
 
-    /* ---------- CQI (ASSESSMENT → PROGRAMME) ---------- */
+    /* ---- CQI DATA ---- */
     const allAssessments = await readAssessmentPLO(process.env.SHEET_ID);
     const studentAssessments = allAssessments.filter(
-      (a) => a.Student_Email === targetEmail
+      a => a.Student_Email === targetEmail
     );
 
     const cqiByAssessment = deriveCQIByAssessment(studentAssessments);
     const ploRadar = deriveCumulativePLO(studentAssessments);
 
-    /* ---------- RESPONSE ---------- */
-    return res.json({
+    /* ---- RESPONSE ---- */
+    res.json({
       row: {
         student_id: raw["Matric"] || "",
         student_name: raw["Student Name"] || "",
@@ -166,18 +130,58 @@ router.get("/student/:email", auth, async (req, res) => {
         documents,
         timeline,
 
-        // ✅ personal CQI (TRX / APR / Viva)
+        // ✅ used by frontend
         cqiByAssessment,
-
-        // ✅ cumulative programme CQI (radar)
         ploRadar
       }
     });
 
   } catch (err) {
     console.error("supervisor/student error:", err);
-    return res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
+
+/* -------------------------------------------------------
+   UPDATE CQI REMARK (Supervisor)
+------------------------------------------------------- */
+router.post("/student/cqi-remark", auth, async (req, res) => {
+  try {
+    const { studentEmail, assessmentType, plo, remark } = req.body;
+
+    if (!studentEmail || !assessmentType || !plo) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Read ASSESSMENT_PLO sheet
+    const rows = await readAssessmentPLO(process.env.SHEET_ID);
+
+    const targetRow = rows.find(
+      r =>
+        r.Student_Email === studentEmail.toLowerCase().trim() &&
+        r.Assessment_Type === assessmentType
+    );
+
+    if (!targetRow) {
+      return res.status(404).json({ error: "Assessment record not found" });
+    }
+
+    // Append / update remark (simple text, auditable)
+    const updatedRemark = `[${plo}] ${remark}`;
+
+    await writeAssessmentRemark(
+      process.env.SHEET_ID,
+      targetRow.__rowNumber,
+      updatedRemark
+    );
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("save CQI remark error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 export default router;
