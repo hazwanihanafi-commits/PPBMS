@@ -102,34 +102,33 @@ export default function SupervisorStudentDetails() {
         </ul>
       </div>
 
-      {/* CQI */}
-      <div className="bg-white shadow rounded-2xl p-6 mt-10">
-        <h3 className="text-xl font-bold mb-2 text-purple-700">
-          🎯 CQI by Assessment Component (TRX500)
-        </h3>
+      {/* ================= CQI (FINAL SAFE VERSION) ================= */}
+<div className="bg-white shadow rounded-2xl p-6 mt-10">
+  <h3 className="text-xl font-bold mb-2 text-purple-700">
+    🎯 CQI by Assessment Component (TRX500)
+  </h3>
 
-        {Object.keys(cqiByAssessment).length === 0 ? (
-          <p className="text-sm text-gray-500">CQI data not available.</p>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(cqiByAssessment).map(([plo, status]) => (
-              <span
-                key={plo}
-                className={`px-3 py-1 rounded-full text-sm font-semibold
-                  ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
-                  ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
-                  ${status === "RED" ? "bg-red-100 text-red-700" : ""}
-                `}
-              >
-                {plo}: {status}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+  {(!cqiByAssessment ||
+    typeof cqiByAssessment !== "object" ||
+    Object.keys(cqiByAssessment).length === 0) ? (
+    <p className="text-sm text-gray-500">CQI data not available.</p>
+  ) : (
+    <div className="flex flex-wrap gap-3">
+      {Object.entries(cqiByAssessment).map(([plo, status]) => (
+        <span
+          key={plo}
+          className={`px-3 py-1 rounded-full text-sm font-semibold
+            ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
+            ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
+            ${status === "RED" ? "bg-red-100 text-red-700" : ""}
+          `}
+        >
+          {plo}: {status}
+        </span>
+      ))}
     </div>
-  );
-}
+  )}
+</div>
 
 /* DOCUMENT SECTION */
 function DocumentSection({ title, items, documents }) {
