@@ -1,12 +1,12 @@
+// frontend/pages/supervisor/[email].js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
-/* 🔒 SAFE TEXT RENDER */
+/* SAFE TEXT */
 function text(v) {
   if (typeof v === "string" || typeof v === "number") return v;
-  if (v === null || v === undefined) return "-";
-  return JSON.stringify(v);
+  return "-";
 }
 
 export default function SupervisorStudentDetails() {
@@ -24,23 +24,20 @@ export default function SupervisorStudentDetails() {
   }, [email]);
 
   async function loadStudent() {
-    setLoading(true);
-    setErr("");
-
     try {
       const token = localStorage.getItem("ppbms_token");
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${email}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to load");
+      if (!res.ok) throw new Error(json.error || "Failed");
 
       setStudent(json.row || {});
-      setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : []);
+      setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : {});
       setCqiByAssessment(
-        typeof json.row?.cqiByAssessment === "object"
+        json.row?.cqiByAssessment &&
+        typeof json.row.cqiByAssessment === "object"
           ? json.row.cqiByAssessment
           : {}
       );
@@ -53,7 +50,7 @@ export default function SupervisorStudentDetails() {
 
   if (loading) return <div className="p-6">Loading…</div>;
   if (err) return <div className="p-6 text-red-600">{err}</div>;
-  if (!student) return <div className="p-6">No student data</div>;
+  if (!student) return <div className="p-6">No student</div>;
 
   return (
     <div className="min-h-screen bg-purple-50 p-6">
@@ -80,31 +77,29 @@ export default function SupervisorStudentDetails() {
       {/* TIMELINE */}
       <div className="bg-white rounded-xl p-4 mb-6">
         <h3 className="font-semibold mb-2">Timeline</h3>
-        {timeline.length === 0 ? (
-          <p className="text-sm text-gray-500">No timeline data</p>
-        ) : (
+        {Array.isArray(timeline) && timeline.length > 0 ? (
           <ul className="list-disc ml-5 text-sm">
             {timeline.map((t, i) => (
               <li key={i}>{text(t.activity)}</li>
             ))}
           </ul>
+        ) : (
+          <p className="text-sm text-gray-500">No timeline data</p>
         )}
       </div>
 
-      {/* CQI BOX (FINAL SAFE VERSION) */}
+      {/* CQI — SAFE BOX */}
       <div className="bg-white rounded-xl p-4">
         <h3 className="font-semibold mb-2">
           🎯 CQI by Assessment (TRX500)
         </h3>
 
-        {typeof cqiByAssessment !== "object" ||
-        Object.keys(cqiByAssessment).length === 0 ? (
+        {Object.keys(cqiByAssessment).length === 0 ? (
           <p className="text-sm text-gray-500">No CQI data</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {Object.entries(cqiByAssessment).map(([plo, status]) => {
               let colour = "bg-gray-200 text-gray-700";
-
               if (status === "GREEN") colour = "bg-green-100 text-green-700";
               if (status === "AMBER") colour = "bg-yellow-100 text-yellow-700";
               if (status === "RED") colour = "bg-red-100 text-red-700";
