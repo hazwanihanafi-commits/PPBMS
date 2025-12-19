@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import { readMasterTracking } from "../services/googleSheets.js";
 import { readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
-import { deriveCQI } from "../utils/cqi.js";
+import {deriveCQIByAssessment,deriveCumulativePLO} from "../utils/cqiAggregate.js";
 
 const router = express.Router();
 
@@ -146,22 +146,16 @@ router.get("/student/:email", auth, async (req, res) => {
       "FINAL_THESIS": raw["FINAL_THESIS"] || "",
     };
 
-    /* ---------- CQI (FROM ASSESSMENT_PLO TAB) ---------- */
+/* ---------- CQI ---------- */
     const allAssessments = await readAssessmentPLO(process.env.SHEET_ID);
+    const studentAssessments = allAssessments.filter(
+      a => a.Student_Email === targetEmail
+    );
 
-    const studentAssessments = allAssessments.filter((a) => {
-  const email =
-    (a["Student_Email"] ||
-     a["Student's Email"] ||
-     a["Student Email"] ||
-     "").toLowerCase().trim();
+    const cqiByAssessment = deriveCQIByAssessment(studentAssessments);
+    const ploRadar = deriveCumulativePLO(studentAssessments);
 
-  return email === targetEmail;
-});
-
-
-    const cqi = deriveCQI(studentAssessments);
-
+     
     /* ---------- RESPONSE ---------- */
     return res.json({
       row: {
