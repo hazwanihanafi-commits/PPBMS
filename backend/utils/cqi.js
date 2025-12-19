@@ -1,40 +1,42 @@
 // backend/utils/cqi.js
 
-function cqiFromPercent(score) {
-  if (score >= 70) return "GREEN";
-  if (score >= 60) return "AMBER";
+function cqiFromPercent(v) {
+  if (v >= 70) return "GREEN";
+  if (v >= 60) return "AMBER";
   return "RED";
 }
 
-function cqiFromLevel(level) {
-  if (level >= 4) return "GREEN";   // Baik / Cemerlang
-  if (level === 3) return "AMBER";  // Memuaskan
-  return "RED";                     // Lemah / Kurang Memuaskan
+function cqiFromLevel(v) {
+  if (v >= 4) return "GREEN";
+  if (v === 3) return "AMBER";
+  return "RED";
 }
 
 /**
- * assessments = array of rows from ASSESSMENT_PLO
+ * @param {Array<Object>} assessments rows from ASSESSMENT_PLO
  */
-function deriveCQI(assessments) {
+export function deriveCQI(assessments) {
   const cqi = {};
 
-  // priority: TRX500 → Annual Review → Viva (Viva overrides)
-  assessments.forEach(row => {
-    const isPercent = row.Scoring_Type === "Percent";
+  // priority order: TRX500 → Annual Review → Viva
+  const order = { TRX500: 1, "Annual Review": 2, Viva: 3 };
 
-    for (let i = 1; i <= 11; i++) {
-      const key = `PLO${i}`;
-      const value = Number(row[key]);
+  assessments
+    .sort((a, b) => order[a.Assessment_Type] - order[b.Assessment_Type])
+    .forEach(row => {
+      const isPercent = row.Scoring_Type === "Percent";
 
-      if (!value) continue;
+      for (let i = 1; i <= 11; i++) {
+        const key = `PLO${i}`;
+        const raw = Number(row[key]);
 
-      cqi[key] = isPercent
-        ? cqiFromPercent(value)
-        : cqiFromLevel(value);
-    }
-  });
+        if (!raw) continue;
+
+        cqi[key] = isPercent
+          ? cqiFromPercent(raw)
+          : cqiFromLevel(raw);
+      }
+    });
 
   return cqi;
 }
-
-module.exports = { deriveCQI };
