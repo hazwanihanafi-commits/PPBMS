@@ -81,7 +81,6 @@ router.get("/student/:email", auth, async (req, res) => {
 
         // 🔒 SAFE DEFAULTS (VERY IMPORTANT)
         cqiByAssessment: deriveCQIByAssessment(studentAssessments) || {},
-        ploRadar: deriveCumulativePLO(studentAssessments) || {}
       }
     });
 
