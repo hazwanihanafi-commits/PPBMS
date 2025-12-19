@@ -1,8 +1,11 @@
 // backend/routes/supervisor.js
 import express from "express";
 import jwt from "jsonwebtoken";
+
 import { readMasterTracking } from "../services/googleSheets.js";
+import { readAssessmentPLO } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
+import { deriveCQI } from "../utils/cqi.js";
 
 const router = express.Router();
 
@@ -21,6 +24,9 @@ function auth(req, res, next) {
   }
 }
 
+/* -------------------------------------------------------
+   HELPERS
+------------------------------------------------------- */
 function getStudentEmail(r) {
   return (
     r["Student's Email"] ||
@@ -41,7 +47,6 @@ function calcProgress(timeline) {
 
 /* -------------------------------------------------------
    GET ALL STUDENTS UNDER SUPERVISOR
-   (Now includes status + severity ranking)
 ------------------------------------------------------- */
 router.get("/students", auth, async (req, res) => {
   try {
@@ -57,9 +62,6 @@ router.get("/students", auth, async (req, res) => {
       const timeline = buildTimelineForRow(raw);
       const progressPercent = calcProgress(timeline);
 
-      /* -----------------------------------------
-         RISK STATUS CALCULATION
-      ----------------------------------------- */
       let status = "On Track";
       let severity = 2; // 0 = At Risk, 1 = Slightly Late, 2 = On Track
 
@@ -69,7 +71,6 @@ router.get("/students", auth, async (req, res) => {
 
       if (lateTasks.length > 0) {
         const worst = Math.min(...lateTasks.map((t) => t.remaining_days));
-
         if (worst < -30) {
           status = "At Risk";
           severity = 0;
@@ -79,9 +80,6 @@ router.get("/students", auth, async (req, res) => {
         }
       }
 
-      /* -----------------------------------------
-         RETURN STUDENT RECORD
-      ----------------------------------------- */
       return {
         id:
           raw["Matric"] ||
@@ -96,8 +94,8 @@ router.get("/students", auth, async (req, res) => {
         field: raw["Field"] || "-",
         department: raw["Department"] || "-",
         progressPercent,
-        status,    // ⭐ Added
-        severity,  // ⭐ Added (for sorting)
+        status,
+        severity,
         timeline,
       };
     });
@@ -111,16 +109,18 @@ router.get("/students", auth, async (req, res) => {
 });
 
 /* -------------------------------------------------------
-   GET ONE STUDENT PROFILE + TIMELINE + DOCUMENTS
+   GET ONE STUDENT PROFILE + TIMELINE + DOCUMENTS + CQI
 ------------------------------------------------------- */
-// backend/routes/supervisor.js
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const targetEmail = (req.params.email || "").toLowerCase().trim();
+
+    /* ---------- MASTER TRACKING ---------- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const raw = rows.find(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === targetEmail
+      (r) =>
+        (r["Student's Email"] || "").toLowerCase().trim() === targetEmail
     );
 
     if (!raw) {
@@ -129,7 +129,7 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
-    // ✅ SAME AS STUDENT PAGE
+    /* ---------- DOCUMENTS ---------- */
     const documents = {
       "Development Plan & Learning Contract (DPLC)": raw["DPLC"] || "",
       "Student Supervision Logbook": raw["SUPERVISION_LOG"] || "",
@@ -146,6 +146,16 @@ router.get("/student/:email", auth, async (req, res) => {
       "FINAL_THESIS": raw["FINAL_THESIS"] || "",
     };
 
+    /* ---------- CQI (FROM ASSESSMENT_PLO TAB) ---------- */
+    const allAssessments = await readAssessmentPLO(process.env.SHEET_ID);
+
+    const studentAssessments = allAssessments.filter(
+      (a) => a.Student_Email === targetEmail
+    );
+
+    const cqi = deriveCQI(studentAssessments);
+
+    /* ---------- RESPONSE ---------- */
     return res.json({
       row: {
         student_id: raw["Matric"] || "",
@@ -157,8 +167,9 @@ router.get("/student/:email", auth, async (req, res) => {
         department: raw["Department"] || "",
         supervisor: raw["Main Supervisor"] || "",
         cosupervisor: raw["Co-Supervisor(s)"] || "",
-        documents,        // ✅ THIS IS THE KEY
+        documents,
         timeline,
+        cqi, // ⭐ CQI ADDED HERE
       },
     });
 
