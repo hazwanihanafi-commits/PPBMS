@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
 /* ======================================================
-   SUPERVISOR – STUDENT DETAILS PAGE
+   SUPERVISOR – STUDENT DETAILS
 ====================================================== */
 export default function SupervisorStudentDetails() {
   const router = useRouter();
@@ -13,7 +13,6 @@ export default function SupervisorStudentDetails() {
   const [timeline, setTimeline] = useState([]);
   const [documents, setDocuments] = useState({});
   const [cqiByAssessment, setCqiByAssessment] = useState({});
-
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -30,18 +29,25 @@ export default function SupervisorStudentDetails() {
 
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${email}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to load");
 
-      setStudent(json.row);
-      setTimeline(json.row.timeline || []);
-      setDocuments(json.row.documents || {});
-      setCqiByAssessment(json.row.cqiByAssessment || {});
+      setStudent(json.row || {});
+      setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : []);
+      setDocuments(
+        typeof json.row?.documents === "object" && json.row.documents !== null
+          ? json.row.documents
+          : {}
+      );
+      setCqiByAssessment(
+        typeof json.row?.cqiByAssessment === "object" &&
+          json.row.cqiByAssessment !== null
+          ? json.row.cqiByAssessment
+          : {}
+      );
     } catch (e) {
       console.error(e);
       setErr(e.message);
@@ -50,16 +56,17 @@ export default function SupervisorStudentDetails() {
     }
   }
 
-  /* ================= STATES ================= */
   if (loading) return <div className="p-6 text-gray-600">Loading…</div>;
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!student) return <div className="p-6">No student data found.</div>;
 
-  /* ================= UI ================= */
+  /* ================= SAFE STRING HELPER ================= */
+  const safeText = (v) => (typeof v === "string" ? v : "-");
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
       <button
-        className="text-purple-700 underline mb-4"
+        className="text-purple-700 underline mb-6"
         onClick={() => router.push("/supervisor")}
       >
         ← Back to Supervisor Dashboard
@@ -71,17 +78,19 @@ export default function SupervisorStudentDetails() {
 
       {/* ================= PROFILE ================= */}
       <div className="bg-white shadow rounded-2xl p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-3">{student.student_name}</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          {safeText(student.student_name)}
+        </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm">
-          <p><strong>Email:</strong> {student.email}</p>
-          <p><strong>Matric:</strong> {student.student_id}</p>
-          <p><strong>Programme:</strong> {student.programme}</p>
-          <p><strong>Field:</strong> {student.field}</p>
-          <p><strong>Department:</strong> {student.department}</p>
-          <p><strong>Start Date:</strong> {student.start_date}</p>
-          <p><strong>Main Supervisor:</strong> {student.supervisor}</p>
-          <p><strong>Co-Supervisor:</strong> {student.cosupervisor || "-"}</p>
+          <p><strong>Email:</strong> {safeText(student.email)}</p>
+          <p><strong>Matric:</strong> {safeText(student.student_id)}</p>
+          <p><strong>Programme:</strong> {safeText(student.programme)}</p>
+          <p><strong>Field:</strong> {safeText(student.field)}</p>
+          <p><strong>Department:</strong> {safeText(student.department)}</p>
+          <p><strong>Start Date:</strong> {safeText(student.start_date)}</p>
+          <p><strong>Main Supervisor:</strong> {safeText(student.supervisor)}</p>
+          <p><strong>Co-Supervisor:</strong> {safeText(student.cosupervisor)}</p>
         </div>
       </div>
 
@@ -137,17 +146,17 @@ export default function SupervisorStudentDetails() {
           <tbody>
             {timeline.map((t, i) => (
               <tr key={i} className="border-t">
-                <td className="p-2">{t.activity}</td>
-                <td className="p-2">{t.expected || "-"}</td>
-                <td className="p-2">{t.actual || "-"}</td>
-                <td className="p-2">{t.status}</td>
+                <td className="p-2">{safeText(t.activity)}</td>
+                <td className="p-2">{safeText(t.expected)}</td>
+                <td className="p-2">{safeText(t.actual)}</td>
+                <td className="p-2">{safeText(t.status)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* ================= CQI (SAFE) ================= */}
+      {/* ================= CQI ================= */}
       <div className="bg-white shadow rounded-2xl p-6">
         <h3 className="text-xl font-bold text-purple-700 mb-2">
           🎯 CQI by Assessment (TRX500)
@@ -183,7 +192,7 @@ export default function SupervisorStudentDetails() {
 }
 
 /* ======================================================
-   DOCUMENT SECTION COMPONENT (SAFE)
+   DOCUMENT SECTION (SAFE)
 ====================================================== */
 function DocumentSection({ title, items, documents }) {
   return (
@@ -196,7 +205,7 @@ function DocumentSection({ title, items, documents }) {
           return (
             <li key={label} className="flex justify-between border-b pb-1">
               <span>{url ? "✅" : "⬜"} {label}</span>
-              {url && (
+              {typeof url === "string" && url && (
                 <a
                   href={url}
                   target="_blank"
