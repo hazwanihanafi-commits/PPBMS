@@ -71,8 +71,15 @@ console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
 const trxAssessments = assessments.filter(a =>
   a.matric === raw["Matric"] &&
-  a.assessment_type === "TRX500"
+  a.assessment_type === "TRX500" &&
+  a.scoring_type === "SCALE"
 );
+
+console.log("TRX500 MATCHED:", trxAssessments.length);
+
+const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
+
+console.log("CQI RESULT:", cqiByAssessment);
 
 console.log("TRX500 MATCHED:", trxAssessments.length);
 
