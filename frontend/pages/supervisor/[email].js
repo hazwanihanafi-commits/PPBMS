@@ -10,6 +10,8 @@ export default function SupervisorStudentDetails() {
   const [timeline, setTimeline] = useState([]);
   const [cqi, setCqi] = useState({});
   const [loading, setLoading] = useState(true);
+  const [remarks, setRemarks] = useState("");
+const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!email) return;
@@ -116,3 +118,27 @@ export default function SupervisorStudentDetails() {
     </div>
   );
 }
+
+<div className="bg-white rounded-xl p-4 mt-4">
+  <h3 className="font-semibold mb-2">
+    🛠 Student Intervention & CQI Remarks
+  </h3>
+
+  <textarea
+    value={remarks}
+    onChange={(e) => setRemarks(e.target.value)}
+    rows={4}
+    placeholder="Enter intervention plan, follow-up actions, or supervisor remarks..."
+    className="w-full border rounded-lg p-2 text-sm focus:outline-none focus:ring focus:border-purple-300"
+  />
+
+  <div className="flex justify-end mt-3">
+    <button
+      onClick={saveRemarks}
+      disabled={saving}
+      className="bg-purple-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50"
+    >
+      {saving ? "Saving..." : "Save Remarks"}
+    </button>
+  </div>
+</div>
