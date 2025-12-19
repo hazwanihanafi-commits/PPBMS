@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
-/* ===== SAFE TEXT ===== */
 const safe = (v) =>
   typeof v === "string" || typeof v === "number" ? v : "-";
 
@@ -37,18 +36,15 @@ export default function SupervisorStudentDetails() {
       setStudent(json.row || {});
       setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : []);
 
-      // ✅ NORMALISE CQI ONCE
+      // 🔥 FORCE NEW OBJECT (THIS FIXES IT)
+      const rawCQI = json.row?.cqiByAssessment;
       const safeCQI =
-        json.row &&
-        json.row.cqiByAssessment &&
-        typeof json.row.cqiByAssessment === "object" &&
-        !Array.isArray(json.row.cqiByAssessment)
-          ? json.row.cqiByAssessment
+        rawCQI && typeof rawCQI === "object" && !Array.isArray(rawCQI)
+          ? { ...rawCQI }
           : {};
 
+      console.log("CQI RECEIVED:", safeCQI);
       setCqi(safeCQI);
-
-      console.log("CQI FRONTEND FINAL:", safeCQI);
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -73,16 +69,12 @@ export default function SupervisorStudentDetails() {
         {safe(student.student_name)}
       </h1>
 
-      {/* ===== PROFILE ===== */}
       <div className="bg-white rounded-xl p-4 mb-6 text-sm">
         <p><strong>Email:</strong> {safe(student.email)}</p>
         <p><strong>Matric:</strong> {safe(student.student_id)}</p>
         <p><strong>Programme:</strong> {safe(student.programme)}</p>
-        <p><strong>Field:</strong> {safe(student.field)}</p>
-        <p><strong>Department:</strong> {safe(student.department)}</p>
       </div>
 
-      {/* ===== TIMELINE ===== */}
       <div className="bg-white rounded-xl p-4 mb-6">
         <h3 className="font-semibold mb-2">Timeline</h3>
         {timeline.length === 0 ? (
@@ -96,7 +88,7 @@ export default function SupervisorStudentDetails() {
         )}
       </div>
 
-      {/* ===== CQI STATUS ===== */}
+      {/* ✅ CQI FINALLY RENDERS */}
       <div className="bg-white rounded-xl p-4">
         <h3 className="font-semibold mb-3">
           🎯 CQI by Assessment (TRX500)
