@@ -41,7 +41,7 @@ export default function SupervisorStudentDetails() {
       if (!res.ok) throw new Error(json.error || "Failed to load");
 
       setStudent(json.row || {});
-      setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : {});
+      setTimeline(Array.isArray(json.row?.timeline) ? json.row.timeline : []);
       setCqiByAssessment(
         json.row?.cqiByAssessment &&
         typeof json.row.cqiByAssessment === "object"
