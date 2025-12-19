@@ -43,6 +43,41 @@ export default function SupervisorStudentDetails() {
         {student.student_name}
       </h2>
 
+    <div className="bg-white rounded-xl p-4 mb-4">
+  <h3 className="font-semibold mb-3">👤 Student Information</h3>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+    <div>
+      <span className="font-medium">Name:</span>{" "}
+      {student.student_name}
+    </div>
+    <div>
+      <span className="font-medium">Matric No:</span>{" "}
+      {student.student_id}
+    </div>
+    <div>
+      <span className="font-medium">Email:</span>{" "}
+      {student.email}
+    </div>
+    <div>
+      <span className="font-medium">Programme:</span>{" "}
+      {student.programme}
+    </div>
+    {student.field && (
+      <div>
+        <span className="font-medium">Field:</span>{" "}
+        {student.field}
+      </div>
+    )}
+    {student.department && (
+      <div>
+        <span className="font-medium">Department:</span>{" "}
+        {student.department}
+      </div>
+    )}
+  </div>
+</div>
+
       <div className="bg-white rounded-xl p-4">
         <h3 className="font-semibold mb-2">
           🎯 CQI by Assessment (TRX500)
