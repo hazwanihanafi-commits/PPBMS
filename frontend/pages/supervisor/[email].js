@@ -11,7 +11,6 @@ export default function SupervisorStudentDetails() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [cqiByAssessment, setCqiByAssessment] = useState({});
-  const [cqiNarrative, setCqiNarrative] = useState([]);
 
   useEffect(() => {
     if (email) loadStudent();
@@ -34,7 +33,6 @@ export default function SupervisorStudentDetails() {
       setStudent(json.row);
       setTimeline(json.row.timeline || []);
       setCqiByAssessment(json.row.cqiByAssessment || {});
-      setCqiNarrative(json.row.cqiNarrative || []);
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -68,7 +66,10 @@ export default function SupervisorStudentDetails() {
 
       {/* PROFILE */}
       <div className="bg-white shadow rounded-2xl p-6 mb-10">
-        <h2 className="text-2xl font-bold mb-4">{student.student_name}</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          {student.student_name}
+        </h2>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-gray-700">
           <p><strong>Email:</strong> {student.email}</p>
           <p><strong>Matric:</strong> {student.student_id}</p>
@@ -101,47 +102,54 @@ export default function SupervisorStudentDetails() {
         </ul>
       </div>
 
-     {/* ================= CQI (SAFE) ================= */}
-<div className="bg-white shadow rounded-2xl p-6 mt-10">
-  <h3 className="text-xl font-bold mb-2 text-purple-700">
-    🎯 CQI by Assessment Component (TRX500)
-  </h3>
+      {/* CQI (SAFE) */}
+      <div className="bg-white shadow rounded-2xl p-6 mt-10">
+        <h3 className="text-xl font-bold mb-2 text-purple-700">
+          🎯 CQI by Assessment Component (TRX500)
+        </h3>
 
-  {(!cqiByAssessment || typeof cqiByAssessment !== "object") && (
-    <p className="text-sm text-gray-500">CQI data not available.</p>
-  )}
-
-  {cqiByAssessment &&
-    typeof cqiByAssessment === "object" &&
-    Object.keys(cqiByAssessment).length > 0 && (
-      <div className="flex flex-wrap gap-3">
-        {Object.entries(cqiByAssessment).map(([plo, status]) => (
-          <span
-            key={plo}
-            className={`px-3 py-1 rounded-full text-sm font-semibold
-              ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
-              ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
-              ${status === "RED" ? "bg-red-100 text-red-700" : ""}
-            `}
-          >
-            {plo}: {status}
-          </span>
-        ))}
+        {Object.keys(cqiByAssessment).length === 0 ? (
+          <p className="text-sm text-gray-500">
+            CQI data not available.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(cqiByAssessment).map(([plo, status]) => (
+              <span
+                key={plo}
+                className={`px-3 py-1 rounded-full text-sm font-semibold
+                  ${status === "GREEN" ? "bg-green-100 text-green-700" : ""}
+                  ${status === "AMBER" ? "bg-yellow-100 text-yellow-700" : ""}
+                  ${status === "RED" ? "bg-red-100 text-red-700" : ""}
+                `}
+              >
+                {plo}: {status}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
-    )}
-</div>
+    </div>
+  );
+}
 
-/* DOCUMENT SECTION */
+/* ================= DOCUMENT SECTION ================= */
 function DocumentSection({ title, items, documents }) {
   return (
     <div className="bg-white border rounded-2xl p-4 mb-6">
       <h4 className="font-semibold mb-3">{title}</h4>
+
       <ul className="space-y-2">
-        {items.map(label => (
+        {items.map((label) => (
           <li key={label} className="flex justify-between">
             <span>{label}</span>
             {documents[label] ? (
-              <a href={documents[label]} target="_blank" rel="noreferrer">
+              <a
+                href={documents[label]}
+                target="_blank"
+                rel="noreferrer"
+                className="text-purple-600 hover:underline"
+              >
                 View
               </a>
             ) : (
