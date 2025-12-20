@@ -144,6 +144,8 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const cqiByAssessment = deriveCQIByAssessment(clean);
 
+    console.log("CQI RESULT SENT:", cqiByAssessment);
+    
     return res.json({
       row: {
         ...profile,
