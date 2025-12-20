@@ -120,35 +120,24 @@ router.get("/student/:email", auth, async (req, res) => {
 const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
 const studentMatric = String(raw["Matric"] || "").trim();
+const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
+
+console.log("STUDENT MATRIC:", studentMatric);
+console.log("STUDENT EMAIL:", studentEmail);
+console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
 const trxAssessments = assessments.filter(a => {
-  const matric =
-    String(a["Matric"] || "")
-      .trim();
+  const matric = String(a["Matric"] || "").trim();
+  const email = String(a["Student's Email"] || "").toLowerCase().trim();
 
-  const assessmentType =
-    String(a["assessment_type"] || "")
-      .toUpperCase()
-      .trim();
+  const assessmentType = String(a["assessment_type"] || "")
+    .toUpperCase()
+    .trim();
 
   return (
-    matric === studentMatric &&
-    assessmentType === "TRX500"
+    assessmentType === "TRX500" &&
+    (matric === studentMatric || email === studentEmail)
   );
-});
-
-// 🔍 DEBUG (optional, remove later)
-console.log("TRX500 MATCHED ROWS:", trxAssessments.length);
-
-// ✅ CLEAN PLO VALUES
-const trxAssessmentsClean = trxAssessments.map(a => {
-  const clean = {};
-  for (let i = 1; i <= 11; i++) {
-    const key = `PLO${i}`;
-    const val = parseFloat(a[key]);
-    clean[key] = isNaN(val) ? null : val;
-  }
-  return clean;
 });
 
 console.log("TRX500 MATCHED ROWS:", trxAssessments.length);
