@@ -109,25 +109,24 @@ router.get("/student/:email", auth, async (req, res) => {
 
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
-/* =========================
-   CQI (ALL ASSESSMENTS)
+
+
+    /* =========================
+   CQI (TRX500 + VIVA) — FINAL
 ========================= */
 
-/* 1️⃣ Read ASSESSMENT_PLO sheet */
+/* 1️⃣ Read assessment sheet */
 const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
 /* 2️⃣ Student identifiers */
 const studentMatric = String(raw["Matric"] || "").trim();
-const studentEmail = String(raw["Student's Email"] || "")
-  .toLowerCase()
-  .trim();
+const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
 
-/* 🔍 DEBUG */
 console.log("STUDENT MATRIC:", studentMatric);
 console.log("STUDENT EMAIL:", studentEmail);
 console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
-/* 3️⃣ Filter rows for THIS student */
+/* 3️⃣ Filter THIS STUDENT only */
 const studentAssessments = assessments.filter(a => {
   const matric = String(a["Matric"] || "").trim();
   const email = String(a["Student's Email"] || "").toLowerCase().trim();
@@ -135,43 +134,50 @@ const studentAssessments = assessments.filter(a => {
   return matric === studentMatric || email === studentEmail;
 });
 
-/* 🔍 DEBUG */
 console.log("STUDENT ASSESSMENT ROWS:", studentAssessments.length);
 
 /* 4️⃣ Group by assessment_type (TRX500, VIVA, etc.) */
 const grouped = {};
+for (const row of studentAssessments) {
+  const type = String(
+    row["assessment_type"] ||
+    row["Assessment_Type"] ||
+    row["Assessment Type"] ||
+    ""
+  ).toUpperCase().trim();
 
-studentAssessments.forEach(row => {
-  const type = String(row["assessment_type"] || "")
-    .toUpperCase()
-    .trim();
-
-  if (!type) return;
+  if (!type) continue;
 
   if (!grouped[type]) grouped[type] = [];
+  grouped[type].push(row);
+}
 
-  const clean = {};
-  for (let i = 1; i <= 11; i++) {
-    const v = parseFloat(row[`PLO${i}`]);
-    clean[`PLO${i}`] = isNaN(v) ? null : v;
-  }
-
-  grouped[type].push(clean);
-});
-
-/* 🔍 DEBUG */
 console.log("GROUPED ASSESSMENTS:", Object.keys(grouped));
 
-/* 5️⃣ Calculate CQI per assessment */
+/* 5️⃣ CQI per assessment */
 const cqiByAssessment = {};
 
-Object.entries(grouped).forEach(([type, rows]) => {
-  cqiByAssessment[type] = deriveCQIByAssessment(rows);
-});
+for (const [type, rows] of Object.entries(grouped)) {
+  const clean = rows.map(r => {
+    const out = {};
+    for (let i = 1; i <= 11; i++) {
+      const k = `PLO${i}`;
+      const v = parseFloat(r[k]);
+      out[k] = isNaN(v) ? null : v;
+    }
+    return out;
+  });
 
-/* 🔍 FINAL DEBUG */
+  cqiByAssessment[type] = deriveCQIByAssessment(clean);
+}
+
 console.log("CQI RESULT SENT:", cqiByAssessment);
 
+/* =========================
+   CQI END
+========================= */
+
+    
 /* =========================
    RESPONSE
 ========================= */
