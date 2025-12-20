@@ -109,64 +109,72 @@ router.get("/student/:email", auth, async (req, res) => {
 
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
-
-    /* =========================
-   CQI (TRX500) — GUARANTEED FIX
+/* =========================
+   CQI (ALL ASSESSMENTS)
 ========================= */
 
-const assessmentsRaw = await readASSESSMENT_PLO(process.env.SHEET_ID);
+/* 1️⃣ Read ASSESSMENT_PLO sheet */
+const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-/* 🔑 Normalize headers (REMOVE SPACES, LOWERCASE) */
-const assessments = assessmentsRaw.map(row => {
-  const clean = {};
-  Object.keys(row).forEach(k => {
-    clean[k.replace(/\s+/g, "").toLowerCase()] = row[k];
-  });
-  return clean;
-});
-
-/* Student identifiers */
+/* 2️⃣ Student identifiers */
 const studentMatric = String(raw["Matric"] || "").trim();
-const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
+const studentEmail = String(raw["Student's Email"] || "")
+  .toLowerCase()
+  .trim();
 
 /* 🔍 DEBUG */
 console.log("STUDENT MATRIC:", studentMatric);
 console.log("STUDENT EMAIL:", studentEmail);
 console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
-/* 🔎 Filter TRX500 */
-const trxRows = assessments.filter(a => {
-  const matric = String(a["matric"] || "").trim();
-  const email = String(a["student'semail"] || "").toLowerCase().trim();
-  const type = String(a["assessment_type"] || "").toUpperCase().trim();
+/* 3️⃣ Filter rows for THIS student */
+const studentAssessments = assessments.filter(a => {
+  const matric = String(a["Matric"] || "").trim();
+  const email = String(a["Student's Email"] || "").toLowerCase().trim();
 
-  return (
-    type === "TRX500" &&
-    (matric === studentMatric || email === studentEmail)
-  );
+  return matric === studentMatric || email === studentEmail;
+});
+
+/* 🔍 DEBUG */
+console.log("STUDENT ASSESSMENT ROWS:", studentAssessments.length);
+
+/* 4️⃣ Group by assessment_type (TRX500, VIVA, etc.) */
+const grouped = {};
+
+studentAssessments.forEach(row => {
+  const type = String(row["assessment_type"] || "")
+    .toUpperCase()
+    .trim();
+
+  if (!type) return;
+
+  if (!grouped[type]) grouped[type] = [];
+
+  const clean = {};
+  for (let i = 1; i <= 11; i++) {
+    const v = parseFloat(row[`PLO${i}`]);
+    clean[`PLO${i}`] = isNaN(v) ? null : v;
+  }
+
+  grouped[type].push(clean);
+});
+
+/* 🔍 DEBUG */
+console.log("GROUPED ASSESSMENTS:", Object.keys(grouped));
+
+/* 5️⃣ Calculate CQI per assessment */
+const cqiByAssessment = {};
+
+Object.entries(grouped).forEach(([type, rows]) => {
+  cqiByAssessment[type] = deriveCQIByAssessment(rows);
 });
 
 /* 🔍 FINAL DEBUG */
-console.log("TRX500 MATCHED ROWS:", trxRows.length);
-console.log("TRX500 SAMPLE ROW:", trxRows[0]);
-
-/* 🧹 Clean PLOs */
-const trxClean = trxRows.map(r => {
-  const o = {};
-  for (let i = 1; i <= 11; i++) {
-    const v = parseFloat(r[`plo${i}`]);
-    o[`PLO${i}`] = isNaN(v) ? null : v;
-  }
-  return o;
-});
-
-/* 📊 Aggregate CQI */
-const cqiByAssessment = deriveCQIByAssessment(trxClean);
-
 console.log("CQI RESULT SENT:", cqiByAssessment);
 
-    
-/* ---------- RESPONSE ---------- */
+/* =========================
+   RESPONSE
+========================= */
 return res.json({
   row: {
     ...profile,
@@ -175,6 +183,7 @@ return res.json({
     cqiByAssessment
   }
 });
+    
 
 } catch (e) {
   console.error("supervisor student detail error:", e);
