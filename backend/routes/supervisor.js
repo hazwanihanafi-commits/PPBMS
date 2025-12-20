@@ -151,6 +151,9 @@ const trxAssessmentsClean = trxAssessments.map(a => {
   return clean;
 });
 
+console.log("TRX500 MATCHED ROWS:", trxAssessments.length);
+console.log("TRX500 ROW SAMPLE:", trxAssessments[0]);
+    
 // ✅ CQI CALCULATION
 const cqiByAssessment = deriveCQIByAssessment(trxAssessmentsClean);
 
