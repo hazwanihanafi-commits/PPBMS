@@ -176,34 +176,28 @@ for (const [type, rows] of Object.entries(grouped)) {
 /* 🔍 FINAL DEBUG */
 console.log("CQI RESULT SENT:", cqiByAssessment);
 
-    /* 📝 Extract remarks per assessment */
-const remarksByAssessment = {};
+    cqiByAssessment[type] = deriveCQIByAssessment(cleanPLO);
+      if (rows[0]?.remarks) remarksByAssessment[type] = rows[0].remarks;
+    }
 
-studentRows.forEach(r => {
-  const type = String(r["assessment_type"] || "").toUpperCase().trim();
-  if (!type) return;
+    return res.json({
+      row: {
+        ...profile,
+        documents,
+        timeline,
+        cqiByAssessment,
+        remarksByAssessment
+      }
+    });
 
-  if (r["remarks"]) {
-    remarksByAssessment[type] = r["remarks"];
-  }
-});
-    
-/* =========================
-   RESPONSE
-========================= */
-return res.json({
-  row: {
-    ...profile,
-    documents,
-    timeline,
-    cqiByAssessment,
-    remarksByAssessment
+  } catch (e) {
+    console.error("supervisor student detail error:", e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
 /* ============================================================
    POST /api/supervisor/remark
-   → Save supervisor remark to ASSESSMENT_PLO
 ============================================================ */
 router.post("/remark", auth, async (req, res) => {
   try {
@@ -213,6 +207,10 @@ router.post("/remark", auth, async (req, res) => {
       return res.status(400).json({ error: "Missing data" });
     }
 
+    if (!remark || !remark.trim()) {
+      return res.json({ success: true });
+    }
+
     await updateASSESSMENT_PLO_Remark({
       studentMatric,
       assessmentType,
@@ -220,7 +218,6 @@ router.post("/remark", auth, async (req, res) => {
     });
 
     return res.json({ success: true });
-
   } catch (e) {
     console.error("save remark error:", e);
     return res.status(500).json({ error: e.message });
