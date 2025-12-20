@@ -8,6 +8,7 @@ import {
 
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
+import { writeSheetCell } from "../services/googleSheets.js";
 
 const router = express.Router();
 
