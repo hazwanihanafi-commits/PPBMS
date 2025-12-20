@@ -120,15 +120,18 @@ export default function SupervisorStudentPage() {
       {/* REMARKS (AUTOSAVE → EXCEL) */}
       <div className="space-y-4">
         <SupervisorRemark
-          studentMatric={student.student_id}
-          studentEmail={student.email}
-          assessmentType="TRX500"
-        />
-        <SupervisorRemark
-          studentMatric={student.student_id}
-          studentEmail={student.email}
-          assessmentType="VIVA"
-        />
+  studentMatric={student.student_id}
+  studentEmail={student.email}
+  assessmentType="TRX500"
+  initialRemark={student.remarksByAssessment?.TRX500}
+/>
+
+<SupervisorRemark
+  studentMatric={student.student_id}
+  studentEmail={student.email}
+  assessmentType="VIVA"
+  initialRemark={student.remarksByAssessment?.VIVA}
+/>
       </div>
 
     </div>
