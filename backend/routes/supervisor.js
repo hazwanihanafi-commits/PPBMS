@@ -1,13 +1,19 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 
-import { readMasterTracking, readASSESSMENT_PLO } from "../services/googleSheets.js";
+import {
+  readMasterTracking,
+  readASSESSMENT_PLO
+} from "../services/googleSheets.js";
+
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 
 const router = express.Router();
 
-/* ================= AUTH ================= */
+/* =========================
+   AUTH MIDDLEWARE
+========================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -20,7 +26,35 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= STUDENT LIST ================= */
+/* =========================
+   DOCUMENT → COLUMN MAP
+   (MUST MATCH student.js)
+========================= */
+const DOC_COLUMN_MAP = {
+  // Monitoring & Supervision
+  "Development Plan & Learning Contract (DPLC)": "DPLC",
+  "Student Supervision Logbook": "SUPERVISION_LOG",
+  "Annual Progress Review – Year 1": "APR_Y1",
+  "Annual Progress Review – Year 2": "APR_Y2",
+  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
+
+  // Ethics & Research Outputs
+  "Ethics Approval": "ETHICS_APPROVAL",
+  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
+  "Proof of Submission": "PROOF_OF_SUBMISSION",
+  "Conference Presentation": "CONFERENCE_PRESENTATION",
+
+  // Thesis & Viva
+  "Thesis Notice": "THESIS_NOTICE",
+  "Viva Report": "VIVA_REPORT",
+  "Correction Verification": "CORRECTION_VERIFICATION",
+  "Final Thesis": "FINAL_THESIS",
+};
+
+/* ============================================================
+   GET /api/supervisor/students
+   → LIST SUPERVISED STUDENTS
+============================================================ */
 router.get("/students", auth, async (req, res) => {
   try {
     const supervisorEmail = (req.user.email || "").toLowerCase().trim();
@@ -38,21 +72,22 @@ router.get("/students", auth, async (req, res) => {
         programme: r["Programme"] || ""
       }));
 
-    console.log("STUDENTS FOUND:", students.length);
     res.json({ students });
-
   } catch (e) {
-    console.error("student list error:", e);
+    console.error("supervisor students error:", e);
     res.status(500).json({ error: e.message });
   }
 });
 
-/* ================= STUDENT DETAILS ================= */
+/* ============================================================
+   GET /api/supervisor/student/:email
+   → FULL STUDENT VIEW (PROFILE + DOCUMENTS + TIMELINE + CQI)
+============================================================ */
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
 
-    /* ---- MASTER TRACKING ---- */
+    /* ---------- MASTER TRACKING ---------- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
@@ -62,43 +97,47 @@ router.get("/student/:email", auth, async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
+    /* ---------- PROFILE ---------- */
+    const profile = {
+      student_id: raw["Matric"] || "",
+      student_name: raw["Student Name"] || "",
+      email,
+      programme: raw["Programme"] || "",
+      field: raw["Field"] || "",
+      department: raw["Department"] || ""
+    };
+
+    /* ---------- DOCUMENTS (✅ FIXED) ---------- */
+    const documents = {};
+    Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
+      documents[label] = raw[column] || "";
+    });
+
+    /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-    /* ---- ASSESSMENT PLO ---- */
-const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    /* ---------- CQI (TRX500) ---------- */
+    const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
+    const trxAssessments = assessments.filter(a =>
+      (a["Student's Email"] || "").toLowerCase().trim() === email &&
+      (a["assessment_type"] || "").toUpperCase().trim() === "TRX500"
+    );
 
-const trxAssessments = assessments.filter(a =>
-  a.matric === raw["Matric"] &&
-  a.assessment_type === "TRX500" &&
-  a.scoring_type === "SCALE"
-);
+    const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
 
-console.log("TRX500 MATCHED:", trxAssessments.length);
-
-const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
-
-console.log("CQI RESULT:", cqiByAssessment);
-
-
-    /* ---- RESPONSE ---- */
+    /* ---------- RESPONSE ---------- */
     res.json({
       row: {
-        student_id: raw["Matric"] || "",
-        student_name: raw["Student Name"] || "",
-        email,
-        programme: raw["Programme"] || "",
-        field: raw["Field"] || "",
-        department: raw["Department"] || "",
+        ...profile,
+        documents,           // ✅ NOW POPULATED
         timeline,
-        documents: {},
-        cqiByAssessment: cqiByAssessment || {}
+        cqiByAssessment
       }
     });
 
   } catch (e) {
-    console.error("student detail error:", e);
+    console.error("supervisor student detail error:", e);
     res.status(500).json({ error: e.message });
   }
 });
