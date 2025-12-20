@@ -121,12 +121,12 @@ router.get("/student/:email", auth, async (req, res) => {
 
     const trxAssessments = assessments.filter(a => {
   const studentEmail =
-    (a["Student's Email"] || a.Student_Email || "")
+    (a["Student's Email"] || "")
       .toLowerCase()
       .trim();
 
   const assessmentType =
-    (a["assessment_type"] || a["Assessment_Type"] || "")
+    String(a["assessment_type"] || "")
       .toUpperCase()
       .trim();
 
@@ -136,6 +136,7 @@ router.get("/student/:email", auth, async (req, res) => {
   );
 });
 
+    console.log("ASSESSMENT_PLO HEADERS:", Object.keys(assessments[0] || {}));
     const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
 
     /* ---------- RESPONSE ---------- */
