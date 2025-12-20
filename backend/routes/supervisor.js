@@ -116,10 +116,10 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-    /* ---------- CQI (TRX500) ---------- */
-    const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
+/* ---------- CQI (TRX500) ---------- */
+const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const trxAssessments = assessments.filter(a => {
+const trxAssessments = assessments.filter(a => {
   const studentEmail =
     (a["Student's Email"] || "")
       .toLowerCase()
@@ -136,9 +136,26 @@ router.get("/student/:email", auth, async (req, res) => {
   );
 });
 
-    console.log("ASSESSMENT_PLO HEADERS:", Object.keys(assessments[0] || {}));
-    const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
+// 🔍 DEBUG (optional, remove later)
+console.log("TRX500 MATCHED ROWS:", trxAssessments.length);
 
+// ✅ CLEAN PLO VALUES
+const trxAssessmentsClean = trxAssessments.map(a => {
+  const clean = {};
+  for (let i = 1; i <= 11; i++) {
+    const key = `PLO${i}`;
+    const val = parseFloat(a[key]);
+    clean[key] = isNaN(val) ? null : val;
+  }
+  return clean;
+});
+
+// ✅ CQI CALCULATION
+const cqiByAssessment = deriveCQIByAssessment(trxAssessmentsClean);
+
+// 🔍 DEBUG (optional)
+console.log("CQI RESULT:", cqiByAssessment);
+    
     /* ---------- RESPONSE ---------- */
     res.json({
       row: {
