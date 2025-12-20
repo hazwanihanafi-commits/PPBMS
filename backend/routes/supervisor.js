@@ -119,10 +119,11 @@ router.get("/student/:email", auth, async (req, res) => {
 /* ---------- CQI (TRX500) ---------- */
 const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
+const studentMatric = String(raw["Matric"] || "").trim();
+
 const trxAssessments = assessments.filter(a => {
-  const studentEmail =
-    (a["Student's Email"] || "")
-      .toLowerCase()
+  const matric =
+    String(a["Matric"] || "")
       .trim();
 
   const assessmentType =
@@ -131,7 +132,7 @@ const trxAssessments = assessments.filter(a => {
       .trim();
 
   return (
-    studentEmail === email &&
+    matric === studentMatric &&
     assessmentType === "TRX500"
   );
 });
