@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
@@ -15,8 +15,6 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [cqi, setCqi] = useState({});
   const [loading, setLoading] = useState(true);
-  const ploSummary = aggregateOverallPLO(cqi);
-  const cqiNarrative = generateCQINarrative(ploSummary);
 
   useEffect(() => {
     if (!email) return;
@@ -45,6 +43,17 @@ export default function SupervisorStudentPage() {
       setLoading(false);
     }
   }
+
+  /* ✅ Derived CQI summary (safe & memoized) */
+  const ploSummary = useMemo(
+    () => aggregateOverallPLO(cqi),
+    [cqi]
+  );
+
+  const cqiNarrative = useMemo(
+    () => generateCQINarrative(ploSummary),
+    [ploSummary]
+  );
 
   if (loading) {
     return <div className="p-6 text-center">Loading…</div>;
@@ -97,7 +106,7 @@ export default function SupervisorStudentPage() {
         </table>
       </div>
 
-      {/* CQI */}
+      {/* CQI BY ASSESSMENT */}
       <div className="bg-white rounded-2xl p-6 shadow">
         <h3 className="font-bold mb-3">🎯 CQI by Assessment</h3>
 
@@ -122,41 +131,37 @@ export default function SupervisorStudentPage() {
         ))}
       </div>
 
+      {/* OVERALL PLO PERFORMANCE */}
+      <div className="bg-white rounded-2xl p-6 shadow space-y-4">
+        <h3 className="font-bold text-lg">
+          📈 Overall PLO Performance (All Assessments)
+        </h3>
+
+        <PLOAverageChart ploSummary={ploSummary} />
+
+        <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">
+          <strong>CQI Narrative:</strong>
+          <p className="mt-2">{cqiNarrative}</p>
+        </div>
+      </div>
+
       {/* REMARKS (AUTOSAVE → EXCEL) */}
       <div className="space-y-4">
         <SupervisorRemark
-  studentMatric={student.student_id}
-  studentEmail={student.email}
-  assessmentType="TRX500"
-  initialRemark={student.remarksByAssessment?.TRX500}
-/>
+          studentMatric={student.student_id}
+          studentEmail={student.email}
+          assessmentType="TRX500"
+          initialRemark={student.remarksByAssessment?.TRX500}
+        />
 
-<SupervisorRemark
-  studentMatric={student.student_id}
-  studentEmail={student.email}
-  assessmentType="VIVA"
-  initialRemark={student.remarksByAssessment?.VIVA}
-/>
+        <SupervisorRemark
+          studentMatric={student.student_id}
+          studentEmail={student.email}
+          assessmentType="VIVA"
+          initialRemark={student.remarksByAssessment?.VIVA}
+        />
       </div>
 
     </div>
   );
 }
-
-{/* OVERALL PLO PERFORMANCE */}
-<div className="bg-white rounded-2xl p-6 shadow space-y-4">
-  <h3 className="font-bold text-lg">
-    📈 Overall PLO Performance (All Assessments)
-  </h3>
-
-  <PLOAverageChart ploSummary={ploSummary} />
-
-  <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">
-    <strong>CQI Narrative:</strong>
-    <p className="mt-2">{cqiNarrative}</p>
-  </div>
-</div>
-);
-
-}
-
