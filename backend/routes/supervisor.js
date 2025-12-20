@@ -28,23 +28,19 @@ function auth(req, res, next) {
 
 /* =========================
    DOCUMENT → COLUMN MAP
-   (MUST MATCH student.js)
 ========================= */
 const DOC_COLUMN_MAP = {
-  // Monitoring & Supervision
   "Development Plan & Learning Contract (DPLC)": "DPLC",
   "Student Supervision Logbook": "SUPERVISION_LOG",
   "Annual Progress Review – Year 1": "APR_Y1",
   "Annual Progress Review – Year 2": "APR_Y2",
   "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
 
-  // Ethics & Research Outputs
   "Ethics Approval": "ETHICS_APPROVAL",
   "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
   "Proof of Submission": "PROOF_OF_SUBMISSION",
   "Conference Presentation": "CONFERENCE_PRESENTATION",
 
-  // Thesis & Viva
   "Thesis Notice": "THESIS_NOTICE",
   "Viva Report": "VIVA_REPORT",
   "Correction Verification": "CORRECTION_VERIFICATION",
@@ -53,7 +49,6 @@ const DOC_COLUMN_MAP = {
 
 /* ============================================================
    GET /api/supervisor/students
-   → LIST SUPERVISED STUDENTS
 ============================================================ */
 router.get("/students", auth, async (req, res) => {
   try {
@@ -61,10 +56,11 @@ router.get("/students", auth, async (req, res) => {
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const students = rows
-      .filter(r => {
-        const sup = (r["Main Supervisor's Email"] || "").toLowerCase().trim();
-        return sup === supervisorEmail;
-      })
+      .filter(r =>
+        (r["Main Supervisor's Email"] || "")
+          .toLowerCase()
+          .trim() === supervisorEmail
+      )
       .map(r => ({
         id: r["Matric"] || "",
         name: r["Student Name"] || "",
@@ -72,22 +68,20 @@ router.get("/students", auth, async (req, res) => {
         programme: r["Programme"] || ""
       }));
 
-    res.json({ students });
+    return res.json({ students });
   } catch (e) {
-    console.error("supervisor students error:", e);
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
 /* ============================================================
    GET /api/supervisor/student/:email
-   → FULL STUDENT VIEW (PROFILE + DOCUMENTS + TIMELINE + CQI)
 ============================================================ */
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
 
-    /* ---------- MASTER TRACKING ---------- */
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
@@ -107,95 +101,63 @@ router.get("/student/:email", auth, async (req, res) => {
       department: raw["Department"] || ""
     };
 
-    /* ---------- DOCUMENTS (✅ FIXED) ---------- */
+    /* ---------- DOCUMENTS ---------- */
     const documents = {};
-    Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
-      documents[label] = raw[column] || "";
+    Object.entries(DOC_COLUMN_MAP).forEach(([label, col]) => {
+      documents[label] = raw[col] || "";
     });
 
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-/* ============================================================
-   CQI (TRX500) — FINAL & ROBUST
-   Matches by Matric, falls back to Email
-============================================================ */
+    /* ---------- CQI (TRX500) ---------- */
+    const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-/* ---------- READ ASSESSMENT_PLO ---------- */
-const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    const studentMatric = String(raw["Matric"] || "").trim();
+    const studentEmail = String(raw["Student's Email"] || "")
+      .toLowerCase()
+      .trim();
 
-/* ---------- STUDENT IDENTIFIERS ---------- */
-const studentMatric = String(
-  raw["Matric"] ||
-  raw["Matric No"] ||
-  raw["Student ID"] ||
-  ""
-).trim();
+    const trxAssessments = assessments.filter(a => {
+      const matric = String(a["Matric"] || "").trim();
+      const emailA = String(a["Student's Email"] || "")
+        .toLowerCase()
+        .trim();
+      const type = String(a["assessment_type"] || "")
+        .toUpperCase()
+        .trim();
 
-const studentEmail = String(
-  raw["Student's Email"] || ""
-).toLowerCase().trim();
+      return (
+        type === "TRX500" &&
+        (matric === studentMatric || emailA === studentEmail)
+      );
+    });
 
-/* ---------- DEBUG ---------- */
-console.log("STUDENT MATRIC:", studentMatric);
-console.log("STUDENT EMAIL:", studentEmail);
-console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
+    const clean = trxAssessments.map(a => {
+      const o = {};
+      for (let i = 1; i <= 11; i++) {
+        const v = parseFloat(a[`PLO${i}`]);
+        o[`PLO${i}`] = isNaN(v) ? null : v;
+      }
+      return o;
+    });
 
-/* ---------- FILTER TRX500 ---------- */
-const trxAssessments = assessments.filter(a => {
-  const matric = String(a["Matric"] || "").trim();
-  const email = String(a["Student's Email"] || "").toLowerCase().trim();
-
-  // ⚠️ MUST match header exactly: assessment_type (lowercase)
-  const assessmentType = String(a["assessment_type"] || "")
-    .toUpperCase()
-    .trim();
-
-  return (
-    assessmentType === "TRX500" &&
-    (matric === studentMatric || email === studentEmail)
-  );
-});
-
-/* ---------- DEBUG ---------- */
-console.log("TRX500 MATCHED ROWS:", trxAssessments.length);
-console.log("TRX500 ROW SAMPLE:", trxAssessments[0]);
-
-/* ---------- CLEAN PLO VALUES ---------- */
-const trxAssessmentsClean = trxAssessments.map(a => {
-  const clean = {};
-  for (let i = 1; i <= 11; i++) {
-    const key = `PLO${i}`;
-    const val = parseFloat(a[key]);
-    clean[key] = isNaN(val) ? null : val;
-  }
-  return clean;
-});
-
-/* ---------- CQI AGGREGATION ---------- */
-const cqiByAssessment = deriveCQIByAssessment(trxAssessmentsClean);
-
-/* ---------- DEBUG ---------- */
-console.log("CQI RESULT:", cqiByAssessment);
-
-    router.get("/student/:email", auth, async (req, res) => {
-  try {
-    ...
-    console.log("CQI RESULT:", cqiByAssessment);
+    const cqiByAssessment = deriveCQIByAssessment(clean);
 
     return res.json({
-  row: {
-    student_id: profile.student_id,
-    student_name: profile.student_name,
-    email: profile.email,
-    programme: profile.programme,
-    field: profile.field,
-    department: profile.department,
-    documents: documents,
-    timeline: timeline,
-    cqiByAssessment: cqiByAssessment
+      row: {
+        ...profile,
+        documents,
+        timeline,
+        cqiByAssessment
+      }
+    });
+
+  } catch (e) {
+    console.error("supervisor student error:", e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
-/* ✅ MUST BE OUTSIDE ALL FUNCTIONS */
+/* ✅ EXPORT ONLY ONCE, AT BOTTOM */
 export default router;
