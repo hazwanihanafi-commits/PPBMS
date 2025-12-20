@@ -15,6 +15,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/documents", documentsRoutes);
+app.use("/api/supervisor", supervisorRoutes); // ✅ ADD THIS
 
 app.get("/", (req, res) => {
   res.json({ status: "Backend running", time: new Date() });
