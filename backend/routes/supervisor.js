@@ -178,4 +178,25 @@ const cqiByAssessment = deriveCQIByAssessment(trxAssessmentsClean);
 /* ---------- DEBUG ---------- */
 console.log("CQI RESULT:", cqiByAssessment);
 
+    router.get("/student/:email", auth, async (req, res) => {
+  try {
+    ...
+    console.log("CQI RESULT:", cqiByAssessment);
+
+    return res.json({
+      row: {
+        ...profile,
+        documents,
+        timeline,
+        cqiByAssessment
+      }
+    });
+
+  } catch (e) {
+    console.error("supervisor student detail error:", e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+/* ✅ MUST BE OUTSIDE ALL FUNCTIONS */
 export default router;
