@@ -116,20 +116,37 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-/* ---------- CQI (TRX500) ---------- */
+/* ============================================================
+   CQI (TRX500) — FINAL & ROBUST
+   Matches by Matric, falls back to Email
+============================================================ */
+
+/* ---------- READ ASSESSMENT_PLO ---------- */
 const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-const studentMatric = String(raw["Matric"] || "").trim();
-const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
+/* ---------- STUDENT IDENTIFIERS ---------- */
+const studentMatric = String(
+  raw["Matric"] ||
+  raw["Matric No"] ||
+  raw["Student ID"] ||
+  ""
+).trim();
 
+const studentEmail = String(
+  raw["Student's Email"] || ""
+).toLowerCase().trim();
+
+/* ---------- DEBUG ---------- */
 console.log("STUDENT MATRIC:", studentMatric);
 console.log("STUDENT EMAIL:", studentEmail);
 console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
+/* ---------- FILTER TRX500 ---------- */
 const trxAssessments = assessments.filter(a => {
   const matric = String(a["Matric"] || "").trim();
   const email = String(a["Student's Email"] || "").toLowerCase().trim();
 
+  // ⚠️ MUST match header exactly: assessment_type (lowercase)
   const assessmentType = String(a["assessment_type"] || "")
     .toUpperCase()
     .trim();
@@ -140,29 +157,25 @@ const trxAssessments = assessments.filter(a => {
   );
 });
 
+/* ---------- DEBUG ---------- */
 console.log("TRX500 MATCHED ROWS:", trxAssessments.length);
 console.log("TRX500 ROW SAMPLE:", trxAssessments[0]);
-    
-// ✅ CQI CALCULATION
+
+/* ---------- CLEAN PLO VALUES ---------- */
+const trxAssessmentsClean = trxAssessments.map(a => {
+  const clean = {};
+  for (let i = 1; i <= 11; i++) {
+    const key = `PLO${i}`;
+    const val = parseFloat(a[key]);
+    clean[key] = isNaN(val) ? null : val;
+  }
+  return clean;
+});
+
+/* ---------- CQI AGGREGATION ---------- */
 const cqiByAssessment = deriveCQIByAssessment(trxAssessmentsClean);
 
-// 🔍 DEBUG (optional)
+/* ---------- DEBUG ---------- */
 console.log("CQI RESULT:", cqiByAssessment);
-    
-    /* ---------- RESPONSE ---------- */
-    res.json({
-      row: {
-        ...profile,
-        documents,           // ✅ NOW POPULATED
-        timeline,
-        cqiByAssessment
-      }
-    });
-
-  } catch (e) {
-    console.error("supervisor student detail error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
 
 export default router;
