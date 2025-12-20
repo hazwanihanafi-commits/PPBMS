@@ -122,11 +122,11 @@ export default function SupervisorStudentPage() {
       </div>
 
 {/* ===============================
-    CQI BY ASSESSMENT (TRX500)
+    CQI BY ASSESSMENT
 =============================== */}
-<div className="bg-white rounded-xl p-4 mt-6">
-  <h3 className="font-semibold mb-3">
-    🎯 CQI by Assessment (TRX500)
+<div className="bg-white rounded-2xl p-6 shadow">
+  <h3 className="font-bold mb-3">
+    🎯 CQI by Assessment
   </h3>
 
   {Object.keys(cqi).length === 0 ? (
@@ -134,25 +134,29 @@ export default function SupervisorStudentPage() {
       No CQI data available
     </p>
   ) : (
-    <div className="flex flex-wrap gap-2">
-      {Object.entries(cqi).map(([plo, data]) => {
-        const achieved = data.status === "Achieved";
+    Object.entries(cqi).map(([assessment, ploData]) => (
+      <div key={assessment} className="mb-4">
+        <h4 className="font-semibold text-purple-700 mb-2">
+          {assessment}
+        </h4>
 
-        return (
-          <span
-            key={plo}
-            className={`px-3 py-1 rounded-full text-xs font-semibold
-              ${
-                achieved
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-          >
-            {plo}: Avg {data.average} – {data.status}
-          </span>
-        );
-      })}
-    </div>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(ploData).map(([plo, d]) => (
+            <span
+              key={plo}
+              className={`px-3 py-1 rounded-full text-xs font-semibold
+                ${
+                  d.status === "Achieved"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+            >
+              {plo}: Avg {d.average} – {d.status}
+            </span>
+          ))}
+        </div>
+      </div>
+    ))
   )}
 
   <p className="text-xs text-gray-500 mt-3">
