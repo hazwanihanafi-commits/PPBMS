@@ -64,3 +64,10 @@ export default function SupervisorRemark({
     </div>
   );
 }
+
+console.log("SAVING REMARK:", {
+  studentMatric,
+  studentEmail,
+  assessmentType,
+  remark
+});
