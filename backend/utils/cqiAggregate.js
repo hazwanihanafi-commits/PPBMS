@@ -1,27 +1,37 @@
-export function deriveCQIByAssessment(rows) {
-  if (!rows || rows.length === 0) return {};
+// backend/utils/cqiAggregate.js
 
+/**
+ * Derive CQI status per PLO from assessment rows
+ * Expected input:
+ * [
+ *   { PLO1: 4, PLO2: 2, PLO3: null, ... }
+ * ]
+ */
+export function deriveCQIByAssessment(rows = []) {
   const result = {};
 
-  // detect PLO columns safely
-  const ploKeys = Object.keys(rows[0]).filter(
-    k => /^plo\d+$/.test(k)
-  );
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return result;
+  }
 
-  ploKeys.forEach(plo => {
+  for (let i = 1; i <= 11; i++) {
+    const key = `PLO${i}`;
+
+    // collect valid numeric scores only
     const values = rows
-      .map(r => r[plo])
-      .filter(v => typeof v === "number" && !isNaN(v));
+      .map(r => Number(r[key]))
+      .filter(v => !isNaN(v));
 
-    if (values.length === 0) return;
+    if (values.length === 0) continue;
 
-    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const avg =
+      values.reduce((sum, v) => sum + v, 0) / values.length;
 
-    result[plo.toUpperCase()] = {
+    result[key] = {
       average: Number(avg.toFixed(2)),
       status: avg >= 3 ? "Achieved" : "CQI Required"
     };
-  });
+  }
 
   return result;
 }
