@@ -209,3 +209,56 @@ export async function readASSESSMENT_PLO(sheetId) {
     };
   });
 }
+
+export async function upsertSUPERVISOR_REMARK({
+  studentMatric,
+  studentEmail,
+  assessmentType,
+  supervisorEmail,
+  remark
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const range = "SUPERVISOR_REMARKS!A2:F";
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range
+  });
+
+  const rows = res.data.values || [];
+
+  const now = new Date().toISOString();
+
+  const rowIndex = rows.findIndex(r =>
+    r[0] === studentMatric && r[2] === assessmentType
+  );
+
+  const values = [
+    studentMatric,
+    studentEmail,
+    assessmentType,
+    supervisorEmail,
+    remark,
+    now
+  ];
+
+  if (rowIndex >= 0) {
+    // UPDATE
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.SHEET_ID,
+      range: `SUPERVISOR_REMARKS!A${rowIndex + 2}:F${rowIndex + 2}`,
+      valueInputOption: "RAW",
+      requestBody: { values: [values] }
+    });
+  } else {
+    // APPEND
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SHEET_ID,
+      range,
+      valueInputOption: "RAW",
+      requestBody: { values: [values] }
+    });
+  }
+}
