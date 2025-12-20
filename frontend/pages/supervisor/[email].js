@@ -3,6 +3,9 @@ import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import SupervisorRemark from "../../components/SupervisorRemark";
+import { aggregateOverallPLO } from "../../utils/cqiSummary";
+import { generateCQINarrative } from "../../utils/cqiNarrative";
+import PLOAverageChart from "../../components/PLOAverageChart";
 
 export default function SupervisorStudentPage() {
   const router = useRouter();
@@ -12,6 +15,8 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [cqi, setCqi] = useState({});
   const [loading, setLoading] = useState(true);
+  const ploSummary = aggregateOverallPLO(cqi);
+  const cqiNarrative = generateCQINarrative(ploSummary);
 
   useEffect(() => {
     if (!email) return;
@@ -137,3 +142,21 @@ export default function SupervisorStudentPage() {
     </div>
   );
 }
+
+{/* OVERALL PLO PERFORMANCE */}
+<div className="bg-white rounded-2xl p-6 shadow space-y-4">
+  <h3 className="font-bold text-lg">
+    📈 Overall PLO Performance (All Assessments)
+  </h3>
+
+  <PLOAverageChart ploSummary={ploSummary} />
+
+  <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">
+    <strong>CQI Narrative:</strong>
+    <p className="mt-2">{cqiNarrative}</p>
+  </div>
+</div>
+);
+
+}
+
