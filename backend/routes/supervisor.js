@@ -188,9 +188,10 @@ return res.json({
   }
 });
 
-    // ===============================
-// SAVE SUPERVISOR REMARK (TRX / VIVA)
-// ===============================
+/* ============================================================
+   POST /api/supervisor/remark
+   → Save supervisor remark to ASSESSMENT_PLO
+============================================================ */
 router.post("/remark", auth, async (req, res) => {
   try {
     const { studentMatric, assessmentType, remark } = req.body;
@@ -212,7 +213,7 @@ router.post("/remark", auth, async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 });
-    
+
 /* =========================
    EXPORT (ONLY ONCE)
 ========================= */
