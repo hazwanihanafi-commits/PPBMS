@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
+import SupervisorRemark from "../../components/SupervisorRemark";
 
 export default function SupervisorStudentPage() {
   const router = useRouter();
