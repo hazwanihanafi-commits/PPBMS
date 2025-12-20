@@ -184,17 +184,16 @@ console.log("CQI RESULT:", cqiByAssessment);
     console.log("CQI RESULT:", cqiByAssessment);
 
     return res.json({
-      row: {
-        ...profile,
-        documents,
-        timeline,
-        cqiByAssessment
-      }
-    });
-
-  } catch (e) {
-    console.error("supervisor student detail error:", e);
-    return res.status(500).json({ error: e.message });
+  row: {
+    student_id: profile.student_id,
+    student_name: profile.student_name,
+    email: profile.email,
+    programme: profile.programme,
+    field: profile.field,
+    department: profile.department,
+    documents: documents,
+    timeline: timeline,
+    cqiByAssessment: cqiByAssessment
   }
 });
 
