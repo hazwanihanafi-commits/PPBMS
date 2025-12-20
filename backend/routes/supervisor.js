@@ -119,10 +119,22 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- CQI (TRX500) ---------- */
     const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const trxAssessments = assessments.filter(a =>
-      (a["Student's Email"] || "").toLowerCase().trim() === email &&
-      (a["assessment_type"] || "").toUpperCase().trim() === "TRX500"
-    );
+    const trxAssessments = assessments.filter(a => {
+  const studentEmail =
+    (a["Student's Email"] || a.Student_Email || "")
+      .toLowerCase()
+      .trim();
+
+  const assessmentType =
+    (a["assessment_type"] || a["Assessment_Type"] || "")
+      .toUpperCase()
+      .trim();
+
+  return (
+    studentEmail === email &&
+    assessmentType === "TRX500"
+  );
+});
 
     const cqiByAssessment = deriveCQIByAssessment(trxAssessments);
 
