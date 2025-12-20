@@ -111,94 +111,81 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-/* =========================
-   CQI (TRX500 + VIVA) — FINAL
-========================= */
+    /* =========================
+       CQI + REMARKS (TRX500 + VIVA)
+    ========================= */
 
-const assessmentsRaw = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    const assessmentsRaw = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-/* 🔑 Normalize headers (remove spaces, lowercase) */
-const assessments = assessmentsRaw.map(row => {
-  const clean = {};
-  Object.keys(row).forEach(k => {
-    clean[k.replace(/\s+/g, "").toLowerCase()] = row[k];
-  });
-  return clean;
-});
+    /* normalize headers */
+    const assessments = assessmentsRaw.map(row => {
+      const clean = {};
+      Object.keys(row).forEach(k => {
+        clean[k.replace(/\s+/g, "").toLowerCase()] = row[k];
+      });
+      return clean;
+    });
 
-/* Student identifiers */
-const studentMatric = String(raw["Matric"] || "").trim();
-const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
+    const studentMatric = String(raw["Matric"] || "").trim();
+    const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
 
-/* 🔍 DEBUG */
-console.log("STUDENT MATRIC:", studentMatric);
-console.log("STUDENT EMAIL:", studentEmail);
-console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
+    /* filter student rows */
+    const studentRows = assessments.filter(a => {
+      const matric = String(a["matric"] || "").trim();
+      const email2 = String(a["studentsemail"] || "").toLowerCase().trim();
+      return matric === studentMatric || email2 === studentEmail;
+    });
 
-/* 🔎 Filter student's rows (ALL assessments) */
-const studentRows = assessments.filter(a => {
-  const matric = String(a["matric"] || "").trim();
-  const email = String(a["studentsemail"] || "").toLowerCase().trim();
+    /* group by assessment type */
+    const grouped = {};
+    studentRows.forEach(r => {
+      const type = String(r["assessment_type"] || "").toUpperCase().trim();
+      if (!type) return;
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type].push(r);
+    });
 
-  return matric === studentMatric || email === studentEmail;
-});
+    /* compute CQI + extract remarks */
+    const cqiByAssessment = {};
+    const remarksByAssessment = {};
 
-console.log("STUDENT ASSESSMENT ROWS:", studentRows.length);
+    for (const [type, rows] of Object.entries(grouped)) {
+      const cleanPLO = rows.map(r => {
+        const o = {};
+        for (let i = 1; i <= 11; i++) {
+          const v = parseFloat(r[`plo${i}`]);
+          o[`PLO${i}`] = isNaN(v) ? null : v;
+        }
+        return o;
+      });
 
-/* 🔁 Group by assessment_type (TRX500, VIVA, etc.) */
-const grouped = {};
-studentRows.forEach(r => {
-  const type = String(r["assessment_type"] || "").toUpperCase().trim();
-  if (!type) return;
+      cqiByAssessment[type] = deriveCQIByAssessment(cleanPLO);
 
-  if (!grouped[type]) grouped[type] = [];
-  grouped[type].push(r);
-});
-
-console.log("GROUPED ASSESSMENTS:", Object.keys(grouped));
-
-//* 📊 Compute CQI + extract remarks per assessment */
-const cqiByAssessment = {};
-const remarksByAssessment = {};
-
-for (const [type, rows] of Object.entries(grouped)) {
-  const cleanPLO = rows.map(r => {
-    const o = {};
-    for (let i = 1; i <= 11; i++) {
-      const v = parseFloat(r[`plo${i}`]);
-      o[`PLO${i}`] = isNaN(v) ? null : v;
+      const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
+      if (remarkRow) {
+        remarksByAssessment[type] = remarkRow.remarks;
+      }
     }
-    return o;
-  });
 
-  // CQI
-  cqiByAssessment[type] = deriveCQIByAssessment(cleanPLO);
+    return res.json({
+      row: {
+        ...profile,
+        documents,
+        timeline,
+        cqiByAssessment,
+        remarksByAssessment
+      }
+    });
 
-  // Remarks (take latest / first non-empty)
-  const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
-  if (remarkRow) {
-    remarksByAssessment[type] = remarkRow.remarks;
-  }
-}
-
-console.log("CQI RESULT SENT:", cqiByAssessment);
-console.log("REMARKS SENT:", remarksByAssessment);
-
-/* =========================
-   RESPONSE
-========================= */
-return res.json({
-  row: {
-    ...profile,
-    documents,
-    timeline,
-    cqiByAssessment,
-    remarksByAssessment
+  } catch (e) {
+    console.error("supervisor student detail error:", e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
 /* ============================================================
    POST /api/supervisor/remark
+   → SAVE REMARK INTO ASSESSMENT_PLO
 ============================================================ */
 router.post("/remark", auth, async (req, res) => {
   try {
