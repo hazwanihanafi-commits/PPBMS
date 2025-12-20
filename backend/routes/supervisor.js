@@ -187,67 +187,32 @@ return res.json({
     cqiByAssessment
   }
 });
-    
 
-} catch (e) {
-  console.error("supervisor student detail error:", e);
-  return res.status(500).json({ error: e.message });
-}
-});
-
-/* ============================================================
-   POST /api/supervisor/remark
-   → Save supervisor remark to ASSESSMENT_PLO
-============================================================ */
+    // ===============================
+// SAVE SUPERVISOR REMARK (TRX / VIVA)
+// ===============================
 router.post("/remark", auth, async (req, res) => {
   try {
-    const {
+    const { studentMatric, assessmentType, remark } = req.body;
+
+    if (!studentMatric || !assessmentType) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    await updateASSESSMENT_PLO_Remark({
       studentMatric,
-      studentEmail,
       assessmentType,
       remark
-    } = req.body;
-
-    if (!remark) {
-      return res.json({ success: true });
-    }
-
-    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-    const idx = rows.findIndex(r => {
-      const matric = String(r["Matric"] || "").trim();
-      const email = String(r["Student's Email"] || "")
-        .toLowerCase()
-        .trim();
-      const type = String(r["assessment_type"] || "")
-        .toUpperCase()
-        .trim();
-
-      return (
-        type === assessmentType &&
-        (matric === studentMatric || email === studentEmail)
-      );
     });
 
-    if (idx === -1) {
-      return res.status(404).json({ error: "Assessment row not found" });
-    }
-
-    /* 🔑 Write to Remarks column */
-    await writeSheetCell(
-      process.env.SHEET_ID,
-      "Remarks",
-      idx + 2,
-      remark
-    );
-
     return res.json({ success: true });
+
   } catch (e) {
     console.error("save remark error:", e);
     return res.status(500).json({ error: e.message });
   }
 });
-
+    
 /* =========================
    EXPORT (ONLY ONCE)
 ========================= */
