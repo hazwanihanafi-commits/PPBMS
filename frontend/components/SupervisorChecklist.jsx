@@ -29,6 +29,17 @@ const ITEMS = [
   },
 ];
 
+const LABEL_MAP = {
+  ETHICS_APPROVAL: "Ethics Approval",
+  PUBLICATION_ACCEPTANCE: "Publication Acceptance",
+  PROOF_OF_SUBMISSION: "Proof of Submission",
+  CONFERENCE_PRESENTATION: "Conference Presentation",
+  THESIS_NOTICE: "Thesis Notice",
+  VIVA_REPORT: "Viva Report",
+  CORRECTION_VERIFICATION: "Correction Verification",
+  FINAL_THESIS: "Final Thesis",
+};
+
 export default function SupervisorChecklist({ documents = {} }) {
   return (
     <div className="space-y-6">
@@ -43,32 +54,42 @@ export default function SupervisorChecklist({ documents = {} }) {
         >
           <h4 className="font-semibold mb-4">{group.section}</h4>
 
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {group.items.map((label) => {
-              const url = documents[label];
+              const docLabel = LABEL_MAP[label] || label;
+              const url = documents[docLabel];
 
               return (
                 <li
                   key={label}
-                  className="flex justify-between items-center border-b pb-2"
+                  className="border-b pb-3"
                 >
-                  <span className="text-sm font-medium">
-                    {url ? "✅" : "⬜"} {label}
-                  </span>
-
-                  {url ? (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-purple-600 text-sm hover:underline"
-                    >
-                      View →
-                    </a>
-                  ) : (
-                    <span className="text-xs text-gray-400">
-                      Not submitted
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm font-medium">
+                      {url ? "✅" : "⬜"} {docLabel}
                     </span>
+
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-purple-600 text-sm hover:underline"
+                      >
+                        View →
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        Not submitted
+                      </span>
+                    )}
+                  </div>
+
+                  {/* ✅ SHOW URL CLEARLY */}
+                  {url && (
+                    <div className="mt-1 text-xs text-gray-500 break-all">
+                      {url}
+                    </div>
                   )}
                 </li>
               );
