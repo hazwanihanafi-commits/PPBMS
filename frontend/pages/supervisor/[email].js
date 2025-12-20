@@ -165,22 +165,23 @@ export default function SupervisorStudentPage() {
   </p>
 </div>
 
+{/* ===============================
+    SUPERVISOR INTERVENTION & REMARKS
+=============================== */}
+<div className="space-y-4">
+
+  <SupervisorRemark
+    studentMatric={student.student_id}
+    studentEmail={student.email}
+    assessmentType="TRX500"
+  />
+
+  <SupervisorRemark
+    studentMatric={student.student_id}
+    studentEmail={student.email}
+    assessmentType="VIVA"
+  />
+
+</div>
 
 
-      {/* SUPERVISOR REMARKS */}
-      <div className="bg-white rounded-2xl p-6 shadow">
-        <h3 className="font-bold mb-2">
-          🛠 Supervisor Intervention & Remarks
-        </h3>
-
-        <textarea
-          rows={4}
-          value={remarks}
-          onChange={(e) => setRemarks(e.target.value)}
-          className="w-full border rounded p-2 text-sm"
-          placeholder="Supervisor intervention notes…"
-        />
-      </div>
-    </div>
-  );
-}
