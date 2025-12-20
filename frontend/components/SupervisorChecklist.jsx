@@ -12,33 +12,22 @@ const ITEMS = [
   {
     section: "Ethics & Research Outputs",
     items: [
-      "ETHICS_APPROVAL",
-      "PUBLICATION_ACCEPTANCE",
-      "PROOF_OF_SUBMISSION",
-      "CONFERENCE_PRESENTATION",
+      "Ethics Approval",
+      "Publication Acceptance",
+      "Proof of Submission",
+      "Conference Presentation",
     ],
   },
   {
     section: "Thesis & Viva",
     items: [
-      "THESIS_NOTICE",
-      "VIVA_REPORT",
-      "CORRECTION_VERIFICATION",
-      "FINAL_THESIS",
+      "Thesis Notice",
+      "Viva Report",
+      "Correction Verification",
+      "Final Thesis",
     ],
   },
 ];
-
-const LABEL_MAP = {
-  ETHICS_APPROVAL: "Ethics Approval",
-  PUBLICATION_ACCEPTANCE: "Publication Acceptance",
-  PROOF_OF_SUBMISSION: "Proof of Submission",
-  CONFERENCE_PRESENTATION: "Conference Presentation",
-  THESIS_NOTICE: "Thesis Notice",
-  VIVA_REPORT: "Viva Report",
-  CORRECTION_VERIFICATION: "Correction Verification",
-  FINAL_THESIS: "Final Thesis",
-};
 
 export default function SupervisorChecklist({ documents = {} }) {
   return (
@@ -56,17 +45,13 @@ export default function SupervisorChecklist({ documents = {} }) {
 
           <ul className="space-y-4">
             {group.items.map((label) => {
-              const docLabel = LABEL_MAP[label] || label;
-              const url = documents[docLabel];
+              const url = documents[label]; // ✅ NOW MATCHES BACKEND
 
               return (
-                <li
-                  key={label}
-                  className="border-b pb-3"
-                >
+                <li key={label} className="border-b pb-3">
                   <div className="flex justify-between items-start">
                     <span className="text-sm font-medium">
-                      {url ? "✅" : "⬜"} {docLabel}
+                      {url ? "✅" : "⬜"} {label}
                     </span>
 
                     {url ? (
@@ -85,7 +70,7 @@ export default function SupervisorChecklist({ documents = {} }) {
                     )}
                   </div>
 
-                  {/* ✅ SHOW URL CLEARLY */}
+                  {/* ✅ SHOW ACTUAL URL */}
                   {url && (
                     <div className="mt-1 text-xs text-gray-500 break-all">
                       {url}
