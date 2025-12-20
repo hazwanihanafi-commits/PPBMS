@@ -147,6 +147,47 @@ export default function SupervisorStudentPage() {
         </p>
       </div>
 
+{/* ===============================
+    CQI BY ASSESSMENT (TRX500)
+=============================== */}
+<div className="bg-white rounded-xl p-4 mt-6">
+  <h3 className="font-semibold mb-3">
+    🎯 CQI by Assessment (TRX500)
+  </h3>
+
+  {Object.keys(cqi).length === 0 ? (
+    <p className="text-sm text-gray-500">
+      No CQI data available
+    </p>
+  ) : (
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(cqi).map(([plo, data]) => {
+        const achieved = data.status === "Achieved";
+
+        return (
+          <span
+            key={plo}
+            className={`px-3 py-1 rounded-full text-xs font-semibold
+              ${
+                achieved
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+          >
+            {plo}: Avg {data.average} – {data.status}
+          </span>
+        );
+      })}
+    </div>
+  )}
+
+  <p className="text-xs text-gray-500 mt-3">
+    Scale-based CQI: Achieved ≥ 3.0 | CQI Required &lt; 3.0
+  </p>
+</div>
+
+
+
       {/* SUPERVISOR REMARKS */}
       <div className="bg-white rounded-2xl p-6 shadow">
         <h3 className="font-bold mb-2">
