@@ -175,6 +175,18 @@ for (const [type, rows] of Object.entries(grouped)) {
 
 /* 🔍 FINAL DEBUG */
 console.log("CQI RESULT SENT:", cqiByAssessment);
+
+    /* 📝 Extract remarks per assessment */
+const remarksByAssessment = {};
+
+studentRows.forEach(r => {
+  const type = String(r["assessment_type"] || "").toUpperCase().trim();
+  if (!type) return;
+
+  if (r["remarks"]) {
+    remarksByAssessment[type] = r["remarks"];
+  }
+});
     
 /* =========================
    RESPONSE
@@ -184,7 +196,8 @@ return res.json({
     ...profile,
     documents,
     timeline,
-    cqiByAssessment
+    cqiByAssessment,
+    remarksByAssessment
   }
 });
 
