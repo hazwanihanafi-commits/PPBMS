@@ -157,8 +157,9 @@ studentRows.forEach(r => {
 
 console.log("GROUPED ASSESSMENTS:", Object.keys(grouped));
 
-/* 📊 Compute CQI per assessment */
+//* 📊 Compute CQI + extract remarks per assessment */
 const cqiByAssessment = {};
+const remarksByAssessment = {};
 
 for (const [type, rows] of Object.entries(grouped)) {
   const cleanPLO = rows.map(r => {
@@ -170,29 +171,29 @@ for (const [type, rows] of Object.entries(grouped)) {
     return o;
   });
 
+  // CQI
   cqiByAssessment[type] = deriveCQIByAssessment(cleanPLO);
+
+  // Remarks (take latest / first non-empty)
+  const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
+  if (remarkRow) {
+    remarksByAssessment[type] = remarkRow.remarks;
+  }
 }
 
-/* 🔍 FINAL DEBUG */
 console.log("CQI RESULT SENT:", cqiByAssessment);
+console.log("REMARKS SENT:", remarksByAssessment);
 
-    cqiByAssessment[type] = deriveCQIByAssessment(cleanPLO);
-      if (rows[0]?.remarks) remarksByAssessment[type] = rows[0].remarks;
-    }
-
-    return res.json({
-      row: {
-        ...profile,
-        documents,
-        timeline,
-        cqiByAssessment,
-        remarksByAssessment
-      }
-    });
-
-  } catch (e) {
-    console.error("supervisor student detail error:", e);
-    return res.status(500).json({ error: e.message });
+/* =========================
+   RESPONSE
+========================= */
+return res.json({
+  row: {
+    ...profile,
+    documents,
+    timeline,
+    cqiByAssessment,
+    remarksByAssessment
   }
 });
 
