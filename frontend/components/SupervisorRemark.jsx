@@ -4,16 +4,23 @@ import { API_BASE } from "../utils/api";
 export default function SupervisorRemark({
   studentMatric,
   studentEmail,
-  assessmentType
+  assessmentType,
+  initialRemark = ""
 }) {
-  const [remark, setRemark] = useState("");
+  const [remark, setRemark] = useState(initialRemark);
   const [status, setStatus] = useState("Saved");
 
+  // 🔁 Load remark from backend when page loads / refreshes
   useEffect(() => {
+    setRemark(initialRemark);
+  }, [initialRemark]);
+
+  // ⏱ Autosave after 1 second
+  useEffect(() => {
+    if (!remark) return;
+
     const timer = setTimeout(() => {
-      if (remark.trim() !== "") {
-        saveRemark();
-      }
+      saveRemark();
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -24,7 +31,14 @@ export default function SupervisorRemark({
       setStatus("Saving...");
       const token = localStorage.getItem("ppbms_token");
 
-      await fetch(`${API_BASE}/api/supervisor/remark`, {
+      console.log("SAVING REMARK:", {
+        studentMatric,
+        studentEmail,
+        assessmentType,
+        remark
+      });
+
+      const res = await fetch(`${API_BASE}/api/supervisor/remark`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -38,8 +52,13 @@ export default function SupervisorRemark({
         })
       });
 
+      if (!res.ok) {
+        throw new Error("Failed to save remark");
+      }
+
       setStatus("Saved");
-    } catch {
+    } catch (e) {
+      console.error("Remark save error:", e);
       setStatus("Error saving");
     }
   }
@@ -47,13 +66,13 @@ export default function SupervisorRemark({
   return (
     <div className="bg-white rounded-xl p-4">
       <h3 className="font-semibold mb-2">
-        🛠 Supervisor Intervention & Remarks
+        🛠 Supervisor Intervention & Remarks ({assessmentType})
       </h3>
 
       <textarea
         className="w-full border rounded p-2 text-sm"
         rows={4}
-        placeholder="Supervisor intervention notes..."
+        placeholder={`Supervisor intervention notes for ${assessmentType}...`}
         value={remark}
         onChange={e => setRemark(e.target.value)}
       />
@@ -64,10 +83,3 @@ export default function SupervisorRemark({
     </div>
   );
 }
-
-console.log("SAVING REMARK:", {
-  studentMatric,
-  studentEmail,
-  assessmentType,
-  remark
-});
