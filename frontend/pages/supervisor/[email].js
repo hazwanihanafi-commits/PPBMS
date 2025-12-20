@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
+import StudentChecklist from "../../components/StudentChecklist";
 
-import TimelineTable from "../../components/timeline/TimelineTable";
-import SupervisorChecklist from "../../components/supervisor/SupervisorChecklist";
-
-export default function SupervisorStudentDetails() {
+export default function SupervisorStudentPage() {
   const router = useRouter();
   const { email } = router.query;
 
@@ -13,9 +11,7 @@ export default function SupervisorStudentDetails() {
   const [timeline, setTimeline] = useState([]);
   const [cqi, setCqi] = useState({});
   const [remarks, setRemarks] = useState("");
-
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!email) return;
@@ -35,119 +31,76 @@ export default function SupervisorStudentDetails() {
         }
       );
 
-      const json = await res.json();
+      const data = await res.json();
 
-      setStudent(json.row);
-      setTimeline(json.row.timeline || []);
-      setCqi(json.row.cqiByAssessment || {});
-      setRemarks(json.row.remarks || "");
-    } catch (err) {
-      console.error("Failed to load student", err);
+      setStudent(data.row);
+      setTimeline(data.row.timeline || []);
+      setCqi(data.row.cqiByAssessment || {});
+      setRemarks(data.row.remarks || "");
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   }
 
-  async function saveRemarks() {
-    setSaving(true);
-    try {
-      const token = localStorage.getItem("ppbms_token");
-
-      await fetch(
-        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}/remarks`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ remarks }),
-        }
-      );
-
-      alert("Remarks saved successfully");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save remarks");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   if (loading) {
-    return <div className="p-6">Loading…</div>;
+    return (
+      <div className="p-6 text-center text-gray-600">
+        Loading student data…
+      </div>
+    );
   }
 
   if (!student) {
-    return <div className="p-6">Student not found</div>;
+    return <div className="p-6">Student not found.</div>;
   }
 
   return (
-    <div className="p-6 bg-purple-50 min-h-screen space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6 space-y-8">
 
-      {/* STUDENT HEADER */}
-      <div>
-        <h2 className="text-2xl font-bold">
+      {/* ===============================
+          HEADER
+      =============================== */}
+      <h1 className="text-3xl font-extrabold text-gray-900">
+        👩‍🏫 Supervisor View
+      </h1>
+
+      {/* ===============================
+          STUDENT PROFILE
+      =============================== */}
+      <div className="bg-white shadow-card rounded-2xl p-6 border">
+        <h2 className="text-xl font-bold mb-3">
           {student.student_name}
         </h2>
-        <p className="text-sm text-gray-600">
-          {student.programme}
-        </p>
+
+        <p><strong>Matric:</strong> {student.student_id}</p>
+        <p><strong>Email:</strong> {student.email}</p>
+        <p><strong>Programme:</strong> {student.programme}</p>
+        <p><strong>Field:</strong> {student.field}</p>
+        <p><strong>Department:</strong> {student.department}</p>
       </div>
 
-      {/* STUDENT INFORMATION */}
-      <div className="bg-white rounded-xl p-4">
-        <h3 className="font-semibold mb-3">👤 Student Information</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <div>
-            <span className="font-medium">Name:</span>{" "}
-            {student.student_name}
-          </div>
-          <div>
-            <span className="font-medium">Matric No:</span>{" "}
-            {student.student_id}
-          </div>
-          <div>
-            <span className="font-medium">Email:</span>{" "}
-            {student.email}
-          </div>
-          <div>
-            <span className="font-medium">Programme:</span>{" "}
-            {student.programme}
-          </div>
-          {student.field && (
-            <div>
-              <span className="font-medium">Field:</span>{" "}
-              {student.field}
-            </div>
-          )}
-          {student.department && (
-            <div>
-              <span className="font-medium">Department:</span>{" "}
-              {student.department}
-            </div>
-          )}
-        </div>
+      {/* ===============================
+          DOCUMENT CHECKLIST (MIRROR)
+      =============================== */}
+      <div>
+        <StudentChecklist
+          initialDocuments={student.documents}
+          readOnly   // 👈 IMPORTANT
+        />
       </div>
 
-      {/* TIMELINE (READ-ONLY MIRROR) */}
-      <TimelineTable
-        timeline={timeline}
-        studentEmail={student.email}
-        token={localStorage.getItem("ppbms_token")}
-        API={API_BASE}
-        readonly
-      />
-
-      {/* CQI SECTION */}
-      <div className="bg-white rounded-xl p-4">
-        <h3 className="font-semibold mb-3">
+      {/* ===============================
+          CQI SECTION
+      =============================== */}
+      <div className="bg-white shadow-card rounded-2xl p-6 border">
+        <h3 className="text-lg font-bold mb-3">
           🎯 CQI by Assessment (TRX500)
         </h3>
 
         {Object.keys(cqi).length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-gray-500 text-sm">
             No CQI data available
           </p>
         ) : (
@@ -177,12 +130,71 @@ export default function SupervisorStudentDetails() {
         </p>
       </div>
 
-      {/* DOCUMENT CHECKLIST (READ-ONLY MIRROR) */}
-      <SupervisorChecklist documents={student.documents || {}} />
+      {/* ===============================
+          EXPECTED vs ACTUAL TIMELINE (READ-ONLY)
+      =============================== */}
+      <div className="bg-white shadow-card rounded-2xl p-6 border">
+        <h3 className="text-lg font-bold mb-4">
+          📅 Expected vs Actual Timeline
+        </h3>
 
-      {/* SUPERVISOR REMARKS */}
-      <div className="bg-white rounded-xl p-4">
-        <h3 className="font-semibold mb-2">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-purple-50 text-purple-700">
+                <th className="p-3 text-left">Activity</th>
+                <th className="p-3">Expected</th>
+                <th className="p-3">Actual</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Remaining</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {timeline.map((t, i) => {
+                const isLate =
+                  !t.actual &&
+                  t.remaining_days < 0 &&
+                  t.status !== "Completed";
+
+                return (
+                  <tr key={i} className="border-t">
+                    <td className="p-3">{t.activity}</td>
+                    <td className="p-3">{t.expected || "-"}</td>
+                    <td className="p-3">{t.actual || "-"}</td>
+
+                    <td
+                      className={`p-3 font-medium ${
+                        t.status === "Completed"
+                          ? "text-green-600"
+                          : isLate
+                          ? "text-red-600"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {isLate ? "Delayed" : t.status}
+                    </td>
+
+                    <td
+                      className={`p-3 ${
+                        isLate ? "text-red-600 font-semibold" : ""
+                      }`}
+                    >
+                      {t.remaining_days}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ===============================
+          SUPERVISOR REMARKS
+      =============================== */}
+      <div className="bg-white shadow-card rounded-2xl p-6 border">
+        <h3 className="text-lg font-bold mb-2">
           🛠 Supervisor Intervention & Remarks
         </h3>
 
@@ -190,19 +202,9 @@ export default function SupervisorStudentDetails() {
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
           rows={4}
-          placeholder="Enter intervention plan, follow-up actions, or supervisor remarks…"
-          className="w-full border rounded-lg p-2 text-sm focus:outline-none focus:ring focus:border-purple-300"
+          placeholder="Enter intervention plan or supervisor remarks…"
+          className="w-full border rounded-lg p-2 text-sm"
         />
-
-        <div className="flex justify-end mt-3">
-          <button
-            onClick={saveRemarks}
-            disabled={saving}
-            className="bg-purple-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Save Remarks"}
-          </button>
-        </div>
       </div>
     </div>
   );
