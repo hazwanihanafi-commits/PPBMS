@@ -110,56 +110,54 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-    /* ---------- CQI (TRX500) ---------- */
-    const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    /* =========================
+   CQI (TRX500)
+========================= */
 
-    const studentMatric = String(raw["Matric"] || "").trim();
-    const studentEmail = String(raw["Student's Email"] || "")
-      .toLowerCase()
-      .trim();
+/* 1️⃣ Read ASSESSMENT_PLO */
+const assessments = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const trxAssessments = assessments.filter(a => {
-      const matric = String(a["Matric"] || "").trim();
-      const emailA = String(a["Student's Email"] || "")
-        .toLowerCase()
-        .trim();
-      const type = String(a["assessment_type"] || "")
-        .toUpperCase()
-        .trim();
+/* 2️⃣ Student identifiers */
+const studentMatric = String(raw["Matric"] || "").trim();
+const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
 
-      return (
-        type === "TRX500" &&
-        (matric === studentMatric || emailA === studentEmail)
-      );
-    });
+/* 🔍 DEBUG */
+console.log("STUDENT MATRIC:", studentMatric);
+console.log("STUDENT EMAIL:", studentEmail);
+console.log("TOTAL ASSESSMENT ROWS:", assessments.length);
 
-    const clean = trxAssessments.map(a => {
-      const o = {};
-      for (let i = 1; i <= 11; i++) {
-        const v = parseFloat(a[`PLO${i}`]);
-        o[`PLO${i}`] = isNaN(v) ? null : v;
-      }
-      return o;
-    });
+/* 3️⃣ Filter TRX500 rows */
+const trxRows = assessments.filter(a => {
+  const matric = String(a["Matric"] || "").trim();
+  const email = String(a["Student's Email"] || "").toLowerCase().trim();
+  const type = String(a["assessment_type"] || "").toUpperCase().trim();
 
-    const cqiByAssessment = deriveCQIByAssessment(clean);
-
-    console.log("CQI RESULT SENT:", cqiByAssessment);
-    
-    return res.json({
-      row: {
-        ...profile,
-        documents,
-        timeline,
-        cqiByAssessment
-      }
-    });
-
-  } catch (e) {
-    console.error("supervisor student error:", e);
-    return res.status(500).json({ error: e.message });
-  }
+  return (
+    type === "TRX500" &&
+    (matric === studentMatric || email === studentEmail)
+  );
 });
+
+/* 🔍 DEBUG */
+console.log("TRX500 MATCHED ROWS:", trxRows.length);
+console.log("TRX500 SAMPLE ROW:", trxRows[0]);
+
+/* 4️⃣ Clean PLO values */
+const trxClean = trxRows.map(row => {
+  const out = {};
+  for (let i = 1; i <= 11; i++) {
+    const k = `PLO${i}`;
+    const v = parseFloat(row[k]);
+    out[k] = isNaN(v) ? null : v;
+  }
+  return out;
+});
+
+/* 5️⃣ Aggregate CQI */
+const cqiByAssessment = deriveCQIByAssessment(trxClean);
+
+/* 🔍 FINAL DEBUG */
+console.log("CQI RESULT SENT:", cqiByAssessment);
 
 /* ✅ EXPORT ONLY ONCE, AT BOTTOM */
 export default router;
