@@ -12,10 +12,10 @@ export default function AdminStudentPage() {
 
   useEffect(() => {
     if (!email) return;
-    load();
+    loadStudent();
   }, [email]);
 
-  async function load() {
+  async function loadStudent() {
     try {
       const res = await fetch(
         `${API_BASE}/api/admin/student/${encodeURIComponent(email)}`,
@@ -43,6 +43,18 @@ export default function AdminStudentPage() {
     return <div className="p-6">Student not found</div>;
   }
 
+  /* =========================
+     PROGRESS (READ-ONLY)
+  ========================= */
+  const timeline = student.timeline || [];
+  const progress = timeline.length
+    ? Math.round(
+        (timeline.filter((t) => t.status === "Completed").length /
+          timeline.length) *
+          100
+      )
+    : 0;
+
   const isGraduated = student.status === "Graduated";
 
   return (
@@ -56,8 +68,8 @@ export default function AdminStudentPage() {
         ← Back to Admin Dashboard
       </button>
 
-      {/* ================= STUDENT HEADER ================= */}
-      <div className="bg-white rounded-2xl shadow p-6 space-y-2">
+      {/* ================= STUDENT PROFILE ================= */}
+      <div className="bg-white rounded-2xl shadow p-6 space-y-3">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">
             {student.student_name}
@@ -74,24 +86,40 @@ export default function AdminStudentPage() {
           </span>
         </div>
 
+        <p><strong>Matric:</strong> {student.student_id}</p>
         <p><strong>Email:</strong> {student.email}</p>
         <p><strong>Programme:</strong> {student.programme}</p>
+        <p><strong>Field:</strong> {student.field}</p>
         <p><strong>Department:</strong> {student.department}</p>
+        <p><strong>Main Supervisor:</strong> {student.supervisor}</p>
 
-        {/* CO-SUPERVISORS */}
-        {student.coSupervisors?.length > 0 && (
-          <div className="pt-2">
-            <strong>Co-Supervisor(s):</strong>
-            <ul className="list-disc ml-5 mt-1">
-              {student.coSupervisors.map((name, i) => (
-                <li key={i}>{name}</li>
-              ))}
-            </ul>
-          </div>
+        {student.cosupervisors && (
+          <p>
+            <strong>Co-Supervisor(s):</strong> {student.cosupervisors}
+          </p>
         )}
+
+        {/* ================= PROGRESS ================= */}
+        <div className="mt-4">
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium text-gray-700">
+              Overall Progress
+            </span>
+            <span className="text-sm font-semibold text-purple-700">
+              {progress}%
+            </span>
+          </div>
+
+          <div className="w-full bg-gray-200 h-3 rounded-full">
+            <div
+              className="bg-purple-600 h-3 rounded-full"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* ================= OFFICIAL CV LINK ================= */}
+      {/* ================= OFFICIAL USM CV ================= */}
       <div className="flex items-center gap-3">
         <a
           href="https://webcentral2.usm.my/sccentral/smup/ptj_profilpelajar.asp?tag=search"
@@ -113,9 +141,10 @@ export default function AdminStudentPage() {
         documents={student.documents || {}}
       />
 
-      {/* ================= CQI NOTE (ADMIN) ================= */}
+      {/* ================= ADMIN NOTE ================= */}
       <div className="text-sm text-gray-500 italic">
-        Admin view is read-only. CQI evaluation and remarks are managed by supervisors.
+        This is an administrative, read-only view.  
+        CQI evaluation and academic remarks are managed by supervisors.
       </div>
 
     </div>
