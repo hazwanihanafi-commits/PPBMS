@@ -187,6 +187,17 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
     /* ---------- FINAL PLO (ALL ASSESSMENTS) ---------- */
     const finalPLO = aggregateFinalPLO(cqiByAssessment);
 
+// 🔒 SAFETY: ensure every PLO has average + status
+for (let i = 1; i <= 11; i++) {
+  const key = `PLO${i}`;
+  if (!finalPLO[key]) {
+    finalPLO[key] = {
+      average: null,
+      status: "Not Assessed"
+    };
+  }
+}
+
     res.json({
       row: {
         ...profile,
