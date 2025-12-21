@@ -120,15 +120,15 @@ const coSupervisors = rawCoSup
 
     /* ---------- PROFILE ---------- */
     const profile = {
-      student_id: raw["Matric"] || "",
-      student_name: raw["Student Name"] || "",
-      email,
-      programme: raw["Programme"] || "",
-      field: raw["Field"] || "",
-      department: raw["Department"] || "",
-      status: raw["Status"] || "Active",
-      coSupervisors // ✅ ARRAY
-    };
+  student_id: raw["Matric"] || "",
+  student_name: raw["Student Name"] || "",
+  email,
+  programme: raw["Programme"] || "",
+  field: raw["Field"] || "",
+  department: raw["Department"] || "",
+  status: raw["Status"] || "Active",
+  coSupervisors // ✅ ARRAY
+};
 
     /* ---------- DOCUMENTS ---------- */
 const documents = {};
