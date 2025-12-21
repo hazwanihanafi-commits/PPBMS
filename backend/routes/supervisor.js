@@ -13,7 +13,7 @@ import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 const router = express.Router();
 
 /* =========================
-   AUTH MIDDLEWARE
+   AUTH (ADMIN + SUPERVISOR)
 ========================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
@@ -22,7 +22,6 @@ function auth(req, res, next) {
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ allow BOTH admin & supervisor
     if (!["admin", "supervisor"].includes(user.role)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -33,7 +32,6 @@ function auth(req, res, next) {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
-
 
 /* =========================
    DOCUMENT → COLUMN MAP
@@ -56,29 +54,39 @@ const DOC_COLUMN_MAP = {
 
 /* ============================================================
    GET /api/supervisor/students
+   → USED BY SUPERVISOR DASHBOARD
 ============================================================ */
 router.get("/students", auth, async (req, res) => {
   try {
-    const supervisorEmail = (req.user.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const supervisorEmail = req.user.role === "supervisor"
+      ? (req.user.email || "").toLowerCase().trim()
+      : null;
 
     const students = rows
       .filter(r =>
+        !supervisorEmail ||
         (r["Main Supervisor's Email"] || "")
           .toLowerCase()
           .trim() === supervisorEmail
       )
       .map(r => {
-        /* ---------- BUILD TIMELINE ---------- */
+        /* ---------- TIMELINE ---------- */
         const timeline = buildTimelineForRow(r);
-
-        const completed = timeline.filter(
-          t => t.status === "Completed"
-        ).length;
-
+        const completed = timeline.filter(t => t.status === "Completed").length;
         const progressPercent = timeline.length
           ? Math.round((completed / timeline.length) * 100)
           : 0;
+
+        /* ---------- CO-SUPERVISOR NORMALISE ---------- */
+        const rawCo = r["Co-Supervisor(s)"] || "";
+        const coSupervisors = rawCo
+          ? rawCo
+              .split(/\d+\.\s*/g)
+              .map(s => s.trim())
+              .filter(Boolean)
+          : [];
 
         return {
           id: r["Matric"] || "",
@@ -86,8 +94,9 @@ router.get("/students", auth, async (req, res) => {
           email: (r["Student's Email"] || "").toLowerCase().trim(),
           programme: r["Programme"] || "",
           field: r["Field"] || "",
+          department: r["Department"] || "",
           status: r["Status"] || "Active",
-          cosupervisors: r["Co-Supervisor(s)"] || "",
+          coSupervisors,
           progressPercent
         };
       });
@@ -99,9 +108,9 @@ router.get("/students", auth, async (req, res) => {
   }
 });
 
-
 /* ============================================================
    GET /api/supervisor/student/:email
+   → USED BY SUPERVISOR PAGE + ADMIN CLICK-THROUGH
 ============================================================ */
 router.get("/student/:email", auth, async (req, res) => {
   try {
@@ -117,9 +126,9 @@ router.get("/student/:email", auth, async (req, res) => {
     }
 
     /* ---------- CO-SUPERVISOR NORMALISATION ---------- */
-    const rawCoSup = raw["Co-Supervisor(s)"] || "";
-    const coSupervisors = rawCoSup
-      ? rawCoSup
+    const rawCo = raw["Co-Supervisor(s)"] || "";
+    const coSupervisors = rawCo
+      ? rawCo
           .split(/\d+\.\s*/g)
           .map(s => s.trim())
           .filter(Boolean)
@@ -134,7 +143,7 @@ router.get("/student/:email", auth, async (req, res) => {
       field: raw["Field"] || "",
       department: raw["Department"] || "",
       status: raw["Status"] || "Active",
-      coSupervisors: raw["Co-Supervisor(s)"] || ""
+      cosupervisors: coSupervisors
     };
 
     /* ---------- DOCUMENTS ---------- */
@@ -163,14 +172,14 @@ router.get("/student/:email", auth, async (req, res) => {
     const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
 
     const studentRows = assessments.filter(a => {
-      const matric = String(a["matric"] || "").trim();
-      const email2 = String(a["studentsemail"] || "").toLowerCase().trim();
-      return matric === studentMatric || email2 === studentEmail;
+      const m = String(a.matric || "").trim();
+      const e = String(a.studentsemail || "").toLowerCase().trim();
+      return m === studentMatric || e === studentEmail;
     });
 
     const grouped = {};
     studentRows.forEach(r => {
-      const type = String(r["assessment_type"] || "").toUpperCase().trim();
+      const type = String(r.assessment_type || "").toUpperCase().trim();
       if (!type) return;
       if (!grouped[type]) grouped[type] = [];
       grouped[type].push(r);
@@ -192,9 +201,7 @@ router.get("/student/:email", auth, async (req, res) => {
       cqiByAssessment[type] = deriveCQIByAssessment(cleanPLO);
 
       const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
-      if (remarkRow) {
-        remarksByAssessment[type] = remarkRow.remarks;
-      }
+      if (remarkRow) remarksByAssessment[type] = remarkRow.remarks;
     }
 
     return res.json({
@@ -206,9 +213,8 @@ router.get("/student/:email", auth, async (req, res) => {
         remarksByAssessment
       }
     });
-
   } catch (e) {
-    console.error("supervisor student detail error:", e);
+    console.error("student detail error:", e);
     return res.status(500).json({ error: e.message });
   }
 });
