@@ -1,18 +1,26 @@
+// utils/cqiSummary.js
 export function aggregateOverallPLO(cqi) {
-  if (!cqi || typeof cqi !== "object") return [];
+  if (!cqi || typeof cqi !== "object") return {};
 
-  // example aggregation logic
-  const result = {};
+  const ploMap = {};
 
-  Object.values(cqi).forEach((item) => {
-    if (!item.plo || item.score == null) return;
-    result[item.plo] = result[item.plo] || [];
-    result[item.plo].push(item.score);
+  Object.values(cqi).forEach(assessment => {
+    Object.entries(assessment || {}).forEach(([plo, data]) => {
+      if (!ploMap[plo]) ploMap[plo] = [];
+      ploMap[plo].push(data.avg);
+    });
   });
 
-  return Object.entries(result).map(([plo, scores]) => ({
-    plo,
-    average:
-      scores.reduce((a, b) => a + b, 0) / scores.length,
-  }));
+  const summary = {};
+  Object.entries(ploMap).forEach(([plo, avgs]) => {
+    const avg =
+      avgs.reduce((a, b) => a + b, 0) / avgs.length;
+
+    summary[plo] = {
+      avg: Number(avg.toFixed(2)),
+      status: avg < 3 ? "CQI Required" : "Achieved",
+    };
+  });
+
+  return summary;
 }
