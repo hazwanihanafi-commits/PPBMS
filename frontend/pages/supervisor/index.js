@@ -1,4 +1,3 @@
-// frontend/pages/supervisor/index.js
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
 import { useRouter } from "next/router";
@@ -29,10 +28,7 @@ export default function SupervisorDashboard() {
         },
       });
       const json = await res.json();
-
-      if (res.ok) {
-        setStudents(json.students || []);
-      }
+      if (res.ok) setStudents(json.students || []);
     } catch (e) {
       console.error(e);
     }
@@ -42,7 +38,6 @@ export default function SupervisorDashboard() {
   function applyFilters() {
     let list = [...students];
 
-    // SEARCH
     if (search.trim() !== "") {
       const s = search.toLowerCase();
       list = list.filter(
@@ -53,9 +48,8 @@ export default function SupervisorDashboard() {
       );
     }
 
-    // SORTING
     if (sortMode === "mostLate") {
-      list.sort((a, b) => a.severity - b.severity); // 0 = At Risk, 1 = Slightly Late, 2 = On Track
+      list.sort((a, b) => a.severity - b.severity);
     } else if (sortMode === "progressLow") {
       list.sort((a, b) => a.progressPercent - b.progressPercent);
     } else if (sortMode === "progressHigh") {
@@ -117,54 +111,39 @@ export default function SupervisorDashboard() {
       {loading && <p className="text-gray-600">Loading students…</p>}
 
       {/* STUDENT CARDS */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  {filtered.map((st) => (
-    <div
-      key={st.email}
-      className="bg-white p-6 rounded-2xl shadow border border-gray-100"
-    >
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-bold text-gray-900 uppercase">
-          {st.name}
-        </h2>
-        {statusBadge(st.status)}
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filtered.map((st) => (
+          <div
+            key={st.email}
+            className="bg-white p-6 rounded-2xl shadow border border-gray-100"
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold text-gray-900 uppercase">
+                {st.name}
+              </h2>
+              {statusBadge(st.status)}
+            </div>
 
-      {/* BASIC INFO */}
-      <p className="text-sm text-gray-700">
-        <strong>Email:</strong> {st.email}
-      </p>
+            <p className="text-sm text-gray-700">
+              <strong>Email:</strong> {st.email}
+            </p>
+            <p className="text-sm text-gray-700">
+              <strong>Matric:</strong> {st.id || "-"}
+            </p>
+            <p className="text-sm text-gray-700">
+              <strong>Programme:</strong> {st.programme || "-"}
+            </p>
 
-      <p className="text-sm text-gray-700">
-        <strong>Matric:</strong> {st.id || "-"}
-      </p>
-
-      <p className="text-sm text-gray-700">
-        <strong>Programme:</strong> {st.programme || "-"}
-      </p>
-
-      {st.field && (
-        <p className="text-sm text-gray-700">
-          <strong>Field:</strong> {st.field}
-        </p>
-      )}
-
-      {/* CO-SUPERVISOR(S) */}
-      {st.coSupervisors?.length > 0 && (
-        <div className="mt-2 text-sm text-gray-700">
-          <strong>Co-Supervisor(s):</strong>
-          <ul className="list-disc ml-5 mt-1">
-            {st.coSupervisors.map((cs, i) => (
-              <li key={i}>{cs}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  ))}
-</div>
-
+            {st.coSupervisors?.length > 0 && (
+              <div className="mt-2 text-sm text-gray-700">
+                <strong>Co-Supervisor(s):</strong>
+                <ul className="list-disc ml-5 mt-1">
+                  {st.coSupervisors.map((cs, i) => (
+                    <li key={i}>{cs}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* PROGRESS BAR */}
             <div className="mt-4 w-full bg-gray-200 h-2 rounded-full">
@@ -186,9 +165,7 @@ export default function SupervisorDashboard() {
 
             <button
               onClick={() =>
-                router.push(
-                  `/supervisor/${encodeURIComponent(st.email)}`
-                )
+                router.push(`/supervisor/${encodeURIComponent(st.email)}`)
               }
               className="mt-4 text-purple-700 font-medium hover:underline"
             >
