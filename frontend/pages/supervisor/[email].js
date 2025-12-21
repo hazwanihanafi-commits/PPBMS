@@ -3,9 +3,6 @@ import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import SupervisorRemark from "../../components/SupervisorRemark";
-import { aggregateOverallPLO } from "../../utils/cqiSummary";
-import { generateCQINarrative } from "../../utils/cqiNarrative";
-import dynamic from "next/dynamic";
 
 export default function SupervisorStudentPage() {
   const router = useRouter();
@@ -15,16 +12,10 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [cqi, setCqi] = useState({});
   const [loading, setLoading] = useState(true);
-  const PLOAverageChart = dynamic(
-  () => import("../../components/PLOAverageChart"),
-  { ssr: false }
-);
-
 
   /* =========================
-     FETCH STUDENT DATA
+     FETCH STUDENT
   ========================== */
-
   useEffect(() => {
     if (!email) return;
     loadStudent();
@@ -55,41 +46,34 @@ export default function SupervisorStudentPage() {
   }
 
   /* =========================
-     SAFE CQI DERIVED DATA
+     LIGHTWEIGHT PLO AVERAGES
+     (NO CHART LIB)
   ========================== */
+  const ploAverages = useMemo(() => {
+    if (!cqi || typeof cqi !== "object") return [];
 
-  const ploSummary = useMemo(() => {
-    if (!cqi || Object.keys(cqi).length === 0) return null;
-    try {
-      return aggregateOverallPLO(cqi);
-    } catch (e) {
-      console.error("aggregateOverallPLO error:", e);
-      return null;
-    }
-  }, [cqi]);
+    const map = {};
 
-  const cqiNarrative = useMemo(() => {
-    if (!ploSummary) return "";
-    try {
-      return generateCQINarrative(ploSummary);
-    } catch (e) {
-      console.error("generateCQINarrative error:", e);
-      return "";
-    }
-  }, [ploSummary]);
+    Object.values(cqi).forEach((assessment) => {
+      if (!assessment || typeof assessment !== "object") return;
 
-  /* =========================
-     DEBUG (SAFE)
-  ========================== */
+      Object.entries(assessment).forEach(([plo, d]) => {
+        const value = Number(d?.average ?? d?.avg);
+        if (Number.isNaN(value)) return;
 
-  useEffect(() => {
-    console.log("DEBUG:", {
-      email,
-      student,
-      cqi,
-      ploSummary,
+        if (!map[plo]) map[plo] = [];
+        map[plo].push(value);
+      });
     });
-  }, [email, student, cqi, ploSummary]);
+
+    return Object.entries(map).map(([plo, values]) => {
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      return {
+        plo,
+        average: Number(avg.toFixed(2)),
+      };
+    });
+  }, [cqi]);
 
   /* ========================= */
 
@@ -188,25 +172,36 @@ export default function SupervisorStudentPage() {
         )}
       </div>
 
-      {/* OVERALL PLO PERFORMANCE */}
+      {/* OVERALL PLO AVERAGE (LIGHTWEIGHT BARS) */}
       <div className="bg-white rounded-2xl p-6 shadow space-y-4">
         <h3 className="font-bold text-lg">
-          📈 Overall PLO Performance (All Assessments)
+          📊 Overall PLO Average (All Assessments)
         </h3>
 
-        {Array.isArray(ploSummary) && ploSummary.length > 0 ? (
-          <>
-            <PLOAverageChart data={ploSummary} />
-
-            <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">
-              <strong>CQI Narrative:</strong>
-              <p className="mt-2">{cqiNarrative}</p>
-            </div>
-          </>
-        ) : (
+        {ploAverages.length === 0 ? (
           <p className="text-sm text-gray-500 italic">
-            Overall CQI summary not available yet.
+            No overall PLO average available yet.
           </p>
+        ) : (
+          <div className="space-y-3">
+            {ploAverages.map(({ plo, average }) => (
+              <div key={plo}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium">{plo}</span>
+                  <span>{average}</span>
+                </div>
+
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full ${
+                      average >= 3 ? "bg-green-500" : "bg-red-500"
+                    }`}
+                    style={{ width: `${(average / 4) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
