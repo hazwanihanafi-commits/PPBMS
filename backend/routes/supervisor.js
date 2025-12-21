@@ -20,12 +20,20 @@ function auth(req, res, next) {
   if (!token) return res.status(401).json({ error: "No token" });
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+
+    // ✅ allow BOTH admin & supervisor
+    if (!["admin", "supervisor"].includes(user.role)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    req.user = user;
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
+
 
 /* =========================
    DOCUMENT → COLUMN MAP
