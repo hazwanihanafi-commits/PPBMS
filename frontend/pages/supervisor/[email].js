@@ -23,6 +23,7 @@ export default function SupervisorStudentPage() {
 
   async function loadStudent() {
     try {
+      if (typeof window === "undefined") return;
       const token = localStorage.getItem("ppbms_token");
 
       const res = await fetch(
@@ -34,26 +35,41 @@ export default function SupervisorStudentPage() {
 
       const data = await res.json();
 
-      setStudent(data.row);
-      setTimeline(data.row.timeline || []);
-      setCqi(data.row.cqiByAssessment || {});
+      setStudent(data.row || null);
+      setTimeline(data.row?.timeline || []);
+      setCqi(data.row?.cqiByAssessment || {});
     } catch (e) {
-      console.error(e);
+      console.error("Load student error:", e);
     } finally {
       setLoading(false);
     }
   }
 
-  /* ✅ Derived CQI summary (safe & memoized) */
-  const ploSummary = useMemo(
-    () => aggregateOverallPLO(cqi),
-    [cqi]
-  );
+  /* =========================
+     SAFE CQI DERIVED DATA
+  ========================== */
 
-  const cqiNarrative = useMemo(
-    () => generateCQINarrative(ploSummary),
-    [ploSummary]
-  );
+  const ploSummary = useMemo(() => {
+    if (!cqi || Object.keys(cqi).length === 0) return null;
+    try {
+      return aggregateOverallPLO(cqi);
+    } catch (e) {
+      console.error("aggregateOverallPLO error:", e);
+      return null;
+    }
+  }, [cqi]);
+
+  const cqiNarrative = useMemo(() => {
+    if (!ploSummary) return "";
+    try {
+      return generateCQINarrative(ploSummary);
+    } catch (e) {
+      console.error("generateCQINarrative error:", e);
+      return "";
+    }
+  }, [ploSummary]);
+
+  /* ========================= */
 
   if (loading) {
     return <div className="p-6 text-center">Loading…</div>;
@@ -110,25 +126,31 @@ export default function SupervisorStudentPage() {
       <div className="bg-white rounded-2xl p-6 shadow">
         <h3 className="font-bold mb-3">🎯 CQI by Assessment</h3>
 
-        {Object.entries(cqi).map(([assessment, ploData]) => (
-          <div key={assessment} className="mb-4">
-            <h4 className="font-semibold text-purple-700">{assessment}</h4>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(ploData).map(([plo, d]) => (
-                <span
-                  key={plo}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    d.status === "Achieved"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {plo}: Avg {d.average} – {d.status}
-                </span>
-              ))}
+        {Object.entries(cqi).length === 0 ? (
+          <p className="text-sm text-gray-500 italic">
+            No CQI data available yet.
+          </p>
+        ) : (
+          Object.entries(cqi).map(([assessment, ploData]) => (
+            <div key={assessment} className="mb-4">
+              <h4 className="font-semibold text-purple-700">{assessment}</h4>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(ploData).map(([plo, d]) => (
+                  <span
+                    key={plo}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      d.status === "Achieved"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {plo}: Avg {d.average} – {d.status}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* OVERALL PLO PERFORMANCE */}
@@ -137,15 +159,23 @@ export default function SupervisorStudentPage() {
           📈 Overall PLO Performance (All Assessments)
         </h3>
 
-        <PLOAverageChart ploSummary={ploSummary} />
+        {ploSummary ? (
+          <>
+            <PLOAverageChart ploSummary={ploSummary} />
 
-        <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">
-          <strong>CQI Narrative:</strong>
-          <p className="mt-2">{cqiNarrative}</p>
-        </div>
+            <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">
+              <strong>CQI Narrative:</strong>
+              <p className="mt-2">{cqiNarrative}</p>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-gray-500 italic">
+            Overall CQI summary not available yet.
+          </p>
+        )}
       </div>
 
-      {/* REMARKS (AUTOSAVE → EXCEL) */}
+      {/* REMARKS */}
       <div className="space-y-4">
         <SupervisorRemark
           studentMatric={student.student_id}
