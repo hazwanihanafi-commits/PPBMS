@@ -32,32 +32,13 @@ export default function SupervisorDashboard() {
 
       const json = await res.json();
 
-      if (!res.ok) {
+      if (res.ok) {
+        setStudents(json.students || []);
+      } else {
         setStudents([]);
-        return;
       }
-
-      /* ✅ CALCULATE PROGRESS HERE */
-      const enriched = (json.students || []).map((st) => {
-        const timeline = st.timeline || [];
-
-        const progressPercent = timeline.length
-          ? Math.round(
-              (timeline.filter((t) => t.status === "Completed").length /
-                timeline.length) *
-                100
-            )
-          : 0;
-
-        return {
-          ...st,
-          progressPercent,
-        };
-      });
-
-      setStudents(enriched);
     } catch (e) {
-      console.error(e);
+      console.error("Load students error:", e);
       setStudents([]);
     }
     setLoading(false);
@@ -66,7 +47,7 @@ export default function SupervisorDashboard() {
   function applyFilters() {
     let list = [...students];
 
-    if (search.trim() !== "") {
+    if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
         (st) =>
@@ -80,7 +61,7 @@ export default function SupervisorDashboard() {
   }
 
   /* =========================
-     BADGES
+     BADGES & COLORS
   ========================= */
 
   function registryBadge(status) {
@@ -166,7 +147,7 @@ export default function SupervisorDashboard() {
               </div>
             </div>
 
-            {/* INFO */}
+            {/* BASIC INFO */}
             <p className="text-sm text-gray-700">
               <strong>Email:</strong> {st.email}
             </p>
@@ -183,7 +164,7 @@ export default function SupervisorDashboard() {
               </p>
             )}
 
-            {/* PROGRESS */}
+            {/* OVERALL PROGRESS */}
             <div className="mt-4">
               <p className="text-sm font-semibold text-gray-800">
                 Overall Progress
