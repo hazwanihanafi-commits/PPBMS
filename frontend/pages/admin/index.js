@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
+import ProgrammePLOBarChart from "../../components/ProgrammePLOBarChart";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -10,17 +11,26 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // =========================
+  // PROGRAMME-LEVEL PLO (CQI)
+  // =========================
+  const [programmePLO, setProgrammePLO] = useState(null);
+
   /* =========================
-     LOAD ALL STUDENTS
+     LOAD DATA
   ========================= */
   useEffect(() => {
     loadStudents();
+    fetchProgrammePLO();
   }, []);
 
   useEffect(() => {
     applyFilters();
   }, [search, students]);
 
+  /* =========================
+     FETCH STUDENTS
+  ========================= */
   async function loadStudents() {
     setLoading(true);
     try {
@@ -43,6 +53,28 @@ export default function AdminDashboard() {
     setLoading(false);
   }
 
+  /* =========================
+     FETCH PROGRAMME PLO
+  ========================= */
+  async function fetchProgrammePLO() {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/plo/programme`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
+      });
+
+      const data = await res.json();
+      setProgrammePLO(data.programmePLO || null);
+    } catch (e) {
+      console.error("Programme PLO load error:", e);
+      setProgrammePLO(null);
+    }
+  }
+
+  /* =========================
+     FILTERING
+  ========================= */
   function applyFilters() {
     let list = [...students];
 
@@ -90,13 +122,27 @@ export default function AdminDashboard() {
     return "bg-green-500";
   }
 
-  /* ========================= */
-
+  /* =========================
+     RENDER
+  ========================= */
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
       <h1 className="text-3xl font-extrabold text-purple-900 mb-6">
         Admin Dashboard – All Students
       </h1>
+
+      {/* =========================
+          PROGRAMME-LEVEL PLO CQI
+      ========================= */}
+      {programmePLO && (
+        <div className="bg-white rounded-2xl shadow p-6 mb-10">
+          <h2 className="text-xl font-bold mb-4">
+            📊 Programme-level PLO Attainment (CQI)
+          </h2>
+
+          <ProgrammePLOBarChart data={programmePLO} />
+        </div>
+      )}
 
       {/* SEARCH */}
       <div className="flex gap-4 mb-6">
@@ -111,7 +157,9 @@ export default function AdminDashboard() {
 
       {loading && <p className="text-gray-600">Loading students…</p>}
 
-      {/* STUDENT CARDS */}
+      {/* =========================
+          STUDENT CARDS
+      ========================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => (
           <div
@@ -139,9 +187,9 @@ export default function AdminDashboard() {
             </p>
 
             {/* CO-SUPERVISORS */}
-            {st.cosupervisors && (
+            {st.coSupervisors && (
               <p className="text-sm text-gray-700 mt-1">
-                <strong>Co-Supervisor(s):</strong> {st.cosupervisors}
+                <strong>Co-Supervisor(s):</strong> {st.coSupervisors}
               </p>
             )}
 
@@ -162,7 +210,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* LINK → SUPERVISOR STUDENT PAGE */}
+            {/* LINK → STUDENT FULL RECORD */}
             <button
               onClick={() =>
                 router.push(`/supervisor/${encodeURIComponent(st.email)}`)
