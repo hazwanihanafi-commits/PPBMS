@@ -8,16 +8,18 @@ export default function SupervisorDashboard() {
   const [students, setStudents] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
-  const [sortMode, setSortMode] = useState("mostLate");
   const [loading, setLoading] = useState(true);
 
+  /* =========================
+     LOAD STUDENTS
+  ========================= */
   useEffect(() => {
     loadStudents();
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [search, sortMode, students]);
+  }, [search, students]);
 
   async function loadStudents() {
     setLoading(true);
@@ -27,10 +29,36 @@ export default function SupervisorDashboard() {
           Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
         },
       });
+
       const json = await res.json();
-      if (res.ok) setStudents(json.students || []);
+
+      if (!res.ok) {
+        setStudents([]);
+        return;
+      }
+
+      /* ✅ CALCULATE PROGRESS HERE */
+      const enriched = (json.students || []).map((st) => {
+        const timeline = st.timeline || [];
+
+        const progressPercent = timeline.length
+          ? Math.round(
+              (timeline.filter((t) => t.status === "Completed").length /
+                timeline.length) *
+                100
+            )
+          : 0;
+
+        return {
+          ...st,
+          progressPercent,
+        };
+      });
+
+      setStudents(enriched);
     } catch (e) {
       console.error(e);
+      setStudents([]);
     }
     setLoading(false);
   }
@@ -42,16 +70,10 @@ export default function SupervisorDashboard() {
       const s = search.toLowerCase();
       list = list.filter(
         (st) =>
-          st.name.toLowerCase().includes(s) ||
-          st.email.toLowerCase().includes(s) ||
-          st.programme.toLowerCase().includes(s)
+          st.name?.toLowerCase().includes(s) ||
+          st.email?.toLowerCase().includes(s) ||
+          st.programme?.toLowerCase().includes(s)
       );
-    }
-
-    if (sortMode === "progressLow") {
-      list.sort((a, b) => a.progressPercent - b.progressPercent);
-    } else if (sortMode === "progressHigh") {
-      list.sort((a, b) => b.progressPercent - a.progressPercent);
     }
 
     setFiltered(list);
@@ -104,13 +126,15 @@ export default function SupervisorDashboard() {
     return "bg-green-500";
   }
 
+  /* ========================= */
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
       <h1 className="text-3xl font-extrabold text-purple-900 mb-6">
         Supervisor Dashboard
       </h1>
 
-      {/* SEARCH + SORT */}
+      {/* SEARCH */}
       <div className="flex gap-4 mb-6">
         <input
           type="text"
@@ -135,12 +159,14 @@ export default function SupervisorDashboard() {
               <h2 className="text-lg font-bold text-gray-900 uppercase">
                 {st.name}
               </h2>
+
               <div className="flex gap-2">
                 {registryBadge(st.status)}
                 {progressBadge(st.progressPercent)}
               </div>
             </div>
 
+            {/* INFO */}
             <p className="text-sm text-gray-700">
               <strong>Email:</strong> {st.email}
             </p>
@@ -151,19 +177,13 @@ export default function SupervisorDashboard() {
               <strong>Programme:</strong> {st.programme || "-"}
             </p>
 
-            {st.coSupervisors?.length > 0 && (
-              <div className="mt-2 text-sm text-gray-700">
-                <strong>Co-Supervisor(s):</strong>
-                <ul className="list-disc ml-5 mt-1">
-                  {st.coSupervisors.map((cs, i) => (
-                    <li key={i}>{cs}</li>
-                  ))}
-                </ul>
-              </div>
+            {st.coSupervisors && (
+              <p className="text-sm text-gray-700">
+                <strong>Co-Supervisor(s):</strong> {st.coSupervisors}
+              </p>
             )}
 
-
-            {/* OVERALL PROGRESS */}
+            {/* PROGRESS */}
             <div className="mt-4">
               <p className="text-sm font-semibold text-gray-800">
                 Overall Progress
@@ -173,8 +193,8 @@ export default function SupervisorDashboard() {
               </p>
             </div>
 
-           {/* PROGRESS BAR */}
-            <div className="mt-4 w-full bg-gray-200 h-2 rounded-full">
+            {/* PROGRESS BAR */}
+            <div className="mt-2 w-full bg-gray-200 h-2 rounded-full">
               <div
                 className={`h-2 rounded-full ${progressBarColor(
                   st.progressPercent
@@ -187,6 +207,7 @@ export default function SupervisorDashboard() {
               {st.progressPercent}% Progress
             </p>
 
+            {/* ACTION */}
             <button
               onClick={() =>
                 router.push(`/supervisor/${encodeURIComponent(st.email)}`)
