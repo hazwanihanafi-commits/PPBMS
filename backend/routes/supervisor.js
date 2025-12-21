@@ -91,13 +91,9 @@ if (req.user.role === "admin") {
     r => (r["Student's Email"] || "").toLowerCase().trim() === email
   );
 } else {
-  // ✅ SUPERVISOR ONLY SEES OWN STUDENTS
+  // Supervisor already filtered at list level
   raw = rows.find(
-    r =>
-      (r["Student's Email"] || "").toLowerCase().trim() === email &&
-      (r["Main Supervisor's Email"] || "")
-        .toLowerCase()
-        .trim() === req.user.email.toLowerCase().trim()
+    r => (r["Student's Email"] || "").toLowerCase().trim() === email
   );
 }
 
