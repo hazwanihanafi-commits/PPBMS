@@ -1,24 +1,26 @@
-export function generateCQINarrative(ploSummary = []) {
-  if (!ploSummary.length) {
-    return "No CQI data available for analysis.";
+// utils/cqiNarrative.js
+export function generateCQINarrative(ploSummary) {
+  if (!Array.isArray(ploSummary) || ploSummary.length === 0) {
+    return "";
   }
 
-  const weak = ploSummary.filter((p) => p.average < 3);
-  const strong = ploSummary.filter((p) => p.average >= 4);
+  const achieved = ploSummary
+    .filter(p => p.status === "Achieved")
+    .map(p => p.plo);
 
-  let text = "";
+  const cqiRequired = ploSummary
+    .filter(p => p.status === "CQI Required")
+    .map(p => p.plo);
 
-  if (strong.length) {
-    text += `Strong achievement observed in ${strong
-      .map((p) => p.plo)
-      .join(", ")}. `;
+  let narrative = "";
+
+  if (achieved.length > 0) {
+    narrative += `The following PLOs have been achieved: ${achieved.join(", ")}. `;
   }
 
-  if (weak.length) {
-    text += `Improvement actions required for ${weak
-      .map((p) => p.plo)
-      .join(", ")}.`;
+  if (cqiRequired.length > 0) {
+    narrative += `CQI is required for ${cqiRequired.join(", ")} to improve student outcomes.`;
   }
 
-  return text || "Overall PLO achievement is satisfactory.";
+  return narrative.trim();
 }
