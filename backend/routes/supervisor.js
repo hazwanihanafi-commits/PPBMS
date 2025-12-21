@@ -98,7 +98,7 @@ router.get("/student/:email", auth, async (req, res) => {
       field: raw["Field"] || "",
       department: raw["Department"] || "",
       status: raw["Status"] || "Active",
-      coSupervisors: raw["Co-Supervisor(s)"] || ""
+      coSupervisors   // ✅ ARRAY, NOT STRING
     };
 
     /* ---------- DOCUMENTS ---------- */
