@@ -151,9 +151,12 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
     });
 
     const matric = String(raw["Matric"] || "").trim();
-    const studentRows = normalized.filter(
-      r => String(r["matric"] || "").trim() === matric
-    );
+    const studentRows = normalized.filter(r => {
+  const m =
+    String(r["matric"] || r["matricno"] || "").trim();
+  return m === matric;
+});
+    
 
     const grouped = {};
     studentRows.forEach(r => {
