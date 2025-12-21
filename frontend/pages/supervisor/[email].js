@@ -86,7 +86,17 @@ export default function SupervisorStudentPage() {
         <p><strong>Programme:</strong> {student.programme}</p>
         <p><strong>Field:</strong> {student.field}</p>
         <p><strong>Department:</strong> {student.department}</p>
-        <p><strong>Co-Supervisor(s):</strong> {student.cosupervisors}</p>
+        <p className="font-semibold mt-2">Co-Supervisor(s):</p>
+
+{student.coSupervisors?.length ? (
+  <ul className="list-disc ml-5 text-sm text-gray-700">
+    {student.coSupervisors.map((cs, i) => (
+      <li key={i}>{cs}</li>
+    ))}
+  </ul>
+) : (
+  <p className="italic text-gray-400">None</p>
+)}
         <p><strong>Status:</strong> {student.status}</p>
 
         {/* PROGRESS BAR (IDENTICAL TO STUDENT PAGE) */}
