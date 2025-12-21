@@ -189,14 +189,18 @@ export default function SupervisorDashboard() {
             </p>
 
             {/* ACTION */}
-            <button
-              onClick={() =>
-                router.push(`/supervisor/${encodeURIComponent(st.email)}`)
-              }
-              className="mt-4 text-purple-700 font-medium hover:underline"
-            >
-              View Full Progress →
-            </button>
+<button
+  onClick={() =>
+    router.push({
+      pathname: "/supervisor/[email]",
+      query: { email: st.email.trim().toLowerCase() }
+    })
+  }
+  className="mt-4 text-purple-700 font-medium hover:underline"
+>
+  View Full Progress →
+</button>
+          
           </div>
         ))}
       </div>
