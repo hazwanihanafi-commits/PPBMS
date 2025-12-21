@@ -81,6 +81,28 @@ export default function SupervisorDashboard() {
     );
   }
 
+  function progressBadge(progress) {
+  if (progress < 50) {
+    return (
+      <span className="px-3 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">
+        At Risk
+      </span>
+    );
+  }
+  if (progress < 80) {
+    return (
+      <span className="px-3 py-1 text-xs font-bold bg-yellow-100 text-yellow-700 rounded-full">
+        Slightly Late
+      </span>
+    );
+  }
+  return (
+    <span className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-full">
+      On Track
+    </span>
+  );
+}
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
       <h1 className="text-3xl font-extrabold text-purple-900 mb-6">
@@ -121,8 +143,10 @@ export default function SupervisorDashboard() {
               <h2 className="text-lg font-bold text-gray-900 uppercase">
                 {st.name}
               </h2>
-              {statusBadge(st.status)}
-            </div>
+             <div className="flex gap-2">
+  {registryBadge(st.status)}
+  {progressBadge(st.progressPercent)}
+</div>
 
             <p className="text-sm text-gray-700">
               <strong>Email:</strong> {st.email}
