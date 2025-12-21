@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { getCachedSheet, resetSheetCache } from "../utils/sheetCache.js";
 import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js";
+import { aggregateProgrammePLO } from "../utils/programmePLOAggregate.js";
 
 const router = express.Router();
 
@@ -143,5 +144,69 @@ router.post("/save-document", adminOnly, async (req, res) => {
   resetSheetCache();
   res.json({ ok: true });
 });
+
+/* =========================================================
+   GET /api/admin/plo/programme
+   → Programme-level PLO attainment (ALL students)
+========================================================= */
+router.get("/plo/programme", adminOnly, async (req, res) => {
+  try {
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    // Normalise assessment rows
+    const normalized = assessmentRows.map(r => {
+      const clean = {};
+      Object.keys(r).forEach(k => {
+        clean[k.replace(/\s+/g, "").toLowerCase()] = r[k];
+      });
+      return clean;
+    });
+
+    const studentFinalPLOs = [];
+
+    rows.forEach(student => {
+      const matric = String(student["Matric"] || "").trim();
+      if (!matric) return;
+
+      const studentRows = normalized.filter(
+        r => String(r.matric || "").trim() === matric
+      );
+
+      if (studentRows.length === 0) return;
+
+      const grouped = {};
+      studentRows.forEach(r => {
+        const type = String(r.assessment_type || "").toUpperCase();
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(r);
+      });
+
+      const cqiByAssessment = {};
+      Object.entries(grouped).forEach(([type, rows]) => {
+        const ploScores = rows.map(r => {
+          const o = {};
+          for (let i = 1; i <= 11; i++) {
+            const v = parseFloat(r[`plo${i}`]);
+            o[`PLO${i}`] = isNaN(v) ? null : v;
+          }
+          return o;
+        });
+        cqiByAssessment[type] = deriveCQIByAssessment(ploScores);
+      });
+
+      const finalPLO = aggregateFinalPLO(cqiByAssessment);
+      studentFinalPLOs.push(finalPLO);
+    });
+
+    const programmePLO = aggregateProgrammePLO(studentFinalPLOs);
+
+    res.json({ programmePLO });
+  } catch (e) {
+    console.error("programme PLO error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 export default router;
