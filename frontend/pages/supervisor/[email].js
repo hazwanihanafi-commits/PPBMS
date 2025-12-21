@@ -91,6 +91,30 @@ export default function SupervisorStudentPage() {
         )}
       </div>
 
+      {/* OVERALL PROGRESS */}
+<div className="mt-4">
+  <p className="text-sm font-semibold text-gray-800">
+    Overall Progress
+  </p>
+
+  <p className="text-2xl font-extrabold text-purple-700">
+    {student.progressPercent}%
+  </p>
+
+  <div className="mt-2 w-full bg-gray-200 h-2 rounded-full">
+    <div
+      className={`h-2 rounded-full ${
+        student.progressPercent < 50
+          ? "bg-red-500"
+          : student.progressPercent < 80
+          ? "bg-yellow-500"
+          : "bg-green-500"
+      }`}
+      style={{ width: `${student.progressPercent}%` }}
+    />
+  </div>
+</div>
+
       {/* ================= DOCUMENTS ================= */}
       <SupervisorChecklist documents={student.documents || {}} />
 
