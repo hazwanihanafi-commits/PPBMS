@@ -99,7 +99,9 @@ router.get("/student/:email", auth, async (req, res) => {
       email,
       programme: raw["Programme"] || "",
       field: raw["Field"] || "",
-      department: raw["Department"] || ""
+      department: raw["Department"] || "",
+      cosupervisors: raw["Co-Supervisor(s)"] || "",
+      status: raw["Status"] || ""
     };
 
     /* ---------- DOCUMENTS ---------- */
