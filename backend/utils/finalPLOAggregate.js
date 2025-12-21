@@ -1,19 +1,22 @@
 export function aggregateFinalPLO(cqiByAssessment) {
-  const ploMap = {};
+  const sums = {};
+  const counts = {};
 
-  Object.values(cqiByAssessment || {}).forEach(assessment => {
-    Object.entries(assessment || {}).forEach(([plo, d]) => {
-      if (!d?.average) return;
-      if (!ploMap[plo]) ploMap[plo] = [];
-      ploMap[plo].push(d.average);
+  Object.values(cqiByAssessment).forEach(assessment => {
+    Object.entries(assessment).forEach(([plo, d]) => {
+      if (d.average == null) return;
+
+      sums[plo] = (sums[plo] || 0) + d.average;
+      counts[plo] = (counts[plo] || 0) + 1;
     });
   });
 
   const final = {};
-  Object.entries(ploMap).forEach(([plo, avgs]) => {
-    const avg = avgs.reduce((a, b) => a + b, 0) / avgs.length;
+  Object.keys(sums).forEach(plo => {
+    const avg = Number((sums[plo] / counts[plo]).toFixed(2));
+
     final[plo] = {
-      average: Number(avg.toFixed(2)),
+      average: avg,
       status: avg >= 3 ? "Achieved" : "CQI Required"
     };
   });
