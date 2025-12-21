@@ -109,13 +109,14 @@ router.get("/student/:email", auth, async (req, res) => {
 
     /* ---------- CO-SUPERVISOR NORMALISATION ---------- */
 const rawCoSup = raw["Co-Supervisor(s)"] || "";
-
 const coSupervisors = rawCoSup
   ? rawCoSup
-      .split(/\d+\.\s*/g)
+      .split(/\d+\.\s*/g)   // handles "1. Name 2. Name"
       .map(s => s.trim())
       .filter(Boolean)
   : [];
+
+    
 
     /* ---------- PROFILE ---------- */
     const profile = {
