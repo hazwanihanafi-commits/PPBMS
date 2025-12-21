@@ -8,28 +8,23 @@ export function aggregateFinalPLO(cqiByAssessment = {}) {
       if (!result[plo]) {
         result[plo] = {
           total: d.average,
-          count: 1,
-          status: d.status
+          count: 1
         };
       } else {
         result[plo].total += d.average;
         result[plo].count += 1;
-
-        // If ANY assessment requires CQI → final CQI Required
-        if (d.status === "CQI Required") {
-          result[plo].status = "CQI Required";
-        }
       }
     });
   });
 
-  // Finalize averages
+  // Finalize averages + status
   Object.keys(result).forEach(plo => {
-    result[plo].average = Number(
-      (result[plo].total / result[plo].count).toFixed(2)
-    );
-    delete result[plo].total;
-    delete result[plo].count;
+    const avg = result[plo].total / result[plo].count;
+
+    result[plo] = {
+      average: Number(avg.toFixed(2)),
+      status: avg >= 3.0 ? "Achieved" : "CQI Required"
+    };
   });
 
   return result;
