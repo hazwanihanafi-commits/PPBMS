@@ -162,6 +162,7 @@ export default function SupervisorStudentPage() {
     );
   })
 )}
+</div>
 
       {/* OVERALL PLO PERFORMANCE */}
       <div className="bg-white rounded-2xl p-6 shadow space-y-4">
