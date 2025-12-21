@@ -5,7 +5,7 @@ import SupervisorChecklist from "../../components/SupervisorChecklist";
 import SupervisorRemark from "../../components/SupervisorRemark";
 import { aggregateOverallPLO } from "../../utils/cqiSummary";
 import { generateCQINarrative } from "../../utils/cqiNarrative";
-import PLOAverageChart from "../../components/PLOAverageChart";
+import dynamic from "next/dynamic";
 
 export default function SupervisorStudentPage() {
   const router = useRouter();
@@ -15,6 +15,11 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [cqi, setCqi] = useState({});
   const [loading, setLoading] = useState(true);
+  const PLOAverageChart = dynamic(
+  () => import("../../components/PLOAverageChart"),
+  { ssr: false }
+);
+
 
   /* =========================
      FETCH STUDENT DATA
