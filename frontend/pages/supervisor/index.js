@@ -162,7 +162,18 @@ export default function SupervisorDashboard() {
               </div>
             )}
 
-            {/* PROGRESS BAR */}
+
+            {/* OVERALL PROGRESS */}
+            <div className="mt-4">
+              <p className="text-sm font-semibold text-gray-800">
+                Overall Progress
+              </p>
+              <p className="text-2xl font-extrabold text-purple-700">
+                {st.progressPercent}%
+              </p>
+            </div>
+
+           {/* PROGRESS BAR */}
             <div className="mt-4 w-full bg-gray-200 h-2 rounded-full">
               <div
                 className={`h-2 rounded-full ${progressBarColor(
