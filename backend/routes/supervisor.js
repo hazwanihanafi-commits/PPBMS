@@ -56,33 +56,41 @@ router.get("/students", auth, async (req, res) => {
 
     const students = rows
       .filter(r =>
-        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === supervisorEmail
+        (r["Main Supervisor's Email"] || "")
+          .toLowerCase()
+          .trim() === supervisorEmail
       )
       .map(r => {
-        const rawCoSup = r["Co-Supervisor(s)"] || "";
-        const coSupervisors = rawCoSup
-          ? rawCoSup
-              .split(/\d+\.\s*/g)
-              .map(s => s.trim())
-              .filter(Boolean)
-          : [];
+        /* ---------- BUILD TIMELINE ---------- */
+        const timeline = buildTimelineForRow(r);
+
+        const completed = timeline.filter(
+          t => t.status === "Completed"
+        ).length;
+
+        const progressPercent = timeline.length
+          ? Math.round((completed / timeline.length) * 100)
+          : 0;
 
         return {
           id: r["Matric"] || "",
           name: r["Student Name"] || "",
           email: (r["Student's Email"] || "").toLowerCase().trim(),
           programme: r["Programme"] || "",
+          field: r["Field"] || "",
           status: r["Status"] || "Active",
-          coSupervisors
+          cosupervisors: r["Co-Supervisor(s)"] || "",
+          progressPercent
         };
       });
 
     return res.json({ students });
   } catch (e) {
-    console.error(e);
+    console.error("Supervisor students error:", e);
     return res.status(500).json({ error: e.message });
   }
 });
+
 
 /* ============================================================
    GET /api/supervisor/student/:email
