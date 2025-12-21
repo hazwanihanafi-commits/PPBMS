@@ -134,7 +134,7 @@ export default function SupervisorStudentPage() {
       <div className="bg-white rounded-2xl p-6 shadow">
         <h3 className="font-bold mb-3">🎯 CQI by Assessment</h3>
 
-        {Object.entries(cqi).length === 0 ? (
+ {Object.keys(cqi || {}).length === 0 ? (
   <p className="text-sm text-gray-500 italic">
     No CQI data available yet.
   </p>
@@ -180,7 +180,7 @@ export default function SupervisorStudentPage() {
 
         {ploSummary ? (
           <>
-            <PLOAverageChart ploSummary={ploSummary} />
+            <PLOAverageChart data={ploSummary} />
 
             <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">
               <strong>CQI Narrative:</strong>
