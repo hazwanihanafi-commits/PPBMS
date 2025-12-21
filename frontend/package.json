@@ -9,7 +9,7 @@
 
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_DISABLE_ESLINT=1 next build",
+    "build": "next build"
     "start": "next start"
   },
 
