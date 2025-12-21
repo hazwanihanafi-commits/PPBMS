@@ -34,12 +34,12 @@ function auth(req, res, next) {
 
 /* =========================================================
    GET /api/supervisor/students
-   → Supervisor dashboard list + progress %
+   → Dashboard list + progress %
 ========================================================= */
 router.get("/students", auth, async (req, res) => {
   try {
     const rows = await readMasterTracking(process.env.SHEET_ID);
-    const email = (req.user.email || "").toLowerCase().trim();
+    const loginEmail = (req.user.email || "").toLowerCase().trim();
 
     const students = rows
       .filter(r =>
@@ -47,7 +47,7 @@ router.get("/students", auth, async (req, res) => {
           ? true
           : (r["Main Supervisor's Email"] || "")
               .toLowerCase()
-              .trim() === email
+              .trim() === loginEmail
       )
       .map(r => {
         const timeline = buildTimelineForRow(r);
@@ -81,27 +81,24 @@ router.get("/students", auth, async (req, res) => {
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
-const rows = await readMasterTracking(process.env.SHEET_ID);
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-let raw;
+    const raw = rows.find(
+      r => (r["Student's Email"] || "").toLowerCase().trim() === email
+    );
 
-if (req.user.role === "admin") {
-  // ✅ ADMIN CAN SEE ANY STUDENT
-  raw = rows.find(
-    r => (r["Student's Email"] || "").toLowerCase().trim() === email
-  );
-} else {
-  // Supervisor already filtered at list level
-  raw = rows.find(
-    r => (r["Student's Email"] || "").toLowerCase().trim() === email
-  );
-}
+    if (!raw) {
+      return res.status(404).json({ error: "Student not found" });
+    }
 
-if (!raw) {
-  return res.status(404).json({ error: "Student not found" });
-}
-
-
+    /* ---------- CO-SUPERVISOR NORMALISATION ---------- */
+    const rawCoSup = raw["Co-Supervisor(s)"] || "";
+    const coSupervisors = rawCoSup
+      ? rawCoSup
+          .split(/\d+\.\s*/g)
+          .map(s => s.trim())
+          .filter(Boolean)
+      : [];
 
     /* ---------- PROFILE ---------- */
     const profile = {
@@ -112,13 +109,19 @@ if (!raw) {
       field: raw["Field"] || "",
       department: raw["Department"] || "",
       status: raw["Status"] || "Active",
-      coSupervisors // ✅ FIXED
+      coSupervisors
     };
 
     /* ---------- DOCUMENTS ---------- */
     const documents = {};
     Object.keys(raw).forEach(k => {
-      if (k.includes("DPLC") || k.includes("APR") || k.includes("THESIS")) {
+      if (
+        k.includes("DPLC") ||
+        k.includes("APR") ||
+        k.includes("ETHICS") ||
+        k.includes("THESIS") ||
+        k.includes("VIVA")
+      ) {
         documents[k] = raw[k];
       }
     });
@@ -126,7 +129,7 @@ if (!raw) {
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-    /* ---------- CQI + FINAL PLO ---------- */
+    /* ---------- CQI + REMARKS ---------- */
     const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
     const normalized = assessmentRows.map(r => {
@@ -142,7 +145,6 @@ if (!raw) {
       r => String(r["matric"] || "").trim() === matric
     );
 
-    /* GROUP BY ASSESSMENT */
     const grouped = {};
     studentRows.forEach(r => {
       const type = String(r["assessment_type"] || "").toUpperCase();
