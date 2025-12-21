@@ -72,9 +72,11 @@ router.get("/me", auth, async (req, res) => {
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
       supervisor: raw["Main Supervisor"] || "",
+      cosupervisors: raw["Co-Supervisor(s)"] || "",
       start_date: raw["Start Date"] || "",
       department: raw["Department"] || "-",
-      field: raw["Field"] || "-"
+      field: raw["Field"] || "-",
+      status: raw["Status"] || "-"
     };
 
     /* ---------- DOCUMENTS (FROM MASTER TRACKING) ---------- */
