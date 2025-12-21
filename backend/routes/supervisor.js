@@ -13,6 +13,22 @@ import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
 
 const router = express.Router();
 
+const DOC_COLUMN_MAP = {
+  "Development Plan & Learning Contract (DPLC)": "DPLC",
+  "Student Supervision Logbook": "SUPERVISION_LOG",
+  "Annual Progress Review – Year 1": "APR_Y1",
+  "Annual Progress Review – Year 2": "APR_Y2",
+  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
+  "Ethics Approval": "ETHICS_APPROVAL",
+  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
+  "Proof of Submission": "PROOF_OF_SUBMISSION",
+  "Conference Presentation": "CONFERENCE_PRESENTATION",
+  "Thesis Notice": "THESIS_NOTICE",
+  "Viva Report": "VIVA_REPORT",
+  "Correction Verification": "CORRECTION_VERIFICATION",
+  "Final Thesis": "FINAL_THESIS",
+};
+
 /* =========================================================
    AUTH (ADMIN + SUPERVISOR)
 ========================================================= */
@@ -92,13 +108,14 @@ router.get("/student/:email", auth, async (req, res) => {
     }
 
     /* ---------- CO-SUPERVISOR NORMALISATION ---------- */
-    const rawCoSup = raw["Co-Supervisor(s)"] || "";
-    const coSupervisors = rawCoSup
-      ? rawCoSup
-          .split(/\d+\.\s*/g)
-          .map(s => s.trim())
-          .filter(Boolean)
-      : [];
+const rawCoSup = raw["Co-Supervisor(s)"] || "";
+
+const coSupervisors = rawCoSup
+  ? rawCoSup
+      .split(/\d+\.\s*/g)
+      .map(s => s.trim())
+      .filter(Boolean)
+  : [];
 
     /* ---------- PROFILE ---------- */
     const profile = {
@@ -109,22 +126,14 @@ router.get("/student/:email", auth, async (req, res) => {
       field: raw["Field"] || "",
       department: raw["Department"] || "",
       status: raw["Status"] || "Active",
-      coSupervisors
+      coSupervisors // ✅ ARRAY
     };
 
     /* ---------- DOCUMENTS ---------- */
-    const documents = {};
-    Object.keys(raw).forEach(k => {
-      if (
-        k.includes("DPLC") ||
-        k.includes("APR") ||
-        k.includes("ETHICS") ||
-        k.includes("THESIS") ||
-        k.includes("VIVA")
-      ) {
-        documents[k] = raw[k];
-      }
-    });
+const documents = {};
+Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
+  documents[label] = raw[column] || "";
+});
 
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
