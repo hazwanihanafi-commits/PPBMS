@@ -21,6 +21,14 @@ export default function SupervisorStudentPage() {
     loadStudent();
   }, [email]);
 
+  useEffect(() => {
+  console.log("PAGE LOADED");
+  console.log("email:", email);
+  console.log("student:", student);
+  console.log("cqi:", cqi);
+  console.log("ploSummary:", ploSummary);
+}, [email, student, cqi, ploSummary]);
+
   async function loadStudent() {
     try {
       if (typeof window === "undefined") return;
