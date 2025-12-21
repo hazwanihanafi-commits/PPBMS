@@ -101,6 +101,8 @@ router.get("/student/:email", adminOnly, async (req, res) => {
       email: raw["Student's Email"],
       programme: raw["Programme"],
       department: raw["Department"],
+      cosupervisors: raw["Co-Supervisor(s)"],
+      status: raw["Status"]
       documents
     }
   });
