@@ -1,5 +1,5 @@
+/** @type {import('next').NextConfig} */
 module.exports = {
-  reactStrictMode: true,
-  swcMinify: false,
-  output: "standalone",
+  output: "export",
+  images: { unoptimized: true },
 };
