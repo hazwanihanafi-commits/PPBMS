@@ -117,31 +117,54 @@ export default function SupervisorDashboard() {
       {loading && <p className="text-gray-600">Loading students…</p>}
 
       {/* STUDENT CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filtered.map((st) => (
-          <div
-            key={st.email}
-            className="bg-white p-6 rounded-2xl shadow border border-gray-100"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-bold text-gray-900 uppercase">
-                {st.name}
-              </h2>
-              {statusBadge(st.status)}
-            </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  {filtered.map((st) => (
+    <div
+      key={st.email}
+      className="bg-white p-6 rounded-2xl shadow border border-gray-100"
+    >
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-bold text-gray-900 uppercase">
+          {st.name}
+        </h2>
+        {statusBadge(st.status)}
+      </div>
 
-            <p className="text-sm text-gray-700">
-              <strong>Email:</strong> {st.email}
-            </p>
-            <p className="text-sm text-gray-700">
-              <strong>Matric:</strong> {st.id}
-            </p>
-            <p className="text-sm text-gray-700">
-              <strong>Programme:</strong> {st.programme}
-            </p>
-            <p className="text-sm text-gray-700">
-              <strong>Field:</strong> {st.field}
-            </p>
+      {/* BASIC INFO */}
+      <p className="text-sm text-gray-700">
+        <strong>Email:</strong> {st.email}
+      </p>
+
+      <p className="text-sm text-gray-700">
+        <strong>Matric:</strong> {st.id || "-"}
+      </p>
+
+      <p className="text-sm text-gray-700">
+        <strong>Programme:</strong> {st.programme || "-"}
+      </p>
+
+      {st.field && (
+        <p className="text-sm text-gray-700">
+          <strong>Field:</strong> {st.field}
+        </p>
+      )}
+
+      {/* CO-SUPERVISOR(S) */}
+      {st.coSupervisors?.length > 0 && (
+        <div className="mt-2 text-sm text-gray-700">
+          <strong>Co-Supervisor(s):</strong>
+          <ul className="list-disc ml-5 mt-1">
+            {st.coSupervisors.map((cs, i) => (
+              <li key={i}>{cs}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  ))}
+</div>
+
 
             {/* PROGRESS BAR */}
             <div className="mt-4 w-full bg-gray-200 h-2 rounded-full">
