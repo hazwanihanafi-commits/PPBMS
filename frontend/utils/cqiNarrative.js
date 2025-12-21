@@ -1,22 +1,24 @@
-export function generateCQINarrative(ploSummary) {
-  const achieved = ploSummary.filter(p => p.status === "Achieved");
-  const required = ploSummary.filter(p => p.status !== "Achieved");
-
-  let text = `Based on the aggregated assessment results, the student demonstrated `;
-
-  if (required.length === 0) {
-    text += `achievement across all Programme Learning Outcomes (PLOs). `;
-  } else {
-    text += `achievement in ${achieved.length} PLOs, while ${required.length} PLO(s) `
-          + `recorded average scores below the benchmark of 3.0. `;
+export function generateCQINarrative(ploSummary = []) {
+  if (!ploSummary.length) {
+    return "No CQI data available for analysis.";
   }
 
-  required.forEach(p => {
-    text += `${p.plo} (Avg ${p.average}) requires targeted intervention. `;
-  });
+  const weak = ploSummary.filter((p) => p.average < 3);
+  const strong = ploSummary.filter((p) => p.average >= 4);
 
-  text += `These findings are consistent with the quantitative results illustrated `
-        + `in the PLO average performance chart.`;
+  let text = "";
 
-  return text;
+  if (strong.length) {
+    text += `Strong achievement observed in ${strong
+      .map((p) => p.plo)
+      .join(", ")}. `;
+  }
+
+  if (weak.length) {
+    text += `Improvement actions required for ${weak
+      .map((p) => p.plo)
+      .join(", ")}.`;
+  }
+
+  return text || "Overall PLO achievement is satisfactory.";
 }
