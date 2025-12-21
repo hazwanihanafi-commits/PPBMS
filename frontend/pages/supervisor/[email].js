@@ -69,6 +69,8 @@ export default function SupervisorStudentPage() {
         <p><strong>Programme:</strong> {student.programme}</p>
         <p><strong>Field:</strong> {student.field}</p>
         <p><strong>Department:</strong> {student.department}</p>
+        <p><strong>Co-Supervisors:</strong> {student.cosupervisors}</p>
+        <p><strong>Status:</strong> {student.status}</p>
       </div>
 
       {/* DOCUMENTS */}
