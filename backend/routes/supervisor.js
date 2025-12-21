@@ -81,13 +81,31 @@ router.get("/students", auth, async (req, res) => {
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const raw = rows.find(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === email
-    );
+let raw;
 
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+if (req.user.role === "admin") {
+  // ✅ ADMIN CAN SEE ANY STUDENT
+  raw = rows.find(
+    r => (r["Student's Email"] || "").toLowerCase().trim() === email
+  );
+} else {
+  // ✅ SUPERVISOR ONLY SEES OWN STUDENTS
+  raw = rows.find(
+    r =>
+      (r["Student's Email"] || "").toLowerCase().trim() === email &&
+      (r["Main Supervisor's Email"] || "")
+        .toLowerCase()
+        .trim() === req.user.email.toLowerCase().trim()
+  );
+}
+
+if (!raw) {
+  return res.status(404).json({ error: "Student not found" });
+}
+
+
 
     /* ---------- PROFILE ---------- */
     const profile = {
@@ -98,7 +116,7 @@ router.get("/student/:email", auth, async (req, res) => {
       field: raw["Field"] || "",
       department: raw["Department"] || "",
       status: raw["Status"] || "Active",
-      coSupervisors   // ✅ ARRAY, NOT STRING
+      coSupervisors // ✅ FIXED
     };
 
     /* ---------- DOCUMENTS ---------- */
