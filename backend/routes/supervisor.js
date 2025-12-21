@@ -3,12 +3,12 @@ import jwt from "jsonwebtoken";
 
 import {
   readMasterTracking,
-  readASSESSMENT_PLO
+  readASSESSMENT_PLO,
+  updateASSESSMENT_PLO_Remark
 } from "../services/googleSheets.js";
 
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
-import { updateASSESSMENT_PLO_Remark } from "../services/googleSheets.js";
 
 const router = express.Router();
 
@@ -36,12 +36,10 @@ const DOC_COLUMN_MAP = {
   "Annual Progress Review – Year 1": "APR_Y1",
   "Annual Progress Review – Year 2": "APR_Y2",
   "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
-
   "Ethics Approval": "ETHICS_APPROVAL",
   "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
   "Proof of Submission": "PROOF_OF_SUBMISSION",
   "Conference Presentation": "CONFERENCE_PRESENTATION",
-
   "Thesis Notice": "THESIS_NOTICE",
   "Viva Report": "VIVA_REPORT",
   "Correction Verification": "CORRECTION_VERIFICATION",
@@ -58,16 +56,26 @@ router.get("/students", auth, async (req, res) => {
 
     const students = rows
       .filter(r =>
-        (r["Main Supervisor's Email"] || "")
-          .toLowerCase()
-          .trim() === supervisorEmail
+        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === supervisorEmail
       )
-      .map(r => ({
-        id: r["Matric"] || "",
-        name: r["Student Name"] || "",
-        email: (r["Student's Email"] || "").toLowerCase().trim(),
-        programme: r["Programme"] || ""
-      }));
+      .map(r => {
+        const rawCoSup = r["Co-Supervisor(s)"] || "";
+        const coSupervisors = rawCoSup
+          ? rawCoSup
+              .split(/\d+\.\s*/g)
+              .map(s => s.trim())
+              .filter(Boolean)
+          : [];
+
+        return {
+          id: r["Matric"] || "",
+          name: r["Student Name"] || "",
+          email: (r["Student's Email"] || "").toLowerCase().trim(),
+          programme: r["Programme"] || "",
+          status: r["Status"] || "Active",
+          coSupervisors
+        };
+      });
 
     return res.json({ students });
   } catch (e) {
@@ -82,8 +90,8 @@ router.get("/students", auth, async (req, res) => {
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
-
     const rows = await readMasterTracking(process.env.SHEET_ID);
+
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
@@ -91,6 +99,15 @@ router.get("/student/:email", auth, async (req, res) => {
     if (!raw) {
       return res.status(404).json({ error: "Student not found" });
     }
+
+    /* ---------- CO-SUPERVISOR NORMALISATION ---------- */
+    const rawCoSup = raw["Co-Supervisor(s)"] || "";
+    const coSupervisors = rawCoSup
+      ? rawCoSup
+          .split(/\d+\.\s*/g)
+          .map(s => s.trim())
+          .filter(Boolean)
+      : [];
 
     /* ---------- PROFILE ---------- */
     const profile = {
@@ -100,8 +117,8 @@ router.get("/student/:email", auth, async (req, res) => {
       programme: raw["Programme"] || "",
       field: raw["Field"] || "",
       department: raw["Department"] || "",
-      cosupervisors: raw["Co-Supervisor(s)"] || "",
-      status: raw["Status"] || ""
+      status: raw["Status"] || "Active",
+      coSupervisors
     };
 
     /* ---------- DOCUMENTS ---------- */
@@ -114,12 +131,10 @@ router.get("/student/:email", auth, async (req, res) => {
     const timeline = buildTimelineForRow(raw);
 
     /* =========================
-       CQI + REMARKS (TRX500 + VIVA)
+       CQI + REMARKS
     ========================= */
-
     const assessmentsRaw = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    /* normalize headers */
     const assessments = assessmentsRaw.map(row => {
       const clean = {};
       Object.keys(row).forEach(k => {
@@ -131,14 +146,12 @@ router.get("/student/:email", auth, async (req, res) => {
     const studentMatric = String(raw["Matric"] || "").trim();
     const studentEmail = String(raw["Student's Email"] || "").toLowerCase().trim();
 
-    /* filter student rows */
     const studentRows = assessments.filter(a => {
       const matric = String(a["matric"] || "").trim();
       const email2 = String(a["studentsemail"] || "").toLowerCase().trim();
       return matric === studentMatric || email2 === studentEmail;
     });
 
-    /* group by assessment type */
     const grouped = {};
     studentRows.forEach(r => {
       const type = String(r["assessment_type"] || "").toUpperCase().trim();
@@ -147,7 +160,6 @@ router.get("/student/:email", auth, async (req, res) => {
       grouped[type].push(r);
     });
 
-    /* compute CQI + extract remarks */
     const cqiByAssessment = {};
     const remarksByAssessment = {};
 
@@ -187,7 +199,6 @@ router.get("/student/:email", auth, async (req, res) => {
 
 /* ============================================================
    POST /api/supervisor/remark
-   → SAVE REMARK INTO ASSESSMENT_PLO
 ============================================================ */
 router.post("/remark", auth, async (req, res) => {
   try {
@@ -214,7 +225,4 @@ router.post("/remark", auth, async (req, res) => {
   }
 });
 
-/* =========================
-   EXPORT (ONLY ONCE)
-========================= */
 export default router;
