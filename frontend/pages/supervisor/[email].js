@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import SupervisorRemark from "../../components/SupervisorRemark";
+import FinalPLOTable from "../../components/FinalPLOTable";
 
 export default function SupervisorStudentPage() {
   const router = useRouter();
@@ -190,6 +191,11 @@ export default function SupervisorStudentPage() {
           })
         )}
       </div>
+
+      {/* =========================
+          FINAL PLO ATTAINMENT
+      ========================== */}
+      <FinalPLOTable finalPLO={student.finalPLO} />
 
       {/* =========================
           SUPERVISOR REMARKS
