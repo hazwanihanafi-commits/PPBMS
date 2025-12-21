@@ -1,29 +1,26 @@
-// utils/cqiSummary.js
-export function aggregateOverallPLO(cqi) {
-  if (!cqi || typeof cqi !== "object") return [];
+// utils/cqiNarrative.js
+export function generateCQINarrative(ploSummary) {
+  if (!Array.isArray(ploSummary) || ploSummary.length === 0) {
+    return "";
+  }
 
-  const ploMap = {};
+  const achieved = ploSummary
+    .filter(p => p.status === "Achieved")
+    .map(p => p.plo);
 
-  Object.values(cqi).forEach((assessment) => {
-    if (!assessment || typeof assessment !== "object") return;
+  const cqiRequired = ploSummary
+    .filter(p => p.status === "CQI Required")
+    .map(p => p.plo);
 
-    Object.entries(assessment).forEach(([plo, data]) => {
-      const value = Number(data?.average ?? data?.avg);
-      if (Number.isNaN(value)) return;
+  let narrative = "";
 
-      if (!ploMap[plo]) ploMap[plo] = [];
-      ploMap[plo].push(value);
-    });
-  });
+  if (achieved.length > 0) {
+    narrative += `The following PLOs have been achieved: ${achieved.join(", ")}. `;
+  }
 
-  return Object.entries(ploMap).map(([plo, values]) => {
-    const avg =
-      values.reduce((sum, v) => sum + v, 0) / values.length;
+  if (cqiRequired.length > 0) {
+    narrative += `CQI is required for ${cqiRequired.join(", ")} to improve student outcomes.`;
+  }
 
-    return {
-      plo,
-      average: Number(avg.toFixed(2)),
-      status: avg < 3 ? "CQI Required" : "Achieved",
-    };
-  });
+  return narrative.trim();
 }
