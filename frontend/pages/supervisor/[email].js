@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
@@ -14,7 +14,7 @@ export default function SupervisorStudentPage() {
   const [loading, setLoading] = useState(true);
 
   /* =========================
-     FETCH STUDENT
+     LOAD STUDENT DATA
   ========================== */
   useEffect(() => {
     if (!email) return;
@@ -24,12 +24,15 @@ export default function SupervisorStudentPage() {
   async function loadStudent() {
     try {
       if (typeof window === "undefined") return;
+
       const token = localStorage.getItem("ppbms_token");
 
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -38,42 +41,12 @@ export default function SupervisorStudentPage() {
       setStudent(data.row || null);
       setTimeline(data.row?.timeline || []);
       setCqi(data.row?.cqiByAssessment || {});
-    } catch (e) {
-      console.error("Load student error:", e);
+    } catch (err) {
+      console.error("Load student error:", err);
     } finally {
       setLoading(false);
     }
   }
-
-  /* =========================
-     LIGHTWEIGHT PLO AVERAGES
-     (NO CHART LIB)
-  ========================== */
-  const ploAverages = useMemo(() => {
-    if (!cqi || typeof cqi !== "object") return [];
-
-    const map = {};
-
-    Object.values(cqi).forEach((assessment) => {
-      if (!assessment || typeof assessment !== "object") return;
-
-      Object.entries(assessment).forEach(([plo, d]) => {
-        const value = Number(d?.average ?? d?.avg);
-        if (Number.isNaN(value)) return;
-
-        if (!map[plo]) map[plo] = [];
-        map[plo].push(value);
-      });
-    });
-
-    return Object.entries(map).map(([plo, values]) => {
-      const avg = values.reduce((a, b) => a + b, 0) / values.length;
-      return {
-        plo,
-        average: Number(avg.toFixed(2)),
-      };
-    });
-  }, [cqi]);
 
   /* ========================= */
 
@@ -128,7 +101,7 @@ export default function SupervisorStudentPage() {
         </table>
       </div>
 
-      {/* CQI BY ASSESSMENT */}
+      {/* CQI BY ASSESSMENT (FINAL, LIGHTWEIGHT) */}
       <div className="bg-white rounded-2xl p-6 shadow">
         <h3 className="font-bold mb-3">🎯 CQI by Assessment</h3>
 
@@ -169,39 +142,6 @@ export default function SupervisorStudentPage() {
               </div>
             );
           })
-        )}
-      </div>
-
-      {/* OVERALL PLO AVERAGE (LIGHTWEIGHT BARS) */}
-      <div className="bg-white rounded-2xl p-6 shadow space-y-4">
-        <h3 className="font-bold text-lg">
-          📊 Overall PLO Average (All Assessments)
-        </h3>
-
-        {ploAverages.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">
-            No overall PLO average available yet.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {ploAverages.map(({ plo, average }) => (
-              <div key={plo}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium">{plo}</span>
-                  <span>{average}</span>
-                </div>
-
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full ${
-                      average >= 3 ? "bg-green-500" : "bg-red-500"
-                    }`}
-                    style={{ width: `${(average / 4) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
 
