@@ -1,33 +1,36 @@
-// backend/utils/finalPLOAggregate.js
-
-export function aggregateFinalPLO(cqiByAssessment) {
-  const accumulator = {};
-  const counts = {};
+export function aggregateFinalPLO(cqiByAssessment = {}) {
+  const result = {};
 
   Object.values(cqiByAssessment).forEach(assessment => {
     Object.entries(assessment).forEach(([plo, d]) => {
-      if (d?.average == null) return;
+      if (!d || d.average == null) return;
 
-      if (!accumulator[plo]) {
-        accumulator[plo] = 0;
-        counts[plo] = 0;
+      if (!result[plo]) {
+        result[plo] = {
+          total: d.average,
+          count: 1,
+          status: d.status
+        };
+      } else {
+        result[plo].total += d.average;
+        result[plo].count += 1;
+
+        // If ANY assessment requires CQI → final CQI Required
+        if (d.status === "CQI Required") {
+          result[plo].status = "CQI Required";
+        }
       }
-
-      accumulator[plo] += d.average;
-      counts[plo] += 1;
     });
   });
 
-  const finalPLO = {};
-
-  Object.keys(accumulator).forEach(plo => {
-    const avg = +(accumulator[plo] / counts[plo]).toFixed(2);
-
-    finalPLO[plo] = {
-      average: avg,
-      status: avg >= 3 ? "Achieved" : "CQI Required"
-    };
+  // Finalize averages
+  Object.keys(result).forEach(plo => {
+    result[plo].average = Number(
+      (result[plo].total / result[plo].count).toFixed(2)
+    );
+    delete result[plo].total;
+    delete result[plo].count;
   });
 
-  return finalPLO;
+  return result;
 }
