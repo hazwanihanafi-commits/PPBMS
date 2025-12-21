@@ -16,18 +16,14 @@ export default function SupervisorStudentPage() {
   const [cqi, setCqi] = useState({});
   const [loading, setLoading] = useState(true);
 
+  /* =========================
+     FETCH STUDENT DATA
+  ========================== */
+
   useEffect(() => {
     if (!email) return;
     loadStudent();
   }, [email]);
-
-  useEffect(() => {
-  console.log("PAGE LOADED");
-  console.log("email:", email);
-  console.log("student:", student);
-  console.log("cqi:", cqi);
-  console.log("ploSummary:", ploSummary);
-}, [email, student, cqi, ploSummary]);
 
   async function loadStudent() {
     try {
@@ -76,6 +72,19 @@ export default function SupervisorStudentPage() {
       return "";
     }
   }, [ploSummary]);
+
+  /* =========================
+     DEBUG (SAFE)
+  ========================== */
+
+  useEffect(() => {
+    console.log("DEBUG:", {
+      email,
+      student,
+      cqi,
+      ploSummary,
+    });
+  }, [email, student, cqi, ploSummary]);
 
   /* ========================= */
 
@@ -134,43 +143,45 @@ export default function SupervisorStudentPage() {
       <div className="bg-white rounded-2xl p-6 shadow">
         <h3 className="font-bold mb-3">🎯 CQI by Assessment</h3>
 
- {Object.keys(cqi || {}).length === 0 ? (
-  <p className="text-sm text-gray-500 italic">
-    No CQI data available yet.
-  </p>
-) : (
-  Object.entries(cqi).map(([assessment, ploData]) => {
-    if (!ploData || typeof ploData !== "object") return null;
-
-    return (
-      <div key={assessment} className="mb-4">
-        <h4 className="font-semibold text-purple-700">
-          {assessment}
-        </h4>
-
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(ploData).map(([plo, d]) => {
-            if (!d) return null;
+        {Object.keys(cqi || {}).length === 0 ? (
+          <p className="text-sm text-gray-500 italic">
+            No CQI data available yet.
+          </p>
+        ) : (
+          Object.entries(cqi).map(([assessment, ploData]) => {
+            if (!ploData || typeof ploData !== "object") return null;
 
             return (
-              <span
-                key={plo}
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  d.status === "Achieved"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                {plo}: Avg {d.average ?? "-"} – {d.status ?? "N/A"}
-              </span>
+              <div key={assessment} className="mb-4">
+                <h4 className="font-semibold text-purple-700 mb-2">
+                  {assessment}
+                </h4>
+
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(ploData).map(([plo, d]) => {
+                    if (!d || typeof d !== "object") return null;
+
+                    const achieved = d.status === "Achieved";
+
+                    return (
+                      <span
+                        key={plo}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          achieved
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {plo}: Avg {d.average ?? "-"} – {d.status ?? "N/A"}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
             );
-          })}
-        </div>
+          })
+        )}
       </div>
-    );
-  })
-)}
-</div>
 
       {/* OVERALL PLO PERFORMANCE */}
       <div className="bg-white rounded-2xl p-6 shadow space-y-4">
@@ -178,7 +189,7 @@ export default function SupervisorStudentPage() {
           📈 Overall PLO Performance (All Assessments)
         </h3>
 
-        {ploSummary ? (
+        {Array.isArray(ploSummary) && ploSummary.length > 0 ? (
           <>
             <PLOAverageChart data={ploSummary} />
 
