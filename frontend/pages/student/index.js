@@ -138,6 +138,10 @@ export default function StudentPage() {
           <strong>Main Supervisor:</strong> {profile.supervisor}
         </p>
 
+        <p className="text-gray-600 mb-1">
+          <strong>Co-supervisors:</strong> {profile.cosupervisors}
+        </p>
+
         <p className="text-gray-600 mb-4">
           <strong>Start Date:</strong> {profile.start_date}
         </p>
