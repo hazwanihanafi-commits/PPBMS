@@ -29,12 +29,10 @@ const DOC_COLUMN_MAP = {
   "Annual Progress Review – Year 1": "APR_Y1",
   "Annual Progress Review – Year 2": "APR_Y2",
   "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
-
   "Ethics Approval": "ETHICS_APPROVAL",
   "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
   "Proof of Submission": "PROOF_OF_SUBMISSION",
   "Conference Presentation": "CONFERENCE_PRESENTATION",
-
   "Thesis Notice": "THESIS_NOTICE",
   "Viva Report": "VIVA_REPORT",
   "Correction Verification": "CORRECTION_VERIFICATION",
@@ -55,6 +53,7 @@ router.get("/at-risk", adminOnly, async (req, res) => {
 
   rows.forEach(row => {
     const late = [];
+
     Object.keys(row).forEach(col => {
       if (col.endsWith(" - Expected")) {
         const act = col.replace(" - Expected", "");
@@ -90,10 +89,20 @@ router.get("/student/:email", adminOnly, async (req, res) => {
 
   if (!raw) return res.status(404).json({ error: "Student not found" });
 
+  /* -------- Documents -------- */
   const documents = {};
   Object.entries(DOC_COLUMN_MAP).forEach(([label, col]) => {
     documents[label] = raw[col] || "";
   });
+
+  /* -------- Co-Supervisor Normalisation -------- */
+  const rawCoSup = raw["Co-Supervisor(s)"] || "";
+  const coSupervisors = rawCoSup
+    ? rawCoSup
+        .split(/\d+\.\s*/g) // split "1. Name 2. Name"
+        .map(s => s.trim())
+        .filter(Boolean)
+    : [];
 
   res.json({
     row: {
@@ -101,14 +110,16 @@ router.get("/student/:email", adminOnly, async (req, res) => {
       email: raw["Student's Email"],
       programme: raw["Programme"],
       department: raw["Department"],
-      cosupervisors: raw["Co-Supervisor(s)"],
-      status: raw["Status"]
+
+      status: raw["Status"] || "Active",
+      coSupervisors,                 // ✅ array, clean
+
       documents
     }
   });
 });
 
-/* ================= SAVE / REMOVE ================= */
+/* ================= SAVE / REMOVE DOCUMENT ================= */
 router.post("/save-document", adminOnly, async (req, res) => {
   const { student_email, document_type, file_url } = req.body;
 
@@ -125,7 +136,7 @@ router.post("/save-document", adminOnly, async (req, res) => {
   await writeSheetCell(
     process.env.SHEET_ID,
     column,
-    idx + 2,
+    idx + 2,               // +2 because header + 1-based index
     file_url || ""
   );
 
