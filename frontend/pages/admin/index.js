@@ -11,9 +11,8 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  /* =========================
-     PROGRAMME-LEVEL PLO (CQI)
-  ========================== */
+  // ✅ default programme for dashboard summary
+  const [programme, setProgramme] = useState("Doctor of Philosophy");
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
@@ -21,8 +20,11 @@ export default function AdminDashboard() {
   ========================== */
   useEffect(() => {
     loadStudents();
-    fetchProgrammePLO();
   }, []);
+
+  useEffect(() => {
+    fetchProgrammePLO();
+  }, [programme]);
 
   useEffect(() => {
     applyFilters();
@@ -51,15 +53,19 @@ export default function AdminDashboard() {
   }
 
   /* =========================
-     FETCH PROGRAMME PLO (ADMIN SUMMARY)
+     FETCH PROGRAMME PLO (SUMMARY)
   ========================== */
   async function fetchProgrammePLO() {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/programme-plo`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
-      });
+      const token = localStorage.getItem("ppbms_token");
+      const params = new URLSearchParams({ programme });
+
+      const res = await fetch(
+        `${API_BASE}/api/admin/programme-plo?${params.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const data = await res.json();
       setProgrammePLO(data.plo || null);
@@ -92,25 +98,11 @@ export default function AdminDashboard() {
      UI HELPERS
   ========================== */
   function riskBadge(progress) {
-    if (progress < 50) {
-      return (
-        <span className="px-3 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">
-          At Risk
-        </span>
-      );
-    }
-    if (progress < 80) {
-      return (
-        <span className="px-3 py-1 text-xs font-bold bg-yellow-100 text-yellow-700 rounded-full">
-          Slightly Late
-        </span>
-      );
-    }
-    return (
-      <span className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-full">
-        On Track
-      </span>
-    );
+    if (progress < 50)
+      return <span className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-full">At Risk</span>;
+    if (progress < 80)
+      return <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Slightly Late</span>;
+    return <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">On Track</span>;
   }
 
   function progressBarColor(progress) {
@@ -133,66 +125,57 @@ export default function AdminDashboard() {
       ========================== */}
       {programmePLO && (
         <div className="bg-white rounded-2xl shadow p-6 mb-10">
-          <h2 className="text-xl font-bold mb-4">
-            📊 Programme-level PLO Attainment (CQI)
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">
+              📊 Programme-level PLO Attainment (CQI)
+            </h2>
 
-          <ProgrammePLOBarChart plo={programmePLO} />
+            <select
+              value={programme}
+              onChange={(e) => setProgramme(e.target.value)}
+              className="border rounded px-3 py-1"
+            >
+              <option value="Doctor of Philosophy">PhD</option>
+              <option value="Master of Science">MSc</option>
+            </select>
+          </div>
+
+          {/* ✅ FIXED PROP */}
+          <ProgrammePLOBarChart programmePLO={programmePLO} />
         </div>
       )}
 
       {/* SEARCH */}
-      <div className="flex gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Search student…"
-          className="flex-1 p-3 border rounded-xl bg-white"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      <input
+        type="text"
+        placeholder="Search student…"
+        className="w-full p-3 border rounded-xl bg-white mb-6"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-      {loading && <p className="text-gray-600">Loading students…</p>}
+      {loading && <p>Loading students…</p>}
 
-      {/* =========================
-          STUDENT CARDS
-      ========================== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* STUDENT CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => (
-          <div
-            key={st.email}
-            className="bg-white p-6 rounded-2xl shadow border border-gray-100"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-bold text-gray-900 uppercase">
-                {st.name}
-              </h2>
+          <div key={st.email} className="bg-white p-6 rounded-2xl shadow">
+            <div className="flex justify-between mb-2">
+              <h2 className="font-bold uppercase">{st.name}</h2>
               {riskBadge(st.progressPercent)}
             </div>
 
-            <p className="text-sm text-gray-700">
-              <strong>Email:</strong> {st.email}
-            </p>
+            <p><strong>Email:</strong> {st.email}</p>
+            <p><strong>Programme:</strong> {st.programme}</p>
 
-            <p className="text-sm text-gray-700">
-              <strong>Programme:</strong> {st.programme}
-            </p>
-
-            <p className="text-sm text-gray-700">
-              <strong>Status:</strong> {st.status || "Active"}
-            </p>
-
-            <div className="mt-4">
-              <div className="flex justify-between text-sm font-semibold">
+            <div className="mt-3">
+              <div className="flex justify-between text-sm">
                 <span>Overall Progress</span>
                 <span>{st.progressPercent}%</span>
               </div>
-
               <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                 <div
-                  className={`h-2 rounded-full ${progressBarColor(
-                    st.progressPercent
-                  )}`}
+                  className={`h-2 rounded-full ${progressBarColor(st.progressPercent)}`}
                   style={{ width: `${st.progressPercent}%` }}
                 />
               </div>
@@ -200,9 +183,7 @@ export default function AdminDashboard() {
 
             <div className="flex gap-4 mt-4">
               <button
-                onClick={() =>
-                  router.push(`/supervisor/${encodeURIComponent(st.email)}`)
-                }
+                onClick={() => router.push(`/supervisor/${encodeURIComponent(st.email)}`)}
                 className="text-purple-700 font-semibold hover:underline"
               >
                 View Full Student Record →
@@ -211,9 +192,7 @@ export default function AdminDashboard() {
               <button
                 onClick={() =>
                   router.push(
-                    `/admin/programme-plo?programme=${encodeURIComponent(
-                      st.programme
-                    )}`
+                    `/admin/programme-plo?programme=${encodeURIComponent(st.programme)}`
                   )
                 }
                 className="text-blue-700 font-semibold hover:underline"
