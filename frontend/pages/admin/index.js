@@ -11,14 +11,14 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // =========================
-  // PROGRAMME-LEVEL PLO (CQI)
-  // =========================
+  /* =========================
+     PROGRAMME-LEVEL PLO (CQI)
+  ========================== */
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
      LOAD DATA
-  ========================= */
+  ========================== */
   useEffect(() => {
     loadStudents();
     fetchProgrammePLO();
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
 
   /* =========================
      FETCH STUDENTS
-  ========================= */
+  ========================== */
   async function loadStudents() {
     setLoading(true);
     try {
@@ -41,31 +41,28 @@ export default function AdminDashboard() {
       });
 
       const json = await res.json();
-      if (res.ok) {
-        setStudents(json.students || []);
-      } else {
-        setStudents([]);
-      }
+      setStudents(json.students || []);
     } catch (e) {
       console.error("Admin load students error:", e);
       setStudents([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   /* =========================
-     FETCH PROGRAMME PLO
-  ========================= */
+     FETCH PROGRAMME PLO (ADMIN SUMMARY)
+  ========================== */
   async function fetchProgrammePLO() {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/plo/programme`, {
+      const res = await fetch(`${API_BASE}/api/admin/programme-plo`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
         },
       });
 
       const data = await res.json();
-      setProgrammePLO(data.programmePLO || null);
+      setProgrammePLO(data.plo || null);
     } catch (e) {
       console.error("Programme PLO load error:", e);
       setProgrammePLO(null);
@@ -74,7 +71,7 @@ export default function AdminDashboard() {
 
   /* =========================
      FILTERING
-  ========================= */
+  ========================== */
   function applyFilters() {
     let list = [...students];
 
@@ -93,7 +90,7 @@ export default function AdminDashboard() {
 
   /* =========================
      UI HELPERS
-  ========================= */
+  ========================== */
   function riskBadge(progress) {
     if (progress < 50) {
       return (
@@ -124,7 +121,7 @@ export default function AdminDashboard() {
 
   /* =========================
      RENDER
-  ========================= */
+  ========================== */
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
       <h1 className="text-3xl font-extrabold text-purple-900 mb-6">
@@ -133,14 +130,14 @@ export default function AdminDashboard() {
 
       {/* =========================
           PROGRAMME-LEVEL PLO CQI
-      ========================= */}
+      ========================== */}
       {programmePLO && (
         <div className="bg-white rounded-2xl shadow p-6 mb-10">
           <h2 className="text-xl font-bold mb-4">
             📊 Programme-level PLO Attainment (CQI)
           </h2>
 
-          <ProgrammePLOBarChart data={programmePLO} />
+          <ProgrammePLOBarChart plo={programmePLO} />
         </div>
       )}
 
@@ -159,7 +156,7 @@ export default function AdminDashboard() {
 
       {/* =========================
           STUDENT CARDS
-      ========================= */}
+      ========================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => (
           <div
@@ -186,7 +183,6 @@ export default function AdminDashboard() {
               <strong>Status:</strong> {st.status || "Active"}
             </p>
 
-            {/* CO-SUPERVISORS */}
             {st.coSupervisors && (
               <p className="text-sm text-gray-700 mt-1">
                 <strong>Co-Supervisor(s):</strong> {st.coSupervisors}
@@ -210,37 +206,27 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* LINK → STUDENT FULL RECORD */}
-            <button
-              onClick={() =>
-                router.push(`/supervisor/${encodeURIComponent(st.email)}`)
-              }
-              className="mt-4 text-purple-700 font-semibold hover:underline"
-            >
-              View Full Student Record →
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+            {/* ACTION BUTTONS */}
+            <div className="flex gap-4 mt-4">
+              <button
+                onClick={() =>
+                  router.push(`/supervisor/${encodeURIComponent(st.email)}`)
+                }
+                className="text-purple-700 font-semibold hover:underline"
+              >
+                View Full Student Record →
+              </button>
 
-<div className="flex gap-4 mt-4">
-  <a
-    href={`/admin/student/${encodeURIComponent(s["Student's Email"])}`}
-    className="text-purple-600 font-medium hover:underline"
-  >
-    View Full Student Record →
-  </a>
-
-  <a
-    href={`/admin/programme-plo?programme=${encodeURIComponent(
-      s["Programme"]
-    )}`}
-    className="text-blue-600 font-medium hover:underline"
-  >
-    View Programme PLO →
-  </a>
-</div>
-
+              <button
+                onClick={() =>
+                  router.push(
+                    `/admin/programme-plo?programme=${encodeURIComponent(
+                      st.programme
+                    )}`
+                  )
+                }
+                className="text-blue-700 font-semibold hover:underline"
+              >
+                View Programme PLO →
+              </button>
+            </div>
