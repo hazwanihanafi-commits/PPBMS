@@ -3,6 +3,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
+import { resetSheetCache } from "../utils/sheetCache.js";
 
 const router = express.Router();
 
@@ -21,33 +22,8 @@ function auth(req, res, next) {
   }
 }
 
-/* =========================
-   DOCUMENT → COLUMN MAP
-========================= */
-const DOC_COLUMN_MAP = {
-  // Monitoring & Supervision
-  "Development Plan & Learning Contract (DPLC)": "DPLC",
-  "Student Supervision Logbook": "SUPERVISION_LOG",
-  "Annual Progress Review – Year 1": "APR_Y1",
-  "Annual Progress Review – Year 2": "APR_Y2",
-  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
-
-  // Ethics & Publications
-  "Ethics Approval": "ETHICS_APPROVAL",
-  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
-  "Proof of Submission": "PROOF_OF_SUBMISSION",
-  "Conference Presentation": "CONFERENCE_PRESENTATION",
-
-  // Thesis & Viva
-  "Thesis Notice": "THESIS_NOTICE",
-  "Viva Report": "VIVA_REPORT",
-  "Correction Verification": "CORRECTION_VERIFICATION",
-  "Final Thesis": "FINAL_THESIS",
-};
-
 /* ============================================================
    GET /api/student/me
-   → READ EVERYTHING FROM MASTER TRACKING
 ============================================================ */
 router.get("/me", auth, async (req, res) => {
   try {
@@ -79,10 +55,26 @@ router.get("/me", auth, async (req, res) => {
       status: raw["Status"] || "-"
     };
 
-    /* ---------- DOCUMENTS (FROM MASTER TRACKING) ---------- */
+    /* ---------- DOCUMENTS (KEY → VALUE) ---------- */
+    const DOCUMENT_KEYS = [
+      "DPLC",
+      "SUPERVISION_LOG",
+      "APR_Y1",
+      "APR_Y2",
+      "APR_Y3",
+      "ETHICS_APPROVAL",
+      "PUBLICATION_ACCEPTANCE",
+      "PROOF_OF_SUBMISSION",
+      "CONFERENCE_PRESENTATION",
+      "THESIS_NOTICE",
+      "VIVA_REPORT",
+      "CORRECTION_VERIFICATION",
+      "FINAL_THESIS"
+    ];
+
     const documents = {};
-    Object.entries(DOC_COLUMN_MAP).forEach(([label, col]) => {
-      documents[label] = raw[col] || "";
+    DOCUMENT_KEYS.forEach(key => {
+      documents[key] = raw[key] || "";
     });
 
     /* ---------- TIMELINE ---------- */
@@ -128,6 +120,7 @@ router.post("/update-actual", auth, async (req, res) => {
       date
     );
 
+    resetSheetCache();
     return res.json({ success: true });
 
   } catch (e) {
@@ -138,18 +131,15 @@ router.post("/update-actual", auth, async (req, res) => {
 
 /* ============================================================
    POST /api/student/save-document
-   → WRITE DIRECTLY INTO MASTER TRACKING
+   ✅ SAVE / UPDATE / REMOVE (KEY-BASED)
 ============================================================ */
 router.post("/save-document", auth, async (req, res) => {
   try {
-    const { document_type, file_url } = req.body;
+    const { document_key, file_url } = req.body;
 
-    if (!document_type || !file_url)
-      return res.status(400).json({ error: "Missing data" });
-
-    const column = DOC_COLUMN_MAP[document_type];
-    if (!column)
-      return res.status(400).json({ error: "Invalid document type" });
+    if (!document_key) {
+      return res.status(400).json({ error: "Missing document key" });
+    }
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -163,16 +153,13 @@ router.post("/save-document", auth, async (req, res) => {
 
     await writeSheetCell(
       process.env.SHEET_ID,
-      column,
+      document_key,
       idx + 2,
-      file_url
+      file_url || ""   // ✅ allows remove
     );
 
-    return res.json({
-      success: true,
-      document_type,
-      file_url
-    });
+    resetSheetCache();
+    return res.json({ success: true });
 
   } catch (e) {
     console.error("save-document error:", e);
