@@ -54,45 +54,41 @@ export default function AdminDashboard() {
   }
 
   async function fetchProgrammePLO() {
-    try {
-      const token = localStorage.getItem("ppbms_token");
+  try {
+    const token = localStorage.getItem("ppbms_token");
 
-      const res = await fetch(
-        `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+    const res = await fetch(
+      `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const json = await res.json();
+    const json = await res.json();
+    console.log("Programme PLO RAW:", json);
 
-      console.log("Programme PLO RAW:", json);
+    const rawProgramme =
+      json.programmes?.[programme] ||
+      Object.values(json.programmes || {})[0];
 
-      // ✅ SAFE EXTRACTION (CASE + SPACE SAFE)
-      const programmes = json.programmes || {};
-      const matchedKey = Object.keys(programmes).find(
-        (k) => k.trim().toLowerCase() === programme.trim().toLowerCase()
-      );
-
-      if (matchedKey) {
-  const raw = programmes[matchedKey];
-
-  const chartData = Object.entries(raw).map(([plo, v]) => ({
-    plo,
-    average: v.average,
-    status: v.status,
-  }));
-
-  setProgrammePLO(chartData);
-} else {
-  setProgrammePLO(null);
-}
-
-    } catch (e) {
-      console.error("Programme PLO error:", e);
+    if (!rawProgramme) {
       setProgrammePLO(null);
+      return;
     }
+
+    // ✅ CONVERT OBJECT → ARRAY (THIS WAS MISSING)
+    const formatted = Object.entries(rawProgramme).map(
+      ([plo, v]) => ({
+        plo,
+        average: v.average,
+        status: v.status,
+      })
+    );
+
+    setProgrammePLO(formatted);
+  } catch (err) {
+    console.error("Programme PLO error:", err);
+    setProgrammePLO(null);
   }
+}
 
   function applyFilters() {
     let list = [...students];
