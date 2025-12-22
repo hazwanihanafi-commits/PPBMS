@@ -34,46 +34,80 @@ router.get("/programme-plo", adminOnly, async (req, res) => {
 
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    // 🔥 IMPORTANT: Programme comes from ASSESSMENT_PLO sheet
     const filtered = rows.filter(
       r => (r.programme || "").trim() === programme.trim()
     );
 
-    if (filtered.length === 0) {
-      return res.json({ programmes: {} });
-    }
-
     const ploKeys = Array.from({ length: 11 }, (_, i) => `plo${i + 1}`);
 
-    const agg = {};
-    ploKeys.forEach(p => {
-      agg[p.toUpperCase()] = { total: 0, count: 0 };
-    });
+    /* ===============================
+       GROUP BY STUDENT
+    =============================== */
+    const byStudent = {};
 
     filtered.forEach(r => {
+      const sid = r.matric || r.studentemail;
+      if (!sid) return;
+
+      if (!byStudent[sid]) {
+        byStudent[sid] = {};
+        ploKeys.forEach(p => (byStudent[sid][p] = []));
+      }
+
       ploKeys.forEach(p => {
         const v = Number(r[p]);
-        if (!isNaN(v)) {
-          agg[p.toUpperCase()].total += v;
-          agg[p.toUpperCase()].count += 1;
+        if (!isNaN(v)) byStudent[sid][p].push(v);
+      });
+    });
+
+    /* ===============================
+       STUDENT-LEVEL STATUS
+    =============================== */
+    const ploStats = {};
+    ploKeys.forEach(p => {
+      ploStats[p.toUpperCase()] = { achieved: 0, total: 0 };
+    });
+
+    Object.values(byStudent).forEach(student => {
+      ploKeys.forEach(p => {
+        if (student[p].length === 0) return;
+
+        const avg =
+          student[p].reduce((a, b) => a + b, 0) /
+          student[p].length;
+
+        ploStats[p.toUpperCase()].total += 1;
+
+        if (avg >= 3.0) {
+          ploStats[p.toUpperCase()].achieved += 1;
         }
       });
     });
 
+    /* ===============================
+       PROGRAMME INDICATOR
+    =============================== */
     const result = {};
-    Object.entries(agg).forEach(([p, o]) => {
-      const avg = o.count ? +(o.total / o.count).toFixed(2) : 0;
-      result[p] = {
-        average: avg,
-        status: avg >= 3 ? "Achieved" : "At Risk",
+
+    Object.entries(ploStats).forEach(([plo, s]) => {
+      const percent = s.total
+        ? +((s.achieved / s.total) * 100).toFixed(2)
+        : 0;
+
+      result[plo] = {
+        achievedStudents: s.achieved,
+        totalStudents: s.total,
+        attainmentPercent: percent,
+        status: percent >= 70 ? "Achieved" : "CQI Required"
       };
     });
 
     res.json({
       programmes: {
-        [programme]: result,
-      },
+        [programme]: result
+      }
     });
+
   } catch (err) {
     console.error("PROGRAMME PLO ERROR:", err);
     res.status(500).json({ error: err.message });
