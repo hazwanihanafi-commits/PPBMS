@@ -135,17 +135,13 @@ router.post("/update-actual", auth, async (req, res) => {
 ============================================================ */
 router.post("/save-document", auth, async (req, res) => {
   try {
-    // ✅ FIX: extract from req.body
-    const { document_type, file_url } = req.body;
+    const { document_key, file_url } = req.body;
 
-    if (document_type === undefined || file_url === undefined) {
-      return res.status(400).json({ error: "Missing data" });
-    }
+    if (!document_key)
+      return res.status(400).json({ error: "Missing document_key" });
 
-    const column = DOC_COLUMN_MAP[document_type];
-    if (!column) {
-      return res.status(400).json({ error: "Invalid document type" });
-    }
+    if (file_url === undefined)
+      return res.status(400).json({ error: "Missing file_url" });
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -154,28 +150,23 @@ router.post("/save-document", auth, async (req, res) => {
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
-    if (idx === -1) {
+    if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
-    }
 
-    // ✅ write (supports SAVE + REMOVE)
     await writeSheetCell(
       process.env.SHEET_ID,
-      column,
+      document_key,
       idx + 2,
-      file_url || ""   // empty string = remove
+      file_url || ""
     );
 
-    return res.json({
-      success: true,
-      document_type,
-      file_url
-    });
+    return res.json({ success: true });
 
   } catch (e) {
     console.error("save-document error:", e);
     return res.status(500).json({ error: e.message });
   }
 });
+
 
 export default router;
