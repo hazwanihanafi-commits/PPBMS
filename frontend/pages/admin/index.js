@@ -6,9 +6,15 @@ import ProgrammePLOBarChart from "../../components/ProgrammePLOBarChart";
 export default function AdminDashboard() {
   const router = useRouter();
 
+  /* =========================
+     STATE
+  ========================= */
   const [students, setStudents] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Programme-level PLO (CQI)
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
@@ -20,86 +26,175 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    const s = search.toLowerCase();
-    setFiltered(
-      students.filter(
-        st =>
-          st.name?.toLowerCase().includes(s) ||
-          st.email?.toLowerCase().includes(s)
-      )
-    );
+    applyFilters();
   }, [search, students]);
 
   async function loadStudents() {
-    const res = await fetch(`${API_BASE}/api/supervisor/students`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-      },
-    });
-    const json = await res.json();
-    setStudents(json.students || []);
-    setFiltered(json.students || []);
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/supervisor/students`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
+      });
+
+      const json = await res.json();
+      setStudents(res.ok ? json.students || [] : []);
+    } catch (e) {
+      console.error("Admin load students error:", e);
+      setStudents([]);
+    }
+    setLoading(false);
   }
 
   async function loadProgrammePLO() {
-    const res = await fetch(`${API_BASE}/api/admin/plo/programme`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-      },
-    });
-    const json = await res.json();
-    setProgrammePLO(json.programmePLO);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/plo/programme`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+        },
+      });
+
+      const json = await res.json();
+      setProgrammePLO(json.programmePLO || null);
+    } catch (e) {
+      console.error("Load programme PLO error:", e);
+      setProgrammePLO(null);
+    }
   }
 
-  /* ========================= */
+  function applyFilters() {
+    let list = [...students];
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      list = list.filter(
+        (st) =>
+          st.name?.toLowerCase().includes(s) ||
+          st.email?.toLowerCase().includes(s) ||
+          st.programme?.toLowerCase().includes(s)
+      );
+    }
+    setFiltered(list);
+  }
 
+  /* =========================
+     UI HELPERS
+  ========================= */
+  function riskBadge(progress) {
+    if (progress < 50)
+      return (
+        <span className="px-3 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">
+          At Risk
+        </span>
+      );
+    if (progress < 80)
+      return (
+        <span className="px-3 py-1 text-xs font-bold bg-yellow-100 text-yellow-700 rounded-full">
+          Slightly Late
+        </span>
+      );
+    return (
+      <span className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-full">
+        On Track
+      </span>
+    );
+  }
+
+  function progressBarColor(progress) {
+    if (progress < 50) return "bg-red-500";
+    if (progress < 80) return "bg-yellow-500";
+    return "bg-green-500";
+  }
+
+  /* =========================
+     RENDER
+  ========================= */
   return (
-    <div className="min-h-screen bg-purple-50 p-6">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
       <h1 className="text-3xl font-extrabold text-purple-900 mb-6">
         Admin Dashboard – All Students
       </h1>
 
-      {/* PROGRAMME CQI */}
-      <ProgrammePLOBarChart data={programmePLO} />
+      {/* =========================
+          PROGRAMME-LEVEL PLO (CQI)
+      ========================= */}
+      {programmePLO && (
+        <div className="mb-10">
+          <ProgrammePLOBarChart data={programmePLO} />
+        </div>
+      )}
 
       {/* SEARCH */}
-      <input
-        type="text"
-        placeholder="Search student..."
-        className="w-full p-3 mb-6 border rounded-xl"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+      <div className="flex gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search student…"
+          className="flex-1 p-3 border rounded-xl bg-white"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-      {/* STUDENT CARDS */}
+      {loading && <p className="text-gray-600">Loading students…</p>}
+
+      {/* =========================
+          STUDENT CARDS
+      ========================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filtered.map(st => (
+        {filtered.map((st) => (
           <div
             key={st.email}
-            className="bg-white p-6 rounded-2xl shadow"
+            className="bg-white p-6 rounded-2xl shadow border border-gray-100"
           >
-            <h2 className="font-bold text-lg">{st.name}</h2>
-            <p>Email: {st.email}</p>
-            <p>Programme: {st.programme}</p>
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-bold text-gray-900 uppercase">
+                {st.name}
+              </h2>
+              {riskBadge(st.progressPercent)}
+            </div>
 
-            <div className="mt-3">
+            <p className="text-sm text-gray-700">
+              <strong>Email:</strong> {st.email}
+            </p>
+
+            <p className="text-sm text-gray-700">
+              <strong>Programme:</strong> {st.programme}
+            </p>
+
+            <p className="text-sm text-gray-700">
+              <strong>Status:</strong> {st.status || "Active"}
+            </p>
+
+            {st.cosupervisors && (
+              <p className="text-sm text-gray-700 mt-1">
+                <strong>Co-Supervisor(s):</strong> {st.cosupervisors}
+              </p>
+            )}
+
+            {/* PROGRESS */}
+            <div className="mt-4">
               <div className="flex justify-between text-sm font-semibold">
                 <span>Overall Progress</span>
                 <span>{st.progressPercent}%</span>
               </div>
-              <div className="bg-gray-200 h-2 rounded-full">
+
+              <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                 <div
-                  className="bg-purple-600 h-2 rounded-full"
+                  className={`h-2 rounded-full ${progressBarColor(
+                    st.progressPercent
+                  )}`}
                   style={{ width: `${st.progressPercent}%` }}
                 />
               </div>
             </div>
 
+            {/* LINK */}
             <button
               onClick={() =>
                 router.push(`/supervisor/${encodeURIComponent(st.email)}`)
               }
-              className="mt-4 text-purple-700 font-semibold"
+              className="mt-4 text-purple-700 font-semibold hover:underline"
             >
               View Full Student Record →
             </button>
