@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // 🔥 Programme-level CQI
+  // Programme CQI
   const [programme, setProgramme] = useState("Doctor of Philosophy");
   const [programmePLO, setProgrammePLO] = useState(null);
 
@@ -23,10 +23,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadStudents();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [search, students]);
 
   async function loadStudents() {
     setLoading(true);
@@ -38,15 +34,17 @@ export default function AdminDashboard() {
       });
       const json = await res.json();
       setStudents(json.students || []);
+      setFiltered(json.students || []);
     } catch (e) {
-      console.error("Load students error:", e);
+      console.error(e);
       setStudents([]);
+      setFiltered([]);
     }
     setLoading(false);
   }
 
   /* =========================
-     LOAD PROGRAMME PLO (ADMIN)
+     LOAD PROGRAMME PLO CQI
   ========================= */
   useEffect(() => {
     fetchProgrammePLO();
@@ -73,46 +71,58 @@ export default function AdminDashboard() {
     }
   }
 
-  function applyFilters() {
-    let list = [...students];
-    if (search.trim()) {
-      const s = search.toLowerCase();
-      list = list.filter(
+  /* =========================
+     FILTER
+  ========================= */
+  useEffect(() => {
+    const s = search.toLowerCase();
+    setFiltered(
+      students.filter(
         (st) =>
           st.name?.toLowerCase().includes(s) ||
           st.email?.toLowerCase().includes(s)
-      );
-    }
-    setFiltered(list);
-  }
+      )
+    );
+  }, [search, students]);
 
   /* =========================
-     UI HELPERS
+     HELPERS
   ========================= */
   function riskBadge(progress) {
     if (progress < 50)
-      return (
-        <span className="px-3 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">
-          At Risk
-        </span>
-      );
+      return <span className="badge bg-red">At Risk</span>;
     if (progress < 80)
-      return (
-        <span className="px-3 py-1 text-xs font-bold bg-yellow-100 text-yellow-700 rounded-full">
-          Slightly Late
-        </span>
-      );
-    return (
-      <span className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-full">
-        On Track
-      </span>
-    );
+      return <span className="badge bg-yellow">Slightly Late</span>;
+    return <span className="badge bg-green">On Track</span>;
   }
 
   function progressColor(p) {
     if (p < 50) return "bg-red-500";
     if (p < 80) return "bg-yellow-500";
     return "bg-green-500";
+  }
+
+  /* =========================
+     CQI ACTION STATEMENT
+  ========================= */
+  function renderCQIAction(plo, d) {
+    if (d.status === "Achieved") {
+      return (
+        <p className="text-xs text-green-700 mt-1">
+          ✔ Attainment target met. Current supervisory and assessment strategies
+          are effective and will be maintained.
+        </p>
+      );
+    }
+
+    return (
+      <p className="text-xs text-red-700 mt-1">
+        ⚠ Less than 70% of students achieved <strong>{plo}</strong>.  
+        Programme CQI action required: strengthen supervisory intervention,
+        reinforce rubric alignment, and monitor progress in the next academic
+        cycle.
+      </p>
+    );
   }
 
   /* =========================
@@ -125,10 +135,10 @@ export default function AdminDashboard() {
       </h1>
 
       {/* =========================
-          PROGRAMME-LEVEL PLO CQI
+          PROGRAMME-LEVEL CQI
       ========================= */}
-      {programmePLO && (
-        <div className="bg-white p-6 rounded-2xl shadow mb-8">
+      {programmePLO && Object.keys(programmePLO).length > 0 && (
+        <div className="bg-white p-6 rounded-2xl shadow mb-10">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-purple-900">
               📊 Programme-level PLO Attainment (CQI)
@@ -144,8 +154,21 @@ export default function AdminDashboard() {
             </select>
           </div>
 
+          {/* Legend */}
+          <div className="flex gap-6 text-xs text-gray-600 mb-4">
+            <span className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-green-500 rounded"></span>
+              ≥70% Students Achieved
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-red-500 rounded"></span>
+              CQI Required
+            </span>
+          </div>
+
+          {/* PLO BARS */}
           {Object.entries(programmePLO).map(([plo, d]) => (
-            <div key={plo} className="mb-3">
+            <div key={plo} className="mb-4">
               <div className="flex justify-between text-sm font-semibold">
                 <span>{plo}</span>
                 <span>
@@ -154,7 +177,7 @@ export default function AdminDashboard() {
                 </span>
               </div>
 
-              <div className="w-full bg-gray-200 h-2 rounded">
+              <div className="w-full bg-gray-200 h-2 rounded mt-1">
                 <div
                   className={`h-2 rounded ${
                     d.status === "Achieved"
@@ -166,6 +189,9 @@ export default function AdminDashboard() {
                   }}
                 />
               </div>
+
+              {/* CQI ACTION */}
+              {renderCQIAction(plo, d)}
             </div>
           ))}
         </div>
@@ -185,7 +211,7 @@ export default function AdminDashboard() {
       {loading && <p className="text-gray-600">Loading students…</p>}
 
       {/* =========================
-          STUDENT CARDS
+          STUDENTS
       ========================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => (
@@ -194,9 +220,7 @@ export default function AdminDashboard() {
             className="bg-white p-6 rounded-2xl shadow"
           >
             <div className="flex justify-between mb-2">
-              <h2 className="font-bold text-gray-900">
-                {st.name}
-              </h2>
+              <h2 className="font-bold">{st.name}</h2>
               {riskBadge(st.progressPercent)}
             </div>
 
