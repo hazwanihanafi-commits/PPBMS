@@ -1,37 +1,36 @@
-export default function ProgrammePLOBarChart({ data }) {
-  if (!data || Object.keys(data).length === 0) {
-    return (
-      <p className="text-sm italic text-gray-500">
-        No programme-level PLO data available.
-      </p>
-    );
-  }
-
+export default function ProgrammePLOBarChart({ programme, data }) {
   return (
-    <div className="space-y-3">
-      {Object.entries(data).map(([plo, d]) => {
-        const width = Math.min((d.average / 5) * 100, 100);
+    <div className="bg-white rounded-2xl p-6 shadow mb-6">
+      <div className="flex justify-between mb-4">
+        <h2 className="font-bold text-purple-900">
+          📊 Programme-level PLO Attainment (CQI)
+        </h2>
+        <span className="text-sm bg-gray-100 px-3 py-1 rounded">
+          {programme}
+        </span>
+      </div>
 
-        return (
-          <div key={plo}>
-            <div className="flex justify-between text-xs font-semibold mb-1">
-              <span>{plo}</span>
-              <span>{d.average}</span>
-            </div>
-
-            <div className="w-full bg-gray-200 h-3 rounded-full">
-              <div
-                className={`h-3 rounded-full ${
-                  d.status === "Achieved"
-                    ? "bg-green-500"
-                    : "bg-red-500"
-                }`}
-                style={{ width: `${width}%` }}
-              />
-            </div>
+      {Object.entries(data).map(([plo, d]) => (
+        <div key={plo} className="mb-3">
+          <div className="flex justify-between text-sm font-semibold">
+            <span>{plo}</span>
+            <span>
+              {d.attainmentPercent}% ({d.achievedStudents}/{d.totalStudents})
+            </span>
           </div>
-        );
-      })}
+
+          <div className="w-full bg-gray-200 h-2 rounded">
+            <div
+              className={`h-2 rounded ${
+                d.status === "Achieved"
+                  ? "bg-green-500"
+                  : "bg-red-500"
+              }`}
+              style={{ width: `${d.attainmentPercent}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
