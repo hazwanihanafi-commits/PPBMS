@@ -1,14 +1,16 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import { readMasterTracking } from "../services/googleSheets.js";
-import { readAssessmentPLO } from "../services/googleSheets.js";
+import {
+  readMasterTracking,
+  readAssessmentPLO,
+} from "../services/googleSheets.js";
 import { aggregateProgrammePLO } from "../utils/programmePLOAggregate.js";
 
 const router = express.Router();
 
-/* ======================================================
+/* =====================================================
    ADMIN AUTH MIDDLEWARE
-====================================================== */
+===================================================== */
 function adminOnly(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Missing token" });
@@ -20,14 +22,14 @@ function adminOnly(req, res, next) {
     }
     req.user = decoded;
     next();
-  } catch (e) {
+  } catch (err) {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-/* ======================================================
+/* =====================================================
    GET ALL STUDENTS (ADMIN DASHBOARD)
-====================================================== */
+===================================================== */
 router.get("/students", adminOnly, async (req, res) => {
   try {
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -41,42 +43,69 @@ router.get("/students", adminOnly, async (req, res) => {
     }));
 
     res.json({ students });
-  } catch (e) {
-    console.error("ADMIN STUDENTS ERROR:", e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error("ADMIN students error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-/* ======================================================
-   PROGRAMME-LEVEL PLO (FROM ASSESSMENT_PLO) ✅
+/* =====================================================
+   PROGRAMME-LEVEL PLO (FROM ASSESSMENT_PLO SHEET)
    GET /api/admin/programme-plo?programme=Doctor of Philosophy
-====================================================== */
+===================================================== */
 router.get("/programme-plo", adminOnly, async (req, res) => {
   try {
     const { programme } = req.query;
+
     if (!programme) {
       return res.status(400).json({ error: "Missing programme" });
     }
 
-    /* 1️⃣ Read ASSESSMENT_PLO sheet */
-    const rows = await readAssessmentPLO(process.env.SHEET_ID);
+    /* 1️⃣ Load data */
+    const masterRows = await readMasterTracking(process.env.SHEET_ID);
+    const assessmentRows = await readAssessmentPLO(process.env.SHEET_ID);
 
-    /* 2️⃣ Filter by programme (MUST MATCH SHEET VALUE EXACTLY) */
-    const filtered = rows.filter(r =>
-      (r["Programme"] || "").trim() === programme.trim()
+    /* 2️⃣ Get matric numbers for selected programme */
+    const matricSet = new Set(
+      masterRows
+        .filter(r => r["Programme"] === programme)
+        .map(r => String(r["Matric"]).trim())
+        .filter(Boolean)
+    );
+
+    if (matricSet.size === 0) {
+      return res.json({ plo: {} });
+    }
+
+    /* 3️⃣ Filter assessment rows */
+    const filtered = assessmentRows.filter(r =>
+      matricSet.has(String(r["Matric"]).trim())
     );
 
     if (filtered.length === 0) {
-      return res.json({ plo: null });
+      return res.json({ plo: {} });
     }
 
-    /* 3️⃣ Aggregate programme-level PLO */
-    const programmePLO = aggregateProgrammePLO(filtered);
+    /* 4️⃣ Build per-student FINAL PLO */
+    const studentPLOs = [];
+
+    filtered.forEach(r => {
+      const plo = {};
+      for (let i = 1; i <= 11; i++) {
+        const v = Number(r[`PLO${i}`]);
+        plo[`PLO${i}`] = isNaN(v) ? null : v;
+      }
+      studentPLOs.push(plo);
+    });
+
+    /* 5️⃣ Aggregate programme PLO */
+    const programmePLO = aggregateProgrammePLO(studentPLOs);
 
     res.json({ plo: programmePLO });
-  } catch (e) {
-    console.error("PROGRAMME PLO ERROR:", e);
-    res.status(500).json({ error: e.message });
+
+  } catch (err) {
+    console.error("ADMIN programme-plo error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
