@@ -177,7 +177,14 @@ export default function SupervisorStudentPage() {
                 </h4>
 
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(ploData).map(([plo, d]) => {
+                  {Object.entries(ploData)
+  .sort(([a], [b]) => {
+    const na = parseInt(a.replace("PLO", ""), 10);
+    const nb = parseInt(b.replace("PLO", ""), 10);
+    return na - nb;
+  })
+  .map(([plo, d]) => {
+
                     if (!d || typeof d !== "object") return null;
 
                     const achieved = d.status === "Achieved";
