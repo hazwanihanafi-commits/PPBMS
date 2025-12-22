@@ -225,3 +225,22 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+<div className="flex gap-4 mt-4">
+  <a
+    href={`/admin/student/${encodeURIComponent(s["Student's Email"])}`}
+    className="text-purple-600 font-medium hover:underline"
+  >
+    View Full Student Record →
+  </a>
+
+  <a
+    href={`/admin/programme-plo?programme=${encodeURIComponent(
+      s["Programme"]
+    )}`}
+    className="text-blue-600 font-medium hover:underline"
+  >
+    View Programme PLO →
+  </a>
+</div>
+
