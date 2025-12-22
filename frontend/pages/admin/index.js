@@ -53,7 +53,8 @@ export default function AdminDashboard() {
     }
   }
 
-  async function fetchProgrammePLO() {
+  
+async function fetchProgrammePLO() {
   try {
     const token = localStorage.getItem("ppbms_token");
 
@@ -65,23 +66,26 @@ export default function AdminDashboard() {
     const json = await res.json();
     console.log("Programme PLO RAW:", json);
 
-    const rawProgramme =
-      json.programmes?.[programme] ||
-      Object.values(json.programmes || {})[0];
-
-    if (!rawProgramme) {
+    if (!json.programmes) {
       setProgrammePLO(null);
       return;
     }
 
-    // ✅ CONVERT OBJECT → ARRAY (THIS WAS MISSING)
-    const formatted = Object.entries(rawProgramme).map(
-      ([plo, v]) => ({
-        plo,
-        average: v.average,
-        status: v.status,
-      })
-    );
+    // ✅ ALWAYS TAKE FIRST PROGRAMME (SAFE)
+    const programmeKey = Object.keys(json.programmes)[0];
+    const raw = json.programmes[programmeKey];
+
+    if (!raw) {
+      setProgrammePLO(null);
+      return;
+    }
+
+    // ✅ OBJECT → ARRAY (REQUIRED BY BAR CHART)
+    const formatted = Object.entries(raw).map(([plo, v]) => ({
+      plo,
+      average: v.average,
+      status: v.status,
+    }));
 
     setProgrammePLO(formatted);
   } catch (err) {
@@ -89,6 +93,7 @@ export default function AdminDashboard() {
     setProgrammePLO(null);
   }
 }
+
 
   function applyFilters() {
     let list = [...students];
