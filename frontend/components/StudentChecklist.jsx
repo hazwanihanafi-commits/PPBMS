@@ -54,6 +54,9 @@ export default function StudentChecklist({ initialDocuments = {} }) {
     setInputs((prev) => ({ ...prev, [key]: value }));
   }
 
+  /* =========================
+     SAVE / UPDATE LINK
+  ========================== */
   async function saveLink(doc) {
     const url = inputs[doc.key]?.trim();
     if (!url) return alert("Paste a link first");
@@ -68,7 +71,7 @@ export default function StudentChecklist({ initialDocuments = {} }) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        document_type: doc.label, // 🔑 backend maps label → column
+        document_key: doc.key,   // ✅ KEY, NOT LABEL
         file_url: url,
       }),
     });
@@ -76,10 +79,13 @@ export default function StudentChecklist({ initialDocuments = {} }) {
     setSaving(false);
     if (!res.ok) return alert("Save failed");
 
-    setDocuments((prev) => ({ ...prev, [doc.label]: url }));
+    setDocuments((prev) => ({ ...prev, [doc.key]: url }));
     setInputs((prev) => ({ ...prev, [doc.key]: "" }));
   }
 
+  /* =========================
+     REMOVE LINK
+  ========================== */
   async function removeLink(doc) {
     if (!confirm("Remove this document?")) return;
 
@@ -92,14 +98,14 @@ export default function StudentChecklist({ initialDocuments = {} }) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        document_type: doc.label,
-        file_url: "", // 🔥 clear cell
+        document_key: doc.key,   // ✅ KEY, NOT LABEL
+        file_url: "",            // clear cell
       }),
     });
 
     if (!res.ok) return alert("Remove failed");
 
-    setDocuments((prev) => ({ ...prev, [doc.label]: "" }));
+    setDocuments((prev) => ({ ...prev, [doc.key]: "" }));
   }
 
   let currentSection = "";
@@ -109,13 +115,12 @@ export default function StudentChecklist({ initialDocuments = {} }) {
       <h3 className="text-lg font-semibold">📁 Student Checklist</h3>
 
       {DOCUMENTS.map((doc) => {
-        const savedUrl = documents[doc.label];
+        const savedUrl = documents[doc.key];   // ✅ USE KEY
         const showSection = doc.section !== currentSection;
         currentSection = doc.section;
 
         return (
           <div key={doc.key}>
-            {/* ✅ SECTION HEADER */}
             {showSection && (
               <h4 className="mt-4 mb-2 font-semibold text-purple-700">
                 {doc.section}
