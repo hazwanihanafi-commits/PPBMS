@@ -27,9 +27,19 @@ function adminOnly(req, res, next) {
 ===============================================*/
 router.get("/programme-plo", adminOnly, async (req, res) => {
   try {
+    const { programme } = req.query;
+    if (!programme) {
+      return res.status(400).json({ error: "Missing programme" });
+    }
+
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    if (!rows.length) {
+    // 🔥 IMPORTANT: Programme comes from ASSESSMENT_PLO sheet
+    const filtered = rows.filter(
+      r => (r.programme || "").trim() === programme.trim()
+    );
+
+    if (filtered.length === 0) {
       return res.json({ programmes: {} });
     }
 
@@ -40,7 +50,7 @@ router.get("/programme-plo", adminOnly, async (req, res) => {
       agg[p.toUpperCase()] = { total: 0, count: 0 };
     });
 
-    rows.forEach(r => {
+    filtered.forEach(r => {
       ploKeys.forEach(p => {
         const v = Number(r[p]);
         if (!isNaN(v)) {
@@ -59,10 +69,9 @@ router.get("/programme-plo", adminOnly, async (req, res) => {
       };
     });
 
-    // 🔑 Frontend expects programmes[programmeName]
     res.json({
       programmes: {
-        "Doctor of Philosophy": result, // default for now
+        [programme]: result,
       },
     });
   } catch (err) {
