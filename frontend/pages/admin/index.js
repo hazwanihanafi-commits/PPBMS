@@ -11,7 +11,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ IMPORTANT: use FULL programme names (match Google Sheet)
+  // 🔑 MUST MATCH GOOGLE SHEET PROGRAMME NAME
   const [programme, setProgramme] = useState("Doctor of Philosophy");
   const [programmePLO, setProgrammePLO] = useState(null);
 
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   }, [programme]);
 
   /* =========================
-     FILTER STUDENTS
+     FILTER
   ========================== */
   useEffect(() => {
     applyFilters();
@@ -54,31 +54,32 @@ export default function AdminDashboard() {
   }
 
   async function fetchProgrammePLO() {
-  try {
-    const token = localStorage.getItem("ppbms_token");
+    try {
+      const token = localStorage.getItem("ppbms_token");
 
-    const res = await fetch(
-      `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+      const res = await fetch(
+        `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-    const json = await res.json();
+      const json = await res.json();
 
-    console.log("Programme PLO RAW:", json); // 🔍 DEBUG
+      console.log("Programme PLO RAW:", json);
 
-    if (json.programmes && json.programmes[programme]) {
-      setProgrammePLO(json.programmes[programme]);
-    } else {
+      // ✅ SAFE EXTRACTION (CASE + SPACE SAFE)
+      const programmes = json.programmes || {};
+      const matchedKey = Object.keys(programmes).find(
+        (k) => k.trim().toLowerCase() === programme.trim().toLowerCase()
+      );
+
+      setProgrammePLO(matchedKey ? programmes[matchedKey] : null);
+    } catch (e) {
+      console.error("Programme PLO error:", e);
       setProgrammePLO(null);
     }
-  } catch (e) {
-    console.error("Programme PLO error:", e);
-    setProgrammePLO(null);
   }
-}
-
 
   function applyFilters() {
     let list = [...students];
@@ -96,10 +97,22 @@ export default function AdminDashboard() {
 
   function riskBadge(progress) {
     if (progress < 50)
-      return <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">At Risk</span>;
+      return (
+        <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">
+          At Risk
+        </span>
+      );
     if (progress < 80)
-      return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">Slightly Late</span>;
-    return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">On Track</span>;
+      return (
+        <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
+          Slightly Late
+        </span>
+      );
+    return (
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+        On Track
+      </span>
+    );
   }
 
   function progressBarColor(progress) {
@@ -156,9 +169,7 @@ export default function AdminDashboard() {
 
       {loading && <p>Loading students…</p>}
 
-      {/* =========================
-          STUDENT CARDS
-      ========================== */}
+      {/* STUDENT CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => (
           <div key={st.email} className="bg-white p-6 rounded-2xl shadow">
@@ -167,8 +178,12 @@ export default function AdminDashboard() {
               {riskBadge(st.progressPercent)}
             </div>
 
-            <p><strong>Email:</strong> {st.email}</p>
-            <p><strong>Programme:</strong> {st.programme}</p>
+            <p>
+              <strong>Email:</strong> {st.email}
+            </p>
+            <p>
+              <strong>Programme:</strong> {st.programme}
+            </p>
 
             <div className="mt-3">
               <div className="flex justify-between text-sm">
@@ -177,7 +192,9 @@ export default function AdminDashboard() {
               </div>
               <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                 <div
-                  className={`h-2 rounded-full ${progressBarColor(st.progressPercent)}`}
+                  className={`h-2 rounded-full ${progressBarColor(
+                    st.progressPercent
+                  )}`}
                   style={{ width: `${st.progressPercent}%` }}
                 />
               </div>
