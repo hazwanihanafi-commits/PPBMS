@@ -1,35 +1,31 @@
-export function aggregateProgrammePLO(studentFinalPLOs = []) {
-  const result = {};
+export function aggregateProgrammePLO(rows) {
+  const ploKeys = Array.from({ length: 11 }, (_, i) => `PLO${i + 1}`);
 
-  studentFinalPLOs.forEach(finalPLO => {
-    Object.entries(finalPLO || {}).forEach(([plo, d]) => {
-      if (!d || d.average == null) return;
+  const acc = {};
+  ploKeys.forEach(p => {
+    acc[p] = { total: 0, count: 0 };
+  });
 
-      if (!result[plo]) {
-        result[plo] = {
-          total: d.average,
-          count: 1,
-          status: d.status
-        };
-      } else {
-        result[plo].total += d.average;
-        result[plo].count += 1;
-
-        // If ANY student requires CQI → programme CQI Required
-        if (d.status === "CQI Required") {
-          result[plo].status = "CQI Required";
-        }
+  rows.forEach(r => {
+    ploKeys.forEach(p => {
+      const v = Number(r[p]);
+      if (!isNaN(v)) {
+        acc[p].total += v;
+        acc[p].count += 1;
       }
     });
   });
 
-  // Finalise averages
-  Object.keys(result).forEach(plo => {
-    result[plo].average = Number(
-      (result[plo].total / result[plo].count).toFixed(2)
-    );
-    delete result[plo].total;
-    delete result[plo].count;
+  const result = {};
+  ploKeys.forEach(p => {
+    const avg = acc[p].count
+      ? +(acc[p].total / acc[p].count).toFixed(2)
+      : null;
+
+    result[p] = {
+      average: avg,
+      status: avg !== null && avg >= 3 ? "Achieved" : "CQI Required",
+    };
   });
 
   return result;
