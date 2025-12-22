@@ -11,8 +11,8 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // programme-level PLO summary (admin only)
-  const [programme, setProgramme] = useState("phd");
+  // ✅ MUST MATCH BACKEND VALUES
+  const [programme, setProgramme] = useState("Doctor of Philosophy");
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
@@ -26,9 +26,6 @@ export default function AdminDashboard() {
     applyFilters();
   }, [search, students]);
 
-  /* =========================
-     LOAD PROGRAMME PLO
-  ========================== */
   useEffect(() => {
     fetchProgrammePLO();
   }, [programme]);
@@ -50,11 +47,16 @@ export default function AdminDashboard() {
     }
   }
 
+  /* =========================
+     LOAD PROGRAMME PLO (ADMIN)
+  ========================== */
   async function fetchProgrammePLO() {
     try {
       const token = localStorage.getItem("ppbms_token");
       const res = await fetch(
-        `${API_BASE}/api/admin/programme-plo?programme=${programme}`,
+        `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
+          programme
+        )}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -71,6 +73,7 @@ export default function AdminDashboard() {
   ========================== */
   function applyFilters() {
     let list = [...students];
+
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
@@ -80,6 +83,7 @@ export default function AdminDashboard() {
           st.programme?.toLowerCase().includes(s)
       );
     }
+
     setFiltered(list);
   }
 
@@ -88,10 +92,22 @@ export default function AdminDashboard() {
   ========================== */
   function riskBadge(progress) {
     if (progress < 50)
-      return <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">At Risk</span>;
+      return (
+        <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">
+          At Risk
+        </span>
+      );
     if (progress < 80)
-      return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">Slightly Late</span>;
-    return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">On Track</span>;
+      return (
+        <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
+          Slightly Late
+        </span>
+      );
+    return (
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+        On Track
+      </span>
+    );
   }
 
   function progressBarColor(progress) {
@@ -110,7 +126,7 @@ export default function AdminDashboard() {
       </h1>
 
       {/* =========================
-          PROGRAMME PLO (ADMIN ONLY)
+          PROGRAMME-LEVEL PLO (ADMIN ONLY)
       ========================== */}
       <div className="bg-white rounded-2xl shadow p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
@@ -123,8 +139,8 @@ export default function AdminDashboard() {
             onChange={(e) => setProgramme(e.target.value)}
             className="border px-3 py-1 rounded"
           >
-            <option value="phd">PhD</option>
-            <option value="msc">MSc</option>
+            <option value="Doctor of Philosophy">PhD</option>
+            <option value="Master of Science">MSc</option>
           </select>
         </div>
 
@@ -153,21 +169,25 @@ export default function AdminDashboard() {
       ========================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => {
-          const progCode =
-            st.programme?.toLowerCase().includes("phd") ? "phd" : "msc";
+          // ✅ BACKEND-COMPATIBLE PROGRAMME NAME
+          const programmeName =
+            st.programme?.toLowerCase().includes("phd")
+              ? "Doctor of Philosophy"
+              : "Master of Science";
 
           return (
-            <div
-              key={st.email}
-              className="bg-white p-6 rounded-2xl shadow"
-            >
+            <div key={st.email} className="bg-white p-6 rounded-2xl shadow">
               <div className="flex justify-between mb-2">
                 <h2 className="font-bold uppercase">{st.name}</h2>
                 {riskBadge(st.progressPercent)}
               </div>
 
-              <p><strong>Email:</strong> {st.email}</p>
-              <p><strong>Programme:</strong> {st.programme}</p>
+              <p>
+                <strong>Email:</strong> {st.email}
+              </p>
+              <p>
+                <strong>Programme:</strong> {st.programme}
+              </p>
 
               <div className="mt-3">
                 <div className="flex justify-between text-sm">
@@ -176,7 +196,9 @@ export default function AdminDashboard() {
                 </div>
                 <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                   <div
-                    className={`h-2 rounded-full ${progressBarColor(st.progressPercent)}`}
+                    className={`h-2 rounded-full ${progressBarColor(
+                      st.progressPercent
+                    )}`}
                     style={{ width: `${st.progressPercent}%` }}
                   />
                 </div>
@@ -186,7 +208,9 @@ export default function AdminDashboard() {
               <div className="flex gap-4 mt-4">
                 <button
                   onClick={() =>
-                    router.push(`/supervisor/${encodeURIComponent(st.email)}`)
+                    router.push(
+                      `/supervisor/${encodeURIComponent(st.email)}`
+                    )
                   }
                   className="text-purple-700 font-semibold hover:underline"
                 >
@@ -195,7 +219,11 @@ export default function AdminDashboard() {
 
                 <button
                   onClick={() =>
-                    router.push(`/admin/programme-plo?programme=${progCode}`)
+                    router.push(
+                      `/admin/programme-plo?programme=${encodeURIComponent(
+                        programmeName
+                      )}`
+                    )
                   }
                   className="text-blue-700 font-semibold hover:underline"
                 >
