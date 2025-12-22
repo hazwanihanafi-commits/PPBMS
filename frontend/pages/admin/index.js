@@ -157,13 +157,12 @@ export default function AdminDashboard() {
       {/* =========================
           STUDENT CARDS
       ========================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => (
           <div
             key={st.email}
             className="bg-white p-6 rounded-2xl shadow border border-gray-100"
           >
-            {/* HEADER */}
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-lg font-bold text-gray-900 uppercase">
                 {st.name}
@@ -183,13 +182,6 @@ export default function AdminDashboard() {
               <strong>Status:</strong> {st.status || "Active"}
             </p>
 
-            {st.coSupervisors && (
-              <p className="text-sm text-gray-700 mt-1">
-                <strong>Co-Supervisor(s):</strong> {st.coSupervisors}
-              </p>
-            )}
-
-            {/* PROGRESS */}
             <div className="mt-4">
               <div className="flex justify-between text-sm font-semibold">
                 <span>Overall Progress</span>
@@ -206,7 +198,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* ACTION BUTTONS */}
             <div className="flex gap-4 mt-4">
               <button
                 onClick={() =>
@@ -230,3 +221,10 @@ export default function AdminDashboard() {
                 View Programme PLO →
               </button>
             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+/div>
