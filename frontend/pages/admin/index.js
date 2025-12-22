@@ -11,77 +11,67 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ default programme for dashboard summary
-  const [programme, setProgramme] = useState("Doctor of Philosophy");
+  // programme-level PLO summary (admin only)
+  const [programme, setProgramme] = useState("phd");
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
-     LOAD DATA
+     LOAD STUDENTS
   ========================== */
   useEffect(() => {
     loadStudents();
   }, []);
 
   useEffect(() => {
-    fetchProgrammePLO();
-  }, [programme]);
-
-  useEffect(() => {
     applyFilters();
   }, [search, students]);
 
   /* =========================
-     FETCH STUDENTS
+     LOAD PROGRAMME PLO
   ========================== */
+  useEffect(() => {
+    fetchProgrammePLO();
+  }, [programme]);
+
   async function loadStudents() {
-    setLoading(true);
     try {
+      const token = localStorage.getItem("ppbms_token");
       const res = await fetch(`${API_BASE}/api/supervisor/students`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const json = await res.json();
       setStudents(json.students || []);
     } catch (e) {
-      console.error("Admin load students error:", e);
+      console.error("Load students error:", e);
       setStudents([]);
     } finally {
       setLoading(false);
     }
   }
 
-  /* =========================
-     FETCH PROGRAMME PLO (SUMMARY)
-  ========================== */
   async function fetchProgrammePLO() {
     try {
       const token = localStorage.getItem("ppbms_token");
-      const params = new URLSearchParams({ programme });
-
       const res = await fetch(
-        `${API_BASE}/api/admin/programme-plo?${params.toString()}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${API_BASE}/api/admin/programme-plo?programme=${programme}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const data = await res.json();
-      setProgrammePLO(data.plo || null);
+      const json = await res.json();
+      setProgrammePLO(json.plo || null);
     } catch (e) {
-      console.error("Programme PLO load error:", e);
+      console.error("Programme PLO error:", e);
       setProgrammePLO(null);
     }
   }
 
   /* =========================
-     FILTERING
+     FILTER
   ========================== */
   function applyFilters() {
     let list = [...students];
-
-    if (search.trim() !== "") {
+    if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
         (st) =>
@@ -90,7 +80,6 @@ export default function AdminDashboard() {
           st.programme?.toLowerCase().includes(s)
       );
     }
-
     setFiltered(list);
   }
 
@@ -99,10 +88,10 @@ export default function AdminDashboard() {
   ========================== */
   function riskBadge(progress) {
     if (progress < 50)
-      return <span className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-full">At Risk</span>;
+      return <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">At Risk</span>;
     if (progress < 80)
-      return <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Slightly Late</span>;
-    return <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">On Track</span>;
+      return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">Slightly Late</span>;
+    return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">On Track</span>;
   }
 
   function progressBarColor(progress) {
@@ -121,29 +110,32 @@ export default function AdminDashboard() {
       </h1>
 
       {/* =========================
-          PROGRAMME-LEVEL PLO CQI
+          PROGRAMME PLO (ADMIN ONLY)
       ========================== */}
-      {programmePLO && (
-        <div className="bg-white rounded-2xl shadow p-6 mb-10">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">
-              📊 Programme-level PLO Attainment (CQI)
-            </h2>
+      <div className="bg-white rounded-2xl shadow p-6 mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">
+            📊 Programme-level PLO Attainment (CQI)
+          </h2>
 
-            <select
-              value={programme}
-              onChange={(e) => setProgramme(e.target.value)}
-              className="border rounded px-3 py-1"
-            >
-              <option value="Doctor of Philosophy">PhD</option>
-              <option value="Master of Science">MSc</option>
-            </select>
-          </div>
-
-          {/* ✅ FIXED PROP */}
-          <ProgrammePLOBarChart programmePLO={programmePLO} />
+          <select
+            value={programme}
+            onChange={(e) => setProgramme(e.target.value)}
+            className="border px-3 py-1 rounded"
+          >
+            <option value="phd">PhD</option>
+            <option value="msc">MSc</option>
+          </select>
         </div>
-      )}
+
+        {programmePLO ? (
+          <ProgrammePLOBarChart programmePLO={programmePLO} />
+        ) : (
+          <p className="text-sm italic text-gray-500">
+            No programme-level PLO data available.
+          </p>
+        )}
+      </div>
 
       {/* SEARCH */}
       <input
@@ -156,52 +148,63 @@ export default function AdminDashboard() {
 
       {loading && <p>Loading students…</p>}
 
-      {/* STUDENT CARDS */}
+      {/* =========================
+          STUDENT CARDS
+      ========================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filtered.map((st) => (
-          <div key={st.email} className="bg-white p-6 rounded-2xl shadow">
-            <div className="flex justify-between mb-2">
-              <h2 className="font-bold uppercase">{st.name}</h2>
-              {riskBadge(st.progressPercent)}
-            </div>
+        {filtered.map((st) => {
+          const progCode =
+            st.programme?.toLowerCase().includes("phd") ? "phd" : "msc";
 
-            <p><strong>Email:</strong> {st.email}</p>
-            <p><strong>Programme:</strong> {st.programme}</p>
-
-            <div className="mt-3">
-              <div className="flex justify-between text-sm">
-                <span>Overall Progress</span>
-                <span>{st.progressPercent}%</span>
+          return (
+            <div
+              key={st.email}
+              className="bg-white p-6 rounded-2xl shadow"
+            >
+              <div className="flex justify-between mb-2">
+                <h2 className="font-bold uppercase">{st.name}</h2>
+                {riskBadge(st.progressPercent)}
               </div>
-              <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
-                <div
-                  className={`h-2 rounded-full ${progressBarColor(st.progressPercent)}`}
-                  style={{ width: `${st.progressPercent}%` }}
-                />
+
+              <p><strong>Email:</strong> {st.email}</p>
+              <p><strong>Programme:</strong> {st.programme}</p>
+
+              <div className="mt-3">
+                <div className="flex justify-between text-sm">
+                  <span>Overall Progress</span>
+                  <span>{st.progressPercent}%</span>
+                </div>
+                <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
+                  <div
+                    className={`h-2 rounded-full ${progressBarColor(st.progressPercent)}`}
+                    style={{ width: `${st.progressPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* ✅ ADMIN-ONLY LINKS */}
+              <div className="flex gap-4 mt-4">
+                <button
+                  onClick={() =>
+                    router.push(`/supervisor/${encodeURIComponent(st.email)}`)
+                  }
+                  className="text-purple-700 font-semibold hover:underline"
+                >
+                  View Full Student Record →
+                </button>
+
+                <button
+                  onClick={() =>
+                    router.push(`/admin/programme-plo?programme=${progCode}`)
+                  }
+                  className="text-blue-700 font-semibold hover:underline"
+                >
+                  View Programme PLO →
+                </button>
               </div>
             </div>
-
-            <div className="flex gap-4 mt-4">
-              <button
-                onClick={() => router.push(`/supervisor/${encodeURIComponent(st.email)}`)}
-                className="text-purple-700 font-semibold hover:underline"
-              >
-                View Full Student Record →
-              </button>
-
-              <button
-                onClick={() =>
-                  router.push(
-                    `/admin/programme-plo?programme=${encodeURIComponent(st.programme)}`
-                  )
-                }
-                className="text-blue-700 font-semibold hover:underline"
-              >
-                View Programme PLO →
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
