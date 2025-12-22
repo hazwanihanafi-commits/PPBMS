@@ -1,5 +1,6 @@
 // frontend/utils/api.js
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE || "https://ppbms.onrender.com";
 
 export async function apiGet(path) {
   const token = localStorage.getItem("ppbms_token") || "";
