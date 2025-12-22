@@ -7,6 +7,14 @@ export default function FinalPLOTable({ finalPLO }) {
     );
   }
 
+  // 🔑 SORT PLO NUMERICALLY (THIS IS THE MISSING PIECE)
+  const sortedFinalPLO = Object.entries(finalPLO)
+    .sort(([a], [b]) => {
+      const na = parseInt(a.replace("PLO", ""), 10);
+      const nb = parseInt(b.replace("PLO", ""), 10);
+      return na - nb;
+    });
+
   return (
     <div className="bg-white rounded-2xl p-6 shadow">
       <h3 className="font-bold mb-4">
@@ -23,11 +31,10 @@ export default function FinalPLOTable({ finalPLO }) {
         </thead>
 
         <tbody>
-          {Object.entries(finalPLO).map(([plo, d]) => (
+          {sortedFinalPLO.map(([plo, d]) => (
             <tr key={plo} className="border-t">
               <td className="p-3 font-semibold">{plo}</td>
 
-              {/* ✅ THIS FIXES YOUR MISSING AVERAGE */}
               <td className="p-3 text-center">
                 {d?.average !== null && d?.average !== undefined
                   ? d.average
