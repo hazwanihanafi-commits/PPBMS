@@ -66,10 +66,13 @@ export default function AdminDashboard() {
 
     const json = await res.json();
 
-    // ✅ CORRECT DATA EXTRACTION
-    const data = json.programmes?.[programme] || null;
+    console.log("Programme PLO RAW:", json); // 🔍 DEBUG
 
-    setProgrammePLO(data);
+    if (json.programmes && json.programmes[programme]) {
+      setProgrammePLO(json.programmes[programme]);
+    } else {
+      setProgrammePLO(null);
+    }
   } catch (e) {
     console.error("Programme PLO error:", e);
     setProgrammePLO(null);
