@@ -1,31 +1,24 @@
-export function aggregateProgrammePLO(rows) {
-  const ploKeys = Array.from({ length: 11 }, (_, i) => `PLO${i + 1}`);
-
+export function aggregateProgrammePLO(students = []) {
   const acc = {};
-  ploKeys.forEach(p => {
-    acc[p] = { total: 0, count: 0 };
-  });
 
-  rows.forEach(r => {
-    ploKeys.forEach(p => {
-      const v = Number(r[p]);
-      if (!isNaN(v)) {
-        acc[p].total += v;
-        acc[p].count += 1;
+  students.forEach(st => {
+    const finalPLO = st.finalPLO || {};
+
+    Object.entries(finalPLO).forEach(([plo, d]) => {
+      if (!d || d.average == null) return;
+
+      if (!acc[plo]) {
+        acc[plo] = { total: 0, count: 0 };
       }
+
+      acc[plo].total += Number(d.average);
+      acc[plo].count += 1;
     });
   });
 
   const result = {};
-  ploKeys.forEach(p => {
-    const avg = acc[p].count
-      ? +(acc[p].total / acc[p].count).toFixed(2)
-      : null;
-
-    result[p] = {
-      average: avg,
-      status: avg !== null && avg >= 3 ? "Achieved" : "CQI Required",
-    };
+  Object.entries(acc).forEach(([plo, v]) => {
+    result[plo] = Number((v.total / v.count).toFixed(2));
   });
 
   return result;
