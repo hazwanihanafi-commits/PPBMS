@@ -2,70 +2,45 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import {
   readMasterTracking,
-  readAssessmentPLO,
+  readASSESSMENT_PLO   // ✅ EXACT NAME
 } from "../services/googleSheets.js";
 import { aggregateProgrammePLO } from "../utils/programmePLOAggregate.js";
 
 const router = express.Router();
 
-/* =====================================================
-   ADMIN AUTH MIDDLEWARE
-===================================================== */
+/* ================= ADMIN AUTH ================= */
 function adminOnly(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Missing token" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== "admin") {
+    const data = jwt.verify(token, process.env.JWT_SECRET);
+    if (data.role !== "admin") {
       return res.status(403).json({ error: "Admin only" });
     }
-    req.user = decoded;
+    req.user = data;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-/* =====================================================
-   GET ALL STUDENTS (ADMIN DASHBOARD)
-===================================================== */
-router.get("/students", adminOnly, async (req, res) => {
-  try {
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const students = rows.map(r => ({
-      name: r["Student Name"],
-      email: r["Student's Email"],
-      programme: r["Programme"],
-      status: r["Status"] || "Active",
-      progressPercent: Number(r["Progress %"] || 0),
-    }));
-
-    res.json({ students });
-  } catch (err) {
-    console.error("ADMIN students error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* =====================================================
-   PROGRAMME-LEVEL PLO (FROM ASSESSMENT_PLO SHEET)
-   GET /api/admin/programme-plo?programme=Doctor of Philosophy
-===================================================== */
+/* =========================================================
+   GET PROGRAMME-LEVEL PLO (FROM ASSESSMENT_PLO)
+   /api/admin/programme-plo?programme=Doctor of Philosophy
+========================================================= */
 router.get("/programme-plo", adminOnly, async (req, res) => {
   try {
     const { programme } = req.query;
-
     if (!programme) {
       return res.status(400).json({ error: "Missing programme" });
     }
 
-    /* 1️⃣ Load data */
+    // 1️⃣ Load sheets
     const masterRows = await readMasterTracking(process.env.SHEET_ID);
-    const assessmentRows = await readAssessmentPLO(process.env.SHEET_ID);
+    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    /* 2️⃣ Get matric numbers for selected programme */
+    // 2️⃣ Get matric list for selected programme
     const matricSet = new Set(
       masterRows
         .filter(r => r["Programme"] === programme)
@@ -77,28 +52,27 @@ router.get("/programme-plo", adminOnly, async (req, res) => {
       return res.json({ plo: {} });
     }
 
-    /* 3️⃣ Filter assessment rows */
+    // 3️⃣ Filter assessment rows
     const filtered = assessmentRows.filter(r =>
-      matricSet.has(String(r["Matric"]).trim())
+      matricSet.has(String(r.matric).trim())
     );
 
     if (filtered.length === 0) {
       return res.json({ plo: {} });
     }
 
-    /* 4️⃣ Build per-student FINAL PLO */
-    const studentPLOs = [];
-
-    filtered.forEach(r => {
+    // 4️⃣ Build per-student PLO vectors
+    const studentPLOs = filtered.map(r => {
       const plo = {};
       for (let i = 1; i <= 11; i++) {
-        const v = Number(r[`PLO${i}`]);
-        plo[`PLO${i}`] = isNaN(v) ? null : v;
+        const key = `plo${i}`;
+        const v = r[key];
+        plo[`PLO${i}`] = typeof v === "number" ? v : null;
       }
-      studentPLOs.push(plo);
+      return plo;
     });
 
-    /* 5️⃣ Aggregate programme PLO */
+    // 5️⃣ Aggregate to programme level
     const programmePLO = aggregateProgrammePLO(studentPLOs);
 
     res.json({ plo: programmePLO });
