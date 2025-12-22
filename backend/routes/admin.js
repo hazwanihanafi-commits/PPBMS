@@ -213,56 +213,46 @@ router.get("/plo/programme", adminOnly, async (req, res) => {
 ===============================================*/
 router.get("/programme-plo", adminOnly, async (req, res) => {
   try {
-    const { programme, cohort, status } = req.query;
-
     const rows = await readMasterTracking(process.env.SHEET_ID);
-    const norm = (v) => (v || "").toString().trim();
 
-    const filtered = rows.filter(r => {
-      if (programme && norm(r["Programme"]) !== programme) return false;
-      if (cohort && norm(r["Intake Year"]) !== cohort) return false;
-      if (status && norm(r["Status"]) !== status) return false;
-      return true;
-    });
+    const programmes = {};
+    const ploKeys = ["PLO1","PLO2","PLO3","PLO4","PLO5","PLO6","PLO7","PLO8","PLO9","PLO10","PLO11"];
 
-    const ploKeys = ["PLO1","PLO2","PLO3","PLO4","PLO5","PLO6","PLO7","PLO8"];
-    const totals = {};
-    const counts = {};
+    rows.forEach(r => {
+      const programme = (r["Programme"] || "").trim();
+      if (!programme) return;
 
-    ploKeys.forEach(p => {
-      totals[p] = 0;
-      counts[p] = 0;
-    });
+      if (!programmes[programme]) {
+        programmes[programme] = {};
+        ploKeys.forEach(p => {
+          programmes[programme][p] = { total: 0, count: 0 };
+        });
+      }
 
-    filtered.forEach(r => {
       ploKeys.forEach(p => {
         const v = Number(r[p]);
         if (!isNaN(v)) {
-          totals[p] += v;
-          counts[p]++;
+          programmes[programme][p].total += v;
+          programmes[programme][p].count += 1;
         }
       });
     });
 
-    const plo = ploKeys.map(p => ({
-      plo: p,
-      average: counts[p] ? +(totals[p] / counts[p]).toFixed(1) : 0
-    }));
-
-    const benchmark = 70;
-    const achieved = plo.filter(p => p.average >= benchmark).length;
-
-    res.json({
-      summary: {
-        students: filtered.length,
-        achieved,
-        atRisk: plo.length - achieved
-      },
-      plo
+    const result = {};
+    Object.entries(programmes).forEach(([prog, plo]) => {
+      result[prog] = {};
+      Object.entries(plo).forEach(([p, o]) => {
+        const avg = o.count ? +(o.total / o.count).toFixed(2) : 0;
+        result[prog][p] = {
+          average: avg,
+          status: avg >= 3 ? "Achieved" : "At Risk"
+        };
+      });
     });
 
+    res.json({ programmes: result });
   } catch (err) {
-    console.error("ADMIN PROGRAMME PLO ERROR:", err);
+    console.error("PROGRAMME PLO ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
