@@ -6,28 +6,32 @@ import ProgrammePLOBarChart from "../../components/ProgrammePLOBarChart";
 export default function AdminDashboard() {
   const router = useRouter();
 
-  /* =========================
-     STATE
-  ========================= */
   const [students, setStudents] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ Programme-level PLO (CQI)
+  // 🔥 Programme PLO
+  const [programme, setProgramme] = useState("Doctor of Philosophy");
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
-     LOAD DATA
+     LOAD STUDENTS
   ========================= */
   useEffect(() => {
     loadStudents();
-    loadProgrammePLO();
   }, []);
 
   useEffect(() => {
     applyFilters();
   }, [search, students]);
+
+  /* =========================
+     LOAD PROGRAMME PLO
+  ========================= */
+  useEffect(() => {
+    fetchProgrammePLO();
+  }, [programme]);
 
   async function loadStudents() {
     setLoading(true);
@@ -39,26 +43,33 @@ export default function AdminDashboard() {
       });
 
       const json = await res.json();
-      setStudents(res.ok ? json.students || [] : []);
+      setStudents(json.students || []);
     } catch (e) {
-      console.error("Admin load students error:", e);
+      console.error("Load students error:", e);
       setStudents([]);
     }
     setLoading(false);
   }
 
-  async function loadProgrammePLO() {
+  async function fetchProgrammePLO() {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/plo/programme`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
-      });
+      const res = await fetch(
+        `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
+          programme
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+          },
+        }
+      );
 
-      const json = await res.json();
-      setProgrammePLO(json.programmePLO || null);
+      const data = await res.json();
+
+      // ✅ EXACT BACKEND SHAPE
+      setProgrammePLO(data.programmes?.[programme] || null);
     } catch (e) {
-      console.error("Load programme PLO error:", e);
+      console.error("Programme PLO error:", e);
       setProgrammePLO(null);
     }
   }
@@ -70,16 +81,12 @@ export default function AdminDashboard() {
       list = list.filter(
         (st) =>
           st.name?.toLowerCase().includes(s) ||
-          st.email?.toLowerCase().includes(s) ||
-          st.programme?.toLowerCase().includes(s)
+          st.email?.toLowerCase().includes(s)
       );
     }
     setFiltered(list);
   }
 
-  /* =========================
-     UI HELPERS
-  ========================= */
   function riskBadge(progress) {
     if (progress < 50)
       return (
@@ -100,88 +107,74 @@ export default function AdminDashboard() {
     );
   }
 
-  function progressBarColor(progress) {
-    if (progress < 50) return "bg-red-500";
-    if (progress < 80) return "bg-yellow-500";
+  function progressColor(p) {
+    if (p < 50) return "bg-red-500";
+    if (p < 80) return "bg-yellow-500";
     return "bg-green-500";
   }
 
-  /* =========================
-     RENDER
-  ========================= */
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
+    <div className="min-h-screen bg-purple-50 p-6">
       <h1 className="text-3xl font-extrabold text-purple-900 mb-6">
         Admin Dashboard – All Students
       </h1>
 
       {/* =========================
-          PROGRAMME-LEVEL PLO (CQI)
+          PROGRAMME PLO BAR
       ========================= */}
-      {programmePLO && (
-        <div className="mb-10">
-          <ProgrammePLOBarChart data={programmePLO} />
-        </div>
-      )}
+      <div className="bg-white rounded-2xl shadow p-6 mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold text-purple-900">
+            📊 Programme-level PLO Attainment (CQI)
+          </h2>
 
-      {/* SEARCH */}
-      <div className="flex gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Search student…"
-          className="flex-1 p-3 border rounded-xl bg-white"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+          <select
+            value={programme}
+            onChange={(e) => setProgramme(e.target.value)}
+            className="border rounded-lg px-3 py-1 text-sm"
+          >
+            <option>Doctor of Philosophy</option>
+            <option>Master of Science</option>
+          </select>
+        </div>
+
+        <ProgrammePLOBarChart data={programmePLO} />
       </div>
 
-      {loading && <p className="text-gray-600">Loading students…</p>}
+      {/* SEARCH */}
+      <input
+        type="text"
+        placeholder="Search student…"
+        className="w-full mb-6 p-3 border rounded-xl bg-white"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-      {/* =========================
-          STUDENT CARDS
-      ========================= */}
+      {loading && <p>Loading…</p>}
+
+      {/* STUDENTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((st) => (
           <div
             key={st.email}
-            className="bg-white p-6 rounded-2xl shadow border border-gray-100"
+            className="bg-white p-6 rounded-2xl shadow"
           >
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-bold text-gray-900 uppercase">
-                {st.name}
-              </h2>
+            <div className="flex justify-between mb-2">
+              <h2 className="font-bold">{st.name}</h2>
               {riskBadge(st.progressPercent)}
             </div>
 
-            <p className="text-sm text-gray-700">
-              <strong>Email:</strong> {st.email}
-            </p>
+            <p className="text-sm"><strong>Email:</strong> {st.email}</p>
+            <p className="text-sm"><strong>Programme:</strong> {st.programme}</p>
 
-            <p className="text-sm text-gray-700">
-              <strong>Programme:</strong> {st.programme}
-            </p>
-
-            <p className="text-sm text-gray-700">
-              <strong>Status:</strong> {st.status || "Active"}
-            </p>
-
-            {st.cosupervisors && (
-              <p className="text-sm text-gray-700 mt-1">
-                <strong>Co-Supervisor(s):</strong> {st.cosupervisors}
-              </p>
-            )}
-
-            {/* PROGRESS */}
             <div className="mt-4">
               <div className="flex justify-between text-sm font-semibold">
                 <span>Overall Progress</span>
                 <span>{st.progressPercent}%</span>
               </div>
-
               <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                 <div
-                  className={`h-2 rounded-full ${progressBarColor(
+                  className={`h-2 rounded-full ${progressColor(
                     st.progressPercent
                   )}`}
                   style={{ width: `${st.progressPercent}%` }}
@@ -189,7 +182,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* LINK */}
             <button
               onClick={() =>
                 router.push(`/supervisor/${encodeURIComponent(st.email)}`)
