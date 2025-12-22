@@ -137,9 +137,12 @@ router.post("/save-document", auth, async (req, res) => {
   try {
     const { document_key, file_url } = req.body;
 
-    if (!document_key) {
-      return res.status(400).json({ error: "Missing document key" });
-    }
+    if (!document_type)
+  return res.status(400).json({ error: "Missing document type" });
+
+if (file_url === undefined || file_url === null)
+  return res.status(400).json({ error: "Missing file_url" });
+
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
