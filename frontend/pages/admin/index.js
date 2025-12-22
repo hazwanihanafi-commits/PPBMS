@@ -11,7 +11,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ MUST MATCH BACKEND VALUES
+  // ✅ IMPORTANT: use FULL programme names (match Google Sheet)
   const [programme, setProgramme] = useState("Doctor of Philosophy");
   const [programmePLO, setProgrammePLO] = useState(null);
 
@@ -22,13 +22,19 @@ export default function AdminDashboard() {
     loadStudents();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [search, students]);
-
+  /* =========================
+     LOAD PROGRAMME PLO
+  ========================== */
   useEffect(() => {
     fetchProgrammePLO();
   }, [programme]);
+
+  /* =========================
+     FILTER STUDENTS
+  ========================== */
+  useEffect(() => {
+    applyFilters();
+  }, [search, students]);
 
   async function loadStudents() {
     try {
@@ -47,12 +53,10 @@ export default function AdminDashboard() {
     }
   }
 
-  /* =========================
-     LOAD PROGRAMME PLO (ADMIN)
-  ========================== */
   async function fetchProgrammePLO() {
     try {
       const token = localStorage.getItem("ppbms_token");
+
       const res = await fetch(
         `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
           programme
@@ -68,12 +72,8 @@ export default function AdminDashboard() {
     }
   }
 
-  /* =========================
-     FILTER
-  ========================== */
   function applyFilters() {
     let list = [...students];
-
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
@@ -83,31 +83,15 @@ export default function AdminDashboard() {
           st.programme?.toLowerCase().includes(s)
       );
     }
-
     setFiltered(list);
   }
 
-  /* =========================
-     UI HELPERS
-  ========================== */
   function riskBadge(progress) {
     if (progress < 50)
-      return (
-        <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">
-          At Risk
-        </span>
-      );
+      return <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">At Risk</span>;
     if (progress < 80)
-      return (
-        <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
-          Slightly Late
-        </span>
-      );
-    return (
-      <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-        On Track
-      </span>
-    );
+      return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">Slightly Late</span>;
+    return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">On Track</span>;
   }
 
   function progressBarColor(progress) {
@@ -126,7 +110,7 @@ export default function AdminDashboard() {
       </h1>
 
       {/* =========================
-          PROGRAMME-LEVEL PLO (ADMIN ONLY)
+          PROGRAMME-LEVEL PLO (CQI)
       ========================== */}
       <div className="bg-white rounded-2xl shadow p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
@@ -168,71 +152,41 @@ export default function AdminDashboard() {
           STUDENT CARDS
       ========================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filtered.map((st) => {
-          // ✅ BACKEND-COMPATIBLE PROGRAMME NAME
-          const programmeName =
-            st.programme?.toLowerCase().includes("phd")
-              ? "Doctor of Philosophy"
-              : "Master of Science";
+        {filtered.map((st) => (
+          <div key={st.email} className="bg-white p-6 rounded-2xl shadow">
+            <div className="flex justify-between mb-2">
+              <h2 className="font-bold uppercase">{st.name}</h2>
+              {riskBadge(st.progressPercent)}
+            </div>
 
-          return (
-            <div key={st.email} className="bg-white p-6 rounded-2xl shadow">
-              <div className="flex justify-between mb-2">
-                <h2 className="font-bold uppercase">{st.name}</h2>
-                {riskBadge(st.progressPercent)}
+            <p><strong>Email:</strong> {st.email}</p>
+            <p><strong>Programme:</strong> {st.programme}</p>
+
+            <div className="mt-3">
+              <div className="flex justify-between text-sm">
+                <span>Overall Progress</span>
+                <span>{st.progressPercent}%</span>
               </div>
-
-              <p>
-                <strong>Email:</strong> {st.email}
-              </p>
-              <p>
-                <strong>Programme:</strong> {st.programme}
-              </p>
-
-              <div className="mt-3">
-                <div className="flex justify-between text-sm">
-                  <span>Overall Progress</span>
-                  <span>{st.progressPercent}%</span>
-                </div>
-                <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
-                  <div
-                    className={`h-2 rounded-full ${progressBarColor(
-                      st.progressPercent
-                    )}`}
-                    style={{ width: `${st.progressPercent}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* ✅ ADMIN-ONLY LINKS */}
-              <div className="flex gap-4 mt-4">
-                <button
-                  onClick={() =>
-                    router.push(
-                      `/supervisor/${encodeURIComponent(st.email)}`
-                    )
-                  }
-                  className="text-purple-700 font-semibold hover:underline"
-                >
-                  View Full Student Record →
-                </button>
-
-                <button
-                  onClick={() =>
-                    router.push(
-                      `/admin/programme-plo?programme=${encodeURIComponent(
-                        programmeName
-                      )}`
-                    )
-                  }
-                  className="text-blue-700 font-semibold hover:underline"
-                >
-                  View Programme PLO →
-                </button>
+              <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
+                <div
+                  className={`h-2 rounded-full ${progressBarColor(st.progressPercent)}`}
+                  style={{ width: `${st.progressPercent}%` }}
+                />
               </div>
             </div>
-          );
-        })}
+
+            <div className="mt-4">
+              <button
+                onClick={() =>
+                  router.push(`/supervisor/${encodeURIComponent(st.email)}`)
+                }
+                className="text-purple-700 font-semibold hover:underline"
+              >
+                View Full Student Record →
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
