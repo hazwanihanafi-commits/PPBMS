@@ -135,14 +135,17 @@ router.post("/update-actual", auth, async (req, res) => {
 ============================================================ */
 router.post("/save-document", auth, async (req, res) => {
   try {
-    const { document_key, file_url } = req.body;
+    // ✅ FIX: extract from req.body
+    const { document_type, file_url } = req.body;
 
-    if (!document_type)
-  return res.status(400).json({ error: "Missing document type" });
+    if (document_type === undefined || file_url === undefined) {
+      return res.status(400).json({ error: "Missing data" });
+    }
 
-if (file_url === undefined || file_url === null)
-  return res.status(400).json({ error: "Missing file_url" });
-
+    const column = DOC_COLUMN_MAP[document_type];
+    if (!column) {
+      return res.status(400).json({ error: "Invalid document type" });
+    }
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -151,18 +154,23 @@ if (file_url === undefined || file_url === null)
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
-    if (idx === -1)
+    if (idx === -1) {
       return res.status(404).json({ error: "Student not found" });
+    }
 
+    // ✅ write (supports SAVE + REMOVE)
     await writeSheetCell(
       process.env.SHEET_ID,
-      document_key,
+      column,
       idx + 2,
-      file_url || ""   // ✅ allows remove
+      file_url || ""   // empty string = remove
     );
 
-    resetSheetCache();
-    return res.json({ success: true });
+    return res.json({
+      success: true,
+      document_type,
+      file_url
+    });
 
   } catch (e) {
     console.error("save-document error:", e);
