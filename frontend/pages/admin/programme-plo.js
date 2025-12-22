@@ -31,13 +31,14 @@ export default function ProgrammePLOPage() {
       </h1>
 
       <select
-        value={programme}
-        onChange={(e) => setProgramme(e.target.value)}
-        className="border px-3 py-1 rounded"
-      >
-        <option value="phd">PhD</option>
-        <option value="msc">MSc</option>
-      </select>
+  value={programme}
+  onChange={(e) => setProgramme(e.target.value)}
+  className="border px-3 py-1 rounded"
+>
+  <option value="phd">PhD</option>
+  <option value="msc">MSc</option>
+</select>
+
 
       <ProgrammePLOBarChart programmePLO={data.plo} />
 
