@@ -54,23 +54,28 @@ export default function AdminDashboard() {
   }
 
   async function fetchProgrammePLO() {
-    try {
-      const token = localStorage.getItem("ppbms_token");
+  try {
+    const token = localStorage.getItem("ppbms_token");
 
-      const res = await fetch(
-        `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
-          programme
-        )}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const res = await fetch(
+      `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
-      const json = await res.json();
-      setProgrammePLO(json.plo || null);
-    } catch (e) {
-      console.error("Programme PLO error:", e);
-      setProgrammePLO(null);
-    }
+    const json = await res.json();
+
+    // ✅ CORRECT DATA EXTRACTION
+    const data = json.programmes?.[programme] || null;
+
+    setProgrammePLO(data);
+  } catch (e) {
+    console.error("Programme PLO error:", e);
+    setProgrammePLO(null);
   }
+}
+
 
   function applyFilters() {
     let list = [...students];
