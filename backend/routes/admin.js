@@ -1,10 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import {
-  readMasterTracking,
-  readASSESSMENT_PLO   // ✅ EXACT NAME
-} from "../services/googleSheets.js";
-import { aggregateProgrammePLO } from "../utils/programmePLOAggregate.js";
+import { readASSESSMENT_PLO } from "../services/googleSheets.js";
 
 const router = express.Router();
 
@@ -25,60 +21,52 @@ function adminOnly(req, res, next) {
   }
 }
 
-/* =========================================================
-   GET PROGRAMME-LEVEL PLO (FROM ASSESSMENT_PLO)
-   /api/admin/programme-plo?programme=Doctor of Philosophy
-========================================================= */
+/* ============================================
+   PROGRAMME PLO DASHBOARD (ADMIN)
+   SOURCE: ASSESSMENT_PLO
+===============================================*/
 router.get("/programme-plo", adminOnly, async (req, res) => {
   try {
-    const { programme } = req.query;
-    if (!programme) {
-      return res.status(400).json({ error: "Missing programme" });
+    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    if (!rows.length) {
+      return res.json({ programmes: {} });
     }
 
-    // 1️⃣ Load sheets
-    const masterRows = await readMasterTracking(process.env.SHEET_ID);
-    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    const ploKeys = Array.from({ length: 11 }, (_, i) => `plo${i + 1}`);
 
-    // 2️⃣ Get matric list for selected programme
-    const matricSet = new Set(
-      masterRows
-        .filter(r => r["Programme"] === programme)
-        .map(r => String(r["Matric"]).trim())
-        .filter(Boolean)
-    );
-
-    if (matricSet.size === 0) {
-      return res.json({ plo: {} });
-    }
-
-    // 3️⃣ Filter assessment rows
-    const filtered = assessmentRows.filter(r =>
-      matricSet.has(String(r.matric).trim())
-    );
-
-    if (filtered.length === 0) {
-      return res.json({ plo: {} });
-    }
-
-    // 4️⃣ Build per-student PLO vectors
-    const studentPLOs = filtered.map(r => {
-      const plo = {};
-      for (let i = 1; i <= 11; i++) {
-        const key = `plo${i}`;
-        const v = r[key];
-        plo[`PLO${i}`] = typeof v === "number" ? v : null;
-      }
-      return plo;
+    const agg = {};
+    ploKeys.forEach(p => {
+      agg[p.toUpperCase()] = { total: 0, count: 0 };
     });
 
-    // 5️⃣ Aggregate to programme level
-    const programmePLO = aggregateProgrammePLO(studentPLOs);
+    rows.forEach(r => {
+      ploKeys.forEach(p => {
+        const v = Number(r[p]);
+        if (!isNaN(v)) {
+          agg[p.toUpperCase()].total += v;
+          agg[p.toUpperCase()].count += 1;
+        }
+      });
+    });
 
-    res.json({ plo: programmePLO });
+    const result = {};
+    Object.entries(agg).forEach(([p, o]) => {
+      const avg = o.count ? +(o.total / o.count).toFixed(2) : 0;
+      result[p] = {
+        average: avg,
+        status: avg >= 3 ? "Achieved" : "At Risk",
+      };
+    });
 
+    // 🔑 Frontend expects programmes[programmeName]
+    res.json({
+      programmes: {
+        "Doctor of Philosophy": result, // default for now
+      },
+    });
   } catch (err) {
-    console.error("ADMIN programme-plo error:", err);
+    console.error("PROGRAMME PLO ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
