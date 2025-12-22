@@ -74,7 +74,20 @@ export default function AdminDashboard() {
         (k) => k.trim().toLowerCase() === programme.trim().toLowerCase()
       );
 
-      setProgrammePLO(matchedKey ? programmes[matchedKey] : null);
+      if (matchedKey) {
+  const raw = programmes[matchedKey];
+
+  const chartData = Object.entries(raw).map(([plo, v]) => ({
+    plo,
+    average: v.average,
+    status: v.status,
+  }));
+
+  setProgrammePLO(chartData);
+} else {
+  setProgrammePLO(null);
+}
+
     } catch (e) {
       console.error("Programme PLO error:", e);
       setProgrammePLO(null);
