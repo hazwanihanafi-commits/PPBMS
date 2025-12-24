@@ -1,46 +1,57 @@
 import express from "express";
 import cors from "cors";
 
-
-import authRoutes from "./routes/auth.js";
+import authRoutes from "./routes/auth.js";          // student + supervisor
+import adminAuthRoutes from "./routes/adminAuth.js"; // admin login ONLY
 import studentRoutes from "./routes/student.js";
 import supervisorRoutes from "./routes/supervisor.js";
+import adminRoutes from "./routes/admin.js";
 import tasksRoutes from "./routes/tasks.js";
 import apiRoutes from "./routes/api.js";
-import adminRoutes from "./routes/admin.js";   // ✅ ADD THIS
 import documentsRoutes from "./routes/documents.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use("/api/documents", documentsRoutes);
-app.use("/api/supervisor", supervisorRoutes); // ✅ ADD THIS
 
+/* ============================================
+   HEALTH CHECK
+===============================================*/
 app.get("/", (req, res) => {
   res.json({ status: "Backend running", time: new Date() });
 });
 
 /* ============================================
-   ROUTES
+   AUTH ROUTES
 ===============================================*/
 
-// Auth (student + supervisor + admin login)
+// Student & Supervisor auth (JSON + bcrypt)
 app.use("/auth", authRoutes);
 
-// Student area
+// Admin login (SEPARATE)
+app.use("/admin-auth", adminAuthRoutes);
+
+/* ============================================
+   PROTECTED AREAS
+===============================================*/
+
+// Student API
 app.use("/api/student", studentRoutes);
 
-// Supervisor area
+// Supervisor API
 app.use("/api/supervisor", supervisorRoutes);
 
-// Admin API (⭐ NEW ⭐)
-app.use("/api/admin", adminRoutes);   // 👈 VERY IMPORTANT
+// Admin API (requires admin role)
+app.use("/api/admin", adminRoutes);
 
-// File upload (old)
+// Documents
+app.use("/api/documents", documentsRoutes);
+
+// Tasks (legacy / uploads)
 app.use("/tasks", tasksRoutes);
 
-// Generic API (if needed)
+// Generic API
 app.use("/api", apiRoutes);
 
 /* ============================================
