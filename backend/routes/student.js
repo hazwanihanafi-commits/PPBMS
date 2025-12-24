@@ -1,4 +1,3 @@
-// backend/routes/student.js
 import express from "express";
 import jwt from "jsonwebtoken";
 import {
@@ -10,9 +9,7 @@ import { resetSheetCache } from "../utils/sheetCache.js";
 
 const router = express.Router();
 
-/* =========================
-   AUTH MIDDLEWARE
-========================= */
+/* ================= AUTH ================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -25,50 +22,86 @@ function auth(req, res, next) {
   }
 }
 
-/* =========================
-   GET PROFILE + TIMELINE
-========================= */
+/* =========================================================
+   GET /api/student/me
+========================================================= */
 router.get("/me", auth, async (req, res) => {
   try {
-    const email = req.user.email.toLowerCase().trim();
+    const email = (req.user.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
 
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+    if (!raw) {
+      return res.status(404).json({ error: "Student not found" });
+    }
 
+    /* ---------- PROFILE ---------- */
     const profile = {
+      student_id:
+        raw["Matric"] ||
+        raw["Matric No"] ||
+        raw["Student ID"] ||
+        "",
       student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
-      matric: raw["Matric"] || "",
       programme: raw["Programme"] || "",
+      field: raw["Field"] || "",
+      department: raw["Department"] || "",
       supervisor: raw["Main Supervisor"] || "",
       cosupervisors: raw["Co-Supervisor(s)"] || "",
       start_date: raw["Start Date"] || "",
-      department: raw["Department"] || "-",
-      field: raw["Field"] || "-"
+      status: raw["Status"] || ""
     };
 
+    /* ---------- DOCUMENTS (CRITICAL FIX) ---------- */
+    const DOCUMENT_KEYS = [
+      "DPLC",
+      "SUPERVISION_LOG",
+      "APR_Y1",
+      "APR_Y2",
+      "APR_Y3",
+      "ETHICS_APPROVAL",
+      "PUBLICATION_ACCEPTANCE",
+      "PROOF_OF_SUBMISSION",
+      "CONFERENCE_PRESENTATION",
+      "THESIS_NOTICE",
+      "VIVA_REPORT",
+      "CORRECTION_VERIFICATION",
+      "FINAL_THESIS"
+    ];
+
+    const documents = {};
+    DOCUMENT_KEYS.forEach(key => {
+      const val = raw[key];
+      documents[key] =
+        val !== undefined && val !== null
+          ? String(val).trim()
+          : "";
+    });
+
+    /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
     return res.json({
       row: {
         ...profile,
+        documents,
         timeline
       }
     });
 
   } catch (e) {
     console.error("student/me error:", e);
-    res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: e.message });
   }
 });
 
-/* =========================
-   MARK COMPLETED
-========================= */
+/* =========================================================
+   POST /api/student/update-actual
+========================================================= */
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { activity, date } = req.body;
@@ -95,17 +128,17 @@ router.post("/update-actual", auth, async (req, res) => {
     );
 
     resetSheetCache();
-    res.json({ success: true });
+    return res.json({ success: true });
 
   } catch (e) {
     console.error("update-actual error:", e);
-    res.status(500).json({ error: "Update failed" });
+    return res.status(500).json({ error: e.message });
   }
 });
 
-/* =========================
-   RESET COMPLETED (NEW)
-========================= */
+/* =========================================================
+   POST /api/student/reset-actual
+========================================================= */
 router.post("/reset-actual", auth, async (req, res) => {
   try {
     const { activity } = req.body;
@@ -124,7 +157,6 @@ router.post("/reset-actual", auth, async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // Clear actual date
     await writeSheetCell(
       process.env.SHEET_ID,
       `${activity} - Actual`,
@@ -133,11 +165,48 @@ router.post("/reset-actual", auth, async (req, res) => {
     );
 
     resetSheetCache();
-    res.json({ success: true });
+    return res.json({ success: true });
 
   } catch (e) {
     console.error("reset-actual error:", e);
-    res.status(500).json({ error: "Reset failed" });
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+/* =========================================================
+   POST /api/student/save-document
+========================================================= */
+router.post("/save-document", auth, async (req, res) => {
+  try {
+    const { document_key, file_url } = req.body;
+    if (!document_key) {
+      return res.status(400).json({ error: "Missing document_key" });
+    }
+
+    const email = req.user.email.toLowerCase();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const idx = rows.findIndex(
+      r => (r["Student's Email"] || "").toLowerCase() === email
+    );
+
+    if (idx === -1) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      document_key,
+      idx + 2,
+      file_url ? String(file_url).trim() : ""
+    );
+
+    resetSheetCache();
+    return res.json({ success: true });
+
+  } catch (e) {
+    console.error("save-document error:", e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
