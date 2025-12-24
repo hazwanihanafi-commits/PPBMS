@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../../../utils/api";
+import { API_BASE } from "../../utils/api";
 
 /* =========================
    DELAY SUMMARY BADGES
