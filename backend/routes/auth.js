@@ -6,67 +6,111 @@ import bcrypt from "bcryptjs";
 import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
-const USERS_FILE = path.resolve("backend/data/users.json");
 
-// Ensure storage exists
-if (!fs.existsSync("backend/data")) fs.mkdirSync("backend/data");
-if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "{}");
+/* ================= FILE STORAGE ================= */
+const DATA_DIR = path.resolve("backend/data");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+
+// Ensure data directory exists (Render-safe)
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Ensure users.json exists
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, "{}");
+}
 
 /* ================= LOGIN ================= */
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: "Missing credentials" });
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: "Missing credentials" });
+    }
 
-  const cleanEmail = email.toLowerCase().trim();
-  const rows = await readMasterTracking(process.env.SHEET_ID);
+    const cleanEmail = email.toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-  const isStudent = rows.some(r => (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail);
-  const isSupervisor = rows.some(r => (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail);
+    const isStudent = rows.some(
+      r => (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail
+    );
+    const isSupervisor = rows.some(
+      r => (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
+    );
 
-  if (!isStudent && !isSupervisor) return res.status(403).json({ error: "ACCESS_DENIED" });
+    if (!isStudent && !isSupervisor) {
+      return res.status(403).json({ error: "ACCESS_DENIED" });
+    }
 
-  const users = JSON.parse(fs.readFileSync(USERS_FILE));
-  if (!users[cleanEmail]) return res.status(403).json({ error: "PASSWORD_NOT_SET" });
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
 
-  const ok = await bcrypt.compare(password, users[cleanEmail].passwordHash);
-  if (!ok) return res.status(401).json({ error: "Wrong password" });
+    // First-time login
+    if (!users[cleanEmail]) {
+      return res.status(403).json({ error: "PASSWORD_NOT_SET" });
+    }
 
-  const role = isSupervisor ? "supervisor" : "student";
+    const ok = await bcrypt.compare(password, users[cleanEmail].passwordHash);
+    if (!ok) {
+      return res.status(401).json({ error: "Wrong password" });
+    }
 
-  const token = jwt.sign(
-    { email: cleanEmail, role },
-    process.env.JWT_SECRET,
-    { expiresIn: "30d" }
-  );
+    const role = isSupervisor ? "supervisor" : "student";
 
-  res.json({ token, role });
+    const token = jwt.sign(
+      { email: cleanEmail, role },
+      process.env.JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    return res.json({ token, role });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
 });
 
-/* ============ SET PASSWORD ============ */
+/* ================= SET PASSWORD ================= */
 router.post("/set-password", async (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: "Missing data" });
-  if (password.length < 8) return res.status(400).json({ error: "Password too short" });
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: "Missing data" });
+    }
 
-  const cleanEmail = email.toLowerCase().trim();
-  const rows = await readMasterTracking(process.env.SHEET_ID);
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
 
-  const allowed = rows.some(
-    r =>
-      (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail ||
-      (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
-  );
+    const cleanEmail = email.toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-  if (!allowed) return res.status(403).json({ error: "ACCESS_DENIED" });
+    const allowed = rows.some(
+      r =>
+        (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail ||
+        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
+    );
 
-  const users = JSON.parse(fs.readFileSync(USERS_FILE));
-  users[cleanEmail] = {
-    passwordHash: await bcrypt.hash(password, 10),
-    createdAt: new Date().toISOString()
-  };
+    if (!allowed) {
+      return res.status(403).json({ error: "ACCESS_DENIED" });
+    }
 
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-  res.json({ success: true });
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
+
+    users[cleanEmail] = {
+      passwordHash: await bcrypt.hash(password, 10),
+      createdAt: new Date().toISOString()
+    };
+
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+
+    return res.json({ success: true });
+
+  } catch (err) {
+    console.error("SET PASSWORD ERROR:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
 });
 
 export default router;
