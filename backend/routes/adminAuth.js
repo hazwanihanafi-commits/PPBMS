@@ -3,11 +3,7 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-
-/* ============================================================
-   ADMIN LOGIN (separate credentials)
-===============================================================*/
-router.post("/admin-login", async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password)
@@ -20,12 +16,13 @@ router.post("/admin-login", async (req, res) => {
       return res.status(500).json({ error: "Admin credentials missing" });
     }
 
-    // Compare login input with env
-    if (email.toLowerCase().trim() !== adminEmail || password !== adminPassword) {
-      return res.status(401).json({ error: "Wrong password" });
+    if (
+      email.toLowerCase().trim() !== adminEmail ||
+      password !== adminPassword
+    ) {
+      return res.status(401).json({ error: "Wrong credentials" });
     }
 
-    // Generate token for admin
     const token = jwt.sign(
       { email: adminEmail, role: "admin" },
       process.env.JWT_SECRET,
@@ -36,7 +33,7 @@ router.post("/admin-login", async (req, res) => {
 
   } catch (err) {
     console.error("ADMIN LOGIN ERROR:", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
