@@ -13,7 +13,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use("/alerts", alertsRoutes);
 
 app.get("/", (_, res) => {
   res.json({ status: "PPBMS backend running" });
@@ -29,6 +28,7 @@ app.use("/admin-auth", adminAuthRoutes);    // admin login
 app.use("/api/student", studentRoutes);     // ✅ REQUIRED
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/alerts", alertsRoutes);
 
 /* ================= 404 ================= */
 app.use((req, res) => {
