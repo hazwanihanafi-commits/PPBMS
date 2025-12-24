@@ -1,25 +1,71 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
 import StudentChecklist from "../../components/StudentChecklist";
-import StatusBadge from "../../components/StatusBadge";
-import DelaySummaryBadges from "../../components/DelaySummaryBadges";
-import Tabs from "../../components/Tabs";
 
+/* =========================
+   DELAY SUMMARY BADGES
+========================= */
+function DelaySummaryBadges({ timeline }) {
+  const count = (s) => timeline.filter(t => t.status === s).length;
+
+  const Badge = ({ label, value, color }) => (
+    <div className={`rounded-xl px-4 py-3 ${color}`}>
+      <div className="text-sm font-semibold">{label}</div>
+      <div className="text-2xl font-bold">{value}</div>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <Badge label="Late" value={count("Late")} color="bg-red-100 text-red-700" />
+      <Badge label="Due Soon" value={count("Due Soon")} color="bg-yellow-100 text-yellow-700" />
+      <Badge label="On Time" value={count("On Time")} color="bg-blue-100 text-blue-700" />
+      <Badge label="Completed" value={count("Completed")} color="bg-green-100 text-green-700" />
+    </div>
+  );
+}
+
+/* =========================
+   TABS
+========================= */
+function Tabs({ active, setActive }) {
+  const Tab = ({ id, label }) => (
+    <button
+      onClick={() => setActive(id)}
+      className={`px-4 py-2 rounded-xl font-semibold transition ${
+        active === id
+          ? "bg-purple-600 text-white"
+          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="flex gap-3 mb-6">
+      <Tab id="overview" label="Overview" />
+      <Tab id="timeline" label="Timeline" />
+      <Tab id="documents" label="Documents" />
+    </div>
+  );
+}
+
+/* =========================
+   MAIN PAGE
+========================= */
 export default function StudentPage() {
   const [profile, setProfile] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState("Documents");
 
   useEffect(() => {
     load();
   }, []);
 
   async function load() {
-    setLoading(true);
-    setError("");
-
     const token = localStorage.getItem("ppbms_token");
     if (!token) {
       setError("Not authenticated");
@@ -33,83 +79,51 @@ export default function StudentPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load");
+      if (!res.ok) throw new Error(data.error || "Failed");
 
       setProfile(data.row);
       setTimeline(data.row.timeline || []);
     } catch (e) {
-      console.error(e);
-      setError(e.message || "Unable to load student data");
+      setError("Unable to load student data");
     }
 
     setLoading(false);
   }
 
-  async function updateActual(activity, date, remark = "") {
-    const token = localStorage.getItem("ppbms_token");
-    if (!token) return;
+  if (loading) return <div className="p-6 text-center">Loading…</div>;
+  if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
+  if (!profile) return null;
 
-    try {
-      await fetch(`${API_BASE}/api/student/update-actual`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ activity, date, remark }),
-      });
-
-      load();
-    } catch {
-      alert("Update failed");
-    }
-  }
-
-  if (loading) {
-    return <div className="p-6 text-center text-gray-600">Loading…</div>;
-  }
-
-  if (error) {
-    return <div className="p-6 text-center text-red-600">{error}</div>;
-  }
-
-  if (!profile) {
-    return <div className="p-6">No profile found.</div>;
-  }
-
-  /* ================= PROGRESS ================= */
-  const completedCount = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
-    ? Math.round((completedCount / timeline.length) * 100)
+    ? Math.round(
+        (timeline.filter(t => t.status === "Completed").length / timeline.length) * 100
+      )
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6 space-y-8">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
 
-      {/* ================= PROFILE SUMMARY ================= */}
-      <div className="bg-white rounded-2xl shadow p-6">
-        <h1 className="text-2xl font-extrabold mb-2">
-          🎓 {profile.student_name}
-        </h1>
+      {/* ================= HEADER ================= */}
+      <div className="bg-white rounded-2xl shadow p-6 mb-6">
+        <h1 className="text-2xl font-extrabold mb-2">🎓 Student Dashboard</h1>
 
-        <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-          <p><strong>Matric:</strong> {profile.matric}</p>
-          <p><strong>Email:</strong> {profile.email}</p>
-          <p><strong>Programme:</strong> {profile.programme}</p>
-          <p><strong>Field:</strong> {profile.field}</p>
-          <p><strong>Department:</strong> {profile.department}</p>
-          <p><strong>Start Date:</strong> {profile.start_date}</p>
-          <p><strong>Main Supervisor:</strong> {profile.supervisor}</p>
-          <p><strong>Co-supervisors:</strong> {profile.cosupervisors || "-"}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div><strong>Name:</strong> {profile.student_name}</div>
+          <div><strong>Matric:</strong> {profile.student_id}</div>
+          <div><strong>Email:</strong> {profile.email}</div>
+          <div><strong>Programme:</strong> {profile.programme}</div>
+          <div><strong>Field:</strong> {profile.field}</div>
+          <div><strong>Start Date:</strong> {profile.start_date}</div>
+          <div><strong>Main Supervisor:</strong> {profile.supervisor}</div>
+          <div><strong>Co-Supervisor(s):</strong> {profile.cosupervisors}</div>
         </div>
 
-        {/* PROGRESS BAR */}
+        {/* Progress bar */}
         <div className="mt-4">
-          <div className="flex justify-between mb-1 text-sm">
-            <span className="font-medium">Overall Progress</span>
+          <div className="flex justify-between text-sm mb-1">
+            <span>Overall Progress</span>
             <span className="font-semibold text-purple-700">{progress}%</span>
           </div>
-
           <div className="w-full bg-gray-200 h-3 rounded-full">
             <div
               className="bg-purple-600 h-3 rounded-full transition-all"
@@ -117,116 +131,69 @@ export default function StudentPage() {
             />
           </div>
         </div>
-
-        {/* DELAY BADGES */}
-        <DelaySummaryBadges timeline={timeline} />
       </div>
 
-      {/* ================= TABS ================= */}
-      <Tabs
-        tabs={["Documents", "Timeline"]}
-        active={activeTab}
-        setActive={setActiveTab}
-      />
+      {/* 🔔 DELAY SUMMARY */}
+      <DelaySummaryBadges timeline={timeline} />
 
-      {/* ================= DOCUMENTS TAB ================= */}
-      {activeTab === "Documents" && (
-        <StudentChecklist initialDocuments={profile.documents} />
+      {/* TABS */}
+      <Tabs active={activeTab} setActive={setActiveTab} />
+
+      {/* ================= OVERVIEW ================= */}
+      {activeTab === "overview" && (
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <p className="text-gray-700">
+            This dashboard monitors your postgraduate milestones, document
+            submissions, and timelines in accordance with programme
+            requirements.
+          </p>
+        </div>
       )}
 
-      {/* ================= TIMELINE TAB ================= */}
-      {activeTab === "Timeline" && (
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h2 className="text-lg font-bold mb-4">
-            📅 Expected vs Actual Timeline
-          </h2>
+      {/* ================= DOCUMENTS ================= */}
+      {activeTab === "documents" && (
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <StudentChecklist initialDocuments={profile.documents} />
+        </div>
+      )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-purple-50 text-purple-700">
-                <tr>
-                  <th className="p-3 text-left">Activity</th>
-                  <th className="p-3">Expected</th>
-                  <th className="p-3">Actual</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Remaining (days)</th>
-                  <th className="p-3">Remark</th>
-                  <th className="p-3">Action</th>
+      {/* ================= TIMELINE ================= */}
+      {activeTab === "timeline" && (
+        <div className="bg-white p-6 rounded-2xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-purple-50 text-purple-700">
+                <th className="p-3 text-left">Activity</th>
+                <th className="p-3">Expected</th>
+                <th className="p-3">Actual</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Remaining (days)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {timeline.map((t, i) => (
+                <tr key={i} className="border-t">
+                  <td className="p-3">{t.activity}</td>
+                  <td className="p-3">{t.expected || "-"}</td>
+                  <td className="p-3">{t.actual || "-"}</td>
+                  <td
+                    className={`p-3 font-semibold ${
+                      t.status === "Late"
+                        ? "text-red-600"
+                        : t.status === "Due Soon"
+                        ? "text-yellow-600"
+                        : t.status === "Completed"
+                        ? "text-green-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {t.status}
+                  </td>
+                  <td className="p-3">{t.remaining_days}</td>
                 </tr>
-              </thead>
-
-              <tbody>
-                {timeline.map((t, i) => {
-                  const isLate = !t.actual && t.remaining_days < 0;
-
-                  return (
-                    <tr key={i} className="border-t hover:bg-gray-50">
-                      <td className="p-3 font-medium">{t.activity}</td>
-                      <td className="p-3">{t.expected || "-"}</td>
-                      <td className="p-3">{t.actual || "-"}</td>
-
-                      <td className="p-3">
-                        <StatusBadge status={t.status} isLate={isLate} />
-                      </td>
-
-                      <td
-                        className={`p-3 ${
-                          isLate ? "text-red-600 font-semibold" : ""
-                        }`}
-                      >
-                        {t.remaining_days}
-                      </td>
-
-                      <td className="p-3">
-                        <textarea
-                          className="w-full border rounded-lg p-2 text-sm"
-                          placeholder="Optional remark / justification"
-                          value={t.remark || ""}
-                          onChange={(e) =>
-                            setTimeline(prev =>
-                              prev.map(x =>
-                                x.activity === t.activity
-                                  ? { ...x, remark: e.target.value }
-                                  : x
-                              )
-                            )
-                          }
-                        />
-                      </td>
-
-                      <td className="p-3 space-y-2">
-                        {!t.actual && (
-                          <button
-                            onClick={() =>
-                              updateActual(
-                                t.activity,
-                                new Date().toISOString().slice(0, 10),
-                                t.remark || ""
-                              )
-                            }
-                            className="px-3 py-1 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
-                          >
-                            Mark Completed
-                          </button>
-                        )}
-
-                        {t.actual && (
-                          <button
-                            onClick={() =>
-                              updateActual(t.activity, "", "")
-                            }
-                            className="px-3 py-1 rounded-xl bg-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-300"
-                          >
-                            Reset
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
