@@ -35,16 +35,22 @@ router.get("/me", auth, async (req, res) => {
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const profile = {
-      student_name: raw["Student Name"] || "",
-      matric: raw["Matric"] || "",
-      email: raw["Student's Email"] || "",
-      programme: raw["Programme"] || "",
-      field: raw["Field"] || "",
-      department: raw["Department"] || "",
-      supervisor: raw["Main Supervisor"] || "",
-      cosupervisors: raw["Co-Supervisor(s)"] || "",
-      start_date: raw["Start Date"] || "",
-    };
+  student_id:
+    raw["Matric"] ||
+    raw["Matric No"] ||
+    raw["Student ID"] ||
+    "",
+
+  student_name: raw["Student Name"] || "",
+  email: raw["Student's Email"] || "",
+  programme: raw["Programme"] || "",
+  start_date: raw["Start Date"] || "",
+  field: raw["Field"] || "",
+  department: raw["Department"] || "",
+  supervisor: raw["Main Supervisor"] || "",
+  cosupervisors: raw["Co-Supervisor(s)"] || "",
+  status: raw["Status"] || "",
+};
 
     /* ---------- DOCUMENTS ---------- */
     const DOCUMENT_KEYS = [
