@@ -6,7 +6,17 @@ import bcrypt from "bcryptjs";
 import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
-const USERS_FILE = path.resolve("backend/data/users.json");
+
+/* ============================================================
+   FILE SYSTEM SETUP (RENDER-SAFE)
+===============================================================*/
+const DATA_DIR = path.resolve("data");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
 // Ensure users.json exists
 if (!fs.existsSync(USERS_FILE)) {
@@ -38,8 +48,7 @@ router.post("/login", async (req, res) => {
       return res.status(403).json({ error: "ACCESS_DENIED" });
     }
 
-    // Load users
-    const users = JSON.parse(fs.readFileSync(USERS_FILE));
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
     const user = users[cleanEmail];
 
     // First-time login
@@ -95,7 +104,7 @@ router.post("/set-password", async (req, res) => {
       return res.status(403).json({ error: "ACCESS_DENIED" });
     }
 
-    const users = JSON.parse(fs.readFileSync(USERS_FILE));
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
 
     users[cleanEmail] = {
       passwordHash: await bcrypt.hash(password, 10),
