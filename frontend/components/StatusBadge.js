@@ -1,15 +1,23 @@
-// frontend/components/StatusBadge.js
-export default function StatusBadge({ status }) {
-  const color =
-    status === "Completed"
-      ? "bg-green-100 text-green-700"
-      : status === "Late"
-      ? "bg-red-100 text-red-700"
-      : "bg-blue-100 text-blue-700"; // On Track
+export default function StatusBadge({ status, isLate }) {
+  if (status === "Completed") {
+    return (
+      <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
+        Completed
+      </span>
+    );
+  }
+
+  if (isLate) {
+    return (
+      <span className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700">
+        Delayed
+      </span>
+    );
+  }
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${color}`}>
-      {status}
+    <span className="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">
+      Pending
     </span>
   );
 }
