@@ -28,7 +28,7 @@ export default function LoginPage() {
 
       // 🔐 First-time login
       if (!res.ok && data.error === "PASSWORD_NOT_SET") {
-        router.push(`/request-password?email=${email}`);
+        router.push(`/set-password?email=${email}`);
         return;
       }
 
