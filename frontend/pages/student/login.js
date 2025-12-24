@@ -1,57 +1,103 @@
+// frontend/pages/login.js
 import { useState } from "react";
-import { API_BASE } from "../../utils/api";
 import { useRouter } from "next/router";
+import { API_BASE } from "../utils/api";
 
-export default function StudentLogin() {
+export default function LoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function login(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const res = await fetch(`${API_BASE}/auth/login`, {   // ← FIXED HERE
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          password,
+        }),
+      });
 
-    const json = await res.json();
-    if (!res.ok) return setError(json.error || "Login failed");
+      const data = await res.json();
 
-    localStorage.setItem("ppbms_token", json.token);
-    router.push("/student");   // redirect to student dashboard
+      if (!res.ok) {
+        if (data.error === "PASSWORD_NOT_SET") {
+          router.push(`/request-password?email=${email}`);
+          return;
+        }
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      localStorage.setItem("ppbms_token", data.token);
+      localStorage.setItem("ppbms_role", data.role);
+      localStorage.setItem("ppbms_email", email);
+
+      router.push(data.role === "supervisor" ? "/supervisor" : "/student");
+    } catch (err) {
+      console.error(err);
+      setError("Unable to connect to server");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="p-6 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Student Login</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white p-6">
+      <div className="bg-white rounded-2xl shadow p-8 max-w-md w-full">
+        <h1 className="text-2xl font-bold mb-2">PPBMS Login</h1>
+        <p className="text-gray-600 mb-6">
+          Student & Supervisor Access
+        </p>
 
-      <form onSubmit={login} className="space-y-4">
-        <input
-          type="email"
-          placeholder="USM Email"
-          className="w-full border p-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Institutional Email"
+            className="w-full border p-3 rounded-xl"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border p-2 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full border p-3 rounded-xl"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-        <button className="w-full bg-purple-600 text-white py-2 rounded">
-          Login
-        </button>
-      </form>
+          {error && <p className="text-red-600 text-sm">{error}</p>}
 
-      {error && <p className="text-red-600 mt-3">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+
+        <p className="text-sm text-center mt-4">
+          First time login?{" "}
+          <a
+            href="/request-password"
+            className="text-purple-600 underline"
+          >
+            Set your password
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
