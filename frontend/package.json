@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "npx serve out" 
+    "start": "next start -p $PORT"
   },
 
   "dependencies": {
