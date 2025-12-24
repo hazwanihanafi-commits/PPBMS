@@ -13,11 +13,12 @@ export default function AdminLogin() {
     e.preventDefault();
     setError("");
 
-    const res = await fetch(`${API_BASE}/auth/admin-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    const res = await fetch(`${API}/admin-auth/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password }),
+});
+
 
     const json = await res.json();
     if (!res.ok) return setError(json.error || "Login failed");
