@@ -90,9 +90,9 @@ export default function LoginPage() {
 
         <p className="text-sm text-center mt-4">
           First time login?{" "}
-          <a href="/request-password" className="text-purple-600 underline">
-            Set your password
-          </a>
+          <a href="/set-password" className="text-purple-600 underline">
+  Set your password
+</a>
         </p>
 
       </div>
