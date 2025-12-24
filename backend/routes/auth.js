@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
