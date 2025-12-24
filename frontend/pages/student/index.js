@@ -31,7 +31,17 @@ export default function StudentPage() {
         },
       });
 
-      const data = await res.json();
+      const text = await res.text();
+let data;
+
+try {
+  data = JSON.parse(text);
+} catch {
+  console.error("NON-JSON RESPONSE:", text);
+  setError("Invalid backend response");
+  return;
+}
+
 
       if (!res.ok || data.error) {
         setError(data.error || "Failed to load student data");
