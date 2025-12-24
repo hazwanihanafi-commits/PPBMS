@@ -1,7 +1,7 @@
 // frontend/pages/login.js
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../utils/api";
+import { API_BASE } from "../../utils/api";
 
 export default function LoginPage() {
   const router = useRouter();
