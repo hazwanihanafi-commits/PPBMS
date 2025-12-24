@@ -1,9 +1,13 @@
 import express from "express";
 const router = express.Router();
 
-router.get("/ping", (req, res) => {
-  res.json({ status: "auth route OK" });
-});
+router.post("/request-password", async (req, res) => {
+  const { email } = req.body;
 
-export default router;
+  if (!email) return res.status(400).json({ error: "Email required" });
+
+  // TODO later: send email
+  // For now just allow direct password setup
+  return res.json({ success: true });
+});
 
