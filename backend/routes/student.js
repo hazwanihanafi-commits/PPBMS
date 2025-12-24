@@ -26,7 +26,11 @@ function auth(req, res, next) {
    GET /api/student/me
 ============================================================ */
 router.get("/me", auth, async (req, res) => {
-  try {
+  // 🔒 HARD ROLE GUARD
+  if (req.user.role !== "student") {
+    return res.status(403).json({ error: "NOT_STUDENT" });
+  }
+try {
     const email = (req.user.email || "").toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
