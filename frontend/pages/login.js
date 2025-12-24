@@ -1,7 +1,7 @@
 // frontend/pages/login.js
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../../utils/api";
+import { API_BASE } from "../utils/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,20 +28,29 @@ export default function LoginPage() {
 
       const data = await res.json();
 
+      // 🔐 First-time login → force password setup
       if (!res.ok) {
         if (data.error === "PASSWORD_NOT_SET") {
           router.push(`/request-password?email=${email}`);
           return;
         }
+
         setError(data.error || "Login failed");
         return;
       }
 
+      // ✅ Save session
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
-      localStorage.setItem("ppbms_email", email);
+      localStorage.setItem("ppbms_email", email.toLowerCase().trim());
 
-      router.push(data.role === "supervisor" ? "/supervisor" : "/student");
+      // ✅ Redirect by role
+      if (data.role === "supervisor") {
+        router.push("/supervisor");
+      } else {
+        router.push("/student");
+      }
+
     } catch (err) {
       console.error(err);
       setError("Unable to connect to server");
@@ -53,16 +62,18 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white p-6">
       <div className="bg-white rounded-2xl shadow p-8 max-w-md w-full">
+
         <h1 className="text-2xl font-bold mb-2">PPBMS Login</h1>
         <p className="text-gray-600 mb-6">
           Student & Supervisor Access
         </p>
 
         <form onSubmit={handleLogin} className="space-y-4">
+
           <input
             type="email"
-            placeholder="Institutional Email"
-            className="w-full border p-3 rounded-xl"
+            placeholder="Institutional Email (e.g. name@usm.my)"
+            className="w-full border p-3 rounded-xl focus:outline-none"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -71,7 +82,7 @@ export default function LoginPage() {
           <input
             type="password"
             placeholder="Password"
-            className="w-full border p-3 rounded-xl"
+            className="w-full border p-3 rounded-xl focus:outline-none"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -86,6 +97,7 @@ export default function LoginPage() {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
+
         </form>
 
         <p className="text-sm text-center mt-4">
@@ -97,9 +109,8 @@ export default function LoginPage() {
             Set your password
           </a>
         </p>
+
       </div>
     </div>
   );
 }
-
-
