@@ -3,14 +3,33 @@ import cors from "cors";
 
 import authRoutes from "./routes/auth.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
+import studentRoutes from "./routes/student.js";
+import supervisorRoutes from "./routes/supervisor.js";
+import adminRoutes from "./routes/admin.js";
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (_, res) => res.json({ status: "Backend running" }));
+app.get("/", (_, res) => {
+  res.json({ status: "PPBMS backend running" });
+});
 
-app.use("/auth", authRoutes);
-app.use("/admin-auth", adminAuthRoutes);
+/* ================= ROUTES ================= */
+
+// Auth
+app.use("/auth", authRoutes);               // student + supervisor login
+app.use("/admin-auth", adminAuthRoutes);    // admin login
+
+// APIs
+app.use("/api/student", studentRoutes);     // ✅ REQUIRED
+app.use("/api/supervisor", supervisorRoutes);
+app.use("/api/admin", adminRoutes);
+
+/* ================= 404 ================= */
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
 export default app;
