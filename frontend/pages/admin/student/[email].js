@@ -151,7 +151,7 @@ export default function AdminStudentPage() {
         CQI evaluation and academic remarks are managed by supervisors.
       </div>
 
-    </div>
+        </div>
   </>
 );
 }
