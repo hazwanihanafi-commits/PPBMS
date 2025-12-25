@@ -102,7 +102,12 @@ export default function SupervisorStudentPage() {
   return (
   <>
     <TopBar />
-     
+
+    {loading ? (
+      <div className="p-6">Loading…</div>
+    ) : !student ? (
+      <div className="p-6">Student not found</div>
+    ) : (   
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
       {/* ================= HEADER ================= */}
