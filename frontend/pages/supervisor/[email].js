@@ -89,8 +89,6 @@ export default function SupervisorStudentPage() {
     }
   }
 
-  if (loading) return <div className="p-6 text-center">Loading…</div>;
-  if (!student) return <div className="p-6">Student not found</div>;
 
   const progress = timeline.length
     ? Math.round(
