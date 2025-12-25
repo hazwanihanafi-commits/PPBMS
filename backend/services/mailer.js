@@ -133,3 +133,36 @@ Please take action in PPBMS.
     text
   });
 }
+
+export async function sendCQIReminder({
+  to,
+  studentName,
+  matric,
+  assessmentType,
+  daysOverdue
+}) {
+  const text = `
+Dear Supervisor,
+
+This is a reminder that Continuous Quality Improvement (CQI) action
+was identified for your student:
+
+Student: ${studentName}
+Matric: ${matric}
+Assessment: ${assessmentType}
+
+No supervisor remark or intervention plan has been recorded
+${daysOverdue} days after the CQI notification.
+
+Please log in to PPBMS and record your remarks and intervention plan.
+
+— PPBMS System
+`;
+
+  await transporter.sendMail({
+    from: process.env.ALERT_FROM_EMAIL,
+    to,
+    subject: `[PPBMS] CQI Reminder – Action Required`,
+    text
+  });
+}
