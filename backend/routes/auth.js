@@ -113,4 +113,21 @@ router.post("/set-password", async (req, res) => {
   }
 });
 
+/* ================= VERIFY TOKEN ================= */
+router.get("/verify", (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "NO_TOKEN" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    jwt.verify(token, process.env.JWT_SECRET);
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(401).json({ error: "INVALID_TOKEN" });
+  }
+});
+
 export default router;
