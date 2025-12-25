@@ -33,6 +33,53 @@ function auth(req, res, next) {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
+/* =========================================================
+   GET /api/supervisor/students
+   → Supervisor Dashboard List
+========================================================= */
+router.get("/students", auth, async (req, res) => {
+  try {
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const loginEmail = (req.user.email || "")
+      .toLowerCase()
+      .replace(/\s+/g, "");
+
+    const students = rows
+      .filter(r => {
+        if (req.user.role === "admin") return true;
+
+        const mainSupervisorEmail = (r["Main Supervisor's Email"] || "")
+          .toLowerCase()
+          .replace(/\s+/g, "");
+
+        // 🔑 robust match (prevents silent empty list)
+        return mainSupervisorEmail.includes(loginEmail);
+      })
+      .map(r => {
+        const timeline = buildTimelineForRow(r);
+        const completed = timeline.filter(t => t.status === "Completed").length;
+
+        return {
+          id: r["Matric"] || "",
+          name: r["Student Name"] || "",
+          email: (r["Student's Email"] || "").toLowerCase().trim(),
+          programme: r["Programme"] || "",
+          field: r["Field"] || "",
+          status: r["Status"] || "Active",
+          progressPercent: timeline.length
+            ? Math.round((completed / timeline.length) * 100)
+            : 0
+        };
+      });
+
+    res.json({ students });
+  } catch (e) {
+    console.error("students list error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 /* =========================================================
    GET /api/supervisor/student/:email
