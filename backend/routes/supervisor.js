@@ -12,6 +12,9 @@ import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
 import { sendCQIAlert } from "../services/mailer.js";
 import { extractCQIIssues } from "../utils/detectCQIRequired.js";
+import {
+  updateASSESSMENT_PLO_Cell
+} from "../services/googleSheets.js";
 
 const router = express.Router();
 
