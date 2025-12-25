@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../../utils/api";
 import AdminStudentChecklist from "../../../components/AdminStudentChecklist";
+import TopBar from "../../../components/TopBar";
 
 export default function AdminStudentPage() {
   const router = useRouter();
@@ -58,6 +59,9 @@ export default function AdminStudentPage() {
   const isGraduated = student.status === "Graduated";
 
   return (
+  <>
+    <TopBar />
+    
     <div className="p-10 max-w-5xl mx-auto space-y-8">
 
       {/* BACK */}
