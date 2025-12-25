@@ -1,5 +1,8 @@
 import nodemailer from "nodemailer";
 
+/* =========================================================
+   SMTP TRANSPORTER
+========================================================= */
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
@@ -8,77 +11,125 @@ export const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 });
 
-/* ===============================
-   CQI INITIAL ALERT (SUPERVISOR)
-=============================== */
+/* =========================================================
+   VERIFY SMTP
+========================================================= */
+export async function verifySMTP() {
+  try {
+    await transporter.verify();
+    console.log("✅ SMTP verified");
+  } catch (e) {
+    console.error("❌ SMTP failed:", e.message);
+  }
+}
+
+/* =========================================================
+   ⏰ DELAY ALERT → SUPERVISOR
+========================================================= */
+export async function sendDelayAlert({ to, student, delays }) {
+  const body = delays
+    .map(
+      d => `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`
+    )
+    .join("\n");
+
+  const text = `
+Dear Supervisor,
+
+The following milestones for your student (${student}) are delayed:
+
+${body}
+
+Please log in to PPBMS for monitoring and intervention.
+
+— PPBMS System
+`;
+
+  await transporter.sendMail({
+    from: process.env.ALERT_FROM_EMAIL,
+    to,
+    subject: `[PPBMS] Student Delay Alert – ${student}`,
+    text,
+  });
+}
+
+/* =========================================================
+   📊 CQI ALERT → SUPERVISOR
+========================================================= */
 export async function sendCQIAlert({
   to,
-  cc,
   studentName,
   matric,
   assessmentType,
   cqiIssues,
-  remark
+  remark,
 }) {
-  const issueList = cqiIssues
-    .map(i => `• ${i.plo} (Avg: ${i.average})`)
+  const issuesText = cqiIssues
+    .map(i => `• ${i.plo}: ${i.reason}`)
     .join("\n");
 
-  await transporter.sendMail({
-    from: process.env.ALERT_FROM_EMAIL,
-    to,
-    cc,
-    subject: `[PPBMS][CQI] Action Required – ${studentName}`,
-    text: `
+  const text = `
 Dear Supervisor,
 
-CQI intervention is required for the following assessment:
+A CQI issue has been identified.
 
-Student: ${studentName}
-Matric: ${matric}
-Assessment: ${assessmentType}
+Student : ${studentName}
+Matric  : ${matric}
+Assessment : ${assessmentType}
 
-PLOs below threshold:
-${issueList}
+CQI Issues:
+${issuesText}
 
 Supervisor Remark:
-${remark || "-"}
+${remark || "No remark provided."}
 
 Please record your intervention in PPBMS.
 
 — PPBMS System
-`
+`;
+
+  await transporter.sendMail({
+    from: process.env.ALERT_FROM_EMAIL,
+    to,
+    subject: `[PPBMS] CQI Required – ${studentName}`,
+    text,
   });
 }
 
-/* ===============================
-   CQI ESCALATION (PROGRAMME LEVEL)
-=============================== */
-export async function sendCQIEscalation({
+/* =========================================================
+   🔔 CQI REMINDER (30 DAYS)
+========================================================= */
+export async function sendCQIReminder({
   to,
   studentName,
   matric,
   assessmentType,
-  daysOverdue
+  daysPending
 }) {
+  const text = `
+Dear Supervisor,
+
+This is a reminder that a CQI issue has not been addressed.
+
+Student : ${studentName}
+Matric  : ${matric}
+Assessment : ${assessmentType}
+Days pending : ${daysPending} days
+
+Please take action in PPBMS.
+
+— PPBMS System
+`;
+
   await transporter.sendMail({
     from: process.env.ALERT_FROM_EMAIL,
     to,
-    subject: `[PPBMS][ESCALATION] CQI Overdue > ${daysOverdue} Days`,
-    text: `
-Dear Programme Coordinator,
-
-A CQI intervention has not been recorded within ${daysOverdue} days.
-
-Student: ${studentName}
-Matric: ${matric}
-Assessment: ${assessmentType}
-
-Please follow up with the supervisor.
-
-— PPBMS System
-`
+    subject: `[PPBMS] CQI Reminder – Action Required`,
+    text
   });
 }
