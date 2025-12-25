@@ -1,21 +1,45 @@
 import nodemailer from "nodemailer";
 
+/* =====================================================
+   SMTP TRANSPORT (RENDER-SAFE)
+===================================================== */
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
-  secure: false,
+  secure: Number(process.env.SMTP_PORT) === 465, // 🔑 IMPORTANT
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false, // 🔑 Render needs this
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 });
 
-/* =========================
-   EXISTING: DELAY ALERT
-========================= */
+/* =====================================================
+   VERIFY SMTP ON STARTUP
+===================================================== */
+export async function verifySMTP() {
+  try {
+    await transporter.verify();
+    console.log("✅ SMTP connection ready");
+  } catch (err) {
+    console.error("❌ SMTP verification failed:", err.message);
+  }
+}
+
+/* =====================================================
+   SEND DELAY ALERT EMAIL
+===================================================== */
 export async function sendDelayAlert({ to, student, delays }) {
   const body = delays
-    .map(d => `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`)
+    .map(
+      d =>
+        `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`
+    )
     .join("\n");
 
   await transporter.sendMail({
@@ -32,55 +56,6 @@ ${body}
 Please log in to PPBMS for further action.
 
 — PPBMS System
-`,
-  });
-}
-
-/* =========================
-   ✅ NEW: CQI ALERT EMAIL
-========================= */
-export async function sendCQIAlert({
-  to,
-  cc,
-  studentName,
-  matric,
-  assessmentType,
-  cqiIssues,
-  remark
-}) {
-  const issueList = cqiIssues
-    .map(p => `• ${p.plo} (Average: ${p.average})`)
-    .join("\n");
-
-  await transporter.sendMail({
-    from: process.env.ALERT_FROM_EMAIL,
-    to,
-    cc,
-    subject: `[PPBMS] CQI Intervention Required – ${studentName}`,
-    text: `
-Dear ${studentName},
-
-Based on the Continuous Quality Improvement (CQI) review for the
-${assessmentType} assessment, the following Programme Learning Outcomes
-require improvement:
-
-${issueList}
-
-Supervisor Intervention:
-${remark || "Please refer to supervisor guidance in the system."}
-
-Student Details:
-Name   : ${studentName}
-Matric : ${matric}
-
-You are advised to review the feedback and take corrective actions in
-consultation with your supervisor.
-
-This CQI intervention is part of the programme quality assurance process
-in accordance with MQA requirements.
-
-Regards,
-PPBMS System
 `,
   });
 }
