@@ -10,6 +10,8 @@ import {
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
+import { sendCQIAlert } from "../services/mailer.js";
+import { extractCQIIssues } from "../utils/detectCQIRequired.js";
 
 const router = express.Router();
 
@@ -238,6 +240,55 @@ router.post("/remark", auth, async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     console.error("save remark error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post("/remark", auth, async (req, res) => {
+  try {
+    const { studentMatric, assessmentType, remark } = req.body;
+
+    if (!studentMatric || !assessmentType) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    // 1️⃣ Save remark to Google Sheet
+    await updateASSESSMENT_PLO_Remark({
+      studentMatric,
+      assessmentType,
+      remark
+    });
+
+    // 2️⃣ Reload student + CQI
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const student = rows.find(
+      r => String(r["Matric"]).trim() === String(studentMatric).trim()
+    );
+
+    if (!student) return res.json({ success: true });
+
+    const cqiByAssessment = await deriveCQIForStudent(studentMatric);
+    const issues = extractCQIIssues(cqiByAssessment[assessmentType]);
+
+    // 3️⃣ SEND EMAIL ONLY IF CQI REQUIRED
+    if (issues.length > 0) {
+      await sendCQIAlert({
+        to: student["Student's Email"],
+        cc: student["Main Supervisor's Email"],
+        studentName: student["Student Name"],
+        matric: studentMatric,
+        assessmentType,
+        cqiIssues: issues,
+        remark
+      });
+    }
+
+    res.json({
+      success: true,
+      emailTriggered: issues.length > 0
+    });
+  } catch (e) {
+    console.error("CQI remark error:", e);
     res.status(500).json({ error: e.message });
   }
 });
