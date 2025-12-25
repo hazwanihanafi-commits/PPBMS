@@ -325,3 +325,53 @@ export async function markCQIEmailSent({
 
   return true;
 }
+
+// ✅ Generic single-cell updater for ASSESSMENT_PLO
+export async function updateASSESSMENT_PLO_Cell({
+  rowIndex,
+  column,
+  value
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  // Read header to find column index
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range: "ASSESSMENT_PLO!A1:ZZ1",
+  });
+
+  const headers = headerRes.data.values[0].map(h =>
+    h.toString().trim().toLowerCase()
+  );
+
+  const colIdx = headers.indexOf(column.toLowerCase());
+  if (colIdx === -1) {
+    throw new Error(`Column not found: ${column}`);
+  }
+
+  // Convert index → column letter
+  function toColLetter(idx) {
+    let s = "";
+    while (idx >= 0) {
+      s = String.fromCharCode((idx % 26) + 65) + s;
+      idx = Math.floor(idx / 26) - 1;
+    }
+    return s;
+  }
+
+  const cell = `ASSESSMENT_PLO!${toColLetter(colIdx)}${rowIndex}`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: cell,
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [[value]]
+    }
+  });
+
+  return true;
+}
+
