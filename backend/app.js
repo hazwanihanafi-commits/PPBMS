@@ -8,6 +8,7 @@ import supervisorRoutes from "./routes/supervisor.js";
 import adminRoutes from "./routes/admin.js";
 import alertsRoutes from "./routes/alerts.js";
 import { verifySMTP } from "./services/mailer.js";
+import systemRoutes from "./routes/system.js";
 
 
 const app = express();
@@ -34,6 +35,9 @@ app.use("/alerts", alertsRoutes);
 
 /* 🔑 VERIFY SMTP ON STARTUP */
 verifySMTP();
+
+// 🔔 SYSTEM / AUTOMATION
+app.use("/system", systemRoutes);
 
 /* ================= 404 ================= */
 app.use((req, res) => {
