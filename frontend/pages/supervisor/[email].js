@@ -254,10 +254,8 @@ export default function SupervisorStudentPage() {
           {/* FINAL PLO */}
           <FinalPLOTable finalPLO={student.finalPLO} />
 
-        </div>
+                </div>
       )}
-
-     </div>
-  </>
-);
+    </>
+  );
 }
