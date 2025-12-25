@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../utils/api";
 import StudentChecklist from "../../components/StudentChecklist";
+import TopBar from "../../components/TopBar";
 
 /* =========================
    DELAY SUMMARY BADGES
@@ -122,6 +123,9 @@ export default function StudentPage() {
     : 0;
 
   return (
+  <>
+    <TopBar />
+     
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
 
       {/* HEADER */}
