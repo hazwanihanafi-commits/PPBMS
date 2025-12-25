@@ -247,21 +247,6 @@ router.post("/remark", auth, async (req, res) => {
         String(r.assessment_type || "").toUpperCase() === assessmentType.toUpperCase()
     );
 
-    const issues = extractCQIIssues(studentRows);
-    const needEmail =
-      issues.length > 0 &&
-      studentRows.some(r => r.cqiemailsent !== "YES");
-
-    if (needEmail) {
-      await sendCQIAlert({
-        to: student["Main Supervisor's Email"],
-        studentName: student["Student Name"],
-        matric: studentMatric,
-        assessmentType,
-        cqiIssues: issues,
-        remark
-      });
-
       for (const r of studentRows) {
         if (r.cqiemailsent !== "YES") {
           await updateASSESSMENT_PLO_Cell({
