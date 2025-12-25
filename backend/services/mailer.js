@@ -33,12 +33,14 @@ export async function verifySMTP() {
 ========================================================= */
 export async function sendDelayAlert({ to, student, delays }) {
   const body = delays
-    .map(
-      d => `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`
-    )
+    .map(d => `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`)
     .join("\n");
 
-  const text = `
+  await transporter.sendMail({
+    from: process.env.ALERT_FROM_EMAIL,
+    to,
+    subject: `[PPBMS] Student Delay Alert – ${student}`,
+    text: `
 Dear Supervisor,
 
 The following milestones for your student (${student}) are delayed:
@@ -48,18 +50,13 @@ ${body}
 Please log in to PPBMS for monitoring and intervention.
 
 — PPBMS System
-`;
-
-  await transporter.sendMail({
-    from: process.env.ALERT_FROM_EMAIL,
-    to,
-    subject: `[PPBMS] Student Delay Alert – ${student}`,
-    text,
+`,
   });
 }
 
 /* =========================================================
    📊 CQI ALERT → SUPERVISOR
+   (AUTO when low performance detected)
 ========================================================= */
 export async function sendCQIAlert({
   to,
@@ -67,102 +64,63 @@ export async function sendCQIAlert({
   matric,
   assessmentType,
   cqiIssues,
-  remark,
 }) {
   const issuesText = cqiIssues
     .map(i => `• ${i.plo}: ${i.reason}`)
     .join("\n");
 
-  const text = `
+  await transporter.sendMail({
+    from: process.env.ALERT_FROM_EMAIL,
+    to,
+    subject: `[PPBMS] CQI Detected – ${studentName} (${assessmentType})`,
+    text: `
 Dear Supervisor,
 
-A CQI issue has been identified.
+Continuous Quality Improvement (CQI) has been automatically detected.
 
 Student : ${studentName}
 Matric  : ${matric}
 Assessment : ${assessmentType}
 
-CQI Issues:
+Affected PLO(s):
 ${issuesText}
 
-Supervisor Remark:
-${remark || "No remark provided."}
-
-Please record your intervention in PPBMS.
+Please log in to PPBMS and record your remarks and intervention plan
+within 30 days.
 
 — PPBMS System
-`;
-
-  await transporter.sendMail({
-    from: process.env.ALERT_FROM_EMAIL,
-    to,
-    subject: `[PPBMS] CQI Required – ${studentName}`,
-    text,
+`,
   });
 }
 
 /* =========================================================
-   🔔 CQI REMINDER (30 DAYS)
+   🔔 CQI REMINDER → SUPERVISOR (AFTER 30 DAYS)
 ========================================================= */
 export async function sendCQIReminder({
   to,
   studentName,
   matric,
   assessmentType,
-  daysPending
+  daysPending,
 }) {
-  const text = `
+  await transporter.sendMail({
+    from: process.env.ALERT_FROM_EMAIL,
+    to,
+    subject: `[PPBMS] REMINDER: CQI Pending > ${daysPending} Days`,
+    text: `
 Dear Supervisor,
 
-This is a reminder that a CQI issue has not been addressed.
+This is a reminder that a CQI case remains pending without any
+remark or intervention recorded.
 
 Student : ${studentName}
 Matric  : ${matric}
 Assessment : ${assessmentType}
 Days pending : ${daysPending} days
 
-Please take action in PPBMS.
+Please log in to PPBMS and take action.
 
 — PPBMS System
-`;
-
-  await transporter.sendMail({
-    from: process.env.ALERT_FROM_EMAIL,
-    to,
-    subject: `[PPBMS] CQI Reminder – Action Required`,
-    text
-  });
-}
-
-export async function sendCQIReminder({
-  to,
-  studentName,
-  matric,
-  assessmentType,
-  daysOverdue
-}) {
-  const text = `
-Dear Supervisor,
-
-This is a reminder that Continuous Quality Improvement (CQI) action
-was identified for your student:
-
-Student: ${studentName}
-Matric: ${matric}
-Assessment: ${assessmentType}
-
-No supervisor remark or intervention plan has been recorded
-${daysOverdue} days after the CQI notification.
-
-Please log in to PPBMS and record your remarks and intervention plan.
-
-— PPBMS System
-`;
-
-  await transporter.sendMail({
-    from: process.env.ALERT_FROM_EMAIL,
-    to,
-    subject: `[PPBMS] CQI Reminder – Action Required`,
-    text
+`,
   });
 }
