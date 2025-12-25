@@ -61,9 +61,8 @@ export default function AdminStudentPage() {
   return (
   <>
     <TopBar />
-    
-    <div className="p-10 max-w-5xl mx-auto space-y-8">
 
+    <div className="p-10 max-w-5xl mx-auto space-y-8">
       {/* BACK */}
       <button
         onClick={() => router.push("/admin")}
@@ -75,9 +74,7 @@ export default function AdminStudentPage() {
       {/* ================= STUDENT PROFILE ================= */}
       <div className="bg-white rounded-2xl shadow p-6 space-y-3">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">
-            {student.student_name}
-          </h1>
+          <h1 className="text-3xl font-bold">{student.student_name}</h1>
 
           <span
             className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -103,7 +100,7 @@ export default function AdminStudentPage() {
           </p>
         )}
 
-        {/* ================= PROGRESS ================= */}
+        {/* PROGRESS */}
         <div className="mt-4">
           <div className="flex justify-between mb-1">
             <span className="text-sm font-medium text-gray-700">
@@ -123,22 +120,6 @@ export default function AdminStudentPage() {
         </div>
       </div>
 
-      {/* ================= OFFICIAL USM CV ================= */}
-      <div className="flex items-center gap-3">
-        <a
-          href="https://webcentral2.usm.my/sccentral/smup/ptj_profilpelajar.asp?tag=search"
-          target="_blank"
-          rel="noreferrer"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold"
-        >
-          📄 Open Official USM Student CV
-        </a>
-
-        <span className="text-xs text-gray-500">
-          (Requires USM login)
-        </span>
-      </div>
-
       {/* ================= DOCUMENT CHECKLIST ================= */}
       <AdminStudentChecklist
         studentEmail={student.email}
@@ -147,11 +128,9 @@ export default function AdminStudentPage() {
 
       {/* ================= ADMIN NOTE ================= */}
       <div className="text-sm text-gray-500 italic">
-        This is an administrative, read-only view.  
+        This is an administrative, read-only view.
         CQI evaluation and academic remarks are managed by supervisors.
       </div>
-
-        </div>
+    </div>
   </>
 );
-}
