@@ -227,66 +227,86 @@ router.post("/remark", auth, async (req, res) => {
       return res.status(400).json({ error: "Missing data" });
     }
 
-    if (!remark || !remark.trim()) {
-      return res.json({ success: true });
-    }
-
+    /* ===============================
+       1️⃣ SAVE REMARK TO SHEET
+    =============================== */
     await updateASSESSMENT_PLO_Remark({
       studentMatric,
       assessmentType,
       remark
     });
 
-    res.json({ success: true });
-  } catch (e) {
-    console.error("save remark error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-router.post("/remark", auth, async (req, res) => {
-  try {
-    const { studentMatric, assessmentType, remark } = req.body;
-
-    if (!studentMatric || !assessmentType) {
-      return res.status(400).json({ error: "Missing data" });
-    }
-
-    // 1️⃣ Save remark to Google Sheet
-    await updateASSESSMENT_PLO_Remark({
-      studentMatric,
-      assessmentType,
-      remark
-    });
-
-    // 2️⃣ Reload student + CQI
+    /* ===============================
+       2️⃣ LOAD STUDENT
+    =============================== */
     const rows = await readMasterTracking(process.env.SHEET_ID);
     const student = rows.find(
       r => String(r["Matric"]).trim() === String(studentMatric).trim()
     );
 
-    if (!student) return res.json({ success: true });
+    if (!student) {
+      return res.json({ success: true, emailTriggered: false });
+    }
 
-    const cqiByAssessment = await deriveCQIForStudent(studentMatric);
-    const issues = extractCQIIssues(cqiByAssessment[assessmentType]);
+    /* ===============================
+       3️⃣ LOAD ASSESSMENT_PLO
+    =============================== */
+    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    // 3️⃣ SEND EMAIL ONLY IF CQI REQUIRED
-    if (issues.length > 0) {
+    // normalize keys
+    const normalized = assessmentRows.map((r, i) => {
+      const clean = {};
+      Object.keys(r).forEach(k => {
+        clean[k.replace(/\s+/g, "").toLowerCase()] = r[k];
+      });
+      clean.__rowIndex = i + 2; // for sheet update
+      return clean;
+    });
+
+    const studentRows = normalized.filter(r =>
+      String(r.matric || r.matricno || "").trim() === String(studentMatric).trim() &&
+      String(r.assessment_type || "").toUpperCase() === assessmentType.toUpperCase()
+    );
+
+    /* ===============================
+       4️⃣ CHECK CQI REQUIRED + NOT EMAILED
+    =============================== */
+    const cqiIssues = extractCQIIssues(studentRows);
+
+    const needEmail = cqiIssues.length > 0 &&
+      studentRows.some(r => r.cqiemailsent !== "YES");
+
+    /* ===============================
+       5️⃣ SEND EMAIL (ONCE)
+    =============================== */
+    if (needEmail) {
       await sendCQIAlert({
         to: student["Student's Email"],
         cc: student["Main Supervisor's Email"],
         studentName: student["Student Name"],
         matric: studentMatric,
         assessmentType,
-        cqiIssues: issues,
+        cqiIssues,
         remark
       });
+
+      // mark CQI_EMAIL_SENT = YES
+      for (const r of studentRows) {
+        if (r.cqiemailsent !== "YES") {
+          await updateASSESSMENT_PLO_Cell({
+            rowIndex: r.__rowIndex,
+            column: "CQI_EMAIL_SENT",
+            value: "YES"
+          });
+        }
+      }
     }
 
-    res.json({
+    return res.json({
       success: true,
-      emailTriggered: issues.length > 0
+      emailTriggered: needEmail
     });
+
   } catch (e) {
     console.error("CQI remark error:", e);
     res.status(500).json({ error: e.message });
