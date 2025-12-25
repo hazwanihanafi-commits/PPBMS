@@ -5,6 +5,7 @@ import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import SupervisorRemark from "../../components/SupervisorRemark";
 import FinalPLOTable from "../../components/FinalPLOTable";
+import TopBar from "../../components/TopBar";
 
 /* ======================
    UI HELPERS
@@ -99,6 +100,9 @@ export default function SupervisorStudentPage() {
     : 0;
 
   return (
+  <>
+    <TopBar />
+     
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
       {/* ================= HEADER ================= */}
@@ -250,6 +254,6 @@ export default function SupervisorStudentPage() {
         </div>
       )}
 
-    </div>
-  );
-}
+     </div>
+  </>
+);
