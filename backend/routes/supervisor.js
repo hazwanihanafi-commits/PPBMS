@@ -220,52 +220,44 @@ router.get("/student/:email", auth, async (req, res) => {
 router.post("/remark", auth, async (req, res) => {
   try {
     const { studentMatric, assessmentType, remark } = req.body;
-    if (!studentMatric || !assessmentType)
-      return res.status(400).json({ error: "Missing data" });
 
+    if (!studentMatric || !assessmentType) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    // 1️⃣ Save supervisor remark ONLY
     await updateASSESSMENT_PLO_Remark({
       studentMatric,
       assessmentType,
       remark
     });
 
-    const students = await readMasterTracking(process.env.SHEET_ID);
-    const student = students.find(
-      r => String(r["Matric"]).trim() === String(studentMatric).trim()
-    );
-    if (!student) return res.json({ success: true });
-
+    // 2️⃣ Record remark date (optional but recommended)
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
     const normalized = rows.map((r, i) => ({
       ...r,
       __rowIndex: i + 2
     }));
 
-    const studentRows = normalized.filter(
+    const targetRows = normalized.filter(
       r =>
-        String(r.matric || r.matricno || "").trim() === studentMatric &&
+        String(r.matric || r.matricno || "").trim() === String(studentMatric).trim() &&
         String(r.assessment_type || "").toUpperCase() === assessmentType.toUpperCase()
     );
 
-      for (const r of studentRows) {
-        if (r.cqiemailsent !== "YES") {
-          await updateASSESSMENT_PLO_Cell({
-            rowIndex: r.__rowIndex,
-            column: "CQI_EMAIL_SENT",
-            value: "YES"
-          });
-          await updateASSESSMENT_PLO_Cell({
-            rowIndex: r.__rowIndex,
-            column: "CQI_EMAIL_DATE",
-            value: new Date().toISOString().slice(0, 10)
-          });
-        }
-      }
+    for (const r of targetRows) {
+      await updateASSESSMENT_PLO_Cell({
+        rowIndex: r.__rowIndex,
+        column: "SUPERVISOR_REMARK_DATE",
+        value: new Date().toISOString().slice(0, 10)
+      });
     }
 
-    res.json({ success: true, emailTriggered: needEmail });
+    // ✅ NO CQI EMAIL HERE
+    res.json({ success: true });
+
   } catch (e) {
-    console.error("CQI remark error:", e);
+    console.error("Supervisor remark error:", e);
     res.status(500).json({ error: e.message });
   }
 });
