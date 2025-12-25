@@ -7,12 +7,14 @@ import studentRoutes from "./routes/student.js";
 import supervisorRoutes from "./routes/supervisor.js";
 import adminRoutes from "./routes/admin.js";
 import alertsRoutes from "./routes/alerts.js";
+import { verifySMTP } from "./services/mailer.js";
 
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
 
 app.get("/", (_, res) => {
   res.json({ status: "PPBMS backend running" });
@@ -29,6 +31,9 @@ app.use("/api/student", studentRoutes);     // ✅ REQUIRED
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/alerts", alertsRoutes);
+
+/* 🔑 VERIFY SMTP ON STARTUP */
+verifySMTP();
 
 /* ================= 404 ================= */
 app.use((req, res) => {
