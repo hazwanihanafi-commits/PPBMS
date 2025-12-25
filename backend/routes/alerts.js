@@ -4,20 +4,13 @@ import path from "path";
 
 import { readMasterTracking } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
-import { detectDelays } from "../utils/detectDelays.js";
 import { sendDelayAlert } from "../services/mailer.js";
 
 const router = express.Router();
 
-/* ================= LOG STORAGE ================= */
-const LOG_DIR = path.join(process.cwd(), "backend", "logs");
-const LOG_FILE = path.join(LOG_DIR, "delay-alerts.json");
-
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-}
-
-/* ================= RUN ALERT ================= */
+/* =====================================================
+   POST /alerts/run-delay-alert
+===================================================== */
 router.post("/run-delay-alert", async (req, res) => {
   try {
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -25,37 +18,61 @@ router.post("/run-delay-alert", async (req, res) => {
 
     for (const row of rows) {
       const timeline = buildTimelineForRow(row);
-      const delays = detectDelays(timeline);
+
+      const delays = timeline.filter(
+        t => t.status === "Late"
+      );
 
       if (!delays.length) continue;
 
       const supervisorEmail = row["Main Supervisor's Email"];
       if (!supervisorEmail) continue;
 
-      await sendDelayAlert({
-        to: supervisorEmail,
-        student: row["Student Name"],
-        delays,
-      });
+      /* ===== SEND EMAIL (THROTTLED) ===== */
+      try {
+        await sendDelayAlert({
+          to: supervisorEmail,
+          student: row["Student Name"],
+          delays,
+        });
 
-      logs.push({
-        student: row["Student Name"],
-        supervisor: supervisorEmail,
-        delays: delays.map(d => d.activity),
-        date: new Date().toISOString(),
-      });
+        logs.push({
+          student: row["Student Name"],
+          supervisor: supervisorEmail,
+          delayedActivities: delays.map(d => d.activity),
+          date: new Date().toISOString(),
+        });
+
+        // 🔑 PREVENT SMTP SOCKET DROP
+        await new Promise(r => setTimeout(r, 1500));
+
+      } catch (mailErr) {
+        console.error(
+          `❌ Delay alert failed for ${row["Student Name"]}:`,
+          mailErr.message
+        );
+      }
     }
 
-    fs.writeFileSync(LOG_FILE, JSON.stringify(logs, null, 2));
+    /* ===== SAVE LOG FILE ===== */
+    const logDir = path.resolve("backend/logs");
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
 
-    return res.json({
+    fs.writeFileSync(
+      path.join(logDir, "delay-alerts.json"),
+      JSON.stringify(logs, null, 2)
+    );
+
+    res.json({
       success: true,
       alertsSent: logs.length,
     });
 
-  } catch (err) {
-    console.error("DELAY ALERT ERROR:", err);
-    return res.status(500).json({ error: "Delay alert failed" });
+  } catch (e) {
+    console.error("DELAY ALERT ERROR:", e);
+    res.status(500).json({ error: e.message });
   }
 });
 
