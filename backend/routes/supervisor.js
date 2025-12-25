@@ -145,38 +145,35 @@ router.get("/student/:email", auth, async (req, res) => {
     const remarksByAssessment = {};
 
     Object.entries(grouped).forEach(([assessment, rows]) => {
-      const ploResult = {};
+  const ploResult = {};
 
-      for (let i = 1; i <= 11; i++) {
-        const ploKey = `PLO${i}`;
+  for (let i = 1; i <= 11; i++) {
+    const ploKey = `PLO${i}`;
 
-        // ✅ ONLY numeric values = measured
-        const values = rows
-          .map(r => r[`plo${i}`])
-          .filter(v => typeof v === "number");
+    // ✅ ONLY numeric values are considered measured
+    const values = rows
+      .map(r => r[`plo${i}`])
+      .filter(v => typeof v === "number");
 
-        if (values.length === 0) {
-          ploResult[ploKey] = {
-            average: null,
-            status: "Not Assessed"
-          };
-          continue;
-        }
+    // 🚫 Skip PLO if not measured in this assessment
+    if (values.length === 0) continue;
 
-        const avg =
-          values.reduce((a, b) => a + b, 0) / values.length;
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
 
-        ploResult[ploKey] = {
-          average: Number(avg.toFixed(2)),
-          status: avg >= 3 ? "Achieved" : "CQI Required"
-        };
-      }
+    ploResult[ploKey] = {
+      average: Number(avg.toFixed(2)),
+      status: avg >= 3 ? "Achieved" : "CQI Required"
+    };
+  }
 
-      cqiByAssessment[assessment] = ploResult;
+  // ✅ Attach assessment ONLY if it measured something
+  if (Object.keys(ploResult).length > 0) {
+    cqiByAssessment[assessment] = ploResult;
+  }
 
-      const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
-      if (remarkRow) remarksByAssessment[assessment] = remarkRow.remarks;
-    });
+  const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
+  if (remarkRow) remarksByAssessment[assessment] = remarkRow.remarks;
+});
 
     /* ---------- FINAL PLO (AGGREGATED) ---------- */
     const finalPLO = aggregateFinalPLO(cqiByAssessment);
