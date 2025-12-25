@@ -274,3 +274,54 @@ export async function updateASSESSMENT_PLO_Remark({
 
   return true;
 }
+
+/* =========================================================
+   CQI EMAIL FLAG (ASSESSMENT_PLO)
+========================================================= */
+
+export async function markCQIEmailSent({
+  sheetId,
+  rowIndex
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  // Convert column name → index by reading header
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "ASSESSMENT_PLO!A1:ZZ1",
+  });
+
+  const headers = headerRes.data.values[0].map(h =>
+    h.toString().trim().toLowerCase()
+  );
+
+  const colIdx = headers.indexOf("cqi_email_sent");
+  if (colIdx === -1) {
+    throw new Error("CQI_EMAIL_SENT column not found in ASSESSMENT_PLO");
+  }
+
+  // Convert index → letter
+  function toColLetter(idx) {
+    let s = "";
+    while (idx >= 0) {
+      s = String.fromCharCode((idx % 26) + 65) + s;
+      idx = Math.floor(idx / 26) - 1;
+    }
+    return s;
+  }
+
+  const cell = `ASSESSMENT_PLO!${toColLetter(colIdx)}${rowIndex}`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: cell,
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [["YES"]],
+    },
+  });
+
+  return true;
+}
