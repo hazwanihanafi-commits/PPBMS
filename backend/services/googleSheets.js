@@ -374,4 +374,44 @@ export async function updateASSESSMENT_PLO_Cell({
 
   return true;
 }
+export async function updateASSESSMENT_PLO_Cell({
+  rowIndex,
+  column,
+  value
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range: "ASSESSMENT_PLO!A1:ZZ1",
+  });
+
+  const headers = headerRes.data.values[0]
+    .map(h => h.toString().trim());
+
+  const colIndex = headers.indexOf(column);
+  if (colIndex === -1) {
+    throw new Error(`Column not found: ${column}`);
+  }
+
+  function toColLetter(idx) {
+    let s = "";
+    while (idx >= 0) {
+      s = String.fromCharCode((idx % 26) + 65) + s;
+      idx = Math.floor(idx / 26) - 1;
+    }
+    return s;
+  }
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: `ASSESSMENT_PLO!${toColLetter(colIndex)}${rowIndex}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[value]]
+    }
+  });
+}
 
