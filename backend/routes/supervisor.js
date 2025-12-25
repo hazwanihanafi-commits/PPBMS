@@ -16,6 +16,25 @@ import { sendCQIAlert } from "../services/mailer.js";
 const router = express.Router();
 
 /* =========================================================
+   DOCUMENT COLUMN MAP (MasterTracking)
+========================================================= */
+const DOC_COLUMN_MAP = {
+  "Development Plan & Learning Contract (DPLC)": "DPLC",
+  "Student Supervision Logbook": "SUPERVISION_LOG",
+  "Annual Progress Review – Year 1": "APR_Y1",
+  "Annual Progress Review – Year 2": "APR_Y2",
+  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
+  "Ethics Approval": "ETHICS_APPROVAL",
+  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
+  "Proof of Submission": "PROOF_OF_SUBMISSION",
+  "Conference Presentation": "CONFERENCE_PRESENTATION",
+  "Thesis Notice": "THESIS_NOTICE",
+  "Viva Report": "VIVA_REPORT",
+  "Correction Verification": "CORRECTION_VERIFICATION",
+  "Final Thesis": "FINAL_THESIS",
+};
+
+/* =========================================================
    AUTH (ADMIN + SUPERVISOR)
 ========================================================= */
 function auth(req, res, next) {
@@ -33,6 +52,7 @@ function auth(req, res, next) {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
+
 /* =========================================================
    GET /api/supervisor/students
    → Supervisor Dashboard List
@@ -49,12 +69,11 @@ router.get("/students", auth, async (req, res) => {
       .filter(r => {
         if (req.user.role === "admin") return true;
 
-        const mainSupervisorEmail = (r["Main Supervisor's Email"] || "")
+        const supervisorEmail = (r["Main Supervisor's Email"] || "")
           .toLowerCase()
           .replace(/\s+/g, "");
 
-        // 🔑 robust match (prevents silent empty list)
-        return mainSupervisorEmail.includes(loginEmail);
+        return supervisorEmail.includes(loginEmail);
       })
       .map(r => {
         const timeline = buildTimelineForRow(r);
@@ -80,10 +99,8 @@ router.get("/students", auth, async (req, res) => {
   }
 });
 
-
 /* =========================================================
    GET /api/supervisor/student/:email
-   ✅ CQI derived ONLY from measured PLOs in sheet
 ========================================================= */
 router.get("/student/:email", auth, async (req, res) => {
   try {
@@ -115,17 +132,19 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
+    /* ---------- DOCUMENTS ---------- */
+    const documents = {};
+    Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
+      documents[label] = raw[column] || "";
+    });
+
     /* ---------- READ ASSESSMENT_PLO ---------- */
     const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const normalized = assessmentRows.map((r, i) => {
-      const clean = {};
-      Object.keys(r).forEach(k => {
-        clean[k.replace(/\s+/g, "").toLowerCase()] = r[k];
-      });
-      clean.__rowIndex = i + 2;
-      return clean;
-    });
+    const normalized = assessmentRows.map((r, i) => ({
+      ...r,
+      __rowIndex: i + 2
+    }));
 
     const matric = String(raw["Matric"]).trim();
     const studentRows = normalized.filter(
@@ -140,50 +159,42 @@ router.get("/student/:email", auth, async (req, res) => {
       grouped[type].push(r);
     });
 
-    /* ---------- CQI (SHEET-DRIVEN, SAFE) ---------- */
+    /* ---------- CQI BY ASSESSMENT (MEASURED ONLY) ---------- */
     const cqiByAssessment = {};
     const remarksByAssessment = {};
 
     Object.entries(grouped).forEach(([assessment, rows]) => {
-  const ploResult = {};
+      const ploResult = {};
 
-  for (let i = 1; i <= 11; i++) {
-    const ploKey = `PLO${i}`;
+      for (let i = 1; i <= 11; i++) {
+        const values = rows
+          .map(r => r[`plo${i}`])
+          .filter(v => typeof v === "number");
 
-    // ✅ ONLY numeric values are considered measured
-    const values = rows
-      .map(r => r[`plo${i}`])
-      .filter(v => typeof v === "number");
+        if (values.length === 0) continue;
 
-    // 🚫 Skip PLO if not measured in this assessment
-    if (values.length === 0) continue;
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
 
-    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        ploResult[`PLO${i}`] = {
+          average: Number(avg.toFixed(2)),
+          status: avg >= 3 ? "Achieved" : "CQI Required"
+        };
+      }
 
-    ploResult[ploKey] = {
-      average: Number(avg.toFixed(2)),
-      status: avg >= 3 ? "Achieved" : "CQI Required"
-    };
-  }
+      if (Object.keys(ploResult).length > 0) {
+        cqiByAssessment[assessment] = ploResult;
+      }
 
-  // ✅ Attach assessment ONLY if it measured something
-  if (Object.keys(ploResult).length > 0) {
-    cqiByAssessment[assessment] = ploResult;
-  }
+      const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
+      if (remarkRow) remarksByAssessment[assessment] = remarkRow.remarks;
+    });
 
-  const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
-  if (remarkRow) remarksByAssessment[assessment] = remarkRow.remarks;
-});
-
-    /* ---------- FINAL PLO (AGGREGATED) ---------- */
+    /* ---------- FINAL PLO (PROGRAMME LEVEL) ---------- */
     const finalPLO = aggregateFinalPLO(cqiByAssessment);
 
     for (let i = 1; i <= 11; i++) {
       if (!finalPLO[`PLO${i}`]) {
-        finalPLO[`PLO${i}`] = {
-          average: null,
-          status: "Not Assessed"
-        };
+        finalPLO[`PLO${i}`] = { average: null, status: "Not Assessed" };
       }
     }
 
@@ -191,6 +202,7 @@ router.get("/student/:email", auth, async (req, res) => {
       row: {
         ...profile,
         timeline,
+        documents,
         cqiByAssessment,
         finalPLO,
         remarksByAssessment
@@ -204,7 +216,6 @@ router.get("/student/:email", auth, async (req, res) => {
 
 /* =========================================================
    POST /api/supervisor/remark
-   ✅ CQI email → SUPERVISOR ONLY
 ========================================================= */
 router.post("/remark", auth, async (req, res) => {
   try {
@@ -212,21 +223,18 @@ router.post("/remark", auth, async (req, res) => {
     if (!studentMatric || !assessmentType)
       return res.status(400).json({ error: "Missing data" });
 
-    /* 1️⃣ SAVE REMARK */
     await updateASSESSMENT_PLO_Remark({
       studentMatric,
       assessmentType,
       remark
     });
 
-    /* 2️⃣ LOAD STUDENT */
     const students = await readMasterTracking(process.env.SHEET_ID);
     const student = students.find(
       r => String(r["Matric"]).trim() === String(studentMatric).trim()
     );
     if (!student) return res.json({ success: true });
 
-    /* 3️⃣ LOAD ASSESSMENT ROWS */
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
     const normalized = rows.map((r, i) => ({
       ...r,
@@ -235,17 +243,15 @@ router.post("/remark", auth, async (req, res) => {
 
     const studentRows = normalized.filter(
       r =>
-        String(r.matric || r.matricno || "").trim() === String(studentMatric).trim() &&
+        String(r.matric || r.matricno || "").trim() === studentMatric &&
         String(r.assessment_type || "").toUpperCase() === assessmentType.toUpperCase()
     );
 
-    /* 4️⃣ DETECT CQI */
     const issues = extractCQIIssues(studentRows);
     const needEmail =
       issues.length > 0 &&
       studentRows.some(r => r.cqiemailsent !== "YES");
 
-    /* 5️⃣ EMAIL SUPERVISOR */
     if (needEmail) {
       await sendCQIAlert({
         to: student["Main Supervisor's Email"],
@@ -256,7 +262,6 @@ router.post("/remark", auth, async (req, res) => {
         remark
       });
 
-      /* 6️⃣ FLAG SENT */
       for (const r of studentRows) {
         if (r.cqiemailsent !== "YES") {
           await updateASSESSMENT_PLO_Cell({
@@ -264,7 +269,6 @@ router.post("/remark", auth, async (req, res) => {
             column: "CQI_EMAIL_SENT",
             value: "YES"
           });
-
           await updateASSESSMENT_PLO_Cell({
             rowIndex: r.__rowIndex,
             column: "CQI_EMAIL_DATE",
