@@ -11,26 +11,10 @@ import {
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
-import { sendCQIAlert } from "../services/mailer.js";
 import { extractCQIIssues } from "../utils/detectCQIRequired.js";
+import { sendCQIAlert } from "../services/mailer.js";
 
 const router = express.Router();
-
-const DOC_COLUMN_MAP = {
-  "Development Plan & Learning Contract (DPLC)": "DPLC",
-  "Student Supervision Logbook": "SUPERVISION_LOG",
-  "Annual Progress Review – Year 1": "APR_Y1",
-  "Annual Progress Review – Year 2": "APR_Y2",
-  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
-  "Ethics Approval": "ETHICS_APPROVAL",
-  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
-  "Proof of Submission": "PROOF_OF_SUBMISSION",
-  "Conference Presentation": "CONFERENCE_PRESENTATION",
-  "Thesis Notice": "THESIS_NOTICE",
-  "Viva Report": "VIVA_REPORT",
-  "Correction Verification": "CORRECTION_VERIFICATION",
-  "Final Thesis": "FINAL_THESIS",
-};
 
 /* =========================================================
    AUTH (ADMIN + SUPERVISOR)
@@ -52,50 +36,7 @@ function auth(req, res, next) {
 }
 
 /* =========================================================
-   GET /api/supervisor/students
-   → Dashboard list + progress %
-========================================================= */
-router.get("/students", auth, async (req, res) => {
-  try {
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-    const loginEmail = (req.user.email || "").toLowerCase().trim();
-
-    const students = rows
-      .filter(r =>
-        req.user.role === "admin"
-          ? true
-          : (r["Main Supervisor's Email"] || "")
-              .toLowerCase()
-              .trim() === loginEmail
-      )
-      .map(r => {
-        const timeline = buildTimelineForRow(r);
-        const completed = timeline.filter(t => t.status === "Completed").length;
-
-        return {
-          id: r["Matric"] || "",
-          name: r["Student Name"] || "",
-          email: (r["Student's Email"] || "").toLowerCase().trim(),
-          programme: r["Programme"] || "",
-          field: r["Field"] || "",
-          status: r["Status"] || "Active",
-          coSupervisors: r["Co-Supervisor(s)"] || "",
-          progressPercent: timeline.length
-            ? Math.round((completed / timeline.length) * 100)
-            : 0
-        };
-      });
-
-    res.json({ students });
-  } catch (e) {
-    console.error("students list error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* =========================================================
    GET /api/supervisor/student/:email
-   → FULL CQI + FINAL PLO VIEW
 ========================================================= */
 router.get("/student/:email", auth, async (req, res) => {
   try {
@@ -105,39 +46,24 @@ router.get("/student/:email", auth, async (req, res) => {
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
-
-    if (!raw) {
-      return res.status(404).json({ error: "Student not found" });
-    }
-
-    /* ---------- CO-SUPERVISOR NORMALISATION ---------- */
-const rawCoSup = raw["Co-Supervisor(s)"] || "";
-const coSupervisors = rawCoSup
-  ? rawCoSup
-      .split(/\d+\.\s*/g)   // handles "1. Name 2. Name"
-      .map(s => s.trim())
-      .filter(Boolean)
-  : [];
-
-    
+    if (!raw) return res.status(404).json({ error: "Student not found" });
 
     /* ---------- PROFILE ---------- */
     const profile = {
-  student_id: raw["Matric"] || "",
-  student_name: raw["Student Name"] || "",
-  email,
-  programme: raw["Programme"] || "",
-  field: raw["Field"] || "",
-  department: raw["Department"] || "",
-  status: raw["Status"] || "Active",
-  coSupervisors // ✅ ARRAY
-};
-
-    /* ---------- DOCUMENTS ---------- */
-const documents = {};
-Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
-  documents[label] = raw[column] || "";
-});
+      student_id: raw["Matric"] || "",
+      student_name: raw["Student Name"] || "",
+      email,
+      programme: raw["Programme"] || "",
+      field: raw["Field"] || "",
+      department: raw["Department"] || "",
+      status: raw["Status"] || "Active",
+      coSupervisors: raw["Co-Supervisor(s)"]
+        ? raw["Co-Supervisor(s)"]
+            .split(/\d+\.\s*/g)
+            .map(s => s.trim())
+            .filter(Boolean)
+        : []
+    };
 
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
@@ -145,25 +71,23 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
     /* ---------- CQI + REMARKS ---------- */
     const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const normalized = assessmentRows.map(r => {
+    const normalized = assessmentRows.map((r, i) => {
       const clean = {};
       Object.keys(r).forEach(k => {
         clean[k.replace(/\s+/g, "").toLowerCase()] = r[k];
       });
+      clean.__rowIndex = i + 2;
       return clean;
     });
 
-    const matric = String(raw["Matric"] || "").trim();
-    const studentRows = normalized.filter(r => {
-  const m =
-    String(r["matric"] || r["matricno"] || "").trim();
-  return m === matric;
-});
-    
+    const matric = String(raw["Matric"]).trim();
+    const studentRows = normalized.filter(
+      r => String(r.matric || r.matricno || "").trim() === matric
+    );
 
     const grouped = {};
     studentRows.forEach(r => {
-      const type = String(r["assessment_type"] || "").toUpperCase();
+      const type = String(r.assessment_type || "").toUpperCase();
       if (!grouped[type]) grouped[type] = [];
       grouped[type].push(r);
     });
@@ -175,7 +99,7 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
       const ploScores = rows.map(r => {
         const o = {};
         for (let i = 1; i <= 11; i++) {
-          const v = parseFloat(r[`plo${i}`]);
+          const v = Number(r[`plo${i}`]);
           o[`PLO${i}`] = isNaN(v) ? null : v;
         }
         return o;
@@ -187,24 +111,17 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
       if (remarkRow) remarksByAssessment[type] = remarkRow.remarks;
     });
 
-    /* ---------- FINAL PLO (ALL ASSESSMENTS) ---------- */
     const finalPLO = aggregateFinalPLO(cqiByAssessment);
 
-// 🔒 SAFETY: ensure every PLO has average + status
-for (let i = 1; i <= 11; i++) {
-  const key = `PLO${i}`;
-  if (!finalPLO[key]) {
-    finalPLO[key] = {
-      average: null,
-      status: "Not Assessed"
-    };
-  }
-}
+    for (let i = 1; i <= 11; i++) {
+      if (!finalPLO[`PLO${i}`]) {
+        finalPLO[`PLO${i}`] = { average: null, status: "Not Assessed" };
+      }
+    }
 
     res.json({
       row: {
         ...profile,
-        documents,
         timeline,
         cqiByAssessment,
         finalPLO,
@@ -212,86 +129,67 @@ for (let i = 1; i <= 11; i++) {
       }
     });
   } catch (e) {
-    console.error("student detail error:", e);
+    console.error("Supervisor student error:", e);
     res.status(500).json({ error: e.message });
   }
 });
 
 /* =========================================================
    POST /api/supervisor/remark
+   → Save remark
+   → Trigger CQI email (SUPERVISOR)
 ========================================================= */
 router.post("/remark", auth, async (req, res) => {
   try {
     const { studentMatric, assessmentType, remark } = req.body;
-
-    if (!studentMatric || !assessmentType) {
+    if (!studentMatric || !assessmentType)
       return res.status(400).json({ error: "Missing data" });
-    }
 
-    /* ===============================
-       1️⃣ SAVE REMARK TO SHEET
-    =============================== */
+    /* 1️⃣ Save remark */
     await updateASSESSMENT_PLO_Remark({
       studentMatric,
       assessmentType,
       remark
     });
 
-    /* ===============================
-       2️⃣ LOAD STUDENT
-    =============================== */
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-    const student = rows.find(
+    /* 2️⃣ Load student */
+    const students = await readMasterTracking(process.env.SHEET_ID);
+    const student = students.find(
       r => String(r["Matric"]).trim() === String(studentMatric).trim()
     );
+    if (!student) return res.json({ success: true });
 
-    if (!student) {
-      return res.json({ success: true, emailTriggered: false });
-    }
+    /* 3️⃣ Load assessment rows */
+    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    const normalized = rows.map((r, i) => ({
+      ...r,
+      __rowIndex: i + 2
+    }));
 
-    /* ===============================
-       3️⃣ LOAD ASSESSMENT_PLO
-    =============================== */
-    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-    // normalize keys
-    const normalized = assessmentRows.map((r, i) => {
-      const clean = {};
-      Object.keys(r).forEach(k => {
-        clean[k.replace(/\s+/g, "").toLowerCase()] = r[k];
-      });
-      clean.__rowIndex = i + 2; // for sheet update
-      return clean;
-    });
-
-    const studentRows = normalized.filter(r =>
-      String(r.matric || r.matricno || "").trim() === String(studentMatric).trim() &&
-      String(r.assessment_type || "").toUpperCase() === assessmentType.toUpperCase()
+    const studentRows = normalized.filter(
+      r =>
+        String(r.matric || r.matricno || "").trim() === String(studentMatric).trim() &&
+        String(r.assessment_type || "").toUpperCase() === assessmentType.toUpperCase()
     );
 
-    /* ===============================
-       4️⃣ CHECK CQI REQUIRED + NOT EMAILED
-    =============================== */
-    const cqiIssues = extractCQIIssues(studentRows);
-
-    const needEmail = cqiIssues.length > 0 &&
+    /* 4️⃣ CQI detection */
+    const issues = extractCQIIssues(studentRows);
+    const needEmail =
+      issues.length > 0 &&
       studentRows.some(r => r.cqiemailsent !== "YES");
 
-    /* ===============================
-       5️⃣ SEND EMAIL (ONCE)
-    =============================== */
+    /* 5️⃣ Send email to SUPERVISOR ONLY */
     if (needEmail) {
       await sendCQIAlert({
-        to: student["Student's Email"],
-        cc: student["Main Supervisor's Email"],
+        to: student["Main Supervisor's Email"],
         studentName: student["Student Name"],
         matric: studentMatric,
         assessmentType,
-        cqiIssues,
+        cqiIssues: issues,
         remark
       });
 
-      // mark CQI_EMAIL_SENT = YES
+      /* 6️⃣ Mark CQI_EMAIL_SENT */
       for (const r of studentRows) {
         if (r.cqiemailsent !== "YES") {
           await updateASSESSMENT_PLO_Cell({
@@ -299,15 +197,17 @@ router.post("/remark", auth, async (req, res) => {
             column: "CQI_EMAIL_SENT",
             value: "YES"
           });
+
+          await updateASSESSMENT_PLO_Cell({
+            rowIndex: r.__rowIndex,
+            column: "CQI_EMAIL_DATE",
+            value: new Date().toISOString().slice(0, 10)
+          });
         }
       }
     }
 
-    return res.json({
-      success: true,
-      emailTriggered: needEmail
-    });
-
+    res.json({ success: true, emailTriggered: needEmail });
   } catch (e) {
     console.error("CQI remark error:", e);
     res.status(500).json({ error: e.message });
