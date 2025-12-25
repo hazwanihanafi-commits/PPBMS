@@ -187,9 +187,6 @@ export default function SupervisorStudentPage() {
       )}
 
       {/* ===== CQI / PLO ===== */}
-import FinalPLOTable from "../../components/FinalPLOTable";
-import SupervisorRemark from "../../components/SupervisorRemark";
-
 {activeTab === "cqi" && (
   <div className="space-y-6">
 
@@ -263,4 +260,3 @@ import SupervisorRemark from "../../components/SupervisorRemark";
 
   </div>
 )}
-
