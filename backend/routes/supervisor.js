@@ -9,7 +9,6 @@ import {
 } from "../services/googleSheets.js";
 
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
-import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
 import { extractCQIIssues } from "../utils/detectCQIRequired.js";
 import { sendCQIAlert } from "../services/mailer.js";
@@ -37,13 +36,14 @@ function auth(req, res, next) {
 
 /* =========================================================
    GET /api/supervisor/student/:email
+   ✅ CQI derived ONLY from measured PLOs in sheet
 ========================================================= */
 router.get("/student/:email", auth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const masterRows = await readMasterTracking(process.env.SHEET_ID);
 
-    const raw = rows.find(
+    const raw = masterRows.find(
       r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
     if (!raw) return res.status(404).json({ error: "Student not found" });
@@ -68,7 +68,7 @@ router.get("/student/:email", auth, async (req, res) => {
     /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-    /* ---------- CQI + REMARKS ---------- */
+    /* ---------- READ ASSESSMENT_PLO ---------- */
     const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
     const normalized = assessmentRows.map((r, i) => {
@@ -85,6 +85,7 @@ router.get("/student/:email", auth, async (req, res) => {
       r => String(r.matric || r.matricno || "").trim() === matric
     );
 
+    /* ---------- GROUP BY ASSESSMENT ---------- */
     const grouped = {};
     studentRows.forEach(r => {
       const type = String(r.assessment_type || "").toUpperCase();
@@ -92,30 +93,53 @@ router.get("/student/:email", auth, async (req, res) => {
       grouped[type].push(r);
     });
 
+    /* ---------- CQI (SHEET-DRIVEN, SAFE) ---------- */
     const cqiByAssessment = {};
     const remarksByAssessment = {};
 
-    Object.entries(grouped).forEach(([type, rows]) => {
-      const ploScores = rows.map(r => {
-        const o = {};
-        for (let i = 1; i <= 11; i++) {
-          const v = Number(r[`plo${i}`]);
-          o[`PLO${i}`] = isNaN(v) ? null : v;
-        }
-        return o;
-      });
+    Object.entries(grouped).forEach(([assessment, rows]) => {
+      const ploResult = {};
 
-      cqiByAssessment[type] = deriveCQIByAssessment(ploScores);
+      for (let i = 1; i <= 11; i++) {
+        const ploKey = `PLO${i}`;
+
+        // ✅ ONLY numeric values = measured
+        const values = rows
+          .map(r => r[`plo${i}`])
+          .filter(v => typeof v === "number");
+
+        if (values.length === 0) {
+          ploResult[ploKey] = {
+            average: null,
+            status: "Not Assessed"
+          };
+          continue;
+        }
+
+        const avg =
+          values.reduce((a, b) => a + b, 0) / values.length;
+
+        ploResult[ploKey] = {
+          average: Number(avg.toFixed(2)),
+          status: avg >= 3 ? "Achieved" : "CQI Required"
+        };
+      }
+
+      cqiByAssessment[assessment] = ploResult;
 
       const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
-      if (remarkRow) remarksByAssessment[type] = remarkRow.remarks;
+      if (remarkRow) remarksByAssessment[assessment] = remarkRow.remarks;
     });
 
+    /* ---------- FINAL PLO (AGGREGATED) ---------- */
     const finalPLO = aggregateFinalPLO(cqiByAssessment);
 
     for (let i = 1; i <= 11; i++) {
       if (!finalPLO[`PLO${i}`]) {
-        finalPLO[`PLO${i}`] = { average: null, status: "Not Assessed" };
+        finalPLO[`PLO${i}`] = {
+          average: null,
+          status: "Not Assessed"
+        };
       }
     }
 
@@ -136,8 +160,7 @@ router.get("/student/:email", auth, async (req, res) => {
 
 /* =========================================================
    POST /api/supervisor/remark
-   → Save remark
-   → Trigger CQI email (SUPERVISOR)
+   ✅ CQI email → SUPERVISOR ONLY
 ========================================================= */
 router.post("/remark", auth, async (req, res) => {
   try {
@@ -145,21 +168,21 @@ router.post("/remark", auth, async (req, res) => {
     if (!studentMatric || !assessmentType)
       return res.status(400).json({ error: "Missing data" });
 
-    /* 1️⃣ Save remark */
+    /* 1️⃣ SAVE REMARK */
     await updateASSESSMENT_PLO_Remark({
       studentMatric,
       assessmentType,
       remark
     });
 
-    /* 2️⃣ Load student */
+    /* 2️⃣ LOAD STUDENT */
     const students = await readMasterTracking(process.env.SHEET_ID);
     const student = students.find(
       r => String(r["Matric"]).trim() === String(studentMatric).trim()
     );
     if (!student) return res.json({ success: true });
 
-    /* 3️⃣ Load assessment rows */
+    /* 3️⃣ LOAD ASSESSMENT ROWS */
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
     const normalized = rows.map((r, i) => ({
       ...r,
@@ -172,13 +195,13 @@ router.post("/remark", auth, async (req, res) => {
         String(r.assessment_type || "").toUpperCase() === assessmentType.toUpperCase()
     );
 
-    /* 4️⃣ CQI detection */
+    /* 4️⃣ DETECT CQI */
     const issues = extractCQIIssues(studentRows);
     const needEmail =
       issues.length > 0 &&
       studentRows.some(r => r.cqiemailsent !== "YES");
 
-    /* 5️⃣ Send email to SUPERVISOR ONLY */
+    /* 5️⃣ EMAIL SUPERVISOR */
     if (needEmail) {
       await sendCQIAlert({
         to: student["Main Supervisor's Email"],
@@ -189,7 +212,7 @@ router.post("/remark", auth, async (req, res) => {
         remark
       });
 
-      /* 6️⃣ Mark CQI_EMAIL_SENT */
+      /* 6️⃣ FLAG SENT */
       for (const r of studentRows) {
         if (r.cqiemailsent !== "YES") {
           await updateASSESSMENT_PLO_Cell({
