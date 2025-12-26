@@ -36,15 +36,17 @@ router.get("/programmes", auth, async (req, res) => {
     const programmes = [
       ...new Set(
         rows
-          .map(r => (r["Programme"] || "").trim())
+          .map(r => (r.programme || "").trim())
           .filter(Boolean)
       ),
     ].sort();
 
-    return res.json({ programmes });
+    console.log("PROGRAMMES FOUND:", programmes);
+
+    res.json({ programmes });
   } catch (err) {
     console.error("Programme list error:", err);
-    return res.status(500).json({ error: "Failed to load programmes" });
+    res.status(500).json({ error: "Failed to load programmes" });
   }
 });
 
