@@ -7,145 +7,83 @@ export default function AdminDashboard() {
 
   const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
-
   const [plo, setPlo] = useState(null);
   const [students, setStudents] = useState([]);
 
-  const [loadingProgrammes, setLoadingProgrammes] = useState(true);
-  const [loadingCQI, setLoadingCQI] = useState(false);
-  const [loadingStudents, setLoadingStudents] = useState(false);
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("ppbms_token")
+      : null;
 
-  /* =========================
-     AUTH GUARD
-  ========================= */
+  /* ================= LOAD PROGRAMMES ================= */
   useEffect(() => {
-    const token = localStorage.getItem("ppbms_token");
-    const role = localStorage.getItem("ppbms_role");
+    if (!token) return;
 
-    if (!token || role !== "admin") {
-      router.replace("/admin/login");
-    }
-  }, []);
-
-  /* =========================
-     LOAD PROGRAMMES (ONCE)
-  ========================= */
-  useEffect(() => {
-    async function loadProgrammes() {
-      try {
-        const res = await fetch(`${API_BASE}/api/admin/programmes`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-          },
-        });
-
-        const data = await res.json();
+    fetch(`${API_BASE}/api/admin/programmes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.json())
+      .then(data => {
         setProgrammes(data.programmes || []);
-
-        // set default programme ONCE only
         if (data.programmes?.length) {
-          setProgramme(prev => prev || data.programmes[0]);
+          setProgramme(data.programmes[0]);
         }
-      } catch (e) {
-        console.error("Programme load error:", e);
-      } finally {
-        setLoadingProgrammes(false);
-      }
-    }
+      })
+      .catch(console.error);
+  }, [token]);
 
-    loadProgrammes();
-  }, []);
-
-  /* =========================
-     LOAD PROGRAMME CQI
-  ========================= */
+  /* ================= LOAD CQI ================= */
   useEffect(() => {
-    if (!programme) return;
+    if (!programme || !token) return;
 
-    async function loadCQI() {
-      setLoadingCQI(true);
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-            },
-          }
-        );
-
-        const data = await res.json();
-        setPlo(data.plo || null);
-      } catch (e) {
-        console.error("CQI load error:", e);
-        setPlo(null);
-      } finally {
-        setLoadingCQI(false);
+    fetch(
+      `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
+        programme
+      )}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
       }
-    }
+    )
+      .then(res => res.json())
+      .then(data => setPlo(data.plo || null))
+      .catch(console.error);
+  }, [programme, token]);
 
-    loadCQI();
-  }, [programme]);
-
-  /* =========================
-     LOAD PROGRAMME STUDENTS
-  ========================= */
+  /* ================= LOAD STUDENTS ================= */
   useEffect(() => {
-    if (!programme) return;
+    if (!programme || !token) return;
 
-    async function loadStudents() {
-      setLoadingStudents(true);
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(programme)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-            },
-          }
-        );
-
-        const data = await res.json();
-        setStudents(data.students || []);
-      } catch (e) {
-        console.error("Student load error:", e);
-        setStudents([]);
-      } finally {
-        setLoadingStudents(false);
+    fetch(
+      `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(
+        programme
+      )}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
       }
-    }
+    )
+      .then(res => res.json())
+      .then(data => setStudents(data.students || []))
+      .catch(console.error);
+  }, [programme, token]);
 
-    loadStudents();
-  }, [programme]);
-
-  /* =========================
-     RENDER
-  ========================= */
   return (
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
       <h1 className="text-3xl font-extrabold text-purple-900">
         Admin Dashboard
       </h1>
 
-      {/* PROGRAMME SELECT */}
+      {/* Programme selector */}
       <div className="bg-white p-4 rounded-xl shadow">
-        <label className="block text-sm font-semibold mb-2">
-          Select Programme
-        </label>
-
-        {loadingProgrammes ? (
-          <p className="text-sm text-gray-500">Loading programmes…</p>
-        ) : (
-          <select
-            value={programme}
-            onChange={(e) => setProgramme(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            {programmes.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        )}
+        <label className="font-semibold text-sm">Select Programme</label>
+        <select
+          value={programme}
+          onChange={e => setProgramme(e.target.value)}
+          className="w-full mt-2 border rounded px-3 py-2"
+        >
+          {programmes.map(p => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
       </div>
 
       {/* CQI */}
@@ -154,21 +92,18 @@ export default function AdminDashboard() {
           Programme CQI (Graduated Students)
         </h2>
 
-        {loadingCQI && <p className="text-sm text-gray-500">Loading CQI…</p>}
-
-        {!loadingCQI && !plo && (
-          <p className="text-sm text-gray-500">No CQI data available</p>
-        )}
+        {!plo && <p className="text-sm text-gray-500">No CQI data</p>}
 
         {plo &&
           Object.entries(plo).map(([key, d]) => (
             <div key={key} className="mb-4">
               <div className="flex justify-between text-sm font-semibold">
                 <span>{key}</span>
-                <span>{d.percent ?? "-"}% ({d.achieved}/{d.assessed})</span>
+                <span>
+                  {d.percent ?? "-"}% ({d.achieved}/{d.assessed})
+                </span>
               </div>
-
-              <div className="w-full bg-gray-200 h-2 rounded mt-1">
+              <div className="h-2 bg-gray-200 rounded mt-1">
                 <div
                   className={`h-2 rounded ${
                     d.status === "Achieved"
@@ -177,44 +112,41 @@ export default function AdminDashboard() {
                       ? "bg-yellow-500"
                       : "bg-red-500"
                   }`}
-                  style={{ width: `${Math.min(d.percent || 0, 100)}%` }}
+                  style={{ width: `${d.percent || 0}%` }}
                 />
               </div>
-
-              <p className="text-xs mt-1 text-gray-600">
+              <p className="text-xs text-gray-600 mt-1">
                 Status: <strong>{d.status}</strong>
               </p>
             </div>
           ))}
       </div>
 
-      {/* STUDENTS */}
+      {/* Students */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="text-xl font-bold mb-4">
           Students ({students.length})
         </h2>
 
-        {loadingStudents && <p className="text-sm text-gray-500">Loading students…</p>}
-
-        {!loadingStudents && students.length === 0 && (
+        {students.length === 0 && (
           <p className="text-sm text-gray-500">No students found</p>
         )}
 
-        {!loadingStudents && students.length > 0 && (
+        {students.length > 0 && (
           <table className="w-full text-sm border">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-2 text-left">Matric</th>
                 <th className="p-2 text-left">Name</th>
+                <th className="p-2 text-left">Matric</th>
                 <th className="p-2 text-left">Email</th>
                 <th className="p-2 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
-              {students.map((s) => (
-                <tr key={s.id} className="border-t">
-                  <td className="p-2">{s.id}</td>
+              {students.map((s, i) => (
+                <tr key={i} className="border-t">
                   <td className="p-2">{s.name}</td>
+                  <td className="p-2">{s.id}</td>
                   <td className="p-2">{s.email}</td>
                   <td className="p-2 font-semibold">{s.status}</td>
                 </tr>
