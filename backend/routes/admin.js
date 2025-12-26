@@ -1,11 +1,12 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 
-import { readASSESSMENT_PLO } from "../services/googleSheets.js";
-import { readMasterTracking } from "../services/googleSheets.js";
+import {
+  readASSESSMENT_PLO,
+  readMasterTracking
+} from "../services/googleSheets.js";
 
 import { computeProgrammeCQI } from "../utils/programmeCQIFromFinalPLO.js";
-import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
@@ -38,9 +39,9 @@ router.get("/programmes", adminAuth, async (req, res) => {
     const programmes = [
       ...new Set(
         rows
-          .map(r => String(r.programme || "").trim())
+          .map(r => String(r["Programme"] || "").trim())
           .filter(Boolean)
-      ),
+      )
     ].sort();
 
     res.json({ programmes });
@@ -52,7 +53,6 @@ router.get("/programmes", adminAuth, async (req, res) => {
 
 /* =================================================
    PROGRAMME CQI (FINAL, MQA-COMPLIANT)
-   → derived ONLY from FINAL PLO per student
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   try {
@@ -74,14 +74,8 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 });
 
 /* =================================================
-   ADMIN STUDENT LIST
-   (SAME LOGIC AS SUPERVISOR DASHBOARD)
-================================================= */
-// backend/routes/admin.js
-import { readMasterTracking } from "../services/googleSheets.js";
-
-/* =================================================
-   PROGRAMME STUDENTS (ADMIN) — CORRECT SOURCE
+   PROGRAMME STUDENTS (ADMIN)
+   → SAME SOURCE AS SUPERVISOR DASHBOARD
 ================================================= */
 router.get("/programme-students", adminAuth, async (req, res) => {
   try {
@@ -110,4 +104,5 @@ router.get("/programme-students", adminAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 export default router;
