@@ -14,9 +14,7 @@ function adminAuth(req, res, next) {
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.role !== "admin") {
-      return res.status(403).json({ error: "Forbidden" });
-    }
+    if (user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
     req.user = user;
     next();
   } catch {
@@ -25,7 +23,7 @@ function adminAuth(req, res, next) {
 }
 
 /* =================================================
-   GET PROGRAMMES (ADMIN DROPDOWN)
+   PROGRAMME LIST (ADMIN DROPDOWN)
 ================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
@@ -35,14 +33,37 @@ router.get("/programmes", adminAuth, async (req, res) => {
       rows
         .map(r => String(r["Programme"] || "").trim())
         .filter(Boolean)
-    ),
+    )
   ].sort();
 
   res.json({ programmes });
 });
 
 /* =================================================
-   PROGRAMME CQI (FINAL, STABLE, MATCHES SUPERVISOR)
+   PROGRAMME STUDENT LIST
+================================================= */
+router.get("/programme-students", adminAuth, async (req, res) => {
+  const programme = String(req.query.programme || "").trim();
+  if (!programme) {
+    return res.status(400).json({ error: "Programme required" });
+  }
+
+  const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+  const students = rows
+    .filter(r => String(r["Programme"] || "").trim() === programme)
+    .map(r => ({
+      studentEmail: r["Student's Email"] || "",
+      matric: r["Matric"] || "",
+      assessmentType: r["assessment_type"] || "",
+      status: r["Status"] || "",
+    }));
+
+  res.json({ students });
+});
+
+/* =================================================
+   PROGRAMME CQI (GRADUATED ONLY, 70% BENCHMARK)
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   const programme = String(req.query.programme || "").trim();
@@ -52,7 +73,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* 1️⃣ Filter programme */
+  /* 1️⃣ Programme filter */
   const programmeRows = rows.filter(
     r => String(r["Programme"] || "").trim() === programme
   );
@@ -66,19 +87,19 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ Final PLO per GRADUATED student */
+  /* 3️⃣ Final PLO per graduated student */
   const graduates = Object.values(byStudent)
     .map(records => {
-      const isGraduated = records.some(
+      const graduated = records.some(
         r => String(r["Status"] || "").toLowerCase() === "graduated"
       );
-      if (!isGraduated) return null;
+      if (!graduated) return null;
 
       return aggregateFinalPLO(records);
     })
     .filter(Boolean);
 
-  /* 4️⃣ Programme-level aggregation (70% benchmark) */
+  /* 4️⃣ Programme aggregation */
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
@@ -96,7 +117,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     plo[key] = {
       assessed,
       achieved,
-      percent: percent !== null ? Number(percent.toFixed(1)) : null,
+      percent: percent ? Number(percent.toFixed(1)) : null,
       status:
         assessed === 0
           ? "Not Assessed"
