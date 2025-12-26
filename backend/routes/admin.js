@@ -1,8 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import {
-  readASSESSMENT_PLO
-} from "../services/googleSheets.js";
+import { readASSESSMENT_PLO } from "../services/googleSheets.js";
 
 const router = express.Router();
 
@@ -25,10 +23,9 @@ function auth(req, res, next) {
   }
 }
 
-/* =========================
-   GET ALL PROGRAMMES
-   (FOR DROPDOWN)
-========================= */
+/* =========================================
+   GET ALL PROGRAMMES (FOR DROPDOWN)
+========================================= */
 router.get("/programmes", auth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
@@ -36,7 +33,7 @@ router.get("/programmes", auth, async (req, res) => {
     const programmes = [
       ...new Set(
         rows
-          .map(r => (r.programme || "").trim())
+          .map(r => String(r["Programme"] || "").trim())
           .filter(Boolean)
       ),
     ].sort();
@@ -50,9 +47,9 @@ router.get("/programmes", auth, async (req, res) => {
   }
 });
 
-/* =========================
-   PROGRAMME CQI
-========================= */
+/* =========================================
+   PROGRAMME CQI (PLO ATTAINMENT)
+========================================= */
 router.get("/programme-plo", auth, async (req, res) => {
   try {
     const programme = (req.query.programme || "").trim();
@@ -62,9 +59,10 @@ router.get("/programme-plo", auth, async (req, res) => {
 
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const filtered = rows.filter(r =>
-      (r["Programme"] || "").trim() === programme &&
-      String(r["Status"] || "").toLowerCase() === "graduated"
+    const filtered = rows.filter(
+      r =>
+        String(r["Programme"] || "").trim() === programme &&
+        String(r["Status"] || "").toLowerCase() === "graduated"
     );
 
     const ploStats = {};
@@ -90,7 +88,7 @@ router.get("/programme-plo", auth, async (req, res) => {
       result[plo] = {
         assessed: d.assessed,
         achieved: d.achieved,
-        percent: percent ? Number(percent.toFixed(1)) : null,
+        percent: percent !== null ? Number(percent.toFixed(1)) : null,
         status:
           d.assessed === 0
             ? "Not Assessed"
@@ -104,7 +102,7 @@ router.get("/programme-plo", auth, async (req, res) => {
 
     res.json({ programme, plo: result });
   } catch (e) {
-    console.error(e);
+    console.error("Programme PLO error:", e);
     res.status(500).json({ error: e.message });
   }
 });
