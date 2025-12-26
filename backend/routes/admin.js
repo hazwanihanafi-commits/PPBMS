@@ -49,70 +49,48 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* ===============================
-     1️⃣ FILTER PROGRAMME
-  =============================== */
+  /* 1️⃣ Filter by programme */
   const programmeRows = rows.filter(
-    r => String(r.programme || "").trim() === programme
+    r => String(r["Programme"] || "").trim() === programme
   );
 
-  /* ===============================
-     2️⃣ GROUP BY STUDENT
-  =============================== */
+  /* 2️⃣ Group by student */
   const byStudent = {};
   programmeRows.forEach(r => {
-    const email = String(r.student_s_email || "").toLowerCase().trim();
+    const email = String(r["Student's Email"] || "").toLowerCase().trim();
     if (!email) return;
     if (!byStudent[email]) byStudent[email] = [];
     byStudent[email].push(r);
   });
 
-  /* ===============================
-     3️⃣ FINAL PLO PER GRADUATED STUDENT
-     (SAME LOGIC AS SUPERVISOR PAGE)
-  =============================== */
-  const finalStudents = Object.values(byStudent)
-    .map(records => {
-      const isGraduated = records.some(
-        r => String(r.status || "").toLowerCase() === "graduated"
-      );
-      if (!isGraduated) return null;
+  /* 3️⃣ Compute FINAL PLO per GRADUATED student */
+  const graduatedStudents = Object.values(byStudent)
+    .filter(records =>
+      records.some(
+        r => String(r["Status"] || "").toLowerCase() === "graduated"
+      )
+    )
+    .map(records => computeFinalStudentPLO(records));
 
-      // Prefer THESIS, fallback to VIVA
-      const finalRecord =
-        records.find(r => r.assessment_type === "THESIS") ||
-        records.find(r => r.assessment_type === "VIVA");
+  const totalGraduates = graduatedStudents.length;
 
-      if (!finalRecord) return null;
-
-      return finalRecord;
-    })
-    .filter(Boolean);
-
-  const totalGraduates = finalStudents.length;
-
-  /* ===============================
-     4️⃣ PROGRAMME CQI AGGREGATION
-     (≥3 RULE, 70% BENCHMARK)
-  =============================== */
+  /* 4️⃣ Programme-level CQI (percentage-based) */
   const plo = {};
-
   for (let i = 1; i <= 11; i++) {
-    const key = `plo${i}`;
+    const key = `PLO${i}`;
 
-    const achieved = finalStudents.filter(
-      s => Number(s[key]) >= 3
+    const achieved = graduatedStudents.filter(
+      s => typeof s[key]?.average === "number" && s[key].average >= 3
     ).length;
 
-    const percent =
-      totalGraduates > 0
-        ? (achieved / totalGraduates) * 100
-        : null;
+    const percent = totalGraduates
+      ? (achieved / totalGraduates) * 100
+      : null;
 
-    plo[`PLO${i}`] = {
-      achieved,
+    plo[key] = {
       assessed: totalGraduates,
-      percent: percent !== null ? Number(percent.toFixed(2)) : null,
+      achieved,
+      percent: percent !== null ? Number(percent.toFixed(1)) : null,
       status:
         totalGraduates === 0
           ? "Not Assessed"
@@ -130,7 +108,6 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     plo
   });
 });
-
 /* =================================================
    PROGRAMME STUDENTS TABLE (ADMIN) ✅
 ================================================= */
