@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
-/* ============================
-   ADMIN DASHBOARD
-============================ */
 export default function AdminDashboard() {
   const router = useRouter();
 
@@ -18,9 +15,9 @@ export default function AdminDashboard() {
   const [loadingCQI, setLoadingCQI] = useState(false);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
-  /* ============================
-     AUTH GUARD (ADMIN ONLY)
-  ============================ */
+  /* =========================
+     AUTH GUARD
+  ========================= */
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
@@ -30,9 +27,9 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  /* ============================
+  /* =========================
      LOAD PROGRAMMES
-  ============================ */
+  ========================= */
   useEffect(() => {
     async function loadProgrammes() {
       try {
@@ -50,7 +47,7 @@ export default function AdminDashboard() {
           setProgramme(data.programmes[0]);
         }
       } catch (e) {
-        console.error("Programme load error:", e);
+        console.error(e);
       } finally {
         setLoadingProgrammes(false);
       }
@@ -59,9 +56,9 @@ export default function AdminDashboard() {
     loadProgrammes();
   }, []);
 
-  /* ============================
+  /* =========================
      LOAD PROGRAMME CQI
-  ============================ */
+  ========================= */
   useEffect(() => {
     if (!programme) return;
 
@@ -69,9 +66,7 @@ export default function AdminDashboard() {
       setLoadingCQI(true);
       try {
         const res = await fetch(
-          `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
-            programme
-          )}`,
+          `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
@@ -81,10 +76,8 @@ export default function AdminDashboard() {
 
         const data = await res.json();
         console.log("CQI:", data);
-
         setPlo(data.plo || null);
-      } catch (e) {
-        console.error("CQI error:", e);
+      } catch {
         setPlo(null);
       } finally {
         setLoadingCQI(false);
@@ -94,9 +87,9 @@ export default function AdminDashboard() {
     loadCQI();
   }, [programme]);
 
-  /* ============================
-     LOAD PROGRAMME STUDENTS
-  ============================ */
+  /* =========================
+     LOAD STUDENTS
+  ========================= */
   useEffect(() => {
     if (!programme) return;
 
@@ -104,9 +97,7 @@ export default function AdminDashboard() {
       setLoadingStudents(true);
       try {
         const res = await fetch(
-          `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(
-            programme
-          )}`,
+          `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(programme)}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
@@ -116,10 +107,8 @@ export default function AdminDashboard() {
 
         const data = await res.json();
         console.log("STUDENTS:", data);
-
         setStudents(data.students || []);
-      } catch (e) {
-        console.error("Student list error:", e);
+      } catch {
         setStudents([]);
       } finally {
         setLoadingStudents(false);
@@ -129,9 +118,6 @@ export default function AdminDashboard() {
     loadStudents();
   }, [programme]);
 
-  /* ============================
-     RENDER
-  ============================ */
   return (
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
       <h1 className="text-3xl font-extrabold text-purple-900">
@@ -174,10 +160,10 @@ export default function AdminDashboard() {
         )}
 
         {plo &&
-          Object.entries(plo).map(([ploKey, d]) => (
-            <div key={ploKey} className="mb-4">
+          Object.entries(plo).map(([key, d]) => (
+            <div key={key} className="mb-4">
               <div className="flex justify-between text-sm font-semibold">
-                <span>{ploKey}</span>
+                <span>{key}</span>
                 <span>
                   {d.percent ?? "-"}% ({d.achieved}/{d.assessed})
                 </span>
@@ -192,9 +178,7 @@ export default function AdminDashboard() {
                       ? "bg-yellow-500"
                       : "bg-red-500"
                   }`}
-                  style={{
-                    width: `${Math.min(d.percent || 0, 100)}%`,
-                  }}
+                  style={{ width: `${Math.min(d.percent || 0, 100)}%` }}
                 />
               </div>
 
@@ -223,7 +207,7 @@ export default function AdminDashboard() {
           <table className="w-full text-sm border">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-2 text-left">Name</th>
+                <th className="p-2 text-left">Student Name</th>
                 <th className="p-2 text-left">Email</th>
                 <th className="p-2 text-left">Matric</th>
                 <th className="p-2 text-left">Status</th>
