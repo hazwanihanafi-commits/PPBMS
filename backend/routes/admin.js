@@ -18,13 +18,23 @@ function adminAuth(req, res, next) {
     }
     req.user = user;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
 
+/* =========================
+   HELPER: SAFE COLUMN ACCESS
+========================= */
+function getColumn(row, columnName) {
+  const key = Object.keys(row).find(
+    k => k.trim().toLowerCase() === columnName.toLowerCase()
+  );
+  return key ? row[key] : undefined;
+}
+
 /* =================================================
-   GET PROGRAMME LIST (FOR DROPDOWN)
+   GET PROGRAMME LIST (DROPDOWN)
 ================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   try {
@@ -37,12 +47,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
     const programmes = [
       ...new Set(
         rows
-          .map(r => {
-            const key = Object.keys(r).find(
-              k => k.trim().toLowerCase() === "programme"
-            );
-            return key ? String(r[key]).trim() : "";
-          })
+          .map(r => String(getColumn(r, "Programme") || "").trim())
           .filter(Boolean)
       )
     ].sort();
@@ -55,8 +60,9 @@ router.get("/programmes", adminAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 /* =================================================
-   PROGRAMME CQI (ONE ROUTE ONLY)
+   PROGRAMME CQI (GRADUATED STUDENTS)
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   try {
@@ -67,10 +73,9 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    // ✅ SHEET HEADERS CONFIRMED
     const filtered = rows.filter(r =>
-      String(r["Programme"] || "").trim() === programme &&
-      String(r["Status"] || "").toLowerCase() === "graduated"
+      String(getColumn(r, "Programme") || "").trim() === programme &&
+      String(getColumn(r, "Status") || "").toLowerCase() === "graduated"
     );
 
     const ploStats = {};
@@ -80,7 +85,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
     filtered.forEach(r => {
       for (let i = 1; i <= 11; i++) {
-        const score = Number(r[`PLO${i}`]);
+        const score = Number(getColumn(r, `PLO${i}`));
         if (!isNaN(score)) {
           ploStats[`PLO${i}`].assessed++;
           if (score >= 3) ploStats[`PLO${i}`].achieved++;
@@ -89,14 +94,14 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     });
 
     const plo = {};
-    Object.entries(ploStats).forEach(([key, d]) => {
+    Object.entries(ploStats).forEach(([ploKey, d]) => {
       const percent =
         d.assessed > 0 ? (d.achieved / d.assessed) * 100 : null;
 
-      plo[key] = {
+      plo[ploKey] = {
         assessed: d.assessed,
         achieved: d.achieved,
-        percent: percent ? Number(percent.toFixed(1)) : null,
+        percent: percent !== null ? Number(percent.toFixed(1)) : null,
         status:
           d.assessed === 0
             ? "Not Assessed"
@@ -109,7 +114,6 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     });
 
     res.json({ programme, plo });
-
   } catch (e) {
     console.error("PROGRAMME CQI ERROR:", e);
     res.status(500).json({ error: e.message });
