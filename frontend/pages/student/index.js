@@ -53,7 +53,7 @@ function Tabs({ active, setActive }) {
 }
 
 /* =========================
-   MAIN PAGE (SINGLE EXPORT)
+   MAIN PAGE
 ========================= */
 export default function StudentPage() {
   const [profile, setProfile] = useState(null);
@@ -62,18 +62,26 @@ export default function StudentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [roleChecked, setRoleChecked] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState(null);
 
-  const user = {
-    email: localStorage.getItem("ppbms_email"),
-    role: localStorage.getItem("ppbms_role"),
-  };
-
-  // 🔐 ROLE GUARD
+  /* =========================
+     CLIENT-ONLY AUTH INIT
+  ========================= */
   useEffect(() => {
-    if (localStorage.getItem("ppbms_role") !== "student") {
+    setMounted(true);
+
+    const role = localStorage.getItem("ppbms_role");
+    if (role !== "student") {
       window.location.href = "/login";
       return;
     }
+
+    setUser({
+      email: localStorage.getItem("ppbms_email"),
+      role
+    });
+
     setRoleChecked(true);
   }, []);
 
@@ -106,6 +114,9 @@ export default function StudentPage() {
     setLoading(false);
   }
 
+  /* =========================
+     MARK COMPLETED / RESET
+  ========================= */
   async function markCompleted(activity, reset = false) {
     const token = localStorage.getItem("ppbms_token");
     if (!token) return;
@@ -124,13 +135,19 @@ export default function StudentPage() {
     load();
   }
 
+  /* =========================
+     RENDER GUARDS (SSR SAFE)
+  ========================= */
+  if (!mounted) return null;
   if (!roleChecked) return <div className="p-6 text-center">Checking access…</div>;
   if (loading) return <div className="p-6 text-center">Loading…</div>;
   if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
   if (!profile) return null;
 
   const progress = timeline.length
-    ? Math.round((timeline.filter(t => t.status === "Completed").length / timeline.length) * 100)
+    ? Math.round(
+        (timeline.filter(t => t.status === "Completed").length / timeline.length) * 100
+      )
     : 0;
 
   return (
@@ -153,13 +170,17 @@ export default function StudentPage() {
             <div><strong>Co-Supervisor(s):</strong> {profile.cosupervisors}</div>
           </div>
 
+          {/* PROGRESS */}
           <div className="mt-4">
             <div className="flex justify-between text-sm mb-1">
               <span>Overall Progress</span>
               <span className="font-semibold text-purple-700">{progress}%</span>
             </div>
             <div className="w-full bg-gray-200 h-3 rounded-full">
-              <div className="bg-purple-600 h-3 rounded-full" style={{ width: `${progress}%` }} />
+              <div
+                className="bg-purple-600 h-3 rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
             </div>
           </div>
         </div>
@@ -167,15 +188,93 @@ export default function StudentPage() {
         <DelaySummaryBadges timeline={timeline} />
         <Tabs active={activeTab} setActive={setActiveTab} />
 
+        {/* OVERVIEW */}
+        {activeTab === "overview" && (
+          <div className="bg-white p-6 rounded-2xl shadow text-gray-700">
+            This dashboard tracks your postgraduate milestones, timelines,
+            and document submissions according to programme requirements.
+          </div>
+        )}
+
+        {/* DOCUMENTS */}
         {activeTab === "documents" && (
           <div className="bg-white p-6 rounded-2xl shadow">
             <StudentChecklist initialDocuments={profile.documents} />
           </div>
         )}
 
+        {/* TIMELINE */}
         {activeTab === "timeline" && (
           <div className="bg-white p-6 rounded-2xl shadow overflow-x-auto">
-            {/* your timeline table stays exactly the same */}
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-purple-50 text-purple-700">
+                  <th className="p-3 text-left">Activity</th>
+                  <th className="p-3">Expected</th>
+                  <th className="p-3">Actual</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Remaining</th>
+                  <th className="p-3">Remark</th>
+                  <th className="p-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timeline.map((t, i) => (
+                  <tr key={i} className="border-t hover:bg-gray-50">
+                    <td className="p-3 font-medium">{t.activity}</td>
+                    <td className="p-3 text-center">{t.expected || "-"}</td>
+                    <td className="p-3 text-center">{t.actual || "-"}</td>
+                    <td className="p-3 text-center font-semibold">
+                      {t.status}
+                    </td>
+                    <td className="p-3 text-center">
+                      {t.remaining_days !== "" ? t.remaining_days : "-"}
+                    </td>
+                    <td className="p-3">
+                      <textarea
+                        defaultValue={t.remark || ""}
+                        className="w-56 border rounded-lg p-2 text-xs"
+                        onBlur={async (e) => {
+                          const token = localStorage.getItem("ppbms_token");
+                          if (!token) return;
+
+                          await fetch(`${API_BASE}/api/student/update-remark`, {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({
+                              activity: t.activity,
+                              remark: e.target.value,
+                            }),
+                          });
+
+                          load();
+                        }}
+                      />
+                    </td>
+                    <td className="p-3 text-center">
+                      {!t.actual ? (
+                        <button
+                          onClick={() => markCompleted(t.activity)}
+                          className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs font-semibold"
+                        >
+                          ✔ Complete
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => markCompleted(t.activity, true)}
+                          className="px-3 py-1 rounded-lg bg-gray-500 text-white text-xs font-semibold"
+                        >
+                          ↺ Reset
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
