@@ -213,16 +213,38 @@ export default function AdminDashboard() {
                 <th className="p-2 text-left">Status</th>
               </tr>
             </thead>
-            <tbody>
-              {students.map((s, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-2">{s.name}</td>
-                  <td className="p-2">{s.email}</td>
-                  <td className="p-2">{s.id}</td>
-                  <td className="p-2 font-semibold">{s.status}</td>
-                </tr>
-              ))}
-            </tbody>
+          <tbody>
+  {students.map((s, i) => (
+    <tr key={i} className="border-t hover:bg-purple-50">
+      <td className="p-2 font-medium text-purple-700">
+        <a
+          href={`/supervisor/${encodeURIComponent(s.email)}`}
+          className="hover:underline"
+        >
+          {s.email}
+        </a>
+      </td>
+
+      <td className="p-2">{s.id}</td>
+
+      <td className="p-2">
+        <span
+          className={`px-2 py-1 rounded text-xs font-semibold ${
+            s.status === "Graduated"
+              ? "bg-green-100 text-green-700"
+              : s.status === "Active"
+              ? "bg-blue-100 text-blue-700"
+              : "bg-yellow-100 text-yellow-700"
+          }`}
+        >
+          {s.status}
+        </span>
+      </td>
+    </tr>
+  ))}
+</tbody>
+            
+            
           </table>
         )}
       </div>
