@@ -52,15 +52,15 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* 1️⃣ FILTER PROGRAMME */
+  /* 1️⃣ FILTER PROGRAMME (EXACT HEADER) */
   const programmeRows = rows.filter(
-    r => String(r.programme || "").trim() === programme
+    r => String(r["Programme"] || "").trim() === programme
   );
 
-  /* 2️⃣ GROUP BY STUDENT */
+  /* 2️⃣ GROUP BY STUDENT (EXACT HEADER) */
   const byStudent = {};
   programmeRows.forEach(r => {
-    const email = String(r.student_email || "").toLowerCase().trim();
+    const email = String(r["Student's Email"] || "").toLowerCase().trim();
     if (!email) return;
     if (!byStudent[email]) byStudent[email] = [];
     byStudent[email].push(r);
@@ -69,21 +69,22 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   /* 3️⃣ FINAL PLO PER GRADUATED STUDENT */
   const graduates = Object.values(byStudent)
     .map(records => {
-      const graduated = records.some(
-        r => String(r.status || "").toLowerCase() === "graduated"
+      const isGraduated = records.some(
+        r => String(r["Status"] || "").toLowerCase() === "graduated"
       );
-      if (!graduated) return null;
+      if (!isGraduated) return null;
+
       return computeFinalStudentPLO(records);
     })
     .filter(Boolean);
 
-  /* 4️⃣ AGGREGATE (70% BENCHMARK) */
+  /* 4️⃣ AGGREGATE PROGRAMME CQI (70% RULE) */
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
     const assessed = graduates.length;
     const achieved = graduates.filter(
-      s => typeof s[key] === "number" && s[key] >= 3
+      g => typeof g[key] === "number" && g[key] >= 3
     ).length;
 
     const percent = assessed ? (achieved / assessed) * 100 : null;
@@ -105,6 +106,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   res.json({ plo });
 });
+
 
 /* =================================================
    PROGRAMME STUDENT LIST (ADMIN TABLE)
