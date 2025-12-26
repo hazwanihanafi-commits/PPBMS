@@ -49,8 +49,8 @@ export default function AdminDashboard() {
         }
       );
 
-      const data = await res.json();
-      setProgrammePLO(data.programmes?.[programme] || null);
+      const data = await resm.json();
+      setProgrammePLO(data.plo || null);
     }
 
     loadCQI();
