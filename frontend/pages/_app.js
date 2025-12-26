@@ -2,14 +2,13 @@ import "../styles/globals.css";
 import Head from "next/head";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../utils/api";
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
 
   useEffect(() => {
     const publicPages = [
-      "/",                // landing
+      "/",
       "/login",
       "/set-password",
       "/admin/login",
@@ -20,8 +19,9 @@ export default function App({ Component, pageProps }) {
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
 
+    // ❌ No token → redirect
     if (!token) {
-      router.push(
+      router.replace(
         router.pathname.startsWith("/admin")
           ? "/admin/login"
           : "/login"
@@ -29,17 +29,14 @@ export default function App({ Component, pageProps }) {
       return;
     }
 
+    // ❌ Admin page but not admin
     if (router.pathname.startsWith("/admin") && role !== "admin") {
-      router.push("/admin/login");
+      router.replace("/admin/login");
       return;
     }
 
-    fetch(`${API_BASE}/auth/verify`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {
-      localStorage.clear();
-      router.push("/login");
-    });
+    // ✅ DO NOTHING ELSE
+    // ❌ NO /auth/verify here
   }, [router.pathname]);
 
   return (
