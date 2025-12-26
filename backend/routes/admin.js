@@ -111,28 +111,23 @@ router.get(
 /* =========================================
    GET ALL PROGRAMMES (NO GROUPING)
 ========================================= */
-router.get(
-  "/programmes",
-  authMiddleware("admin"),
-  async (req, res) => {
-    try {
-      const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+router.get("/programmes", auth, async (req, res) => {
+  try {
+    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-      const programmes = [
-        ...new Set(
-          rows
-            .map(r => (r["Programme"] || "").trim())
-            .filter(Boolean)
-        ),
-      ].sort();
+    const programmes = [
+      ...new Set(
+        rows
+          .map(r => (r["Programme"] || "").trim())
+          .filter(Boolean)
+      ),
+    ].sort();
 
-      res.json({ programmes });
-
-    } catch (err) {
-      console.error("PROGRAMME LIST ERROR:", err);
-      res.status(500).json({ error: "Failed to load programmes" });
-    }
+    res.json({ programmes });
+  } catch (err) {
+    console.error("Programme list error:", err);
+    res.status(500).json({ error: "Failed to load programmes" });
   }
-);
+});
 
 export default router;
