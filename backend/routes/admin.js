@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { readASSESSMENT_PLO } from "../services/googleSheets.js";
 import { computeFinalStudentPLO } from "../utils/computeFinalStudentPLO.js";
-import { aggregateFinalPLO } from "../utils/aggregateFinalPLO.js";
+import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
 
 const router = express.Router();
 
