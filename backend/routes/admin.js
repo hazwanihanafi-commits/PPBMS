@@ -52,12 +52,12 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* 1️⃣ FILTER PROGRAMME (EXACT HEADER) */
+  // 1️⃣ Filter programme
   const programmeRows = rows.filter(
     r => String(r["Programme"] || "").trim() === programme
   );
 
-  /* 2️⃣ GROUP BY STUDENT (EXACT HEADER) */
+  // 2️⃣ Group by student
   const byStudent = {};
   programmeRows.forEach(r => {
     const email = String(r["Student's Email"] || "").toLowerCase().trim();
@@ -66,23 +66,27 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ FINAL PLO PER GRADUATED STUDENT */
+  // 3️⃣ Compute final PLO per GRADUATED student
   const graduates = Object.values(byStudent)
     .map(records => {
-      const isGraduated = records.some(
+      const graduated = records.some(
         r => String(r["Status"] || "").toLowerCase() === "graduated"
       );
-      if (!isGraduated) return null;
+      if (!graduated) return null;
 
       return computeFinalStudentPLO(records);
     })
     .filter(Boolean);
 
-  /* 4️⃣ AGGREGATE PROGRAMME CQI (70% RULE) */
+  // 4️⃣ Programme aggregation (70% rule)
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
-    const assessed = graduates.length;
+
+    const assessed = graduates.filter(
+      g => typeof g[key] === "number"
+    ).length;
+
     const achieved = graduates.filter(
       g => typeof g[key] === "number" && g[key] >= 3
     ).length;
@@ -104,10 +108,8 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     };
   }
 
-  res.json({ plo });
+  res.json({ programme, plo });
 });
-
-
 /* =================================================
    PROGRAMME STUDENT LIST (ADMIN TABLE)
 ================================================= */
