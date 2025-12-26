@@ -65,11 +65,32 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+
 
   useEffect(() => {
     if (!email) return;
     loadStudent();
   }, [email]);
+
+   useEffect(() => {
+  const role = localStorage.getItem("ppbms_role");
+  if (role !== "supervisor") {
+    window.location.href = "/login";
+  }
+}, []);
+
+
+useEffect(() => {
+  // ✅ user for TopBar
+  const email = localStorage.getItem("ppbms_email");
+  const role = localStorage.getItem("ppbms_role");
+
+  if (email && role) {
+    setUser({ email, role });
+  }
+}, []);
+
 
   async function loadStudent() {
     try {
@@ -99,7 +120,7 @@ export default function SupervisorStudentPage() {
 
   return (
   <>
-    <TopBar />
+    <TopBar user={user} />
 
     {loading ? (
       <div className="p-6">Loading…</div>
