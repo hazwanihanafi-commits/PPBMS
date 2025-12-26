@@ -13,7 +13,9 @@ function adminAuth(req, res, next) {
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+    if (user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     req.user = user;
     next();
   } catch {
@@ -21,8 +23,41 @@ function adminAuth(req, res, next) {
   }
 }
 
+/* =========================
+   FINAL PLO PER STUDENT
+   (Average across ALL assessments)
+========================= */
+function computeFinalStudentPLO(records) {
+  const result = {};
+
+  for (let i = 1; i <= 11; i++) {
+    const key = `PLO${i}`;
+
+    const values = records
+      .map(r => Number(r[key]))
+      .filter(v => !isNaN(v));
+
+    const average =
+      values.length > 0
+        ? values.reduce((a, b) => a + b, 0) / values.length
+        : null;
+
+    result[key] = {
+      average,
+      status:
+        average === null
+          ? "Not Assessed"
+          : average >= 3
+          ? "Achieved"
+          : "CQI Required",
+    };
+  }
+
+  return result;
+}
+
 /* =================================================
-   GET PROGRAMMES (ADMIN DROPDOWN) ✅
+   GET PROGRAMMES (ADMIN DROPDOWN)
 ================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
@@ -32,14 +67,14 @@ router.get("/programmes", adminAuth, async (req, res) => {
       rows
         .map(r => String(r.programme || "").trim())
         .filter(Boolean)
-    )
+    ),
   ].sort();
 
   res.json({ programmes });
 });
 
 /* =================================================
-   PROGRAMME CQI (FINAL – PROGRAMME LEVEL) ✅
+   PROGRAMME CQI (FINAL, CORRECT, MQA-COMPLIANT)
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   const programme = String(req.query.programme || "").trim();
@@ -49,12 +84,12 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* 1️⃣ Filter programme (REAL HEADER) */
+  /* 1️⃣ Filter programme */
   const programmeRows = rows.filter(
     r => String(r.programme || "").trim() === programme
   );
 
-  /* 2️⃣ Group by student (REAL HEADER) */
+  /* 2️⃣ Group by student */
   const byStudent = {};
   programmeRows.forEach(r => {
     const email = String(r.student_s_email || "").toLowerCase().trim();
@@ -63,8 +98,8 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ Final PLO per GRADUATED student */
-  const graduatedStudents = Object.values(byStudent)
+  /* 3️⃣ Graduated students ONLY */
+  const graduatedFinalPLOs = Object.values(byStudent)
     .filter(records =>
       records.some(
         r => String(r.status || "").toLowerCase() === "graduated"
@@ -72,15 +107,15 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     )
     .map(records => computeFinalStudentPLO(records));
 
-  const totalGraduates = graduatedStudents.length;
+  const totalGraduates = graduatedFinalPLOs.length;
 
-  /* 4️⃣ Programme CQI (MQA rule: % achieving ≥ 3) */
+  /* 4️⃣ Programme-level CQI (% ≥ 3) */
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const achieved = graduatedStudents.filter(
-      s => typeof s[key]?.average === "number" && s[key].average >= 3
+    const achieved = graduatedFinalPLOs.filter(
+      s => typeof s[key].average === "number" && s[key].average >= 3
     ).length;
 
     const percent = totalGraduates
@@ -98,18 +133,19 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
           ? "Achieved"
           : percent >= 50
           ? "Borderline"
-          : "CQI Required"
+          : "CQI Required",
     };
   }
 
   res.json({
     programme,
     graduates: totalGraduates,
-    plo
+    plo,
   });
 });
+
 /* =================================================
-   PROGRAMME STUDENTS TABLE (ADMIN) ✅
+   PROGRAMME STUDENTS TABLE
 ================================================= */
 router.get("/programme-students", adminAuth, async (req, res) => {
   const programme = String(req.query.programme || "").trim();
@@ -125,7 +161,7 @@ router.get("/programme-students", adminAuth, async (req, res) => {
       studentEmail: r.student_s_email,
       matric: r.matric,
       assessmentType: r.assessment_type,
-      status: r.status
+      status: r.status,
     }));
 
   res.json({ students });
