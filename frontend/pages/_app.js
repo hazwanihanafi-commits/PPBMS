@@ -9,7 +9,7 @@ export default function App({ Component, pageProps }) {
 
   useEffect(() => {
     // Pages that do NOT require login
-    const publicPages = ["/login", "/set-password"];
+    const publicPages = ["/", "/set-password"];
 
     if (publicPages.includes(router.pathname)) return;
 
