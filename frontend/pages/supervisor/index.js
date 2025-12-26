@@ -94,6 +94,23 @@ export default function SupervisorDashboard() {
     ).length,
   };
 
+  function getStudentStatus(st) {
+  if (st.status === "Graduated") {
+    return { label: "Graduated", color: "bg-green-100 text-green-700" };
+  }
+
+  if (st.progressPercent < 50) {
+    return { label: "At Risk", color: "bg-red-100 text-red-700" };
+  }
+
+  if (st.progressPercent < 80) {
+    return { label: "Due Soon", color: "bg-yellow-100 text-yellow-700" };
+  }
+
+  return { label: "On Time", color: "bg-blue-100 text-blue-700" };
+}
+
+
   return (
     <>
       <TopBar user={user} />
@@ -146,9 +163,23 @@ export default function SupervisorDashboard() {
               key={st.email}
               className="bg-white p-6 rounded-2xl shadow border border-gray-100"
             >
-              <h2 className="text-lg font-bold text-gray-900 uppercase mb-2">
-                {st.name}
-              </h2>
+              <div className="flex justify-between items-center mb-2">
+  <h2 className="text-lg font-bold text-gray-900 uppercase">
+    {st.name}
+  </h2>
+
+  {(() => {
+    const s = getStudentStatus(st);
+    return (
+      <span
+        className={`px-3 py-1 text-xs font-bold rounded-full ${s.color}`}
+      >
+        {s.label}
+      </span>
+    );
+  })()}
+</div>
+
 
               <p className="text-sm text-gray-700">
                 <strong>Email:</strong> {st.email}
