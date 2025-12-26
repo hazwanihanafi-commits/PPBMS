@@ -26,28 +26,59 @@ function auth(req, res, next) {
 /* =========================
    GET PROGRAMMES (DROPDOWN)
 ========================= */
-router.get("/programmes", auth, async (req, res) => {
+router.get("/programme-plo", auth, async (req, res) => {
   try {
-    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-    if (!rows.length) {
-      return res.json({ programmes: [] });
+    const programme = (req.query.programme || "").trim();
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
     }
 
-    const programmes = [
-      ...new Set(
-        rows
-          .map(r => String(r.programme || "").trim())
-          .filter(Boolean)
-      ),
-    ].sort();
+    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    console.log("✅ PROGRAMMES FOUND:", programmes);
+    const filtered = rows.filter(r =>
+      String(r.programme || "").trim() === programme &&
+      String(r.status || "").toLowerCase() === "active"
+    );
 
-    res.json({ programmes });
-  } catch (err) {
-    console.error("Programme list error:", err);
-    res.status(500).json({ error: "Failed to load programmes" });
+    const ploStats = {};
+    for (let i = 1; i <= 11; i++) {
+      ploStats[`PLO${i}`] = { assessed: 0, achieved: 0 };
+    }
+
+    filtered.forEach(r => {
+      for (let i = 1; i <= 11; i++) {
+        const v = Number(r[`plo${i}`]);
+        if (!isNaN(v)) {
+          ploStats[`PLO${i}`].assessed++;
+          if (v >= 3) ploStats[`PLO${i}`].achieved++;
+        }
+      }
+    });
+
+    const result = {};
+    Object.entries(ploStats).forEach(([plo, d]) => {
+      const percent =
+        d.assessed > 0 ? (d.achieved / d.assessed) * 100 : null;
+
+      result[plo] = {
+        assessed: d.assessed,
+        achieved: d.achieved,
+        percent: percent !== null ? Number(percent.toFixed(1)) : null,
+        status:
+          d.assessed === 0
+            ? "Not Assessed"
+            : percent >= 70
+            ? "Achieved"
+            : percent >= 50
+            ? "Borderline"
+            : "CQI Required",
+      };
+    });
+
+    res.json({ programme, plo: result });
+  } catch (e) {
+    console.error("Programme CQI error:", e);
+    res.status(500).json({ error: e.message });
   }
 });
 
