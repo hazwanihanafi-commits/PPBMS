@@ -44,49 +44,66 @@ export async function computeProgrammeCQI(programme, sheetId) {
   });
 
   /* 4️⃣ Compute FINAL PLO per graduated student */
-  const finalPLOStudents = [];
+const finalPLOPerStudent = [];
 
-  Object.entries(byStudent).forEach(([email, records]) => {
-    if (!graduatedEmails.has(email)) return;
+Object.entries(byStudent).forEach(([email, records]) => {
+  if (!graduatedEmails.has(email)) return;
 
-    finalPLOStudents.push(
-      computeFinalStudentPLO(records)
-    );
+  const assessments = {};
+
+  records.forEach(r => {
+    const type = r.assessment_type || "UNKNOWN";
+    if (!assessments[type]) assessments[type] = {};
+
+    for (let i = 1; i <= 11; i++) {
+      const key = `PLO${i}`;
+      const v = Number(r[key]);
+      if (!isNaN(v)) {
+        assessments[type][key] = { average: v };
+      }
+    }
   });
+
+  // 🔴 THIS is the FINAL PLO table
+  finalPLOPerStudent.push(
+    aggregateFinalPLO(assessments)
+  );
+});
 
   /* 5️⃣ Programme CQI (70% rule) */
   const plo = {};
-  const totalGraduates = finalPLOStudents.length;
 
-  for (let i = 1; i <= 11; i++) {
-    const key = `PLO${i}`;
+for (let i = 1; i <= 11; i++) {
+  const key = `PLO${i}`;
 
-    const assessed = finalPLOStudents.filter(
-      s => s[key]?.average !== null
-    );
+  const assessedStudents = finalPLOPerStudent.filter(
+    s => s[key] && s[key].average !== null
+  );
 
-    const achieved = assessed.filter(
-      s => s[key].average >= 3
-    );
+  const achieved = assessedStudents.filter(
+    s => s[key].status === "Achieved"
+  ).length;
 
-    const percent = assessed.length
-      ? (achieved.length / assessed.length) * 100
-      : null;
+  const assessed = assessedStudents.length;
 
-    plo[key] = {
-      assessed: assessed.length,
-      achieved: achieved.length,
-      percent: percent !== null ? Number(percent.toFixed(1)) : null,
-      status:
-        assessed.length === 0
-          ? "Not Assessed"
-          : percent >= 70
-          ? "Achieved"
-          : percent >= 50
-          ? "Borderline"
-          : "CQI Required"
-    };
-  }
+  const percent = assessed
+    ? (achieved / assessed) * 100
+    : null;
+
+  plo[key] = {
+    achieved,
+    assessed,
+    percent: percent !== null ? Number(percent.toFixed(1)) : null,
+    status:
+      assessed === 0
+        ? "Not Assessed"
+        : percent >= 70
+        ? "Achieved"
+        : percent >= 50
+        ? "Borderline"
+        : "CQI Required"
+  };
+}
 
   return {
     programme,
