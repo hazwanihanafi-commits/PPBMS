@@ -46,53 +46,11 @@ router.get("/programmes", adminAuth, async (req, res) => {
    PROGRAMME FINAL CQI (70% BENCHMARK)
 ================================================= */
 router.get("/programme-cqi", adminAuth, async (req, res) => {
-  const programme = (req.query.programme || "").trim();
-  if (!programme) {
-    return res.status(400).json({ error: "Programme required" });
-  }
-
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  // 1️⃣ Filter by programme ONLY
-  const programmeRows = rows.filter(
-    r => String(r.programme).trim() === programme
-  );
-
-  // 2️⃣ Group by student
-  const byStudent = {};
-  programmeRows.forEach(r => {
-    if (!r.student_email) return;
-    if (!byStudent[r.student_email]) {
-      byStudent[r.student_email] = [];
-    }
-    byStudent[r.student_email].push(r);
-  });
-
-  // 3️⃣ Compute final PLO per graduated student
-  const finalStudents = [];
-
-  Object.entries(byStudent).forEach(([email, studentRows]) => {
-    const isGraduated = studentRows.some(
-      r => String(r.status).toLowerCase() === "graduated"
-    );
-
-    if (!isGraduated) return; // 🚨 ONLY HERE we filter
-
-    finalStudents.push({
-      email,
-      finalPLO: computeFinalStudentPLO(studentRows),
-    });
-  });
-
-  // 4️⃣ Aggregate programme CQI (70% benchmark)
-  const programmeCQI = aggregateProgrammeFinalPLO(finalStudents);
-
-  res.json({
-    programme,
-    totalGraduatedStudents: finalStudents.length,
-    students: finalStudents,
-    plo: programmeCQI,
+  return res.json({
+    rowCount: rows.length,
+    firstRow: rows[0],
+    keys: rows[0] ? Object.keys(rows[0]) : [],
   });
 });
-
-export default router;
