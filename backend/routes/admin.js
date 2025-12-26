@@ -41,7 +41,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
     const programmes = [
       ...new Set(
         rows
-          .map(r => String(r.programme] || "").trim())
+          .map(r => String(r.programme || "").trim())
           .filter(Boolean)
       )
     ].sort();
