@@ -49,32 +49,32 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* 1️⃣ Filter by programme */
+  /* 1️⃣ Filter programme (REAL HEADER) */
   const programmeRows = rows.filter(
-    r => String(r["Programme"] || "").trim() === programme
+    r => String(r.programme || "").trim() === programme
   );
 
-  /* 2️⃣ Group by student */
+  /* 2️⃣ Group by student (REAL HEADER) */
   const byStudent = {};
   programmeRows.forEach(r => {
-    const email = String(r["Student's Email"] || "").toLowerCase().trim();
+    const email = String(r.student_s_email || "").toLowerCase().trim();
     if (!email) return;
     if (!byStudent[email]) byStudent[email] = [];
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ Compute FINAL PLO per GRADUATED student */
+  /* 3️⃣ Final PLO per GRADUATED student */
   const graduatedStudents = Object.values(byStudent)
     .filter(records =>
       records.some(
-        r => String(r["Status"] || "").toLowerCase() === "graduated"
+        r => String(r.status || "").toLowerCase() === "graduated"
       )
     )
     .map(records => computeFinalStudentPLO(records));
 
   const totalGraduates = graduatedStudents.length;
 
-  /* 4️⃣ Programme-level CQI (percentage-based) */
+  /* 4️⃣ Programme CQI (MQA rule: % achieving ≥ 3) */
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
