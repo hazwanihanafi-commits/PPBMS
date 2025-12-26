@@ -49,12 +49,16 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  // 1️⃣ Filter by programme
+  /* ===============================
+     1️⃣ FILTER PROGRAMME
+  =============================== */
   const programmeRows = rows.filter(
     r => String(r.programme || "").trim() === programme
   );
 
-  // 2️⃣ Group by student
+  /* ===============================
+     2️⃣ GROUP BY STUDENT
+  =============================== */
   const byStudent = {};
   programmeRows.forEach(r => {
     const email = String(r.student_s_email || "").toLowerCase().trim();
@@ -63,48 +67,54 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  // 3️⃣ Keep only students who HAVE ANY graduated record
-  const graduates = Object.values(byStudent).filter(records =>
-    records.some(r => String(r.status || "").toLowerCase() === "graduated")
-  );
+  /* ===============================
+     3️⃣ FINAL PLO PER GRADUATED STUDENT
+     (SAME LOGIC AS SUPERVISOR PAGE)
+  =============================== */
+  const finalStudents = Object.values(byStudent)
+    .map(records => {
+      const isGraduated = records.some(
+        r => String(r.status || "").toLowerCase() === "graduated"
+      );
+      if (!isGraduated) return null;
 
-  // 4️⃣ Final PLO per student (average across ALL assessments)
-  const studentFinalPLOs = graduates.map(records => {
-    const avg = {};
-    for (let i = 1; i <= 11; i++) {
-      const key = `plo${i}`;
-      const values = records
-        .map(r => Number(r[key]))
-        .filter(v => !isNaN(v));
+      // Prefer THESIS, fallback to VIVA
+      const finalRecord =
+        records.find(r => r.assessment_type === "THESIS") ||
+        records.find(r => r.assessment_type === "VIVA");
 
-      avg[key] = values.length
-        ? values.reduce((a, b) => a + b, 0) / values.length
-        : null;
-    }
-    return avg;
-  });
+      if (!finalRecord) return null;
 
-  // 5️⃣ Programme CQI aggregation (70% benchmark)
+      return finalRecord;
+    })
+    .filter(Boolean);
+
+  const totalGraduates = finalStudents.length;
+
+  /* ===============================
+     4️⃣ PROGRAMME CQI AGGREGATION
+     (≥3 RULE, 70% BENCHMARK)
+  =============================== */
   const plo = {};
+
   for (let i = 1; i <= 11; i++) {
     const key = `plo${i}`;
 
-    const assessed = studentFinalPLOs.filter(
-      s => typeof s[key] === "number"
+    const achieved = finalStudents.filter(
+      s => Number(s[key]) >= 3
     ).length;
 
-    const achieved = studentFinalPLOs.filter(
-      s => typeof s[key] === "number" && s[key] >= 3
-    ).length;
-
-    const percent = assessed ? (achieved / assessed) * 100 : null;
+    const percent =
+      totalGraduates > 0
+        ? (achieved / totalGraduates) * 100
+        : null;
 
     plo[`PLO${i}`] = {
-      assessed,
       achieved,
-      percent: percent !== null ? Number(percent.toFixed(1)) : null,
+      assessed: totalGraduates,
+      percent: percent !== null ? Number(percent.toFixed(2)) : null,
       status:
-        assessed === 0
+        totalGraduates === 0
           ? "Not Assessed"
           : percent >= 70
           ? "Achieved"
@@ -116,7 +126,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   res.json({
     programme,
-    graduates: studentFinalPLOs.length,
+    graduates: totalGraduates,
     plo
   });
 });
