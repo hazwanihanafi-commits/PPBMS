@@ -9,9 +9,10 @@ export default function App({ Component, pageProps }) {
 
   useEffect(() => {
     const publicPages = [
+      "/",                // landing
       "/login",
       "/set-password",
-      "/admin/login", // ✅ ALLOW ADMIN LOGIN
+      "/admin/login",
     ];
 
     if (publicPages.includes(router.pathname)) return;
@@ -19,7 +20,6 @@ export default function App({ Component, pageProps }) {
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
 
-    // No token → redirect properly
     if (!token) {
       router.push(
         router.pathname.startsWith("/admin")
@@ -29,17 +29,13 @@ export default function App({ Component, pageProps }) {
       return;
     }
 
-    // Role-based guard
     if (router.pathname.startsWith("/admin") && role !== "admin") {
       router.push("/admin/login");
       return;
     }
 
-    // Verify token
     fetch(`${API_BASE}/auth/verify`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {
       localStorage.clear();
       router.push("/login");
@@ -49,10 +45,9 @@ export default function App({ Component, pageProps }) {
   return (
     <>
       <Head>
-        <title>PPBMS — Student Progress</title>
+        <title>PPBMS</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-
       <Component {...pageProps} />
     </>
   );
