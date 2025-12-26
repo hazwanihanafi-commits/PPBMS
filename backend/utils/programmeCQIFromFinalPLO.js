@@ -1,14 +1,11 @@
-// backend/utils/programmeCQIFromFinalPLO.js
-
 import { readASSESSMENT_PLO } from "../services/googleSheets.js";
-import { aggregateFinalPLO } from "./finalPLOAggregate.js";
 
 /**
  * Programme-level CQI
  * Rule:
- * - Use FINAL PLO per student
- * - Count % of GRADUATED students achieving each PLO (>= 3)
- * - 70% benchmark
+ * - Final PLO is computed PER STUDENT
+ * - Programme CQI = % of GRADUATED students achieving each PLO
+ * - Threshold = 70%
  */
 export async function computeProgrammeCQI(programme, sheetId) {
   const rows = await readASSESSMENT_PLO(sheetId);
@@ -27,8 +24,8 @@ export async function computeProgrammeCQI(programme, sheetId) {
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ Final PLO per GRADUATED student */
-  const finalPLOPerStudent = [];
+  /* 3️⃣ Compute FINAL PLO per GRADUATED student */
+  const finalPLOStudents = [];
 
   Object.values(byStudent).forEach(records => {
     const isGraduated = records.some(
@@ -36,32 +33,38 @@ export async function computeProgrammeCQI(programme, sheetId) {
     );
     if (!isGraduated) return;
 
-    const cqiByAssessment = {};
+    const finalPLO = {};
 
-    records.forEach(r => {
-      const type = r["assessment_type"] || "UNKNOWN";
-      if (!cqiByAssessment[type]) cqiByAssessment[type] = {};
+    for (let i = 1; i <= 11; i++) {
+      const key = `PLO${i}`;
+      const values = records
+        .map(r => Number(r[key]))
+        .filter(v => !isNaN(v));
 
-      for (let i = 1; i <= 11; i++) {
-        const key = `PLO${i}`;
-        const v = Number(r[key]);
-        if (!isNaN(v)) {
-          cqiByAssessment[type][key] = { average: v };
-        }
+      if (!values.length) {
+        finalPLO[key] = { average: null, status: "Not Assessed" };
+        continue;
       }
-    });
 
-    finalPLOPerStudent.push(aggregateFinalPLO(cqiByAssessment));
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+      finalPLO[key] = {
+        average: Number(avg.toFixed(2)),
+        status: avg >= 3 ? "Achieved" : "CQI Required"
+      };
+    }
+
+    finalPLOStudents.push(finalPLO);
   });
 
-  /* 4️⃣ Programme aggregation (MQA 70%) */
-  const result = {};
-  const totalGraduates = finalPLOPerStudent.length;
+  /* 4️⃣ Programme CQI aggregation */
+  const totalGraduates = finalPLOStudents.length;
+  const programmePLO = {};
 
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const achieved = finalPLOPerStudent.filter(
+    const achieved = finalPLOStudents.filter(
       s => s[key]?.status === "Achieved"
     ).length;
 
@@ -69,7 +72,7 @@ export async function computeProgrammeCQI(programme, sheetId) {
       ? (achieved / totalGraduates) * 100
       : null;
 
-    result[key] = {
+    programmePLO[key] = {
       achieved,
       assessed: totalGraduates,
       percent: percent !== null ? Number(percent.toFixed(1)) : null,
@@ -87,6 +90,6 @@ export async function computeProgrammeCQI(programme, sheetId) {
   return {
     programme,
     graduates: totalGraduates,
-    plo: result
+    plo: programmePLO
   };
 }
