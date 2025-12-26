@@ -30,19 +30,19 @@ router.get("/programmes", auth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    console.log("ASSESSMENT_PLO ROWS:", rows.length);
-    console.log("FIRST ROW:", rows[0]);
-    console.log("ROW KEYS:", Object.keys(rows[0]));
+    if (!rows.length) {
+      return res.json({ programmes: [] });
+    }
 
     const programmes = [
       ...new Set(
         rows
-          .map(r => String(r["Programme"] || "").trim())
+          .map(r => String(r.programme || "").trim())
           .filter(Boolean)
       ),
     ].sort();
 
-    console.log("PROGRAMMES FOUND:", programmes);
+    console.log("✅ PROGRAMMES FOUND:", programmes);
 
     res.json({ programmes });
   } catch (err) {
