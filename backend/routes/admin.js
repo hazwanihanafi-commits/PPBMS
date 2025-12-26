@@ -53,16 +53,12 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* =========================
-     1️⃣ FILTER PROGRAMME
-  ========================= */
+  /* 1️⃣ Filter programme */
   const programmeRows = rows.filter(
     r => String(r["Programme"] || "").trim() === programme
   );
 
-  /* =========================
-     2️⃣ GROUP BY STUDENT
-  ========================= */
+  /* 2️⃣ Group by student */
   const byStudent = {};
   programmeRows.forEach(r => {
     const email = String(r["Student's Email"] || "").toLowerCase().trim();
@@ -71,44 +67,54 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  /* =========================
-     3️⃣ FINAL PLO PER GRADUATED STUDENT
-  ========================= */
-  const graduatedFinalPLOs = [];
+  /* 3️⃣ Final PLO per GRADUATED student */
+  const graduatedFinalPLOs = Object.values(byStudent)
+    .map(records => {
+      const isGraduated = records.some(
+        r => String(r["Status"] || "").toLowerCase() === "graduated"
+      );
+      if (!isGraduated) return null;
 
-  Object.values(byStudent).forEach(records => {
-    const isGraduated = records.some(
-      r => String(r["Status"] || "").toLowerCase() === "graduated"
-    );
-    if (!isGraduated) return;
+      return aggregateFinalPLO(records); // 🔑 reuse supervisor logic
+    })
+    .filter(Boolean);
 
-    // Build CQI-by-assessment (same as supervisor)
-    const cqiByAssessment = {};
+  /* 4️⃣ Programme-level aggregation (70% rule) */
+  const plo = {};
+  for (let i = 1; i <= 11; i++) {
+    const key = `PLO${i}`;
 
-    records.forEach(r => {
-      const assessment = String(r["assessment_type"] || "").trim();
-      if (!assessment) return;
+    const assessed = graduatedFinalPLOs.filter(
+      p => typeof p[key]?.average === "number"
+    ).length;
 
-      cqiByAssessment[assessment] = {};
-      for (let i = 1; i <= 11; i++) {
-        const v = Number(r[`PLO${i}`]);
-        if (!isNaN(v)) {
-          cqiByAssessment[assessment][`PLO${i}`] = v;
-        }
-      }
-    });
+    const achieved = graduatedFinalPLOs.filter(
+      p => typeof p[key]?.average === "number" && p[key].average >= 3
+    ).length;
 
-    const finalPLO = aggregateFinalPLO(cqiByAssessment);
+    const percent = assessed ? (achieved / assessed) * 100 : null;
 
-    // 🔒 NORMALISE (CRITICAL)
-    for (let i = 1; i <= 11; i++) {
-      if (!finalPLO[`PLO${i}`]) {
-        finalPLO[`PLO${i}`] = { average: null, status: "Not Assessed" };
-      }
-    }
+    plo[key] = {
+      assessed,
+      achieved,
+      percent: percent !== null ? Number(percent.toFixed(1)) : null,
+      status:
+        assessed === 0
+          ? "Not Assessed"
+          : percent >= 70
+          ? "Achieved"
+          : percent >= 50
+          ? "Borderline"
+          : "CQI Required",
+    };
+  }
 
-    graduatedFinalPLOs.push(finalPLO);
+  res.json({
+    programme,
+    graduates: graduatedFinalPLOs.length,
+    plo,
   });
+});
 
   /* =========================
      4️⃣ PROGRAMME CQI (70% RULE)
