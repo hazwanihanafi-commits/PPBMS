@@ -77,34 +77,37 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
    ADMIN STUDENT LIST
    (SAME LOGIC AS SUPERVISOR DASHBOARD)
 ================================================= */
-router.get("/students", adminAuth, async (req, res) => {
+// backend/routes/admin.js
+import { readMasterTracking } from "../services/googleSheets.js";
+
+/* =================================================
+   PROGRAMME STUDENTS (ADMIN) — CORRECT SOURCE
+================================================= */
+router.get("/programme-students", adminAuth, async (req, res) => {
   try {
+    const programme = String(req.query.programme || "").trim();
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const students = rows.map(r => {
-      const timeline = buildTimelineForRow(r);
-      const completed = timeline.filter(
-        t => t.status === "Completed"
-      ).length;
-
-      return {
+    const students = rows
+      .filter(r =>
+        String(r["Programme"] || "").trim() === programme
+      )
+      .map(r => ({
         id: r["Matric"] || "",
         name: r["Student Name"] || "",
         email: (r["Student's Email"] || "").toLowerCase().trim(),
         programme: r["Programme"] || "",
-        field: r["Field"] || "",
-        status: r["Status"] || "Active",
-        progressPercent: timeline.length
-          ? Math.round((completed / timeline.length) * 100)
-          : 0,
-      };
-    });
+        status: r["Status"] || "Active"
+      }));
 
     res.json({ students });
   } catch (e) {
-    console.error("admin students error:", e);
+    console.error("programme students error:", e);
     res.status(500).json({ error: e.message });
   }
 });
-
 export default router;
