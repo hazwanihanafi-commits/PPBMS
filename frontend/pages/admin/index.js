@@ -22,13 +22,13 @@ export default function AdminDashboard() {
      AUTH GUARD (ADMIN ONLY)
   ============================ */
   useEffect(() => {
-    const token = localStorage.getItem("ppbms_token");
-    const role = localStorage.getItem("ppbms_role");
+  const token = localStorage.getItem("ppbms_token");
+  const role = localStorage.getItem("ppbms_role");
 
-    if (!token || role !== "admin") {
-      router.replace("/admin/login");
-    }
-  }, []);
+  if (!token || role !== "admin") {
+    window.location.href = "/admin/login";
+  }
+}, []);
 
   /* ============================
      LOAD PROGRAMMES
