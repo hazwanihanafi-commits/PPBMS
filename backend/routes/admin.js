@@ -110,32 +110,24 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   const totalGraduates = graduatedFinalPLOs.length;
 
   /* 4️⃣ Programme-level CQI (% ≥ 3) */
-  const plo = {};
-  for (let i = 1; i <= 11; i++) {
-    const key = `PLO${i}`;
+  const assessed = graduatedStudents.filter(
+  s => typeof s[key]?.average === "number"
+).length;
 
-    const achieved = graduatedFinalPLOs.filter(
-      s => typeof s[key].average === "number" && s[key].average >= 3
-    ).length;
+const achieved = graduatedStudents.filter(
+  s => typeof s[key]?.average === "number" && s[key].average >= 3
+).length;
 
-    const percent = totalGraduates
-      ? (achieved / totalGraduates) * 100
-      : null;
+const percent = assessed ? (achieved / assessed) * 100 : null;
 
-    plo[key] = {
-      assessed: totalGraduates,
-      achieved,
-      percent: percent !== null ? Number(percent.toFixed(1)) : null,
-      status:
-        totalGraduates === 0
-          ? "Not Assessed"
-          : percent >= 70
-          ? "Achieved"
-          : percent >= 50
-          ? "Borderline"
-          : "CQI Required",
-    };
-  }
+status =
+  assessed === 0
+    ? "Not Assessed"
+    : percent >= 70
+    ? "Achieved"
+    : percent >= 50
+    ? "Borderline"
+    : "CQI Required";
 
   res.json({
     programme,
