@@ -32,7 +32,7 @@ export default function AdminDashboard() {
 
     loadProgrammes();
   }, []);
-
+  
   /* =========================
      LOAD CQI
   ========================= */
@@ -50,11 +50,39 @@ export default function AdminDashboard() {
       );
 
       const data = await res.json();
-      setProgrammePLO(data.plo || null);
+      setProgrammePLO(data.programmes?.[programme] || null);
     }
 
     loadCQI();
   }, [programme]);
+
+  /* =========================
+   STEP 1: NORMALISE PLO DATA (OBJECT → ARRAY)
+========================= */
+const ploList = programmePLO
+  ? Object.entries(programmePLO).map(([plo, d]) => ({
+      plo,
+      achieved: d.achieved ?? 0,
+      assessed: d.assessed ?? 0,
+      percent: d.percent ?? null,
+      status: d.status || "Not Assessed",
+    }))
+  : [];
+
+/* =========================
+   STEP 2: BUILD CQI SUMMARY SAFELY
+========================= */
+const summary = {
+  red: ploList.filter(p => p.status === "CQI Required"),
+  yellow: ploList.filter(p => p.status === "Borderline"),
+  green: ploList.filter(p => p.status === "Achieved"),
+  risk:
+    ploList.some(p => p.status === "CQI Required")
+      ? "HIGH"
+      : ploList.some(p => p.status === "Borderline")
+      ? "MODERATE"
+      : "LOW",
+};
 
   return (
     <div className="p-6 bg-purple-50 min-h-screen">
@@ -81,11 +109,12 @@ export default function AdminDashboard() {
 
       {/* ===== CQI ===== */}
       {programmePLO && (
-        <>
-          <ProgrammeCQISummary plo={programmePLO} />
-          <PLOAttainmentList ploData={programmePLO} />
-        </>
-      )}
+  <>
+    <ProgrammeCQISummary summary={summary} />
+    <PLOAttainmentList ploData={ploList} />
+  </>
+)}
+
     </div>
   );
 }
