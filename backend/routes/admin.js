@@ -35,6 +35,8 @@ function adminAuth(req, res, next) {
 router.get("/programmes", adminAuth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    
+    console.log("ASSESSMENT_PLO SAMPLE ROW:", rows[0]);
 
     const programmes = [
       ...new Set(
