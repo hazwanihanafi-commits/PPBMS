@@ -1,4 +1,5 @@
 import express from "express";
+import authMiddleware from "../middleware/authMiddleware.js"; // ✅ REQUIRED
 import jwt from "jsonwebtoken";
 
 import {
