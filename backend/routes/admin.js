@@ -1,7 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { readASSESSMENT_PLO } from "../services/googleSheets.js";
-import { computeFinalStudentPLO } from "../utils/computeFinalStudentPLO.js";
 
 const router = express.Router();
 
@@ -42,7 +41,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
 });
 
 /* =================================================
-   PROGRAMME CQI (FINAL – CORRECT LOGIC)
+   PROGRAMME CQI (FINAL — PROGRAMME LEVEL)
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   const programme = String(req.query.programme || "").trim();
@@ -68,10 +67,12 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   // 3️⃣ Keep only GRADUATED students
   const graduates = Object.values(byStudent).filter(records =>
-    records.some(r => String(r["Status"] || "").toLowerCase() === "graduated")
+    records.some(
+      r => String(r["Status"] || "").toLowerCase() === "graduated"
+    )
   );
 
-  // 4️⃣ Compute FINAL PLO PER STUDENT (RAW AVERAGE)
+  // 4️⃣ Final PLO per student (RAW AVERAGE across ALL assessments)
   const studentFinalPLOs = graduates.map(records => {
     const avg = {};
     for (let i = 1; i <= 11; i++) {
@@ -87,7 +88,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     return avg;
   });
 
-  // 5️⃣ Programme aggregation (70% benchmark)
+  // 5️⃣ Programme CQI aggregation (70% benchmark)
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
@@ -105,7 +106,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     plo[key] = {
       assessed,
       achieved,
-      percent: percent ? Number(percent.toFixed(1)) : null,
+      percent: percent !== null ? Number(percent.toFixed(1)) : null,
       status:
         assessed === 0
           ? "Not Assessed"
@@ -117,7 +118,11 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     };
   }
 
-  res.json({ programme, graduates: studentFinalPLOs.length, plo });
+  res.json({
+    programme,
+    graduates: studentFinalPLOs.length,
+    plo
+  });
 });
 
 export default router;
