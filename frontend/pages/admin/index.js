@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
+/* ============================
+   ADMIN DASHBOARD
+============================ */
 export default function AdminDashboard() {
   const router = useRouter();
 
@@ -15,9 +18,9 @@ export default function AdminDashboard() {
   const [loadingCQI, setLoadingCQI] = useState(false);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
-  /* =========================
-     AUTH GUARD
-  ========================= */
+  /* ============================
+     AUTH GUARD (ADMIN ONLY)
+  ============================ */
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
@@ -27,9 +30,9 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  /* =========================
+  /* ============================
      LOAD PROGRAMMES
-  ========================= */
+  ============================ */
   useEffect(() => {
     async function loadProgrammes() {
       try {
@@ -47,7 +50,7 @@ export default function AdminDashboard() {
           setProgramme(data.programmes[0]);
         }
       } catch (e) {
-        console.error(e);
+        console.error("Programme load error:", e);
       } finally {
         setLoadingProgrammes(false);
       }
@@ -56,9 +59,9 @@ export default function AdminDashboard() {
     loadProgrammes();
   }, []);
 
-  /* =========================
-     LOAD CQI
-  ========================= */
+  /* ============================
+     LOAD PROGRAMME CQI
+  ============================ */
   useEffect(() => {
     if (!programme) return;
 
@@ -66,7 +69,9 @@ export default function AdminDashboard() {
       setLoadingCQI(true);
       try {
         const res = await fetch(
-          `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
+          `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
+            programme
+          )}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
@@ -76,9 +81,10 @@ export default function AdminDashboard() {
 
         const data = await res.json();
         console.log("CQI:", data);
+
         setPlo(data.plo || null);
       } catch (e) {
-        console.error(e);
+        console.error("CQI error:", e);
         setPlo(null);
       } finally {
         setLoadingCQI(false);
@@ -88,9 +94,9 @@ export default function AdminDashboard() {
     loadCQI();
   }, [programme]);
 
-  /* =========================
-     LOAD STUDENTS
-  ========================= */
+  /* ============================
+     LOAD PROGRAMME STUDENTS
+  ============================ */
   useEffect(() => {
     if (!programme) return;
 
@@ -98,7 +104,9 @@ export default function AdminDashboard() {
       setLoadingStudents(true);
       try {
         const res = await fetch(
-          `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(programme)}`,
+          `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(
+            programme
+          )}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
@@ -108,9 +116,10 @@ export default function AdminDashboard() {
 
         const data = await res.json();
         console.log("STUDENTS:", data);
+
         setStudents(data.students || []);
       } catch (e) {
-        console.error(e);
+        console.error("Student list error:", e);
         setStudents([]);
       } finally {
         setLoadingStudents(false);
@@ -120,9 +129,12 @@ export default function AdminDashboard() {
     loadStudents();
   }, [programme]);
 
+  /* ============================
+     RENDER
+  ============================ */
   return (
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-purple-900">
+      <h1 className="text-3xl font-extrabold text-purple-900">
         Admin Dashboard
       </h1>
 
@@ -149,22 +161,28 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* CQI */}
+      {/* PROGRAMME CQI */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="text-xl font-bold mb-4">
           Programme CQI (Graduated Students)
         </h2>
 
-        {loadingCQI && <p>Loading CQI…</p>}
-        {!loadingCQI && !plo && <p>No CQI data available</p>}
+        {loadingCQI && <p className="text-sm text-gray-500">Loading CQI…</p>}
+
+        {!loadingCQI && !plo && (
+          <p className="text-sm text-gray-500">No CQI data available</p>
+        )}
 
         {plo &&
-          Object.entries(plo).map(([key, d]) => (
-            <div key={key} className="mb-4">
+          Object.entries(plo).map(([ploKey, d]) => (
+            <div key={ploKey} className="mb-4">
               <div className="flex justify-between text-sm font-semibold">
-                <span>{key}</span>
-                <span>{d.percent}% ({d.achieved}/{d.assessed})</span>
+                <span>{ploKey}</span>
+                <span>
+                  {d.percent ?? "-"}% ({d.achieved}/{d.assessed})
+                </span>
               </div>
+
               <div className="w-full bg-gray-200 h-2 rounded mt-1">
                 <div
                   className={`h-2 rounded ${
@@ -174,28 +192,34 @@ export default function AdminDashboard() {
                       ? "bg-yellow-500"
                       : "bg-red-500"
                   }`}
-                  style={{ width: `${d.percent || 0}%` }}
+                  style={{
+                    width: `${Math.min(d.percent || 0, 100)}%`,
+                  }}
                 />
               </div>
-              <p className="text-xs text-gray-600">
+
+              <p className="text-xs mt-1 text-gray-600">
                 Status: <strong>{d.status}</strong>
               </p>
             </div>
           ))}
       </div>
 
-      {/* STUDENTS */}
+      {/* STUDENT LIST */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="text-xl font-bold mb-4">
           Students ({students.length})
         </h2>
 
-        {loadingStudents && <p>Loading students…</p>}
-        {!loadingStudents && students.length === 0 && (
-          <p>No students found</p>
+        {loadingStudents && (
+          <p className="text-sm text-gray-500">Loading students…</p>
         )}
 
-        {students.length > 0 && (
+        {!loadingStudents && students.length === 0 && (
+          <p className="text-sm text-gray-500">No students found</p>
+        )}
+
+        {!loadingStudents && students.length > 0 && (
           <table className="w-full text-sm border">
             <thead className="bg-gray-100">
               <tr>
@@ -206,8 +230,8 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {students.map((s) => (
-                <tr key={s.id} className="border-t">
+              {students.map((s, i) => (
+                <tr key={i} className="border-t">
                   <td className="p-2">{s.name}</td>
                   <td className="p-2">{s.email}</td>
                   <td className="p-2">{s.id}</td>
