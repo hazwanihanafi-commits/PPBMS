@@ -98,9 +98,11 @@ export default function StudentPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/student/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${API_BASE}/api/student/me`, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
       const data = await res.json();
       if (!res.ok) throw new Error();
