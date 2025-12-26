@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../utils/api";
+import jwtDecode from "jwt-decode";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -9,6 +10,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 🔑 AUTO-LOGIN IF TOKEN EXISTS
+  useEffect(() => {
+    const token = localStorage.getItem("ppbms_token");
+    const role = localStorage.getItem("ppbms_role");
+
+    if (token && role) {
+      try {
+        jwtDecode(token); // validate token format
+        router.replace(role === "supervisor" ? "/supervisor" : "/student");
+      } catch {
+        localStorage.removeItem("ppbms_token");
+        localStorage.removeItem("ppbms_role");
+      }
+    }
+  }, []);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -38,12 +55,12 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ Save session
+      // ✅ Save session (THIS PART WAS ALREADY CORRECT)
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
       localStorage.setItem("ppbms_email", email.toLowerCase().trim());
 
-      // ✅ Redirect by assigned role
+      // ✅ Redirect by role
       router.push(data.role === "supervisor" ? "/supervisor" : "/student");
 
     } catch (err) {
@@ -58,28 +75,21 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white p-6">
       <div className="bg-white rounded-2xl shadow p-8 max-w-md w-full">
 
-        {/* Title */}
         <h1 className="text-2xl font-bold mb-1">PPBMS Login</h1>
 
-        {/* Subtitle */}
         <p className="text-gray-700 font-medium mb-2">
           Unified Access for Students and Supervisors
         </p>
 
-        {/* Description */}
         <p className="text-gray-600 text-sm mb-6">
-          This secure login provides authorised access to the Postgraduate
-          Progress &amp; Benchmarking System (PPBMS). Access privileges are
-          assigned automatically based on registered institutional records.
+          Secure access to the Postgraduate Progress & Benchmarking System (PPBMS).
         </p>
 
-        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
-
           <input
             type="email"
-            placeholder="Institutional Email Address (e.g. name@usm.my)"
-            className="w-full border p-3 rounded-xl focus:outline-none"
+            placeholder="Institutional Email Address"
+            className="w-full border p-3 rounded-xl"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -88,42 +98,26 @@ export default function LoginPage() {
           <input
             type="password"
             placeholder="Password"
-            className="w-full border p-3 rounded-xl focus:outline-none"
+            className="w-full border p-3 rounded-xl"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
 
-          {error && (
-            <p className="text-red-600 text-sm">
-              {error}
-            </p>
-          )}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition"
+            className="w-full py-3 bg-purple-600 text-white rounded-xl font-semibold"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
-
         </form>
 
-        {/* First-time login */}
-        <p className="text-sm text-center mt-4">
-          First-time login?{" "}
-          <a href="/set-password" className="text-purple-600 underline">
-            Set your password
-          </a>
-        </p>
-
-        {/* Governance footer */}
         <p className="text-xs text-center text-gray-500 mt-6">
-          This system is restricted to authorised postgraduate students,
-          supervisors, and administrators of Universiti Sains Malaysia.
+          Restricted to authorised postgraduate users of Universiti Sains Malaysia.
         </p>
-
       </div>
     </div>
   );
