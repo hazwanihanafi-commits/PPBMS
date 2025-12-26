@@ -23,12 +23,15 @@ function auth(req, res, next) {
   }
 }
 
-/* =========================================
-   GET ALL PROGRAMMES (FOR DROPDOWN)
-========================================= */
+/* =========================
+   GET PROGRAMMES (DROPDOWN)
+========================= */
 router.get("/programmes", auth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    console.log("ASSESSMENT_PLO ROWS:", rows.length);
+    console.log("FIRST ROW:", rows[0]);
 
     const programmes = [
       ...new Set(
@@ -47,9 +50,9 @@ router.get("/programmes", auth, async (req, res) => {
   }
 });
 
-/* =========================================
-   PROGRAMME CQI (PLO ATTAINMENT)
-========================================= */
+/* =========================
+   PROGRAMME CQI
+========================= */
 router.get("/programme-plo", auth, async (req, res) => {
   try {
     const programme = (req.query.programme || "").trim();
@@ -59,10 +62,9 @@ router.get("/programme-plo", auth, async (req, res) => {
 
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const filtered = rows.filter(
-      r =>
-        String(r["Programme"] || "").trim() === programme &&
-        String(r["Status"] || "").toLowerCase() === "graduated"
+    const filtered = rows.filter(r =>
+      String(r["Programme"] || "").trim() === programme &&
+      String(r["Status"] || "").toLowerCase() === "graduated"
     );
 
     const ploStats = {};
@@ -102,7 +104,7 @@ router.get("/programme-plo", auth, async (req, res) => {
 
     res.json({ programme, plo: result });
   } catch (e) {
-    console.error("Programme PLO error:", e);
+    console.error("Programme CQI error:", e);
     res.status(500).json({ error: e.message });
   }
 });
