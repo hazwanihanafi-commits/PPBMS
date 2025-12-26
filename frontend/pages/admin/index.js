@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
 /* ============================
-   ADMIN DASHBOARD
+   ADMIN DASHBOARD (FINAL)
 ============================ */
 export default function AdminDashboard() {
   const router = useRouter();
@@ -43,8 +43,6 @@ export default function AdminDashboard() {
         });
 
         const data = await res.json();
-        console.log("PROGRAMMES:", data);
-
         setProgrammes(data.programmes || []);
         if (data.programmes?.length) {
           setProgramme(data.programmes[0]);
@@ -60,7 +58,7 @@ export default function AdminDashboard() {
   }, []);
 
   /* ============================
-     LOAD CQI (PLO)
+     LOAD PROGRAMME CQI
   ============================ */
   useEffect(() => {
     if (!programme) return;
@@ -80,8 +78,6 @@ export default function AdminDashboard() {
         );
 
         const data = await res.json();
-        console.log("CQI:", data);
-
         setPlo(data.plo || null);
       } catch (e) {
         console.error("CQI error:", e);
@@ -95,7 +91,7 @@ export default function AdminDashboard() {
   }, [programme]);
 
   /* ============================
-     LOAD STUDENTS
+     LOAD PROGRAMME STUDENTS
   ============================ */
   useEffect(() => {
     if (!programme) return;
@@ -115,8 +111,6 @@ export default function AdminDashboard() {
         );
 
         const data = await res.json();
-        console.log("STUDENTS:", data);
-
         setStudents(data.students || []);
       } catch (e) {
         console.error("Student list error:", e);
@@ -162,7 +156,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* ================= CQI SECTION ================= */}
+      {/* ================= PROGRAMME CQI ================= */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="text-xl font-bold mb-4">
           Programme CQI (Graduated Students)
@@ -175,35 +169,39 @@ export default function AdminDashboard() {
         )}
 
         {plo &&
-          Object.entries(plo).map(([ploKey, d]) => (
-            <div key={ploKey} className="mb-4">
-              <div className="flex justify-between text-sm font-semibold">
-                <span>{ploKey}</span>
-                <span>
-                  {d.percent ?? "-"}% ({d.achieved}/{d.assessed})
-                </span>
-              </div>
+          Object.entries(plo)
+            .sort(([a], [b]) => {
+              const na = parseInt(a.replace("PLO", ""), 10);
+              const nb = parseInt(b.replace("PLO", ""), 10);
+              return na - nb;
+            })
+            .map(([ploKey, d]) => (
+              <div key={ploKey} className="mb-4">
+                <div className="flex justify-between text-sm font-semibold">
+                  <span>{ploKey}</span>
+                  <span>
+                    {d.percent ?? "-"}% ({d.achieved}/{d.assessed})
+                  </span>
+                </div>
 
-              <div className="w-full bg-gray-200 h-2 rounded mt-1">
-                <div
-                  className={`h-2 rounded ${
-                    d.status === "Achieved"
-                      ? "bg-green-500"
-                      : d.status === "Borderline"
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                  }`}
-                  style={{
-                    width: `${Math.min(d.percent || 0, 100)}%`,
-                  }}
-                />
-              </div>
+                <div className="w-full bg-gray-200 h-2 rounded mt-1">
+                  <div
+                    className={`h-2 rounded ${
+                      d.status === "Achieved"
+                        ? "bg-green-500"
+                        : d.status === "Borderline"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                    }`}
+                    style={{ width: `${Math.min(d.percent || 0, 100)}%` }}
+                  />
+                </div>
 
-              <p className="text-xs mt-1 text-gray-600">
-                Status: <strong>{d.status}</strong>
-              </p>
-            </div>
-          ))}
+                <p className="text-xs mt-1 text-gray-600">
+                  Status: <strong>{d.status}</strong>
+                </p>
+              </div>
+            ))}
       </div>
 
       {/* ================= STUDENT LIST ================= */}
@@ -224,18 +222,18 @@ export default function AdminDashboard() {
           <table className="w-full text-sm border">
             <thead className="bg-gray-100">
               <tr>
+                <th className="p-2 text-left">Student Name</th>
                 <th className="p-2 text-left">Student Email</th>
                 <th className="p-2 text-left">Matric</th>
-                <th className="p-2 text-left">Assessment</th>
                 <th className="p-2 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
               {students.map((s, i) => (
                 <tr key={i} className="border-t">
-                  <td className="p-2">{s.studentEmail}</td>
-                  <td className="p-2">{s.matric}</td>
-                  <td className="p-2">{s.assessmentType}</td>
+                  <td className="p-2">{s.name}</td>
+                  <td className="p-2">{s.email}</td>
+                  <td className="p-2">{s.id}</td>
                   <td className="p-2 font-semibold">{s.status}</td>
                 </tr>
               ))}
