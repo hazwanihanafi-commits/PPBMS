@@ -33,6 +33,7 @@ app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/alerts", alertsRoutes);
 
+
 /* 🔑 VERIFY SMTP ON STARTUP */
 verifySMTP();
 
@@ -40,8 +41,12 @@ verifySMTP();
 app.use("/system", systemRoutes);
 
 /* ================= 404 ================= */
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
+// 🚫 Disable caching for APIs
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
 });
 
 export default app;
