@@ -89,28 +89,41 @@ export default function AdminDashboard() {
      TRANSFORM CQI DATA
   ========================= */
   const ploList = programmePLO
-    ? Object.entries(programmePLO).map(([plo, d]) => ({
-        plo,
-        percent: d.attainmentPercent,
-        achieved: d.achievedStudents,
-        total: d.totalStudents,
-        actions: [
-          "Strengthen supervisory intervention",
-          "Reinforce rubric alignment",
-          "Monitor progress in next academic cycle",
-        ],
-      }))
-    : [];
+  ? Object.entries(programmePLO).map(([plo, d]) => ({
+      plo,
+      achieved: d.achieved,
+      assessed: d.assessed,
+      percent:
+        d.assessed > 0
+          ? Number(((d.achieved / d.assessed) * 100).toFixed(1))
+          : null,
+      status:
+        d.assessed === 0
+          ? "Not Assessed"
+          : (d.achieved / d.assessed) * 100 >= 70
+          ? "Achieved"
+          : (d.achieved / d.assessed) * 100 >= 50
+          ? "Borderline"
+          : "CQI Required",
+      actions: [
+        "Strengthen supervisory intervention",
+        "Reinforce rubric alignment",
+        "Monitor progress in next academic cycle",
+      ],
+    }))
+  : [];
 
   const summary = {
-    red: ploList.filter((p) => p.percent < 50).length,
-    yellow: ploList.filter((p) => p.percent >= 50 && p.percent < 70).length,
-    green: ploList.filter((p) => p.percent >= 70).length,
-    risk:
-      ploList.filter((p) => p.percent < 50).length > 0
-        ? "HIGH"
-        : "MODERATE",
-  };
+  red: ploList.filter(p => p.status === "CQI Required"),
+  yellow: ploList.filter(p => p.status === "Borderline"),
+  green: ploList.filter(p => p.status === "Achieved"),
+  risk:
+    ploList.some(p => p.status === "CQI Required")
+      ? "HIGH"
+      : ploList.some(p => p.status === "Borderline")
+      ? "MODERATE"
+      : "LOW",
+};
 
   /* =========================
      RENDER
