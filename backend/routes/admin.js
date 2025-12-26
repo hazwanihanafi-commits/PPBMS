@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { readASSESSMENT_PLO } from "../services/googleSheets.js";
 import { computeFinalStudentPLO } from "../utils/computeFinalStudentPLO.js";
+import { aggregateFinalPLO } from "../utils/aggregateFinalPLO.js";
 
 const router = express.Router();
 
@@ -52,12 +53,16 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* 1️⃣ FILTER PROGRAMME */
+  /* =========================
+     1️⃣ FILTER PROGRAMME
+  ========================= */
   const programmeRows = rows.filter(
     r => String(r["Programme"] || "").trim() === programme
   );
 
-  /* 2️⃣ GROUP BY STUDENT */
+  /* =========================
+     2️⃣ GROUP BY STUDENT
+  ========================= */
   const byStudent = {};
   programmeRows.forEach(r => {
     const email = String(r["Student's Email"] || "").toLowerCase().trim();
@@ -66,46 +71,67 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ FINAL PLO PER GRADUATED STUDENT (PLO ASSESSMENTS ONLY) */
-  const graduates = Object.values(byStudent)
-    .map(records => {
-      const graduated = records.some(
-        r => String(r["Status"] || "").toLowerCase() === "graduated"
-      );
-      if (!graduated) return null;
+  /* =========================
+     3️⃣ FINAL PLO PER GRADUATED STUDENT
+  ========================= */
+  const graduatedFinalPLOs = [];
 
-      // 🔑 ONLY ASSESSMENTS THAT CONTAIN PLO SCORES
-      const ploRecords = records.filter(r =>
-        ["TRX500", "VIVA", "THESIS"].includes(
-          String(r["assessment_type"] || "").toUpperCase()
-        )
-      );
+  Object.values(byStudent).forEach(records => {
+    const isGraduated = records.some(
+      r => String(r["Status"] || "").toLowerCase() === "graduated"
+    );
+    if (!isGraduated) return;
 
-      if (ploRecords.length === 0) return null;
+    // Build CQI-by-assessment (same as supervisor)
+    const cqiByAssessment = {};
 
-      return computeFinalStudentPLO(ploRecords);
-    })
-    .filter(Boolean);
+    records.forEach(r => {
+      const assessment = String(r["assessment_type"] || "").trim();
+      if (!assessment) return;
 
-  /* 4️⃣ PROGRAMME CQI (70% BENCHMARK) */
-  const plo = {};
+      cqiByAssessment[assessment] = {};
+      for (let i = 1; i <= 11; i++) {
+        const v = Number(r[`PLO${i}`]);
+        if (!isNaN(v)) {
+          cqiByAssessment[assessment][`PLO${i}`] = v;
+        }
+      }
+    });
+
+    const finalPLO = aggregateFinalPLO(cqiByAssessment);
+
+    // 🔒 NORMALISE (CRITICAL)
+    for (let i = 1; i <= 11; i++) {
+      if (!finalPLO[`PLO${i}`]) {
+        finalPLO[`PLO${i}`] = { average: null, status: "Not Assessed" };
+      }
+    }
+
+    graduatedFinalPLOs.push(finalPLO);
+  });
+
+  /* =========================
+     4️⃣ PROGRAMME CQI (70% RULE)
+  ========================= */
+  const programmeCQI = {};
+
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const assessed = graduates.filter(
-      g => typeof g[key] === "number"
+    const assessed = graduatedFinalPLOs.filter(
+      s => typeof s[key].average === "number"
     ).length;
 
-    const achieved = graduates.filter(
-      g => typeof g[key] === "number" && g[key] >= 3
+    const achieved = graduatedFinalPLOs.filter(
+      s => typeof s[key].average === "number" && s[key].average >= 3
     ).length;
 
     const percent = assessed ? (achieved / assessed) * 100 : null;
 
-    plo[key] = {
+    programmeCQI[key] = {
       assessed,
       achieved,
-      percent: percent !== null ? Number(percent.toFixed(1)) : null,
+      percent: percent ? Number(percent.toFixed(1)) : null,
       status:
         assessed === 0
           ? "Not Assessed"
@@ -113,17 +139,16 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
           ? "Achieved"
           : percent >= 50
           ? "Borderline"
-          : "CQI Required",
+          : "CQI Required"
     };
   }
 
   res.json({
     programme,
-    graduates: graduates.length,
-    plo,
+    graduates: graduatedFinalPLOs.length,
+    plo: programmeCQI
   });
 });
-
 /* =================================================
    PROGRAMME STUDENT LIST (ADMIN TABLE)
 ================================================= */
