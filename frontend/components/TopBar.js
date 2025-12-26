@@ -1,30 +1,42 @@
-import { useRouter } from "next/router";
+import React from "react";
 
-export default function TopBar() {
-  const router = useRouter();
-  const email = typeof window !== "undefined"
-    ? localStorage.getItem("ppbms_email")
-    : "";
-
-  function handleLogout() {
-    localStorage.clear();
-    router.push("/login");
-  }
-
+export default function TopBar({ user, onLogout }) {
   return (
-    <div className="flex justify-between items-center 
-                    px-6 py-4 bg-white shadow-sm">
-      <div className="font-bold text-purple-700">PPBMS</div>
+    <header className="w-full bg-white border-b shadow-sm">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+        
+        {/* LEFT: System Name */}
+        <div className="text-xl font-semibold text-purple-700">
+          PPBMS
+        </div>
 
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-600">{email}</span>
-        <button
-          onClick={handleLogout}
-          className="text-sm font-semibold text-red-600 hover:underline"
-        >
-          Logout
-        </button>
+        {/* RIGHT: Logged-in User */}
+        <div className="flex items-center gap-4">
+          <div className="text-right leading-tight">
+            <div className="text-xs text-gray-500">
+              Logged in as
+            </div>
+            <div className="text-sm font-medium text-gray-800">
+              {user?.email || "Unknown user"}
+            </div>
+          </div>
+
+          {/* Role Badge */}
+          {user?.role && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+              {user.role.toUpperCase()}
+            </span>
+          )}
+
+          {/* Logout */}
+          <button
+            onClick={onLogout}
+            className="text-sm text-red-600 hover:text-red-700 font-medium"
+          >
+            Logout
+          </button>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }
