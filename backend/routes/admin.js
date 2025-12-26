@@ -1,7 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { readASSESSMENT_PLO } from "../services/googleSheets.js";
-import { computeFinalStudentPLO } from "../utils/computeFinalStudentPLO.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
 
 const router = express.Router();
@@ -34,7 +33,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
   const programmes = [
     ...new Set(
       rows
-        .map(r => String(r.programme || "").trim())
+        .map(r => String(r["Programme"] || "").trim())
         .filter(Boolean)
     ),
   ].sort();
@@ -43,7 +42,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
 });
 
 /* =================================================
-   PROGRAMME CQI (MATCHES FRONTEND programme-plo)
+   PROGRAMME CQI (FINAL, STABLE, MATCHES SUPERVISOR)
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   const programme = String(req.query.programme || "").trim();
@@ -68,28 +67,28 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   });
 
   /* 3️⃣ Final PLO per GRADUATED student */
-  const graduatedFinalPLOs = Object.values(byStudent)
+  const graduates = Object.values(byStudent)
     .map(records => {
       const isGraduated = records.some(
         r => String(r["Status"] || "").toLowerCase() === "graduated"
       );
       if (!isGraduated) return null;
 
-      return aggregateFinalPLO(records); // 🔑 reuse supervisor logic
+      return aggregateFinalPLO(records);
     })
     .filter(Boolean);
 
-  /* 4️⃣ Programme-level aggregation (70% rule) */
+  /* 4️⃣ Programme-level aggregation (70% benchmark) */
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const assessed = graduatedFinalPLOs.filter(
-      p => typeof p[key]?.average === "number"
+    const assessed = graduates.filter(
+      g => typeof g[key]?.average === "number"
     ).length;
 
-    const achieved = graduatedFinalPLOs.filter(
-      p => typeof p[key]?.average === "number" && p[key].average >= 3
+    const achieved = graduates.filter(
+      g => typeof g[key]?.average === "number" && g[key].average >= 3
     ).length;
 
     const percent = assessed ? (achieved / assessed) * 100 : null;
@@ -111,71 +110,9 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   res.json({
     programme,
-    graduates: graduatedFinalPLOs.length,
+    graduates: graduates.length,
     plo,
   });
-});
-
-  /* =========================
-     4️⃣ PROGRAMME CQI (70% RULE)
-  ========================= */
-  const programmeCQI = {};
-
-  for (let i = 1; i <= 11; i++) {
-    const key = `PLO${i}`;
-
-    const assessed = graduatedFinalPLOs.filter(
-      s => typeof s[key].average === "number"
-    ).length;
-
-    const achieved = graduatedFinalPLOs.filter(
-      s => typeof s[key].average === "number" && s[key].average >= 3
-    ).length;
-
-    const percent = assessed ? (achieved / assessed) * 100 : null;
-
-    programmeCQI[key] = {
-      assessed,
-      achieved,
-      percent: percent ? Number(percent.toFixed(1)) : null,
-      status:
-        assessed === 0
-          ? "Not Assessed"
-          : percent >= 70
-          ? "Achieved"
-          : percent >= 50
-          ? "Borderline"
-          : "CQI Required"
-    };
-  }
-
-  res.json({
-    programme,
-    graduates: graduatedFinalPLOs.length,
-    plo: programmeCQI
-  });
-});
-/* =================================================
-   PROGRAMME STUDENT LIST (ADMIN TABLE)
-================================================= */
-router.get("/programme-students", adminAuth, async (req, res) => {
-  const programme = String(req.query.programme || "").trim();
-  if (!programme) {
-    return res.status(400).json({ error: "Programme required" });
-  }
-
-  const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-  const students = rows
-    .filter(r => String(r.programme || "").trim() === programme)
-    .map(r => ({
-      studentEmail: r.student_email,
-      matric: r.matric,
-      assessmentType: r.assessment_type,
-      status: r.status,
-    }));
-
-  res.json({ students });
 });
 
 export default router;
