@@ -52,12 +52,12 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  /* 1️⃣ FILTER BY PROGRAMME */
+  // 1️⃣ Filter programme
   const programmeRows = rows.filter(
     r => String(r["Programme"] || "").trim() === programme
   );
 
-  /* 2️⃣ GROUP BY STUDENT */
+  // 2️⃣ Group by student
   const byStudent = {};
   programmeRows.forEach(r => {
     const email = String(r["Student's Email"] || "").toLowerCase().trim();
@@ -66,30 +66,38 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ FINAL PLO PER GRADUATED STUDENT */
-  const graduates = Object.values(byStudent)
-    .map(records => {
-      const graduated = records.some(
-        r => String(r["Status"] || "").toLowerCase() === "graduated"
-      );
-      if (!graduated) return null;
+  // 3️⃣ Keep only GRADUATED students
+  const graduates = Object.values(byStudent).filter(records =>
+    records.some(r => String(r["Status"] || "").toLowerCase() === "graduated")
+  );
 
-      return computeFinalStudentPLO(records);
-    })
-    .filter(Boolean);
+  // 4️⃣ Compute FINAL PLO PER STUDENT (RAW AVERAGE)
+  const studentFinalPLOs = graduates.map(records => {
+    const avg = {};
+    for (let i = 1; i <= 11; i++) {
+      const key = `PLO${i}`;
+      const values = records
+        .map(r => Number(r[key]))
+        .filter(v => !isNaN(v));
 
-  /* 4️⃣ PROGRAMME AGGREGATION (70% RULE) */
+      avg[key] = values.length
+        ? values.reduce((a, b) => a + b, 0) / values.length
+        : null;
+    }
+    return avg;
+  });
+
+  // 5️⃣ Programme aggregation (70% benchmark)
   const plo = {};
-
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const assessed = graduates.filter(
-      g => typeof g[key] === "number"
+    const assessed = studentFinalPLOs.filter(
+      s => typeof s[key] === "number"
     ).length;
 
-    const achieved = graduates.filter(
-      g => typeof g[key] === "number" && g[key] >= 3
+    const achieved = studentFinalPLOs.filter(
+      s => typeof s[key] === "number" && s[key] >= 3
     ).length;
 
     const percent = assessed ? (achieved / assessed) * 100 : null;
@@ -97,7 +105,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     plo[key] = {
       assessed,
       achieved,
-      percent: percent !== null ? Number(percent.toFixed(1)) : null,
+      percent: percent ? Number(percent.toFixed(1)) : null,
       status:
         assessed === 0
           ? "Not Assessed"
@@ -105,34 +113,11 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
           ? "Achieved"
           : percent >= 50
           ? "Borderline"
-          : "CQI Required",
+          : "CQI Required"
     };
   }
 
-  res.json({ programme, plo });
-});
-
-/* =================================================
-   PROGRAMME STUDENT LIST (ADMIN TABLE)
-================================================= */
-router.get("/programme-students", adminAuth, async (req, res) => {
-  const programme = String(req.query.programme || "").trim();
-  if (!programme) {
-    return res.status(400).json({ error: "Programme required" });
-  }
-
-  const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-  const students = rows
-    .filter(r => String(r["Programme"] || "").trim() === programme)
-    .map(r => ({
-      studentEmail: r["Student's Email"] || "",
-      matric: r["Matric"] || "",
-      assessmentType: r["assessment_type"] || "",
-      status: r["Status"] || "",
-    }));
-
-  res.json({ students });
+  res.json({ programme, graduates: studentFinalPLOs.length, plo });
 });
 
 export default router;
