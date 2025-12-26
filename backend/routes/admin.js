@@ -1,17 +1,14 @@
 import express from "express";
-import authMiddleware from "../middleware/authMiddleware.js";
 import jwt from "jsonwebtoken";
-
 import {
-  readASSESSMENT_PLO,
-  readMasterTracking
+  readASSESSMENT_PLO
 } from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/* =========================================================
-   AUTH (ADMIN ONLY)
-========================================================= */
+/* =========================
+   ADMIN AUTH
+========================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -19,7 +16,7 @@ function auth(req, res, next) {
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
     if (user.role !== "admin") {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(403).json({ error: "Forbidden" });
     }
     req.user = user;
     next();
@@ -28,89 +25,10 @@ function auth(req, res, next) {
   }
 }
 
-
-/* =========================================================
-   GET /api/admin/programme-plo
-   ✅ MQA-COMPLIANT PROGRAMME CQI
-========================================================= */
-router.get(
-  "/programme-plo",
-  authMiddleware("admin"),
-  async (req, res) => {
-    try {
-      const programme = (req.query.programme || "").trim();
-      if (!programme) {
-        return res.status(400).json({ error: "Programme is required" });
-      }
-
-      const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-      /* ---------------------------------------------
-         1️⃣ FILTER: PROGRAMME + GRADUATED ONLY
-      --------------------------------------------- */
-      const filtered = rows.filter(r =>
-        (r.programme || "").trim() === programme &&
-        String(r.status || "").toLowerCase() === "graduated"
-      );
-
-      /* ---------------------------------------------
-         2️⃣ AGGREGATE PER PLO
-      --------------------------------------------- */
-      const ploStats = {};
-      for (let i = 1; i <= 11; i++) {
-        ploStats[`PLO${i}`] = { assessed: 0, achieved: 0 };
-      }
-
-      filtered.forEach(r => {
-        for (let i = 1; i <= 11; i++) {
-          const score = Number(r[`plo${i}`]);
-          if (!isNaN(score)) {
-            ploStats[`PLO${i}`].assessed++;
-            if (score >= 3) ploStats[`PLO${i}`].achieved++;
-          }
-        }
-      });
-
-      /* ---------------------------------------------
-         3️⃣ FORMAT RESPONSE (70% RULE)
-      --------------------------------------------- */
-      const programmeResult = {};
-
-      Object.entries(ploStats).forEach(([plo, d]) => {
-        const percent =
-          d.assessed > 0 ? (d.achieved / d.assessed) * 100 : null;
-
-        programmeResult[plo] = {
-          assessed: d.assessed,
-          achieved: d.achieved,
-          percent: percent !== null ? Number(percent.toFixed(1)) : null,
-          status:
-            d.assessed === 0
-              ? "Not Assessed"
-              : percent >= 70
-              ? "Achieved"
-              : percent >= 50
-              ? "Borderline"
-              : "CQI Required"
-        };
-      });
-
-      res.json({
-        programmes: {
-          [programme]: programmeResult
-        }
-      });
-
-    } catch (e) {
-      console.error("Programme PLO error:", e);
-      res.status(500).json({ error: e.message });
-    }
-  }
-);
-
-/* =========================================
-   GET ALL PROGRAMMES (NO GROUPING)
-========================================= */
+/* =========================
+   GET ALL PROGRAMMES
+   (FOR DROPDOWN)
+========================= */
 router.get("/programmes", auth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
@@ -123,10 +41,69 @@ router.get("/programmes", auth, async (req, res) => {
       ),
     ].sort();
 
-    res.json({ programmes });
+    return res.json({ programmes });
   } catch (err) {
     console.error("Programme list error:", err);
-    res.status(500).json({ error: "Failed to load programmes" });
+    return res.status(500).json({ error: "Failed to load programmes" });
+  }
+});
+
+/* =========================
+   PROGRAMME CQI
+========================= */
+router.get("/programme-plo", auth, async (req, res) => {
+  try {
+    const programme = (req.query.programme || "").trim();
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
+
+    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    const filtered = rows.filter(r =>
+      (r["Programme"] || "").trim() === programme &&
+      String(r["Status"] || "").toLowerCase() === "graduated"
+    );
+
+    const ploStats = {};
+    for (let i = 1; i <= 11; i++) {
+      ploStats[`PLO${i}`] = { assessed: 0, achieved: 0 };
+    }
+
+    filtered.forEach(r => {
+      for (let i = 1; i <= 11; i++) {
+        const v = Number(r[`PLO${i}`]);
+        if (!isNaN(v)) {
+          ploStats[`PLO${i}`].assessed++;
+          if (v >= 3) ploStats[`PLO${i}`].achieved++;
+        }
+      }
+    });
+
+    const result = {};
+    Object.entries(ploStats).forEach(([plo, d]) => {
+      const percent =
+        d.assessed > 0 ? (d.achieved / d.assessed) * 100 : null;
+
+      result[plo] = {
+        assessed: d.assessed,
+        achieved: d.achieved,
+        percent: percent ? Number(percent.toFixed(1)) : null,
+        status:
+          d.assessed === 0
+            ? "Not Assessed"
+            : percent >= 70
+            ? "Achieved"
+            : percent >= 50
+            ? "Borderline"
+            : "CQI Required",
+      };
+    });
+
+    res.json({ programme, plo: result });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
   }
 });
 
