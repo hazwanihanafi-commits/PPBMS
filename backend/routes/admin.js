@@ -29,16 +29,16 @@ function adminAuth(req, res, next) {
 router.get("/programmes", adminAuth, async (req, res) => {
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  const programmes = [
-    ...new Set(
-      rows
-        .map(r => String(r["Programme"] || "").trim())
-        .filter(Boolean)
-    )
-  ].sort();
+  if (!rows.length) {
+    return res.json({ programmes: [], debug: "NO ROWS" });
+  }
 
-  res.json({ programmes });
+  return res.json({
+    keys: Object.keys(rows[0]),
+    sample: rows[0]
+  });
 });
+
 
 /* =================================================
    PROGRAMME CQI (FINAL — MQA CORRECT)
