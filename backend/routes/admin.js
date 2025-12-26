@@ -30,20 +30,11 @@ router.get("/programmes", adminAuth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    // ⚠️ MUST MATCH GOOGLE SHEET HEADER EXACTLY
-    const programmes = [
-      ...new Set(
-        rows
-          .map(r => String(r["Programme"] || "").trim())
-          .filter(Boolean)
-      )
-    ].sort();
+    console.log("FIRST ROW KEYS:", Object.keys(rows[0] || {}));
 
-    console.log("ADMIN PROGRAMMES:", programmes);
-
-    res.json({ programmes });
+    res.json({ ok: true });
   } catch (e) {
-    console.error("PROGRAMME LIST ERROR:", e);
+    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
