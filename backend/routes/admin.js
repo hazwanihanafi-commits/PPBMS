@@ -107,4 +107,30 @@ router.get("/programme-plo", auth, async (req, res) => {
   }
 });
 
+/* =====================================================
+   GET ALL PROGRAMMES (ADMIN ONLY)
+===================================================== */
+router.get(
+  "/programmes",
+  authMiddleware("admin"),
+  async (req, res) => {
+    try {
+      const rows = await readMasterTracking(process.env.SHEET_ID);
+
+      const programmes = [
+        ...new Set(
+          rows
+            .map(r => r["Programme"])
+            .filter(Boolean)
+        ),
+      ].sort();
+
+      return res.json({ programmes });
+    } catch (err) {
+      console.error("PROGRAMME LIST ERROR:", err);
+      return res.status(500).json({ error: "Failed to load programmes" });
+    }
+  }
+);
+
 export default router;
