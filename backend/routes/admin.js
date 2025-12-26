@@ -1,122 +1,116 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { readASSESSMENT_PLO } from "../services/googleSheets.js";
+import { computeFinalStudentPLO } from "../utils/computeFinalStudentPLO.js";
+import { aggregateProgrammeFinalPLO } from "../utils/aggregateProgrammeFinalPLO.js";
 
 const router = express.Router();
 
-/* =========================
+/* ======================================================
    ADMIN AUTH MIDDLEWARE
-========================= */
+====================================================== */
 function adminAuth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "No token" });
+  if (!token) return res.status(401).json({ error: "NO_TOKEN" });
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
     if (user.role !== "admin") {
-      return res.status(403).json({ error: "Forbidden" });
+      return res.status(403).json({ error: "FORBIDDEN" });
     }
     req.user = user;
     next();
-  } catch {
-    return res.status(401).json({ error: "Invalid token" });
+  } catch (err) {
+    return res.status(401).json({ error: "INVALID_TOKEN" });
   }
 }
 
-/* =========================
-   HELPER: SAFE COLUMN ACCESS
-========================= */
-function getColumn(row, columnName) {
-  const key = Object.keys(row).find(
-    k => k.trim().toLowerCase() === columnName.toLowerCase()
-  );
-  return key ? row[key] : undefined;
-}
-
-/* =================================================
-   GET PROGRAMME LIST (DROPDOWN)
-================================================= */
+/* ======================================================
+   GET PROGRAMME LIST (FOR DROPDOWN)
+====================================================== */
 router.get("/programmes", adminAuth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    if (!rows.length) {
-      return res.json({ programmes: [] });
-    }
-
     const programmes = [
       ...new Set(
         rows
-          .map(r => String(getColumn(r, "Programme") || "").trim())
+          .map(r => String(r["Programme"] || "").trim())
           .filter(Boolean)
       )
     ].sort();
 
-    console.log("ADMIN PROGRAMMES:", programmes);
-
     res.json({ programmes });
-  } catch (e) {
-    console.error("PROGRAMME LIST ERROR:", e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error("PROGRAMME LIST ERROR:", err);
+    res.status(500).json({ error: "FAILED_TO_LOAD_PROGRAMMES" });
   }
 });
 
-/* =================================================
-   PROGRAMME CQI (GRADUATED STUDENTS)
-================================================= */
+/* ======================================================
+   PROGRAMME FINAL PLO (CQI – 70% BENCHMARK)
+====================================================== */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   try {
     const programme = (req.query.programme || "").trim();
     if (!programme) {
-      return res.status(400).json({ error: "Programme required" });
+      return res.status(400).json({ error: "PROGRAMME_REQUIRED" });
     }
 
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const filtered = rows.filter(r =>
-      String(getColumn(r, "Programme") || "").trim() === programme &&
-      String(getColumn(r, "Status") || "").toLowerCase() === "graduated"
+    /* ----------------------------------------------
+       1️⃣ FILTER: PROGRAMME + GRADUATED STUDENTS
+    ---------------------------------------------- */
+    const programmeRows = rows.filter(r =>
+      String(r["Programme"] || "").trim() === programme &&
+      String(r["Status"] || "").toLowerCase() === "graduated"
     );
 
-    const ploStats = {};
-    for (let i = 1; i <= 11; i++) {
-      ploStats[`PLO${i}`] = { assessed: 0, achieved: 0 };
-    }
+    /* ----------------------------------------------
+       2️⃣ GROUP ROWS BY STUDENT EMAIL
+    ---------------------------------------------- */
+    const rowsByStudent = {};
+    programmeRows.forEach(r => {
+      const email = r["Student's Email"];
+      if (!email) return;
 
-    filtered.forEach(r => {
-      for (let i = 1; i <= 11; i++) {
-        const score = Number(getColumn(r, `PLO${i}`));
-        if (!isNaN(score)) {
-          ploStats[`PLO${i}`].assessed++;
-          if (score >= 3) ploStats[`PLO${i}`].achieved++;
-        }
+      if (!rowsByStudent[email]) {
+        rowsByStudent[email] = [];
       }
+      rowsByStudent[email].push(r);
     });
 
-    const plo = {};
-    Object.entries(ploStats).forEach(([ploKey, d]) => {
-      const percent =
-        d.assessed > 0 ? (d.achieved / d.assessed) * 100 : null;
+    /* ----------------------------------------------
+       3️⃣ COMPUTE FINAL PLO PER STUDENT
+           (REUSE SUPERVISOR LOGIC)
+    ---------------------------------------------- */
+    const studentFinalPLOList = Object.entries(rowsByStudent).map(
+      ([email, studentRows]) => ({
+        studentEmail: email,
+        finalPLO: computeFinalStudentPLO(studentRows),
+      })
+    );
 
-      plo[ploKey] = {
-        assessed: d.assessed,
-        achieved: d.achieved,
-        percent: percent !== null ? Number(percent.toFixed(1)) : null,
-        status:
-          d.assessed === 0
-            ? "Not Assessed"
-            : percent >= 70
-            ? "Achieved"
-            : percent >= 50
-            ? "Borderline"
-            : "CQI Required"
-      };
+    /* ----------------------------------------------
+       4️⃣ AGGREGATE TO PROGRAMME LEVEL
+           (70% BENCHMARK)
+    ---------------------------------------------- */
+    const programmeFinalPLO =
+      aggregateProgrammeFinalPLO(studentFinalPLOList);
+
+    /* ----------------------------------------------
+       5️⃣ RESPONSE
+    ---------------------------------------------- */
+    res.json({
+      programme,
+      totalGraduatedStudents: studentFinalPLOList.length,
+      finalPLO: programmeFinalPLO,
     });
 
-    res.json({ programme, plo });
-  } catch (e) {
-    console.error("PROGRAMME CQI ERROR:", e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error("PROGRAMME CQI ERROR:", err);
+    res.status(500).json({ error: "PROGRAMME_CQI_FAILED" });
   }
 });
 
