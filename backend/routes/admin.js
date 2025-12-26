@@ -29,15 +29,19 @@ function auth(req, res, next) {
 router.get("/programme-plo", auth, async (req, res) => {
   try {
     const programme = (req.query.programme || "").trim();
+    const includeActive = req.query.includeActive === "true";
+
     if (!programme) {
       return res.status(400).json({ error: "Programme required" });
     }
 
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
+    // ✅ CORRECT FILTER (MATCHES YOUR SHEET)
     const filtered = rows.filter(r =>
-      String(r.programme || "").trim() === programme &&
-      String(r.status || "").toLowerCase() === "active"
+      String(r["Programme"] || "").trim() === programme &&
+      (includeActive ||
+        String(r["Status"] || "").toLowerCase() === "graduated")
     );
 
     const ploStats = {};
@@ -47,7 +51,7 @@ router.get("/programme-plo", auth, async (req, res) => {
 
     filtered.forEach(r => {
       for (let i = 1; i <= 11; i++) {
-        const v = Number(r[`plo${i}`]);
+        const v = Number(r[`PLO${i}`]);
         if (!isNaN(v)) {
           ploStats[`PLO${i}`].assessed++;
           if (v >= 3) ploStats[`PLO${i}`].achieved++;
@@ -81,6 +85,9 @@ router.get("/programme-plo", auth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+
+  
 
 /* =========================
    PROGRAMME CQI
