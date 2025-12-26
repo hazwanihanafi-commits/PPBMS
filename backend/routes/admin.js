@@ -24,7 +24,7 @@ function adminAuth(req, res, next) {
 }
 
 /* =================================================
-   GET PROGRAMMES (ADMIN DROPDOWN)
+   GET PROGRAMMES
 ================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
@@ -41,7 +41,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
 });
 
 /* =================================================
-   PROGRAMME CQI (FINAL — PROGRAMME LEVEL)
+   PROGRAMME CQI (FINAL — MQA CORRECT)
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   const programme = String(req.query.programme || "").trim();
@@ -65,39 +65,48 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     byStudent[email].push(r);
   });
 
-  // 3️⃣ Keep only GRADUATED students
-  const graduates = Object.values(byStudent).filter(records =>
-    records.some(
-      r => String(r["Status"] || "").toLowerCase() === "graduated"
-    )
-  );
+  // 3️⃣ Extract FINAL PLO per graduated student (VIVA / THESIS only)
+  const finalStudentPLOs = Object.values(byStudent)
+    .map(records => {
+      const graduated = records.some(
+        r => String(r["Status"] || "").toLowerCase() === "graduated"
+      );
+      if (!graduated) return null;
 
-  // 4️⃣ Final PLO per student (RAW AVERAGE across ALL assessments)
-  const studentFinalPLOs = graduates.map(records => {
-    const avg = {};
-    for (let i = 1; i <= 11; i++) {
-      const key = `PLO${i}`;
-      const values = records
-        .map(r => Number(r[key]))
-        .filter(v => !isNaN(v));
+      const finalRows = records.filter(r =>
+        ["VIVA", "THESIS"].includes(
+          String(r["assessment_type"] || "").toUpperCase()
+        )
+      );
 
-      avg[key] = values.length
-        ? values.reduce((a, b) => a + b, 0) / values.length
-        : null;
-    }
-    return avg;
-  });
+      if (!finalRows.length) return null;
 
-  // 5️⃣ Programme CQI aggregation (70% benchmark)
+      const plo = {};
+      for (let i = 1; i <= 11; i++) {
+        const key = `PLO${i}`;
+        const values = finalRows
+          .map(r => Number(r[key]))
+          .filter(v => !isNaN(v));
+
+        plo[key] = values.length
+          ? values.reduce((a, b) => a + b, 0) / values.length
+          : null;
+      }
+
+      return plo;
+    })
+    .filter(Boolean);
+
+  // 4️⃣ Programme CQI aggregation (70% benchmark)
   const plo = {};
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const assessed = studentFinalPLOs.filter(
+    const assessed = finalStudentPLOs.filter(
       s => typeof s[key] === "number"
     ).length;
 
-    const achieved = studentFinalPLOs.filter(
+    const achieved = finalStudentPLOs.filter(
       s => typeof s[key] === "number" && s[key] >= 3
     ).length;
 
@@ -120,7 +129,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
   res.json({
     programme,
-    graduates: studentFinalPLOs.length,
+    graduates: finalStudentPLOs.length,
     plo
   });
 });
