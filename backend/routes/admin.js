@@ -108,40 +108,28 @@ router.get(
   }
 );
 
-/* =========================================================
-   GET /api/admin/programmes
-   ✅ GROUPED BY LEVEL (PhD / Master / Medical)
-========================================================= */
+/* =========================================
+   GET ALL PROGRAMMES (NO GROUPING)
+========================================= */
 router.get(
   "/programmes",
   authMiddleware("admin"),
   async (req, res) => {
     try {
-      const rows = await readMasterTracking(process.env.SHEET_ID);
+      const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-      /*
-        Expected columns:
-        - Programme
-        - Programme Level (PhD / Master / Medical)
-      */
+      const programmes = [
+        ...new Set(
+          rows
+            .map(r => (r["Programme"] || "").trim())
+            .filter(Boolean)
+        ),
+      ].sort();
 
-      const grouped = {};
+      res.json({ programmes });
 
-      rows.forEach(r => {
-        const programme = r["Programme"];
-        const level = r["Programme Level"];
-
-        if (!programme || !level) return;
-
-        if (!grouped[level]) grouped[level] = [];
-        if (!grouped[level].includes(programme)) {
-          grouped[level].push(programme);
-        }
-      });
-
-      res.json({ programmes: grouped });
     } catch (err) {
-      console.error("Programme grouping error:", err);
+      console.error("PROGRAMME LIST ERROR:", err);
       res.status(500).json({ error: "Failed to load programmes" });
     }
   }
