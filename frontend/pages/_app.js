@@ -19,7 +19,6 @@ export default function App({ Component, pageProps }) {
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
 
-    // ❌ No token → redirect
     if (!token) {
       router.replace(
         router.pathname.startsWith("/admin")
@@ -29,14 +28,9 @@ export default function App({ Component, pageProps }) {
       return;
     }
 
-    // ❌ Admin page but not admin
     if (router.pathname.startsWith("/admin") && role !== "admin") {
       router.replace("/admin/login");
-      return;
     }
-
-    // ✅ DO NOTHING ELSE
-    // ❌ NO /auth/verify here
   }, [router.pathname]);
 
   return (
