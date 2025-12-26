@@ -30,7 +30,7 @@ export default function AdminLogin() {
       localStorage.setItem("ppbms_token", json.token);
       localStorage.setItem("ppbms_role", "admin");
 
-      router.push("/admin/index");
+      router.push("/admin");
     } catch (err) {
       console.error(err);
       setError("Unable to connect to server");
