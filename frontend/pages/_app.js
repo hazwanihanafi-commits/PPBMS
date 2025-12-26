@@ -14,11 +14,18 @@ export default function App({ Component, pageProps }) {
       "/admin/login",
     ];
 
-    if (publicPages.includes(router.pathname)) return;
+    // ✅ allow public pages & admin root
+    if (
+      publicPages.includes(router.pathname) ||
+      router.pathname === "/admin"
+    ) {
+      return;
+    }
 
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
 
+    // ❌ no token → redirect
     if (!token) {
       router.replace(
         router.pathname.startsWith("/admin")
@@ -28,6 +35,7 @@ export default function App({ Component, pageProps }) {
       return;
     }
 
+    // ❌ wrong role → redirect
     if (router.pathname.startsWith("/admin") && role !== "admin") {
       router.replace("/admin/login");
     }
