@@ -6,112 +6,85 @@ import { aggregateProgrammeFinalPLO } from "../utils/aggregateProgrammeFinalPLO.
 
 const router = express.Router();
 
-/* ======================================================
-   ADMIN AUTH MIDDLEWARE
-====================================================== */
+/* =========================
+   ADMIN AUTH
+========================= */
 function adminAuth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "NO_TOKEN" });
+  if (!token) return res.status(401).json({ error: "No token" });
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
     if (user.role !== "admin") {
-      return res.status(403).json({ error: "FORBIDDEN" });
+      return res.status(403).json({ error: "Forbidden" });
     }
     req.user = user;
     next();
-  } catch (err) {
-    return res.status(401).json({ error: "INVALID_TOKEN" });
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-/* ======================================================
-   GET PROGRAMME LIST (FOR DROPDOWN)
-====================================================== */
+/* =================================================
+   GET PROGRAMMES (ADMIN DROPDOWN)
+================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
-  try {
-    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+  const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const programmes = [
-      ...new Set(
-        rows
-          .map(r => String(r["Programme"] || "").trim())
-          .filter(Boolean)
-      )
-    ].sort();
+  const programmes = [
+    ...new Set(
+      rows
+        .map(r => String(r.programme || "").trim())
+        .filter(Boolean)
+    ),
+  ].sort();
 
-    res.json({ programmes });
-  } catch (err) {
-    console.error("PROGRAMME LIST ERROR:", err);
-    res.status(500).json({ error: "FAILED_TO_LOAD_PROGRAMMES" });
-  }
+  res.json({ programmes });
 });
 
-/* ======================================================
-   PROGRAMME FINAL PLO (CQI – 70% BENCHMARK)
-====================================================== */
-router.get("/programme-plo", adminAuth, async (req, res) => {
-  try {
-    const programme = (req.query.programme || "").trim();
-    if (!programme) {
-      return res.status(400).json({ error: "PROGRAMME_REQUIRED" });
-    }
-
-    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-    /* ----------------------------------------------
-       1️⃣ FILTER: PROGRAMME + GRADUATED STUDENTS
-    ---------------------------------------------- */
-    const programmeRows = rows.filter(r =>
-      String(r["Programme"] || "").trim() === programme &&
-      String(r["Status"] || "").toLowerCase() === "graduated"
-    );
-
-    /* ----------------------------------------------
-       2️⃣ GROUP ROWS BY STUDENT EMAIL
-    ---------------------------------------------- */
-    const rowsByStudent = {};
-    programmeRows.forEach(r => {
-      const email = r["Student's Email"];
-      if (!email) return;
-
-      if (!rowsByStudent[email]) {
-        rowsByStudent[email] = [];
-      }
-      rowsByStudent[email].push(r);
-    });
-
-    /* ----------------------------------------------
-       3️⃣ COMPUTE FINAL PLO PER STUDENT
-           (REUSE SUPERVISOR LOGIC)
-    ---------------------------------------------- */
-    const studentFinalPLOList = Object.entries(rowsByStudent).map(
-      ([email, studentRows]) => ({
-        studentEmail: email,
-        finalPLO: computeFinalStudentPLO(studentRows),
-      })
-    );
-
-    /* ----------------------------------------------
-       4️⃣ AGGREGATE TO PROGRAMME LEVEL
-           (70% BENCHMARK)
-    ---------------------------------------------- */
-    const programmeFinalPLO =
-      aggregateProgrammeFinalPLO(studentFinalPLOList);
-
-    /* ----------------------------------------------
-       5️⃣ RESPONSE
-    ---------------------------------------------- */
-    res.json({
-      programme,
-      totalGraduatedStudents: studentFinalPLOList.length,
-      finalPLO: programmeFinalPLO,
-    });
-
-  } catch (err) {
-    console.error("PROGRAMME CQI ERROR:", err);
-    res.status(500).json({ error: "PROGRAMME_CQI_FAILED" });
+/* =================================================
+   PROGRAMME FINAL CQI (70% BENCHMARK)
+================================================= */
+router.get("/programme-cqi", adminAuth, async (req, res) => {
+  const programme = (req.query.programme || "").trim();
+  if (!programme) {
+    return res.status(400).json({ error: "Programme required" });
   }
+
+  const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+  // 1️⃣ Filter by programme + graduated
+  const programmeRows = rows.filter(
+    r =>
+      r.programme === programme &&
+      String(r.status).toLowerCase() === "graduated"
+  );
+
+  // 2️⃣ Group rows by student email
+  const byStudent = {};
+  programmeRows.forEach(r => {
+    if (!byStudent[r.student_email]) {
+      byStudent[r.student_email] = [];
+    }
+    byStudent[r.student_email].push(r);
+  });
+
+  // 3️⃣ Compute FINAL PLO per student
+  const studentFinalPLO = Object.entries(byStudent).map(
+    ([email, studentRows]) => ({
+      email,
+      finalPLO: computeFinalStudentPLO(studentRows),
+    })
+  );
+
+  // 4️⃣ Aggregate programme CQI (70% rule)
+  const programmeCQI = aggregateProgrammeFinalPLO(studentFinalPLO);
+
+  res.json({
+    programme,
+    totalGraduatedStudents: studentFinalPLO.length,
+    plo: programmeCQI,
+  });
 });
 
 export default router;
