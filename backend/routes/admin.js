@@ -14,7 +14,9 @@ function adminAuth(req, res, next) {
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+    if (user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     req.user = user;
     next();
   } catch {
@@ -23,7 +25,7 @@ function adminAuth(req, res, next) {
 }
 
 /* =================================================
-   GET PROGRAMMES (WORKING)
+   GET PROGRAMMES (ADMIN DROPDOWN)
 ================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
@@ -31,7 +33,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
   const programmes = [
     ...new Set(
       rows
-        .map(r => String(r["Programme"] || "").trim())
+        .map(r => String(r.programme || "").trim())
         .filter(Boolean)
     ),
   ].sort();
@@ -40,9 +42,9 @@ router.get("/programmes", adminAuth, async (req, res) => {
 });
 
 /* =================================================
-   PROGRAMME CQI (FINAL, CORRECT)
+   PROGRAMME CQI (MATCHES FRONTEND programme-plo)
 ================================================= */
-router.get("/programme-cqi", adminAuth, async (req, res) => {
+router.get("/programme-plo", adminAuth, async (req, res) => {
   const programme = String(req.query.programme || "").trim();
   if (!programme) {
     return res.status(400).json({ error: "Programme required" });
@@ -52,52 +54,46 @@ router.get("/programme-cqi", adminAuth, async (req, res) => {
 
   /* 1️⃣ FILTER PROGRAMME */
   const programmeRows = rows.filter(
-    r => String(r["Programme"] || "").trim() === programme
+    r => String(r.programme || "").trim() === programme
   );
 
   /* 2️⃣ GROUP BY STUDENT */
   const byStudent = {};
   programmeRows.forEach(r => {
-    const email = String(r["Student's Email"] || "").toLowerCase().trim();
+    const email = String(r.student_email || "").toLowerCase().trim();
     if (!email) return;
     if (!byStudent[email]) byStudent[email] = [];
     byStudent[email].push(r);
   });
 
-  /* 3️⃣ FINAL PLO PER STUDENT */
-  const finalStudents = Object.entries(byStudent)
-    .map(([email, records]) => {
-      const finalPLO = computeFinalStudentPLO(records);
-      const status = String(records[0]["Status"] || "").toLowerCase();
-      return { email, status, finalPLO };
+  /* 3️⃣ FINAL PLO PER GRADUATED STUDENT */
+  const graduates = Object.values(byStudent)
+    .map(records => {
+      const graduated = records.some(
+        r => String(r.status || "").toLowerCase() === "graduated"
+      );
+      if (!graduated) return null;
+      return computeFinalStudentPLO(records);
     })
-    .filter(s => s.status === "graduated"); // programme CQI = graduates only
+    .filter(Boolean);
 
-  /* 4️⃣ AGGREGATE PROGRAMME FINAL PLO */
-  const summary = {};
+  /* 4️⃣ AGGREGATE (70% BENCHMARK) */
+  const plo = {};
   for (let i = 1; i <= 11; i++) {
-    summary[`PLO${i}`] = { achieved: 0, total: finalStudents.length };
-  }
+    const key = `PLO${i}`;
+    const assessed = graduates.length;
+    const achieved = graduates.filter(
+      s => typeof s[key] === "number" && s[key] >= 3
+    ).length;
 
-  finalStudents.forEach(s => {
-    for (let i = 1; i <= 11; i++) {
-      const v = s.finalPLO[`PLO${i}`];
-      if (typeof v === "number" && v >= 3) {
-        summary[`PLO${i}`].achieved++;
-      }
-    }
-  });
+    const percent = assessed ? (achieved / assessed) * 100 : null;
 
-  /* 5️⃣ FORMAT WITH 70% RULE */
-  const result = {};
-  Object.entries(summary).forEach(([plo, d]) => {
-    const percent = d.total ? (d.achieved / d.total) * 100 : null;
-    result[plo] = {
-      achieved: d.achieved,
-      total: d.total,
-      percent: percent ? Number(percent.toFixed(1)) : null,
+    plo[key] = {
+      assessed,
+      achieved,
+      percent: percent !== null ? Number(percent.toFixed(1)) : null,
       status:
-        d.total === 0
+        assessed === 0
           ? "Not Assessed"
           : percent >= 70
           ? "Achieved"
@@ -105,13 +101,32 @@ router.get("/programme-cqi", adminAuth, async (req, res) => {
           ? "Borderline"
           : "CQI Required",
     };
-  });
+  }
 
-  res.json({
-    programme,
-    graduates: finalStudents.length,
-    plo: result,
-  });
+  res.json({ plo });
+});
+
+/* =================================================
+   PROGRAMME STUDENT LIST (ADMIN TABLE)
+================================================= */
+router.get("/programme-students", adminAuth, async (req, res) => {
+  const programme = String(req.query.programme || "").trim();
+  if (!programme) {
+    return res.status(400).json({ error: "Programme required" });
+  }
+
+  const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+  const students = rows
+    .filter(r => String(r.programme || "").trim() === programme)
+    .map(r => ({
+      studentEmail: r.student_email,
+      matric: r.matric,
+      assessmentType: r.assessment_type,
+      status: r.status,
+    }));
+
+  res.json({ students });
 });
 
 export default router;
