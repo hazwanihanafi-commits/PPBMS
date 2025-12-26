@@ -53,36 +53,44 @@ router.get("/programme-cqi", adminAuth, async (req, res) => {
 
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-  // 1️⃣ Filter by programme + graduated
+  // 1️⃣ Filter by programme ONLY
   const programmeRows = rows.filter(
-    r =>
-      r.programme === programme &&
-      String(r.status).toLowerCase() === "graduated"
+    r => String(r.programme).trim() === programme
   );
 
-  // 2️⃣ Group rows by student email
+  // 2️⃣ Group by student
   const byStudent = {};
   programmeRows.forEach(r => {
+    if (!r.student_email) return;
     if (!byStudent[r.student_email]) {
       byStudent[r.student_email] = [];
     }
     byStudent[r.student_email].push(r);
   });
 
-  // 3️⃣ Compute FINAL PLO per student
-  const studentFinalPLO = Object.entries(byStudent).map(
-    ([email, studentRows]) => ({
+  // 3️⃣ Compute final PLO per graduated student
+  const finalStudents = [];
+
+  Object.entries(byStudent).forEach(([email, studentRows]) => {
+    const isGraduated = studentRows.some(
+      r => String(r.status).toLowerCase() === "graduated"
+    );
+
+    if (!isGraduated) return; // 🚨 ONLY HERE we filter
+
+    finalStudents.push({
       email,
       finalPLO: computeFinalStudentPLO(studentRows),
-    })
-  );
+    });
+  });
 
-  // 4️⃣ Aggregate programme CQI (70% rule)
-  const programmeCQI = aggregateProgrammeFinalPLO(studentFinalPLO);
+  // 4️⃣ Aggregate programme CQI (70% benchmark)
+  const programmeCQI = aggregateProgrammeFinalPLO(finalStudents);
 
   res.json({
     programme,
-    totalGraduatedStudents: studentFinalPLO.length,
+    totalGraduatedStudents: finalStudents.length,
+    students: finalStudents,
     plo: programmeCQI,
   });
 });
