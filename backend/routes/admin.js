@@ -30,15 +30,31 @@ router.get("/programmes", adminAuth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    console.log("FIRST ROW KEYS:", Object.keys(rows[0] || {}));
+    if (!rows.length) {
+      return res.json({ programmes: [] });
+    }
 
-    res.json({ ok: true });
+    const programmes = [
+      ...new Set(
+        rows
+          .map(r => {
+            const key = Object.keys(r).find(
+              k => k.trim().toLowerCase() === "programme"
+            );
+            return key ? String(r[key]).trim() : "";
+          })
+          .filter(Boolean)
+      )
+    ].sort();
+
+    console.log("ADMIN PROGRAMMES:", programmes);
+
+    res.json({ programmes });
   } catch (e) {
-    console.error(e);
+    console.error("PROGRAMME LIST ERROR:", e);
     res.status(500).json({ error: e.message });
   }
 });
-
 /* =================================================
    PROGRAMME CQI (ONE ROUTE ONLY)
 ================================================= */
