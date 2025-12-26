@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { API_BASE } from "../utils/api";
-import jwtDecode from "jwt-decode";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,19 +10,13 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔑 AUTO-LOGIN IF TOKEN EXISTS
+  // ✅ Auto-redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
 
     if (token && role) {
-      try {
-        jwtDecode(token); // validate token format
-        router.replace(role === "supervisor" ? "/supervisor" : "/student");
-      } catch {
-        localStorage.removeItem("ppbms_token");
-        localStorage.removeItem("ppbms_role");
-      }
+      router.replace(role === "supervisor" ? "/supervisor" : "/student");
     }
   }, []);
 
@@ -44,7 +37,6 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      // 🔐 First-time login → force password setup
       if (!res.ok && data.error === "PASSWORD_NOT_SET") {
         router.push(`/set-password?email=${email}`);
         return;
@@ -55,12 +47,10 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ Save session (THIS PART WAS ALREADY CORRECT)
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
       localStorage.setItem("ppbms_email", email.toLowerCase().trim());
 
-      // ✅ Redirect by role
       router.push(data.role === "supervisor" ? "/supervisor" : "/student");
 
     } catch (err) {
@@ -74,15 +64,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white p-6">
       <div className="bg-white rounded-2xl shadow p-8 max-w-md w-full">
-
         <h1 className="text-2xl font-bold mb-1">PPBMS Login</h1>
 
         <p className="text-gray-700 font-medium mb-2">
           Unified Access for Students and Supervisors
-        </p>
-
-        <p className="text-gray-600 text-sm mb-6">
-          Secure access to the Postgraduate Progress & Benchmarking System (PPBMS).
         </p>
 
         <form onSubmit={handleLogin} className="space-y-4">
