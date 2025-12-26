@@ -16,18 +16,19 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [programmes, setProgrammes] = useState([]);
-  const [programme, setProgramme] = useState(null);
+  // ✅ Programme dropdown
+  const [programmeGroups, setProgrammeGroups] = useState({});
+  const [programme, setProgramme] = useState("");
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
-     LOAD PROGRAMMES (ONCE)
+     LOAD PROGRAMMES (GROUPED)
   ========================= */
   useEffect(() => {
-    fetchProgrammes();
+    loadProgrammes();
   }, []);
 
-  async function fetchProgrammes() {
+  async function loadProgrammes() {
     try {
       const res = await fetch(`${API_BASE}/api/admin/programmes`, {
         headers: {
@@ -36,10 +37,15 @@ export default function AdminDashboard() {
       });
 
       const data = await res.json();
-      setProgrammes(data.programmes || []);
-      setProgramme(data.programmes?.[0] || null);
+      setProgrammeGroups(data.programmes || {});
+
+      // ✅ Auto-select first programme
+      const firstLevel = Object.keys(data.programmes || {})[0];
+      const firstProgramme = data.programmes?.[firstLevel]?.[0];
+      if (firstProgramme) setProgramme(firstProgramme);
+
     } catch (e) {
-      console.error("Failed to load programmes", e);
+      console.error("Programme list error:", e);
     }
   }
 
@@ -102,7 +108,7 @@ export default function AdminDashboard() {
     const s = search.toLowerCase();
     setFiltered(
       students.filter(
-        (st) =>
+        st =>
           st.name?.toLowerCase().includes(s) ||
           st.email?.toLowerCase().includes(s)
       )
@@ -113,35 +119,19 @@ export default function AdminDashboard() {
      TRANSFORM CQI DATA
   ========================= */
   const ploList = programmePLO
-    ? Object.entries(programmePLO).map(([plo, d]) => {
-        const percent =
-          typeof d.percent === "number"
-            ? d.percent
-            : typeof d.attainmentPercent === "number"
-            ? d.attainmentPercent
-            : d.assessed
-            ? Math.round((d.achieved / d.assessed) * 100)
-            : 0;
-
-        return {
-          plo,
-          achieved: d.achieved ?? 0,
-          assessed: d.assessed ?? 0,
-          percent,
-          status: d.status || (percent >= 70 ? "Achieved" : "CQI Required"),
-          actions: [
-            "Strengthen supervisory intervention",
-            "Reinforce rubric alignment",
-            "Monitor progress in next academic cycle",
-          ],
-        };
-      })
+    ? Object.entries(programmePLO).map(([plo, d]) => ({
+        plo,
+        achieved: d.achieved,
+        assessed: d.assessed,
+        percent: d.percent,
+        status: d.status,
+      }))
     : [];
 
   const summary = {
-    red: ploList.filter(p => p.status === "CQI Required").length,
-    yellow: ploList.filter(p => p.status === "Borderline").length,
-    green: ploList.filter(p => p.status === "Achieved").length,
+    red: ploList.filter(p => p.status === "CQI Required"),
+    yellow: ploList.filter(p => p.status === "Borderline"),
+    green: ploList.filter(p => p.status === "Achieved"),
     risk:
       ploList.some(p => p.status === "CQI Required")
         ? "HIGH"
@@ -155,29 +145,35 @@ export default function AdminDashboard() {
   ========================= */
   return (
     <div className="min-h-screen bg-purple-50 p-6">
+
       <h1 className="text-3xl font-extrabold text-purple-900 mb-6">
         Admin Dashboard – Programme CQI & Student Monitoring
       </h1>
 
-      {/* ================= PROGRAMME SELECTOR ================= */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-purple-900">
-          📊 Programme-level PLO Attainment (CQI)
-        </h2>
+      {/* ================= PROGRAMME DROPDOWN ================= */}
+      <div className="bg-white p-4 rounded-xl shadow mb-6">
+        <label className="text-sm font-semibold text-gray-700 block mb-2">
+          Select Programme
+        </label>
 
         <select
-          value={programme || ""}
+          value={programme}
           onChange={(e) => setProgramme(e.target.value)}
-          className="border rounded-lg px-3 py-1 text-sm bg-white"
+          className="w-full border rounded-lg px-3 py-2"
         >
-          {programmes.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
+          {Object.entries(programmeGroups).map(([level, programmes]) => (
+            <optgroup key={level} label={level}>
+              {programmes.map(p => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
 
+      {/* ================= PROGRAMME CQI ================= */}
       {programmePLO && (
         <>
           <ProgrammeCQISummary summary={summary} />
@@ -189,7 +185,7 @@ export default function AdminDashboard() {
       <input
         type="text"
         placeholder="Search student…"
-        className="w-full my-6 p-3 border rounded-xl bg-white"
+        className="w-full mb-6 p-3 border rounded-xl bg-white"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -198,7 +194,7 @@ export default function AdminDashboard() {
 
       {/* ================= STUDENT CARDS ================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filtered.map((st) => (
+        {filtered.map(st => (
           <div key={st.email} className="bg-white p-6 rounded-2xl shadow">
             <h2 className="font-bold">{st.name}</h2>
             <p className="text-sm">{st.email}</p>
