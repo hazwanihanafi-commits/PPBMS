@@ -16,13 +16,13 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ Programme dropdown
-  const [programmeGroups, setProgrammeGroups] = useState({});
+  // ✅ SIMPLE programme list
+  const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
   const [programmePLO, setProgrammePLO] = useState(null);
 
   /* =========================
-     LOAD PROGRAMMES (GROUPED)
+     LOAD PROGRAMMES
   ========================= */
   useEffect(() => {
     loadProgrammes();
@@ -37,13 +37,14 @@ export default function AdminDashboard() {
       });
 
       const data = await res.json();
-      setProgrammeGroups(data.programmes || {});
+      const list = data.programmes || [];
 
-      // ✅ Auto-select first programme
-      const firstLevel = Object.keys(data.programmes || {})[0];
-      const firstProgramme = data.programmes?.[firstLevel]?.[0];
-      if (firstProgramme) setProgramme(firstProgramme);
+      setProgrammes(list);
 
+      // auto-select first programme
+      if (list.length > 0) {
+        setProgramme(list[0]);
+      }
     } catch (e) {
       console.error("Programme list error:", e);
     }
@@ -161,14 +162,10 @@ export default function AdminDashboard() {
           onChange={(e) => setProgramme(e.target.value)}
           className="w-full border rounded-lg px-3 py-2"
         >
-          {Object.entries(programmeGroups).map(([level, programmes]) => (
-            <optgroup key={level} label={level}>
-              {programmes.map(p => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </optgroup>
+          {programmes.map(p => (
+            <option key={p} value={p}>
+              {p}
+            </option>
           ))}
         </select>
       </div>
