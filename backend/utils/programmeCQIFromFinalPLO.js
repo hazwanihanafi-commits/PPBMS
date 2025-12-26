@@ -87,27 +87,33 @@ export async function computeProgrammeCQI(programme, sheetId) {
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const achieved = finalPLOPerStudent.filter(
-      s => s[key]?.status === "Achieved"
-    ).length;
+    const assessedStudents = finalPLOPerStudent.filter(
+  s => s[key] && s[key].average !== null
+);
 
-    const percent = totalGraduates
-      ? (achieved / totalGraduates) * 100
-      : null;
+const achieved = assessedStudents.filter(
+  s => s[key].status === "Achieved"
+).length;
 
-    plo[key] = {
-      achieved,
-      assessed: totalGraduates,
-      percent: percent !== null ? Number(percent.toFixed(1)) : null,
-      status:
-        totalGraduates === 0
-          ? "Not Assessed"
-          : percent >= 70
-          ? "Achieved"
-          : percent >= 50
-          ? "Borderline"
-          : "CQI Required"
-    };
+const assessed = assessedStudents.length;
+
+const percent = assessed
+  ? (achieved / assessed) * 100
+  : null;
+
+   plo[key] = {
+  achieved,
+  assessed,
+  percent: percent !== null ? Number(percent.toFixed(1)) : null,
+  status:
+    assessed === 0
+      ? "Not Assessed"
+      : percent >= 70
+      ? "Achieved"
+      : percent >= 50
+      ? "Borderline"
+      : "CQI Required"
+};
   }
 
   return {
