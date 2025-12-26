@@ -80,4 +80,63 @@ router.post("/run-cqi-detection", async (req, res) => {
   }
 });
 
+router.post("/trigger-cqi-row", async (req, res) => {
+  try {
+    const { matric, assessmentType, rowIndex } = req.body;
+
+    if (!matric || !assessmentType || !rowIndex) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    const row = rows[rowIndex - 2]; // sheet row → array index
+    if (!row) return res.json({ skipped: true });
+
+    // Detect CQI ONLY for this row
+    const issues = extractCQIIssues([{ ...row, __rowIndex: rowIndex }]);
+
+    if (issues.length === 0) {
+      return res.json({ skipped: true });
+    }
+
+    // Prevent duplicate email
+    if (row.cqiemailsent === "YES") {
+      return res.json({ skipped: true });
+    }
+
+    const students = await readMasterTracking(process.env.SHEET_ID);
+    const student = students.find(
+      s => String(s["Matric"]).trim() === String(matric).trim()
+    );
+
+    if (!student) return res.json({ skipped: true });
+
+    await sendCQIAlert({
+      to: student["Main Supervisor's Email"],
+      studentName: student["Student Name"],
+      matric,
+      assessmentType,
+      cqiIssues: issues
+    });
+
+    await updateASSESSMENT_PLO_Cell({
+      rowIndex,
+      column: "CQI_EMAIL_SENT",
+      value: "YES"
+    });
+
+    await updateASSESSMENT_PLO_Cell({
+      rowIndex,
+      column: "CQI_DATE",
+      value: new Date().toISOString().slice(0, 10)
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error("Row CQI trigger error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default router;
