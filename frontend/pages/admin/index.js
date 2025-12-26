@@ -21,34 +21,25 @@ export default function AdminDashboard() {
   const [programme, setProgramme] = useState("");
   const [programmePLO, setProgrammePLO] = useState(null);
 
-  /* =========================
-     LOAD PROGRAMMES
-  ========================= */
-  useEffect(() => {
-    loadProgrammes();
-  }, []);
-
+useEffect(() => {
   async function loadProgrammes() {
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/programmes`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
-      });
+    const res = await fetch(`${API_BASE}/api/admin/programmes`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+      },
+    });
 
-      const data = await res.json();
-      const list = data.programmes || [];
+    const data = await res.json();
+    setProgrammes(data.programmes || []);
 
-      setProgrammes(list);
-
-      // auto-select first programme
-      if (list.length > 0) {
-        setProgramme(list[0]);
-      }
-    } catch (e) {
-      console.error("Programme list error:", e);
+    // auto-select first programme
+    if (data.programmes?.length > 0) {
+      setProgramme(data.programmes[0]);
     }
   }
+
+  loadProgrammes();
+}, []);
 
   /* =========================
      LOAD PROGRAMME CQI
