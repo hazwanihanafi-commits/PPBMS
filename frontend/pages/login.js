@@ -10,15 +10,21 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Auto-redirect if already logged in
+  // ✅ Auto-redirect ONLY when router is ready
   useEffect(() => {
+    if (!router.isReady) return;
+
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
 
-    if (token && role) {
-      router.replace(role === "supervisor" ? "/supervisor" : "/student");
+    if (!token || !role) return;
+
+    if (role === "supervisor") {
+      router.replace("/supervisor");
+    } else if (role === "student") {
+      router.replace("/student");
     }
-  }, []);
+  }, [router.isReady]);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -52,7 +58,6 @@ export default function LoginPage() {
       localStorage.setItem("ppbms_email", email.toLowerCase().trim());
 
       router.push(data.role === "supervisor" ? "/supervisor" : "/student");
-
     } catch (err) {
       console.error(err);
       setError("Unable to connect to server. Please try again.");
