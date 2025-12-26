@@ -32,6 +32,7 @@ router.get("/programmes", auth, async (req, res) => {
 
     console.log("ASSESSMENT_PLO ROWS:", rows.length);
     console.log("FIRST ROW:", rows[0]);
+    console.log("ROW KEYS:", Object.keys(rows[0]));
 
     const programmes = [
       ...new Set(
