@@ -1,53 +1,47 @@
-/**
- * Programme-level FINAL PLO aggregation
- * Benchmark: ≥70% of graduated students achieved
- */
-export function aggregateProgrammeFinalPLO(studentFinalPLOList) {
-  /**
-   * studentFinalPLOList = [
-   *   { studentEmail, finalPLO },
-   *   { studentEmail, finalPLO },
-   *   ...
-   * ]
-   */
+// backend/utils/aggregateProgrammeFinalPLO.js
 
-  const programmeStats = {};
+export function aggregateProgrammeFinalPLO(studentFinalPLOList = []) {
+  const ploStats = {};
 
-  // initialise PLO1–PLO11
+  // initialise
   for (let i = 1; i <= 11; i++) {
-    programmeStats[`PLO${i}`] = {
-      achievedStudents: 0,
-      totalStudents: studentFinalPLOList.length,
-      percent: null,
-      status: "Not Assessed"
+    ploStats[`PLO${i}`] = {
+      achieved: 0,
+      total: 0,
     };
   }
 
-  // count achievements
+  // count achievement per student
   studentFinalPLOList.forEach(({ finalPLO }) => {
-    if (!finalPLO) return;
+    Object.entries(finalPLO || {}).forEach(([plo, d]) => {
+      if (d.status === "Not Assessed") return;
 
-    Object.entries(finalPLO).forEach(([plo, d]) => {
+      ploStats[plo].total += 1;
       if (d.status === "Achieved") {
-        programmeStats[plo].achievedStudents += 1;
+        ploStats[plo].achieved += 1;
       }
     });
   });
 
-  // compute percentage & CQI status
-  Object.entries(programmeStats).forEach(([plo, d]) => {
-    if (d.totalStudents === 0) return;
+  // build CQI result
+  const result = {};
 
-    const percent = (d.achievedStudents / d.totalStudents) * 100;
-    d.percent = Number(percent.toFixed(1));
+  Object.entries(ploStats).forEach(([plo, d]) => {
+    const percent =
+      d.total > 0 ? (d.achieved / d.total) * 100 : null;
 
-    d.status =
-      percent >= 70
-        ? "Achieved"
-        : percent >= 50
-        ? "Borderline"
-        : "CQI Required";
+    result[plo] = {
+      achievedStudents: d.achieved,
+      totalStudents: d.total,
+      percent: percent ? Number(percent.toFixed(1)) : null,
+      status:
+        d.total === 0
+          ? "Not Assessed"
+          : percent >= 70
+          ? "Achieved"
+          : "CQI Required",
+    };
   });
 
-  return programmeStats;
+  return result;
 }
