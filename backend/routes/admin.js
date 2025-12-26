@@ -6,7 +6,7 @@ import {
   readMasterTracking
 } from "../services/googleSheets.js";
 
-import { computeProgrammeCQI } from "../utils/programmeCQIFromFinalPLO.js";
+import { computeProgrammeCQI } from "../utils/computeProgrammeCQI.js";
 
 const router = express.Router();
 
@@ -56,6 +56,9 @@ router.get("/programmes", adminAuth, async (req, res) => {
 /* =================================================
    PROGRAMME CQI (FINAL, MQA-COMPLIANT)
 ================================================= */
+/* =================================================
+   PROGRAMME CQI (FINAL – CORRECT)
+================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   try {
     const programme = String(req.query.programme || "").trim();
@@ -63,6 +66,7 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
       return res.status(400).json({ error: "Programme required" });
     }
 
+    // 🔑 SINGLE SOURCE OF TRUTH
     const data = await computeProgrammeCQI(
       programme,
       process.env.SHEET_ID
@@ -74,7 +78,6 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
 /* =================================================
    PROGRAMME STUDENTS (ADMIN)
    → SAME SOURCE AS SUPERVISOR DASHBOARD
