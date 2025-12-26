@@ -6,12 +6,7 @@ import {
 import { aggregateFinalPLO } from "./finalPLOAggregate.js";
 
 /**
- * Programme-level CQI (FINAL, CORRECT)
- * Rule:
- * - Graduated status → MasterTracking
- * - PLO scores → ASSESSMENT_PLO
- * - Achievement ≥ 3
- * - Programme threshold = 70%
+ * Programme-level CQI (FINAL, MQA-COMPLIANT)
  */
 export async function computeProgrammeCQI(programme, sheetId) {
 
@@ -22,18 +17,21 @@ export async function computeProgrammeCQI(programme, sheetId) {
   const masterRows = await readMasterTracking(sheetId);
 
   /* ===============================
-     2️⃣ GET GRADUATED STUDENTS (MASTER)
+     2️⃣ GRADUATED STUDENTS (MASTER)
   =============================== */
   const graduatedEmails = new Set(
     masterRows
-      .filter(r => String(r["Status"] || "").trim() === "Graduated")
-      .map(r =>
-        (r["Student's Email"] || "").toLowerCase().trim()
+      .filter(
+        r => String(r.status || "").toLowerCase().trim() === "graduated"
       )
+      .map(
+        r => (r.student_s_email || "").toLowerCase().trim()
+      )
+      .filter(Boolean)
   );
 
   /* ===============================
-     3️⃣ FILTER ASSESSMENT DATA BY PROGRAMME
+     3️⃣ FILTER BY PROGRAMME
   =============================== */
   const programmeRows = assessmentRows.filter(
     r => String(r.programme || "").trim() === programme
@@ -66,7 +64,7 @@ export async function computeProgrammeCQI(programme, sheetId) {
 
       for (let i = 1; i <= 11; i++) {
         const key = `PLO${i}`;
-        const v = Number(r[key]);
+        const v = Number(r[`plo${i}`]);
         if (!isNaN(v)) {
           cqiByAssessment[type][key] = { average: v };
         }
@@ -81,39 +79,39 @@ export async function computeProgrammeCQI(programme, sheetId) {
   /* ===============================
      6️⃣ PROGRAMME CQI (70% RULE)
   =============================== */
-  const totalGraduates = finalPLOPerStudent.length;
   const plo = {};
+  const totalGraduates = finalPLOPerStudent.length;
 
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
     const assessedStudents = finalPLOPerStudent.filter(
-  s => s[key] && s[key].average !== null
-);
+      s => s[key] && s[key].average !== null
+    );
 
-const achieved = assessedStudents.filter(
-  s => s[key].status === "Achieved"
-).length;
+    const achieved = assessedStudents.filter(
+      s => s[key].status === "Achieved"
+    ).length;
 
-const assessed = assessedStudents.length;
+    const assessed = assessedStudents.length;
 
-const percent = assessed
-  ? (achieved / assessed) * 100
-  : null;
+    const percent = assessed
+      ? (achieved / assessed) * 100
+      : null;
 
-   plo[key] = {
-  achieved,
-  assessed,
-  percent: percent !== null ? Number(percent.toFixed(1)) : null,
-  status:
-    assessed === 0
-      ? "Not Assessed"
-      : percent >= 70
-      ? "Achieved"
-      : percent >= 50
-      ? "Borderline"
-      : "CQI Required"
-};
+    plo[key] = {
+      achieved,
+      assessed,
+      percent: percent !== null ? Number(percent.toFixed(1)) : null,
+      status:
+        assessed === 0
+          ? "Not Assessed"
+          : percent >= 70
+          ? "Achieved"
+          : percent >= 50
+          ? "Borderline"
+          : "CQI Required"
+    };
   }
 
   return {
