@@ -75,49 +75,43 @@ router.post("/login", async (req, res) => {
 router.post("/set-password", async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
-      return res.status(400).json({ error: "Missing data" });
+      return res.status(400).json({ error: "Missing email or password" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const users = await readSheet(
-      process.env.SHEET_ID,
-      "AUTH_USERS!A1:Z"
+    // 1️⃣ READ AUTH_USERS
+    const users = await readAuthUsers(process.env.SHEET_ID);
+
+    const user = users.find(
+      u => (u.Email || "").toLowerCase().trim() === normalizedEmail
     );
 
-    const rowIndex =
-      users.findIndex(
-        u => (u.Email || "").toLowerCase().trim() === normalizedEmail
-      ) + 2; // +2 because header + 1-based index
-
-    if (rowIndex < 2) {
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
+    if (user.PasswordHash) {
+      return res.status(400).json({ error: "Password already set" });
+    }
+
+    // 2️⃣ HASH PASSWORD
     const hash = await bcrypt.hash(password, 10);
 
-    // 🔹 UPDATE PASSWORD HASH
-    await writeSheetCell(
-      process.env.SHEET_ID,
-      "PasswordHash",
-      rowIndex,
+    // 3️⃣ WRITE TO AUTH_USERS  ✅ (THIS WAS THE BUG)
+    await updateAuthUserPassword({
+      sheetId: process.env.SHEET_ID,
+      email: normalizedEmail,
       hash
-    );
+    });
 
-    // 🔹 MARK PASSWORD SET
-    await writeSheetCell(
-      process.env.SHEET_ID,
-      "PasswordSet",
-      rowIndex,
-      "YES"
-    );
-
-    res.json({ success: true });
+    return res.json({ success: true });
 
   } catch (err) {
     console.error("SET PASSWORD ERROR:", err);
-    res.status(500).json({ error: "Failed to set password" });
+    return res.status(500).json({ error: "Failed to set password" });
   }
 });
 
