@@ -165,14 +165,19 @@ export default function AdminDashboard() {
           <tbody>
             {students.map((s, i) => (
               <tr key={i} className="border-t">
-                <td className="p-2 text-purple-700 font-medium">
-                  <a
-                    href={`/admin/student/${encodeURIComponent(s.email)}`}
-                    className="hover:underline"
-                  >
-                    {s.email}
-                  </a>
-                </td>
+                <td className="p-2 font-medium">
+  {s.email ? (
+    <a
+      href={`/admin/student/${encodeURIComponent(s.email)}`}
+      className="text-purple-700 hover:underline"
+    >
+      {s.email}
+    </a>
+  ) : (
+    <span className="text-gray-400 italic">No email</span>
+  )}
+</td>
+
 
                 <td className="p-2">{s.matric}</td>
 
