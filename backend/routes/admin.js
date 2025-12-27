@@ -1,10 +1,16 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import { readASSESSMENT_PLO, readMasterTracking } from "../services/googleSheets.js";
+
+import {
+  readFINALPROGRAMPLO,
+  readMasterTracking
+} from "../services/googleSheets.js";
+
 import { computeProgrammeCQI } from "../utils/computeProgrammeCQI.js";
 
 const router = express.Router();
 
+/* ================= AUTH ================= */
 
 function adminAuth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
@@ -12,21 +18,41 @@ function adminAuth(req, res, next) {
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+    if (user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     req.user = user;
     next();
   } catch {
-    res.status(401).json({ error: "Invalid token" });
+    return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-
-/* Programmes */
+/* ================= PROGRAMME LIST ================= */
+/**
+ * SOURCE OF TRUTH: FINALPROGRAMPLO
+ * (Graduated cohorts only)
+ */
 router.get("/programmes", adminAuth, async (req, res) => {
-  const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-  const programmes = [...new Set(rows.map(r => r.programme).filter(Boolean))];
-  res.json({ programmes });
+  try {
+    const rows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
+
+    const programmes = [
+      ...new Set(
+        rows
+          .map(r => String(r.Programme || "").trim())
+          .filter(Boolean)
+      )
+    ];
+
+    res.json({ programmes });
+  } catch (err) {
+    console.error("❌ Programme list error:", err);
+    res.status(500).json({ error: "Failed to load programmes" });
+  }
 });
+
+/* ================= PROGRAMME CQI ================= */
 
 router.get("/programme-plo", adminAuth, async (req, res) => {
   try {
@@ -50,6 +76,11 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   }
 });
 
+/* ================= PROGRAMME STUDENTS ================= */
+/**
+ * Used for admin dashboard table
+ * Normalised for frontend consumption
+ */
 router.get("/programme-students", adminAuth, async (req, res) => {
   try {
     const { programme } = req.query;
@@ -57,20 +88,23 @@ router.get("/programme-students", adminAuth, async (req, res) => {
       return res.status(400).json({ error: "Programme required" });
     }
 
-    if (!process.env.SHEET_ID) {
-      throw new Error("SHEET_ID is not defined");
-    }
-
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     if (!Array.isArray(rows)) {
-      throw new Error("MasterTracking did not return an array");
+      throw new Error("MasterTracking did not return array");
     }
 
-    const students = rows.filter(r =>
-      String(r["Programme"] || "").trim() ===
-      String(programme).trim()
-    );
+    const students = rows
+      .filter(r =>
+        String(r["Programme"] || "").trim() ===
+        String(programme).trim()
+      )
+      .map(r => ({
+        email: r["Student's Email"] || r["Email"] || "",
+        matric: r["Matric"] || "",
+        status: r["Status"] || "",
+        progress: r["Progress"] || "On Track"
+      }));
 
     res.json({
       count: students.length,
