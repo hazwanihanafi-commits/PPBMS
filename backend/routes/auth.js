@@ -72,6 +72,9 @@ router.post("/login", async (req, res) => {
 /* =====================================================
    SET PASSWORD (RUNS ONCE)
 ===================================================== */
+/* =====================================================
+   SET PASSWORD (AUTH_USERS ONLY)
+===================================================== */
 router.post("/set-password", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -116,3 +119,5 @@ router.post("/set-password", async (req, res) => {
 });
 
 export default router;
+
+   
