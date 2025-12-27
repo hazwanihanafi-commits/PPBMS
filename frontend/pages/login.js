@@ -10,7 +10,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Auto-redirect ONLY when router is ready
+  /* =====================================
+     AUTO REDIRECT IF ALREADY LOGGED IN
+  ===================================== */
   useEffect(() => {
     if (!router.isReady) return;
 
@@ -23,9 +25,14 @@ export default function LoginPage() {
       router.replace("/supervisor");
     } else if (role === "student") {
       router.replace("/student");
+    } else if (role === "admin") {
+      router.replace("/admin");
     }
   }, [router.isReady]);
 
+  /* =====================================
+     LOGIN HANDLER
+  ===================================== */
   async function handleLogin(e) {
     e.preventDefault();
     setError("");
@@ -43,8 +50,9 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      if (!res.ok && data.error === "PASSWORD_NOT_SET") {
-        router.push(`/set-password?email=${email}`);
+      /* 🔐 FIRST LOGIN → SET PASSWORD */
+      if (data.requirePasswordSetup) {
+        router.push(`/set-password?email=${data.email}`);
         return;
       }
 
@@ -53,11 +61,22 @@ export default function LoginPage() {
         return;
       }
 
+      /* ✅ SAVE SESSION */
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
       localStorage.setItem("ppbms_email", email.toLowerCase().trim());
 
-      router.push(data.role === "supervisor" ? "/supervisor" : "/student");
+      /* ✅ ROLE-BASED REDIRECT */
+      if (data.role === "supervisor") {
+        router.push("/supervisor");
+      } else if (data.role === "student") {
+        router.push("/student");
+      } else if (data.role === "admin") {
+        router.push("/admin");
+      } else {
+        setError("Unknown user role");
+      }
+
     } catch (err) {
       console.error(err);
       setError("Unable to connect to server. Please try again.");
