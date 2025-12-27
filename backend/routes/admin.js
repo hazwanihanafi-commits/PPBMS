@@ -18,9 +18,7 @@ function adminAuth(req, res, next) {
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.role !== "admin") {
-      return res.status(403).json({ error: "Forbidden" });
-    }
+    if (user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
     req.user = user;
     next();
   } catch {
@@ -29,8 +27,7 @@ function adminAuth(req, res, next) {
 }
 
 /* =========================================================
-   PROGRAMME LIST (ADMIN DASHBOARD)
-   SOURCE: FINALPROGRAMPLO
+   PROGRAMME LIST
 ========================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   try {
@@ -38,16 +35,13 @@ router.get("/programmes", adminAuth, async (req, res) => {
 
     const programmes = [
       ...new Set(
-        rows
-          .map(r => String(r.Programme || "").trim())
-          .filter(Boolean)
+        rows.map(r => String(r.Programme || "").trim()).filter(Boolean)
       ),
     ];
 
     res.json({ programmes });
   } catch (err) {
-    console.error("❌ Programme list error:", err);
-    res.status(500).json({ error: "Failed to load programmes" });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -55,45 +49,33 @@ router.get("/programmes", adminAuth, async (req, res) => {
    PROGRAMME CQI
 ========================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
+  const { programme } = req.query;
+  if (!programme) return res.status(400).json({ error: "Programme required" });
+
   try {
-    const { programme } = req.query;
-    if (!programme) {
-      return res.status(400).json({ error: "Programme required" });
-    }
-
-    const data = await computeProgrammeCQI(
-      programme,
-      process.env.SHEET_ID
-    );
-
+    const data = await computeProgrammeCQI(programme, process.env.SHEET_ID);
     res.json(data);
   } catch (err) {
-    console.error("❌ Programme CQI error:", err);
-    res.status(500).json({
-      error: "Failed to compute programme CQI",
-      detail: err.message,
-    });
+    res.status(500).json({ error: err.message });
   }
 });
 
-
 /* =========================================================
-   PROGRAMME GRADUATED STUDENTS (ADMIN TAB 1)
+   PROGRAMME GRADUATED STUDENTS (TAB 1)
    SOURCE: MASTERTRACKING
 ========================================================= */
 router.get("/programme-graduates", adminAuth, async (req, res) => {
-  try {
-    const { programme } = req.query;
-    if (!programme) {
-      return res.status(400).json({ error: "Programme required" });
-    }
+  const { programme } = req.query;
+  if (!programme) return res.status(400).json({ error: "Programme required" });
 
+  try {
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const graduates = rows
-      .filter(r =>
-        String(r.Programme || "").trim() === programme.trim() &&
-        String(r.Status || "").trim() === "Graduated"
+    const students = rows
+      .filter(
+        r =>
+          String(r.Programme || "").trim() === programme.trim() &&
+          String(r.Status || "").trim() === "Graduated"
       )
       .map(r => ({
         matric: r.Matric || "",
@@ -102,29 +84,27 @@ router.get("/programme-graduates", adminAuth, async (req, res) => {
         programme: r.Programme || "",
       }));
 
-    res.json({
-      count: graduates.length,
-      students: graduates,
-    });
+    res.json({ count: students.length, students });
   } catch (err) {
-    console.error("❌ Programme graduates error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
+/* =========================================================
+   PROGRAMME ACTIVE STUDENTS (TAB 2)
+========================================================= */
 router.get("/programme-active-students", adminAuth, async (req, res) => {
-  try {
-    const { programme } = req.query;
-    if (!programme) {
-      return res.status(400).json({ error: "Programme required" });
-    }
+  const { programme } = req.query;
+  if (!programme) return res.status(400).json({ error: "Programme required" });
 
+  try {
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const active = rows
-      .filter(r =>
-        String(r.Programme || "").trim() === programme.trim() &&
-        String(r.Status || "").trim() === "Active"
+    const students = rows
+      .filter(
+        r =>
+          String(r.Programme || "").trim() === programme.trim() &&
+          String(r.Status || "").trim() === "Active"
       )
       .map(r => ({
         matric: r.Matric || "",
@@ -132,53 +112,40 @@ router.get("/programme-active-students", adminAuth, async (req, res) => {
         status: "Active",
       }));
 
-    res.json({
-      count: active.length,
-      students: active,
-    });
+    res.json({ count: students.length, students });
   } catch (err) {
-    console.error("❌ Active students error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
 /* =========================================================
-   ADMIN STUDENT VIEW (DETAIL PAGE)
-   SOURCE: ASSESSMENT_PLO + MASTERTRACKING
+   ADMIN STUDENT DETAIL (FULL MIRROR OF SUPERVISOR)
 ========================================================= */
 router.get("/student/:email", adminAuth, async (req, res) => {
   try {
-    const key = decodeURIComponent(req.params.email)
-      .trim()
-      .toLowerCase();
+    const key = decodeURIComponent(req.params.email).trim().toLowerCase();
 
+    /* ---------- ASSESSMENT DATA ---------- */
     const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const matches = assessmentRows.filter(r => {
-      const email =
-        String(
-          r["Student's Email"] ||
-          r["Student Email"] ||
-          r.studentemail ||
-          r.student_email ||
-          ""
-        )
-          .trim()
-          .toLowerCase();
+    const studentRows = assessmentRows.filter(r => {
+      const email = String(
+        r["Student's Email"] ||
+        r["Student Email"] ||
+        r.studentemail ||
+        r.student_email ||
+        ""
+      ).trim().toLowerCase();
 
-      const matric = String(r.matric || "")
-        .trim()
-        .toLowerCase();
-
+      const matric = String(r.matric || "").trim().toLowerCase();
       return email === key || matric === key;
     });
 
-    if (!matches.length) {
+    if (!studentRows.length) {
       return res.status(404).json({ row: null });
     }
 
-    const base = matches[0];
+    const base = studentRows[0];
 
     const student = {
       email:
@@ -186,19 +153,74 @@ router.get("/student/:email", adminAuth, async (req, res) => {
         base["Student Email"] ||
         base.studentemail ||
         "",
-      matric: base.matric || "",
+      student_id: base.matric || "",
       student_name: base.studentname || "",
       programme: base.programme || "",
       status: base.status || "Active",
+
       timeline: [],
       documents: {},
+      cqiByAssessment: {},
+      remarksByAssessment: {},
+      finalPLO: {},
     };
 
-    /* ===== Optional enrichment from MASTERTRACKING ===== */
+    /* ---------- CQI BY ASSESSMENT ---------- */
+    const ploKeys = Array.from({ length: 11 }, (_, i) => `PLO${i + 1}`);
+
+    studentRows.forEach(r => {
+      const type = r.assessment_type;
+      if (!type) return;
+
+      if (!student.cqiByAssessment[type]) {
+        student.cqiByAssessment[type] = {};
+      }
+
+      ploKeys.forEach(p => {
+        const v = Number(r[p]);
+        if (isNaN(v)) return;
+
+        if (!student.cqiByAssessment[type][p]) {
+          student.cqiByAssessment[type][p] = [];
+        }
+        student.cqiByAssessment[type][p].push(v);
+      });
+
+      if (r.Remarks) {
+        student.remarksByAssessment[type] = r.Remarks;
+      }
+    });
+
+    Object.entries(student.cqiByAssessment).forEach(([type, ploData]) => {
+      Object.entries(ploData).forEach(([plo, values]) => {
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        student.cqiByAssessment[type][plo] = {
+          average: Number(avg.toFixed(2)),
+          status: avg >= 3 ? "Achieved" : "CQI Required",
+        };
+      });
+    });
+
+    /* ---------- FINAL PLO ---------- */
+    try {
+      const finalRows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
+      const f = finalRows.find(
+        r => String(r.Matric || "").trim() === student.student_id
+      );
+
+      if (f) {
+        ploKeys.forEach(p => {
+          const v = Number(f[p]);
+          if (!isNaN(v)) student.finalPLO[p] = v;
+        });
+      }
+    } catch {}
+
+    /* ---------- MASTERTRACKING ENRICHMENT ---------- */
     try {
       const master = await readMasterTracking(process.env.SHEET_ID);
       const m = master.find(
-        x => String(x.Matric || "").trim() === student.matric
+        x => String(x.Matric || "").trim() === student.student_id
       );
 
       if (m) {
@@ -206,16 +228,59 @@ router.get("/student/:email", adminAuth, async (req, res) => {
         student.department = m.Department || "";
         student.supervisor = m["Main Supervisor"] || "";
         student.coSupervisors = m["Co-Supervisor"] || "";
+        student.timeline = buildTimelineFromMaster(m);
+        student.documents = extractDocuments(m);
       }
-    } catch {
-      /* enrichment optional */
-    }
+    } catch {}
 
     res.json({ row: student });
+
   } catch (err) {
-    console.error("❌ ADMIN STUDENT VIEW ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+/* ================= HELPERS ================= */
+
+function deriveStatus(expected, actual) {
+  if (actual) return "Completed";
+  if (!expected) return "On Time";
+  return new Date(expected) < new Date() ? "Late" : "On Time";
+}
+
+function buildTimelineFromMaster(m) {
+  return [
+    {
+      activity: "Development Plan & Learning Contract",
+      expected: m["Development Plan & Learning Contract - Expected"],
+      actual: m["Development Plan & Learning Contract - Actual"],
+      status: deriveStatus(
+        m["Development Plan & Learning Contract - Expected"],
+        m["Development Plan & Learning Contract - Actual"]
+      ),
+    },
+    {
+      activity: "Proposal Defense Endorsed",
+      expected: m["Proposal Defense Endorsed - Expected"],
+      actual: m["Proposal Defense Endorsed - Actual"],
+      status: deriveStatus(
+        m["Proposal Defense Endorsed - Expected"],
+        m["Proposal Defense Endorsed - Actual"]
+      ),
+    },
+  ];
+}
+
+function extractDocuments(m) {
+  return {
+    DPLC: m.DPLC,
+    SUPERVISION_LOG: m.SUPERVISION_LOG,
+    APR_Y1: m.APR_Y1,
+    APR_Y2: m.APR_Y2,
+    APR_Y3: m.APR_Y3,
+    ETHICS_APPROVAL: m.ETHICS_APPROVAL,
+    FINAL_THESIS: m.FINAL_THESIS,
+  };
+}
 
 export default router;
