@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API_BASE } from "../../utils/api";
+import { apiGet } from "@/utils/api";
 
 export default function AdminDashboard() {
   const [programmes, setProgrammes] = useState([]);
@@ -9,17 +9,30 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
 
   /* ===============================
-     LOAD PROGRAMMES
+     AUTH GUARD
   =============================== */
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
+    const role = localStorage.getItem("ppbms_role");
 
-    fetch(`${API_BASE}/api/admin/programmes`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(r => r.json())
-      .then(d => setProgrammes(d.programmes || []))
-      .catch(() => setProgrammes([]));
+    if (!token || role !== "admin") {
+      window.location.href = "/login";
+    }
+  }, []);
+
+  /* ===============================
+     LOAD PROGRAMMES
+  =============================== */
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await apiGet("/api/admin/programmes");
+        setProgrammes(data.programmes || []);
+      } catch (e) {
+        console.error("Load programmes error:", e.message);
+        setProgrammes([]);
+      }
+    })();
   }, []);
 
   /* ===============================
@@ -28,25 +41,28 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!programme) return;
 
-    const token = localStorage.getItem("ppbms_token");
     setLoading(true);
 
-    Promise.all([
-      fetch(
-        `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      ).then(r => r.json()),
+    (async () => {
+      try {
+        const ploRes = await apiGet(
+          `/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`
+        );
 
-      fetch(
-        `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(programme)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      ).then(r => r.json())
-    ])
-      .then(([ploRes, studentRes]) => {
+        const studentRes = await apiGet(
+          `/api/admin/programme-students?programme=${encodeURIComponent(programme)}`
+        );
+
         setPloCQI(ploRes.plo || null);
         setStudents(studentRes.students || []);
-      })
-      .finally(() => setLoading(false));
+      } catch (e) {
+        console.error("Admin dashboard load error:", e.message);
+        setPloCQI(null);
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [programme]);
 
   /* ===============================
@@ -63,7 +79,7 @@ export default function AdminDashboard() {
 
     return (
       <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
-        {s.progress || "On Track"}
+        On Track
       </span>
     );
   }
@@ -74,9 +90,7 @@ export default function AdminDashboard() {
         Admin Dashboard
       </h1>
 
-      {/* ===============================
-          PROGRAMME SELECT
-      =============================== */}
+      {/* PROGRAMME SELECT */}
       <select
         className="w-full p-3 border rounded"
         value={programme}
@@ -84,15 +98,11 @@ export default function AdminDashboard() {
       >
         <option value="">Select Programme</option>
         {programmes.map(p => (
-          <option key={p} value={p}>
-            {p}
-          </option>
+          <option key={p} value={p}>{p}</option>
         ))}
       </select>
 
-      {/* ===============================
-          PROGRAMME CQI
-      =============================== */}
+      {/* PROGRAMME CQI */}
       {ploCQI && (
         <div className="bg-white rounded shadow p-4">
           <h2 className="font-semibold mb-1">
@@ -100,7 +110,7 @@ export default function AdminDashboard() {
           </h2>
 
           <p className="text-xs text-gray-500 mb-3">
-            Benchmark: ≥ 70% of total graduated students must achieve each PLO
+            Benchmark: ≥ 70% attainment
           </p>
 
           {Object.entries(ploCQI).map(([k, v]) => (
@@ -136,9 +146,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ===============================
-          STUDENTS TABLE
-      =============================== */}
+      {/* STUDENTS TABLE */}
       <div className="bg-white rounded shadow p-4">
         <h2 className="font-semibold mb-3">
           Students ({students.length})
@@ -169,13 +177,7 @@ export default function AdminDashboard() {
                 <td className="p-2">{s.matric}</td>
 
                 <td className="p-2">
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      s.status === "Graduated"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}
-                  >
+                  <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
                     {s.status}
                   </span>
                 </td>
