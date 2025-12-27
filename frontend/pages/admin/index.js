@@ -159,7 +159,7 @@ export default function AdminDashboard() {
               <tr key={i} className="border-t">
                 <td className="p-2 text-purple-700 font-medium">
                   <a
-                    href={`/supervisor/${encodeURIComponent(s.email)}`}
+                    href={`/admin/student/${encodeURIComponent(s.email)}`}
                     className="hover:underline"
                   >
                     {s.email}
