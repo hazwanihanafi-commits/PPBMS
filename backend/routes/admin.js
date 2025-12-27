@@ -150,4 +150,40 @@ router.get("/student/:email", adminAuth, async (req, res) => {
   }
 });
 
+/* ================= PROGRAMME STUDENTS ================= */
+/**
+ * SOURCE: MASTERTRACKING
+ * PURPOSE: Admin dashboard student table
+ */
+router.get("/programme-students", adminAuth, async (req, res) => {
+  try {
+    const { programme } = req.query;
+
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
+
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const students = rows
+      .filter(r =>
+        String(r["Programme"] || "").trim() === String(programme).trim()
+      )
+      .map(r => ({
+        email: r["Student Email"] || r["Email"] || "",
+        matric: r["Matric"] || "",
+        status: r["Status"] || "Active",
+        progress: "On Track"
+      }));
+
+    res.json({
+      count: students.length,
+      students
+    });
+  } catch (err) {
+    console.error("❌ Programme students error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
