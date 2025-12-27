@@ -18,7 +18,8 @@ export default function AdminDashboard() {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
-      .then(d => setProgrammes(d.programmes || []));
+      .then(d => setProgrammes(d.programmes || []))
+      .catch(() => setProgrammes([]));
   }, []);
 
   /* ===============================
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   =============================== */
   useEffect(() => {
     if (!programme) return;
+
     const token = localStorage.getItem("ppbms_token");
     setLoading(true);
 
@@ -48,7 +50,7 @@ export default function AdminDashboard() {
   }, [programme]);
 
   /* ===============================
-     LATE / ON TRACK LOGIC
+     PROGRESS BADGE
   =============================== */
   function progressBadge(s) {
     if (s.status === "Graduated") {
@@ -59,24 +61,9 @@ export default function AdminDashboard() {
       );
     }
 
-    if (!s.expected_end) {
-      return (
-        <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
-          On Track
-        </span>
-      );
-    }
-
-    const now = new Date();
-    const expected = new Date(s.expected_end);
-
-    return expected < now ? (
-      <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">
-        Late
-      </span>
-    ) : (
+    return (
       <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
-        On Track
+        {s.progress || "On Track"}
       </span>
     );
   }
@@ -97,7 +84,9 @@ export default function AdminDashboard() {
       >
         <option value="">Select Programme</option>
         {programmes.map(p => (
-          <option key={p} value={p}>{p}</option>
+          <option key={p} value={p}>
+            {p}
+          </option>
         ))}
       </select>
 
@@ -106,16 +95,21 @@ export default function AdminDashboard() {
       =============================== */}
       {ploCQI && (
         <div className="bg-white rounded shadow p-4">
-          <h2 className="font-semibold mb-3">
+          <h2 className="font-semibold mb-1">
             Programme CQI (Graduated Students)
           </h2>
 
+          <p className="text-xs text-gray-500 mb-3">
+            Benchmark: ≥ 70% of total graduated students must achieve each PLO
+          </p>
+
           {Object.entries(ploCQI).map(([k, v]) => (
-            <div key={k} className="mb-3">
+            <div key={k} className="mb-4">
               <div className="flex justify-between text-sm">
                 <span className="font-medium">{k}</span>
                 <span>
-                  {v.percent !== null ? `${v.percent}%` : "-%"} ({v.achieved}/{v.assessed})
+                  {v.percent !== null ? `${v.percent}%` : "-%"} (
+                  {v.achieved}/{v.total})
                 </span>
               </div>
 
@@ -130,6 +124,8 @@ export default function AdminDashboard() {
                       ? "bg-green-500"
                       : v.status === "Borderline"
                       ? "bg-yellow-500"
+                      : v.status === "Not Assessed"
+                      ? "bg-gray-400"
                       : "bg-red-500"
                   }`}
                   style={{ width: `${v.percent || 0}%` }}
@@ -170,7 +166,7 @@ export default function AdminDashboard() {
                   </a>
                 </td>
 
-                <td className="p-2">{s.id}</td>
+                <td className="p-2">{s.matric}</td>
 
                 <td className="p-2">
                   <span
