@@ -3,62 +3,87 @@ import {
   readMasterTracking
 } from "../services/googleSheets.js";
 
-import { computeFinalStudentPLO } from "./computeFinalStudentPLO.js";
+import { aggregateFinalPLO } from "./finalPLOAggregate.js";
 
 export async function computeProgrammeCQI(programme, sheetId) {
   const assessmentRows = await readASSESSMENT_PLO(sheetId);
   const masterRows = await readMasterTracking(sheetId);
 
-  /* 1️⃣ Graduated students only */
+  /* 1️⃣ Graduated students */
   const graduatedEmails = new Set(
     masterRows
       .filter(r => String(r["Status"] || "").trim() === "Graduated")
       .map(r => (r["Student's Email"] || "").toLowerCase().trim())
   );
 
-  /* 2️⃣ Filter assessment rows by programme */
+  /* 2️⃣ Filter by programme */
   const programmeRows = assessmentRows.filter(
     r => String(r.programme || "").trim() === programme
   );
 
-  /* 3️⃣ Group assessment rows by student */
+  /* 3️⃣ Group by student */
   const byStudent = {};
   programmeRows.forEach(r => {
     const email = String(r.student_s_email || "").toLowerCase().trim();
-    if (!email || !graduatedEmails.has(email)) return;
+    if (!email) return;
     if (!byStudent[email]) byStudent[email] = [];
     byStudent[email].push(r);
   });
 
-  /* 4️⃣ Compute FINAL PLO per student */
-  const finalPLOPerStudent = Object.values(byStudent).map(records =>
-    computeFinalStudentPLO(records)
-  );
+  /* 4️⃣ FINAL PLO per graduated student */
+  const finalPLOPerStudent = [];
 
-  /* 5️⃣ Programme CQI aggregation */
+  Object.entries(byStudent).forEach(([email, records]) => {
+    if (!graduatedEmails.has(email)) return;
+
+    const assessments = {};
+
+    records.forEach(r => {
+      const type = r.assessment_type || "UNKNOWN";
+      if (!assessments[type]) assessments[type] = {};
+
+      for (let i = 1; i <= 11; i++) {
+        const key = `PLO${i}`;
+        const v = Number(r[key]);
+        if (!isNaN(v)) {
+          assessments[type][key] = { average: v };
+        }
+      }
+    });
+
+    finalPLOPerStudent.push(
+      aggregateFinalPLO(assessments)
+    );
+  });
+
+  const totalGraduates = finalPLOPerStudent.length;
+
+  /* 5️⃣ Programme CQI */
   const plo = {};
 
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const assessed = finalPLOPerStudent.filter(
-      s => s[key]?.average !== null
+    const assessedStudents = finalPLOPerStudent.filter(
+      s => s[key] && s[key].average !== null
     );
 
-    const achieved = assessed.filter(
-      s => s[key].average >= 3
+    const achieved = assessedStudents.filter(
+      s => s[key].status === "Achieved"
     ).length;
 
-    const percent = assessed.length
-      ? (achieved / assessed.length) * 100
+    const assessed = assessedStudents.length;
+
+    const percent = assessed
+      ? (achieved / assessed) * 100
       : null;
 
     plo[key] = {
       achieved,
-      assessed: assessed.length,
-      percent: percent ? Number(percent.toFixed(1)) : null,
+      assessed,
+      percent: percent !== null ? Number(percent.toFixed(1)) : null,
       status:
-        assessed.length === 0
+        assessed === 0
           ? "Not Assessed"
           : percent >= 70
           ? "Achieved"
@@ -70,7 +95,7 @@ export async function computeProgrammeCQI(programme, sheetId) {
 
   return {
     programme,
-    graduates: finalPLOPerStudent.length,
+    graduates: totalGraduates,
     plo
   };
 }
