@@ -82,7 +82,8 @@ router.post("/login", async (req, res) => {
 ===================================================== */
 router.post("/set-password", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email.toLowerCase().trim();
+const password = req.body.password;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Missing email or password" });
