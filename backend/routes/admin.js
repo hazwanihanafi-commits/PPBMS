@@ -91,8 +91,10 @@ router.get("/programme-students", adminAuth, async (req, res) => {
 
     const students = rows
       .filter(
-        r => String(r.Programme || "").trim() === programme.trim()
-      )
+  r =>
+    String(r.Programme || "").trim() === programme.trim() &&
+    String(r.Status || "").trim() !== "Graduated"
+)
       .map(r => ({
         email: r.Email || r["Student Email"] || "",
         matric: r.Matric || "",
