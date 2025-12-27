@@ -30,13 +30,11 @@ function adminAuth(req, res, next) {
 }
 
 /* =================================================
-   GET PROGRAMMES (ADMIN DROPDOWN)
+   GET PROGRAMMES (FROM ASSESSMENT_PLO)
 ================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   try {
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-    
-    console.log("ASSESSMENT_PLO SAMPLE ROW:", rows[0]);
 
     const programmes = [
       ...new Set(
@@ -54,10 +52,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
 });
 
 /* =================================================
-   PROGRAMME CQI (FINAL, MQA-COMPLIANT)
-================================================= */
-/* =================================================
-   PROGRAMME CQI (FINAL – CORRECT)
+   PROGRAMME CQI (FINAL, CORRECT)
 ================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   try {
@@ -66,7 +61,6 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
       return res.status(400).json({ error: "Programme required" });
     }
 
-    // 🔑 SINGLE SOURCE OF TRUTH
     const data = await computeProgrammeCQI(
       programme,
       process.env.SHEET_ID
@@ -78,9 +72,9 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 /* =================================================
-   PROGRAMME STUDENTS (ADMIN)
-   → SAME SOURCE AS SUPERVISOR DASHBOARD
+   PROGRAMME STUDENTS (FROM MASTER TRACKING)
 ================================================= */
 router.get("/programme-students", adminAuth, async (req, res) => {
   try {
@@ -99,7 +93,6 @@ router.get("/programme-students", adminAuth, async (req, res) => {
         id: r["Matric"] || "",
         name: r["Student Name"] || "",
         email: (r["Student's Email"] || "").toLowerCase().trim(),
-        programme: r["Programme"] || "",
         status: r["Status"] || "Active"
       }));
 
