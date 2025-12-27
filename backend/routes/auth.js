@@ -15,7 +15,9 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
 
     const users = await readAuthUsers(process.env.SHEET_ID);
+    
 
+    console.log("AUTH USERS:", users);
     const user = users.find(
       u => (u.Email || "").toLowerCase().trim() === normalizedEmail
     );
