@@ -261,3 +261,61 @@ export async function updateASSESSMENT_PLO_Cell({
   );
   return rows;
 }
+
+/* =========================================================
+   UPDATE PASSWORD HASH (MASTERTRACKING)
+========================================================= */
+export async function updatePasswordHash({ email, hash }) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range: "MasterTracking!A1:ZZ999",
+  });
+
+  const rows = res.data.values || [];
+  if (rows.length < 2) throw new Error("MasterTracking empty");
+
+  const headers = rows[0].map(h => h.toString().trim().toLowerCase());
+
+  const studentEmailIdx = headers.indexOf("student's email");
+  const supervisorEmailIdx = headers.indexOf("main supervisor's email");
+  const passwordIdx = headers.indexOf("password_hash");
+
+  if (passwordIdx === -1) {
+    throw new Error("PASSWORD_HASH column missing in MasterTracking");
+  }
+
+  const rowIndex = rows.findIndex((r, i) => {
+    if (i === 0) return false;
+    const studentEmail = (r[studentEmailIdx] || "").toLowerCase().trim();
+    const supervisorEmail = (r[supervisorEmailIdx] || "").toLowerCase().trim();
+    return studentEmail === email || supervisorEmail === email;
+  });
+
+  if (rowIndex === -1) {
+    throw new Error("User not found for password update");
+  }
+
+  const toColLetter = idx => {
+    let s = "";
+    while (idx >= 0) {
+      s = String.fromCharCode((idx % 26) + 65) + s;
+      idx = Math.floor(idx / 26) - 1;
+    }
+    return s;
+  };
+
+  const cell = `MasterTracking!${toColLetter(passwordIdx)}${rowIndex + 1}`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: cell,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[hash]] }
+  });
+
+  return true;
+}
