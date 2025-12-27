@@ -20,6 +20,33 @@ function getAuth(readonly = true) {
 }
 
 /* =========================================================
+   GENERIC SHEET READER
+========================================================= */
+export async function readSheet(sheetId, range) {
+  const auth = getAuth(true);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range
+  });
+
+  const rows = res.data.values || [];
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(h => (h || "").toString().trim());
+
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = row[i] ?? "";
+    });
+    return obj;
+  });
+}
+
+/* =========================================================
    MASTER TRACKING
 ========================================================= */
 export async function readMasterTracking(sheetId) {
