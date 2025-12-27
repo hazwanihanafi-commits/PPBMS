@@ -174,38 +174,39 @@ export default function AdminDashboard() {
       )}
 
       {/* ================= TAB 2 ================= */}
-      {activeTab === "tracking" && (
-  <div className="bg-white p-4 rounded-xl shadow">
-    <h3 className="font-semibold mb-3">Active Student Tracking</h3>
+            {activeTab === "tracking" && (
+        <div className="bg-white p-4 rounded-xl shadow">
+          <h3 className="font-semibold mb-3">Active Student Tracking</h3>
 
-    <table className="w-full text-sm">
-      <thead className="bg-gray-100">
-        <tr>
-          <th className="p-2 text-left">Name</th>
-          <th className="p-2">Matric</th>
-          <th className="p-2">Email</th>
-          <th className="p-2">Status</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {activeStudents.map((s, i) => (
-          <tr key={i} className="border-t">
-            <td className="p-2">{s.name}</td>
-            <td className="p-2">{s.matric}</td>
-            <td className="p-2 text-purple-700">
-              <Link
-                href={`/admin/student/${encodeURIComponent(s.email)}`}
-                className="underline"
-              >
-                View
-              </Link>
-            </td>
-            <td className="p-2">{statusBadge(s.status)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
-
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th>Name</th>
+                <th>Matric</th>
+                <th>Email</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeStudents.map((s, i) => (
+                <tr key={i} className="border-t">
+                  <td>{s.name}</td>
+                  <td>{s.matric}</td>
+                  <td>
+                    <Link
+                      href={`/admin/student/${encodeURIComponent(s.email)}`}
+                      className="text-purple-600 underline"
+                    >
+                      View
+                    </Link>
+                  </td>
+                  <td>{statusBadge(s.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
