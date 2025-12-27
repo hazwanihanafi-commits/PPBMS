@@ -1,7 +1,12 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { readSheet, writeSheetCell } from "../services/googleSheets.js";
+import {
+  readSheet, 
+   writeSheetCell, 
+   readAuthUsers,
+  updateAuthUserPassword
+} from "../services/googleSheets.js";
 
 const router = express.Router();
 
