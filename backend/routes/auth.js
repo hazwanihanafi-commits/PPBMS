@@ -1,133 +1,129 @@
 import express from "express";
-import jwt from "jsonwebtoken";
-import fs from "fs";
-import path from "path";
 import bcrypt from "bcryptjs";
-import { readMasterTracking } from "../services/googleSheets.js";
+import jwt from "jsonwebtoken";
+
+import {
+  readMasterTracking,
+  updatePasswordHash
+} from "../services/googleSheets.js";
 
 const router = express.Router();
 
-/* ================= FILE STORAGE ================= */
-const DATA_DIR = path.resolve("backend/data");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
-
-// Ensure data directory exists (Render-safe)
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// Ensure users.json exists
-if (!fs.existsSync(USERS_FILE)) {
-  fs.writeFileSync(USERS_FILE, "{}");
-}
-
-/* ================= LOGIN ================= */
+/* =====================================================
+   LOGIN
+===================================================== */
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: "Missing credentials" });
+    const { email, password } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email required" });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const normalizedEmail = email.toLowerCase().trim();
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const isStudent = rows.some(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail
-    );
-    const isSupervisor = rows.some(
-      r => (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
+    const user = rows.find(
+      r =>
+        (r["Student's Email"] || "").toLowerCase().trim() === normalizedEmail ||
+        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === normalizedEmail
     );
 
-    if (!isStudent && !isSupervisor) {
-      return res.status(403).json({ error: "ACCESS_DENIED" });
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
     }
 
-    const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
-
-    // First-time login
-    if (!users[cleanEmail]) {
-      return res.status(403).json({ error: "PASSWORD_NOT_SET" });
+    /* ===== FIRST LOGIN ===== */
+    if (!user.PASSWORD_HASH) {
+      return res.json({
+        requirePasswordSetup: true,
+        email: normalizedEmail,
+        role: detectRole(user)
+      });
     }
 
-    const ok = await bcrypt.compare(password, users[cleanEmail].passwordHash);
+    if (!password) {
+      return res.status(400).json({ error: "Password required" });
+    }
+
+    const ok = await bcrypt.compare(password, user.PASSWORD_HASH);
     if (!ok) {
-      return res.status(401).json({ error: "Wrong password" });
+      return res.status(401).json({ error: "Invalid password" });
     }
-
-    const role = isSupervisor ? "supervisor" : "student";
 
     const token = jwt.sign(
-      { email: cleanEmail, role },
+      {
+        email: normalizedEmail,
+        role: detectRole(user)
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "30d" }
+      { expiresIn: "12h" }
     );
 
-    return res.json({ token, role });
+    res.json({
+      token,
+      role: detectRole(user),
+      email: normalizedEmail
+    });
 
   } catch (err) {
     console.error("LOGIN ERROR:", err);
-    return res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Login failed" });
   }
 });
 
-/* ================= SET PASSWORD ================= */
+/* =====================================================
+   SET PASSWORD (RUNS ONCE ONLY)
+===================================================== */
 router.post("/set-password", async (req, res) => {
   try {
-    const { email, password } = req.body || {};
+    const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: "Missing data" });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ error: "Password must be at least 8 characters" });
-    }
+    const normalizedEmail = email.toLowerCase().trim();
 
-    const cleanEmail = email.toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const allowed = rows.some(
+    const user = rows.find(
       r =>
-        (r["Student's Email"] || "").toLowerCase().trim() === cleanEmail ||
-        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === cleanEmail
+        (r["Student's Email"] || "").toLowerCase().trim() === normalizedEmail ||
+        (r["Main Supervisor's Email"] || "").toLowerCase().trim() === normalizedEmail
     );
 
-    if (!allowed) {
-      return res.status(403).json({ error: "ACCESS_DENIED" });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
+    if (user.PASSWORD_HASH) {
+      return res.status(400).json({ error: "Password already set" });
+    }
 
-    users[cleanEmail] = {
-      passwordHash: await bcrypt.hash(password, 10),
-      createdAt: new Date().toISOString()
-    };
+    const hash = await bcrypt.hash(password, 10);
 
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    await updatePasswordHash({
+      email: normalizedEmail,
+      hash
+    });
 
-    return res.json({ success: true });
+    res.json({ success: true });
 
   } catch (err) {
     console.error("SET PASSWORD ERROR:", err);
-    return res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Failed to set password" });
   }
 });
 
-/* ================= VERIFY TOKEN ================= */
-router.get("/verify", (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: "NO_TOKEN" });
-    }
+/* =====================================================
+   ROLE DETECTION
+===================================================== */
+function detectRole(row) {
+  if (row.Role) return row.Role;
 
-    const token = authHeader.split(" ")[1];
-    jwt.verify(token, process.env.JWT_SECRET);
+  if (row["Student's Email"]) return "student";
+  if (row["Main Supervisor's Email"]) return "supervisor";
 
-    return res.json({ ok: true });
-  } catch (err) {
-    return res.status(401).json({ error: "INVALID_TOKEN" });
-  }
-});
+  return "admin";
+}
 
 export default router;
