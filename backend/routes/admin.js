@@ -30,19 +30,11 @@ function adminAuth(req, res, next) {
    PROGRAMME LIST
 ========================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
-  try {
-    const rows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
-
-    const programmes = [
-      ...new Set(
-        rows.map(r => String(r.Programme || "").trim()).filter(Boolean)
-      ),
-    ];
-
-    res.json({ programmes });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const rows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
+  const programmes = [
+    ...new Set(rows.map(r => String(r.Programme || "").trim()).filter(Boolean)),
+  ];
+  res.json({ programmes });
 });
 
 /* =========================================================
@@ -52,42 +44,29 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   const { programme } = req.query;
   if (!programme) return res.status(400).json({ error: "Programme required" });
 
-  try {
-    const data = await computeProgrammeCQI(programme, process.env.SHEET_ID);
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const data = await computeProgrammeCQI(programme, process.env.SHEET_ID);
+  res.json(data);
 });
 
 /* =========================================================
-   PROGRAMME GRADUATED STUDENTS (TAB 1)
-   SOURCE: MASTERTRACKING
+   PROGRAMME GRADUATES (TAB 1)
 ========================================================= */
 router.get("/programme-graduates", adminAuth, async (req, res) => {
   const { programme } = req.query;
-  if (!programme) return res.status(400).json({ error: "Programme required" });
+  const rows = await readMasterTracking(process.env.SHEET_ID);
 
-  try {
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+  const students = rows
+    .filter(r =>
+      String(r.Programme || "").trim() === programme.trim() &&
+      String(r.Status || "").trim() === "Graduated"
+    )
+    .map(r => ({
+      matric: r.Matric || "",
+      name: r["Student Name"] || "",
+      email: r["Student's Email"] || "",
+    }));
 
-    const students = rows
-      .filter(
-        r =>
-          String(r.Programme || "").trim() === programme.trim() &&
-          String(r.Status || "").trim() === "Graduated"
-      )
-      .map(r => ({
-        matric: r.Matric || "",
-        name: r["Student Name"] || "",
-        email: r["Student's Email"] || "",
-        programme: r.Programme || "",
-      }));
-
-    res.json({ count: students.length, students });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ count: students.length, students });
 });
 
 /* =========================================================
@@ -95,157 +74,107 @@ router.get("/programme-graduates", adminAuth, async (req, res) => {
 ========================================================= */
 router.get("/programme-active-students", adminAuth, async (req, res) => {
   const { programme } = req.query;
-  if (!programme) return res.status(400).json({ error: "Programme required" });
+  const rows = await readMasterTracking(process.env.SHEET_ID);
 
-  try {
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+  const students = rows
+    .filter(r =>
+      String(r.Programme || "").trim() === programme.trim() &&
+      String(r.Status || "").trim() === "Active"
+    )
+    .map(r => ({
+      matric: r.Matric || "",
+      email: r["Student's Email"] || "",
+      status: deriveStatus(
+        r["Development Plan & Learning Contract - Expected"],
+        r["Development Plan & Learning Contract - Actual"]
+      ),
+    }));
 
-    const students = rows
-      .filter(
-        r =>
-          String(r.Programme || "").trim() === programme.trim() &&
-          String(r.Status || "").trim() === "Active"
-      )
-      .map(r => ({
-        matric: r.Matric || "",
-        email: r["Student's Email"] || "",
-        status: "Active",
-      }));
-
-    res.json({ count: students.length, students });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ count: students.length, students });
 });
 
 /* =========================================================
-   ADMIN STUDENT DETAIL (FULL MIRROR OF SUPERVISOR)
+   ADMIN STUDENT DETAIL (SUPERVISOR MIRROR)
 ========================================================= */
 router.get("/student/:email", adminAuth, async (req, res) => {
-  try {
-    const key = decodeURIComponent(req.params.email).trim().toLowerCase();
+  const key = decodeURIComponent(req.params.email).trim().toLowerCase();
 
-    /* ---------- ASSESSMENT DATA ---------- */
-    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+  const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const studentRows = assessmentRows.filter(r => {
-      const email = String(
-        r["Student's Email"] ||
-        r["Student Email"] ||
-        r.studentemail ||
-        r.student_email ||
-        ""
-      ).trim().toLowerCase();
+  let studentRows = assessmentRows.filter(r => {
+    const email = String(
+      r["Student's Email"] ||
+      r["Student Email"] ||
+      r.studentemail ||
+      ""
+    ).trim().toLowerCase();
 
-      const matric = String(r.matric || "").trim().toLowerCase();
-      return email === key || matric === key;
-    });
+    const matric = String(r.matric || "").trim().toLowerCase();
+    return email === key || matric === key;
+  });
 
-    if (!studentRows.length) {
-      return res.status(404).json({ row: null });
-    }
+  let student = null;
 
+  if (studentRows.length) {
     const base = studentRows[0];
-
-    const student = {
-      email:
-        base["Student's Email"] ||
-        base["Student Email"] ||
-        base.studentemail ||
-        "",
+    student = {
+      email: base.studentemail || "",
       student_id: base.matric || "",
       student_name: base.studentname || "",
       programme: base.programme || "",
       status: base.status || "Active",
-
       timeline: [],
       documents: {},
       cqiByAssessment: {},
       remarksByAssessment: {},
       finalPLO: {},
     };
-
-    /* ---------- CQI BY ASSESSMENT ---------- */
-    const ploKeys = Array.from({ length: 11 }, (_, i) => `PLO${i + 1}`);
-
-    studentRows.forEach(r => {
-      const type = r.assessment_type;
-      if (!type) return;
-
-      if (!student.cqiByAssessment[type]) {
-        student.cqiByAssessment[type] = {};
-      }
-
-      ploKeys.forEach(p => {
-        const v = Number(r[p]);
-        if (isNaN(v)) return;
-
-        if (!student.cqiByAssessment[type][p]) {
-          student.cqiByAssessment[type][p] = [];
-        }
-        student.cqiByAssessment[type][p].push(v);
-      });
-
-      if (r.Remarks) {
-        student.remarksByAssessment[type] = r.Remarks;
-      }
-    });
-
-    Object.entries(student.cqiByAssessment).forEach(([type, ploData]) => {
-      Object.entries(ploData).forEach(([plo, values]) => {
-        const avg = values.reduce((a, b) => a + b, 0) / values.length;
-        student.cqiByAssessment[type][plo] = {
-          average: Number(avg.toFixed(2)),
-          status: avg >= 3 ? "Achieved" : "CQI Required",
-        };
-      });
-    });
-
-    /* ---------- FINAL PLO ---------- */
-    try {
-      const finalRows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
-      const f = finalRows.find(
-        r => String(r.Matric || "").trim() === student.student_id
-      );
-
-      if (f) {
-        ploKeys.forEach(p => {
-          const v = Number(f[p]);
-          if (!isNaN(v)) student.finalPLO[p] = v;
-        });
-      }
-    } catch {}
-
-    /* ---------- MASTERTRACKING ENRICHMENT ---------- */
-    try {
-      const master = await readMasterTracking(process.env.SHEET_ID);
-      const m = master.find(
-        x => String(x.Matric || "").trim() === student.student_id
-      );
-
-      if (m) {
-        student.field = m.Field || "";
-        student.department = m.Department || "";
-        student.supervisor = m["Main Supervisor"] || "";
-        student.coSupervisors = m["Co-Supervisor"] || "";
-        student.timeline = buildTimelineFromMaster(m);
-        student.documents = extractDocuments(m);
-      }
-    } catch {}
-
-    res.json({ row: student });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
+
+  if (!student) {
+    const master = await readMasterTracking(process.env.SHEET_ID);
+    const m = master.find(r =>
+      String(r["Student's Email"] || "").trim().toLowerCase() === key
+    );
+
+    if (!m) return res.status(404).json({ row: null });
+
+    student = {
+      email: m["Student's Email"],
+      student_id: m.Matric,
+      student_name: m["Student Name"],
+      programme: m.Programme,
+      status: m.Status,
+      field: m.Field,
+      department: m.Department,
+      supervisor: m["Main Supervisor"],
+      coSupervisors: m["Co-Supervisor"],
+      timeline: buildTimelineFromMaster(m),
+      documents: extractDocuments(m),
+      cqiByAssessment: {},
+      remarksByAssessment: {},
+      finalPLO: {},
+    };
+  }
+
+  const finalRows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
+  const f = finalRows.find(r => String(r.Matric || "") === student.student_id);
+  if (f) {
+    for (let i = 1; i <= 11; i++) {
+      const v = Number(f[`PLO${i}`]);
+      if (!isNaN(v)) student.finalPLO[`PLO${i}`] = v;
+    }
+  }
+
+  res.json({ row: student });
 });
 
 /* ================= HELPERS ================= */
 
 function deriveStatus(expected, actual) {
   if (actual) return "Completed";
-  if (!expected) return "On Time";
-  return new Date(expected) < new Date() ? "Late" : "On Time";
+  if (!expected) return "On Track";
+  return new Date(expected) < new Date() ? "Late" : "On Track";
 }
 
 function buildTimelineFromMaster(m) {
