@@ -117,11 +117,25 @@ router.post("/set-password", async (req, res) => {
 /* =====================================================
    ROLE DETECTION
 ===================================================== */
-function detectRole(row) {
-  if (row.Role) return row.Role;
+function detectRole(row, loginEmail) {
+  const email = loginEmail.toLowerCase().trim();
 
-  if (row["Student's Email"]) return "student";
-  if (row["Main Supervisor's Email"]) return "supervisor";
+  // Supervisor must be checked FIRST
+  if (
+    (row["Main Supervisor's Email"] || "")
+      .toLowerCase()
+      .trim() === email
+  ) {
+    return "supervisor";
+  }
+
+  if (
+    (row["Student's Email"] || "")
+      .toLowerCase()
+      .trim() === email
+  ) {
+    return "student";
+  }
 
   return "admin";
 }
