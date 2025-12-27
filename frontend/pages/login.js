@@ -50,35 +50,33 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      /* 🔐 FIRST LOGIN → SET PASSWORD */
+      // 1️⃣ FIRST LOGIN → FORCE SET PASSWORD
       if (data.requirePasswordSetup) {
-        router.push(`/set-password?email=${data.email}`);
+        router.push(`/set-password?email=${encodeURIComponent(data.email)}`);
         return;
       }
 
+      // 2️⃣ REAL LOGIN ERROR
       if (!res.ok) {
         setError(data.error || "Invalid credentials");
         return;
       }
 
-      /* ✅ SAVE SESSION */
+      // 3️⃣ SUCCESS LOGIN
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
-      localStorage.setItem("ppbms_email", email.toLowerCase().trim());
+      localStorage.setItem("ppbms_email", data.email);
 
-      /* ✅ ROLE-BASED REDIRECT */
       if (data.role === "supervisor") {
         router.push("/supervisor");
       } else if (data.role === "student") {
         router.push("/student");
       } else if (data.role === "admin") {
         router.push("/admin");
-      } else {
-        setError("Unknown user role");
       }
 
     } catch (err) {
-      console.error(err);
+      console.error("LOGIN ERROR:", err);
       setError("Unable to connect to server. Please try again.");
     } finally {
       setLoading(false);
@@ -90,8 +88,8 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow p-8 max-w-md w-full">
         <h1 className="text-2xl font-bold mb-1">PPBMS Login</h1>
 
-        <p className="text-gray-700 font-medium mb-2">
-          Unified Access for Students and Supervisors
+        <p className="text-gray-700 font-medium mb-4">
+          Unified Access for Students, Supervisors, and Administrators
         </p>
 
         <form onSubmit={handleLogin} className="space-y-4">
