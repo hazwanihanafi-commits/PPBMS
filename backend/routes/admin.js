@@ -76,11 +76,12 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   }
 });
 
+
 /* =========================================================
-   PROGRAMME STUDENTS (ADMIN DASHBOARD TABLE)
+   PROGRAMME GRADUATED STUDENTS (ADMIN TAB 1)
    SOURCE: MASTERTRACKING
 ========================================================= */
-router.get("/programme-students", adminAuth, async (req, res) => {
+router.get("/programme-graduates", adminAuth, async (req, res) => {
   try {
     const { programme } = req.query;
     if (!programme) {
@@ -89,27 +90,58 @@ router.get("/programme-students", adminAuth, async (req, res) => {
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const students = rows
-      .filter(
-  r =>
-    String(r.Programme || "").trim() === programme.trim() &&
-    String(r.Status || "").trim() !== "Graduated"
-)
+    const graduates = rows
+      .filter(r =>
+        String(r.Programme || "").trim() === programme.trim() &&
+        String(r.Status || "").trim() === "Graduated"
+      )
       .map(r => ({
-        email: r.Email || r["Student Email"] || "",
         matric: r.Matric || "",
-        status: r.Status || "Active",
+        name: r["Student Name"] || "",
+        email: r["Student's Email"] || "",
+        programme: r.Programme || "",
       }));
 
     res.json({
-      count: students.length,
-      students,
+      count: graduates.length,
+      students: graduates,
     });
   } catch (err) {
-    console.error("❌ Programme students error:", err);
+    console.error("❌ Programme graduates error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+router.get("/programme-active-students", adminAuth, async (req, res) => {
+  try {
+    const { programme } = req.query;
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
+
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const active = rows
+      .filter(r =>
+        String(r.Programme || "").trim() === programme.trim() &&
+        String(r.Status || "").trim() === "Active"
+      )
+      .map(r => ({
+        matric: r.Matric || "",
+        email: r["Student's Email"] || "",
+        status: "Active",
+      }));
+
+    res.json({
+      count: active.length,
+      students: active,
+    });
+  } catch (err) {
+    console.error("❌ Active students error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 /* =========================================================
    ADMIN STUDENT VIEW (DETAIL PAGE)
