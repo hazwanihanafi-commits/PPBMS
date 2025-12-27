@@ -166,15 +166,23 @@ router.get("/programme-students", adminAuth, async (req, res) => {
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const students = rows
-      .filter(r =>
-        String(r["Programme"] || "").trim() === String(programme).trim()
-      )
-      .map(r => ({
-        email: r["Student Email"] || r["Email"] || "",
-        matric: r["Matric"] || "",
-        status: r["Status"] || "Active",
-        progress: "On Track"
-      }));
+  .filter(r =>
+    String(r["Programme"] || "").trim() === String(programme).trim()
+  )
+  .map(r => ({
+    email:
+      r["Student's Email"] ||
+      r["Student Email"] ||
+      r["Email"] ||
+      r["Email Address"] ||
+      "",
+    matric: r["Matric"] || "",
+    status: r["Status"] || "Active",
+    progress: r["Status"] === "Graduated" ? "Completed" : "On Track"
+  }))
+  // 🚫 REMOVE ROWS WITH NO IDENTIFIER
+  .filter(s => s.email || s.matric);
+
 
     res.json({
       count: students.length,
