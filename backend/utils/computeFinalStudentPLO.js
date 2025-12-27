@@ -1,43 +1,36 @@
-// backend/utils/computeFinalStudentPLO.js
+export function computeFinalStudentPLO(assessmentRows = []) {
+  const totals = {};
+  const counts = {};
 
-export function computeFinalStudentPLO(studentRows = []) {
-  const ploScores = {};
-
-  // initialise
   for (let i = 1; i <= 11; i++) {
-    ploScores[`PLO${i}`] = [];
+    totals[`PLO${i}`] = 0;
+    counts[`PLO${i}`] = 0;
   }
 
-  // collect scores across ALL assessments
-  studentRows.forEach(row => {
+  assessmentRows.forEach(r => {
     for (let i = 1; i <= 11; i++) {
-      const v = Number(row[`PLO${i}`]);
+      const key = `PLO${i}`;
+      const v = Number(r[key]);
       if (!isNaN(v)) {
-        ploScores[`PLO${i}`].push(v);
+        totals[key] += v;
+        counts[key] += 1;
       }
     }
   });
 
-  // compute final status
-  const finalPLO = {};
-
-  Object.entries(ploScores).forEach(([plo, scores]) => {
-    if (scores.length === 0) {
-      finalPLO[plo] = {
-        average: null,
-        status: "Not Assessed",
+  const result = {};
+  for (let i = 1; i <= 11; i++) {
+    const key = `PLO${i}`;
+    if (counts[key] === 0) {
+      result[key] = { average: null, status: "Not Assessed" };
+    } else {
+      const avg = totals[key] / counts[key];
+      result[key] = {
+        average: Number(avg.toFixed(2)),
+        status: avg >= 3 ? "Achieved" : "CQI Required"
       };
-      return;
     }
+  }
 
-    const avg =
-      scores.reduce((a, b) => a + b, 0) / scores.length;
-
-    finalPLO[plo] = {
-      average: Number(avg.toFixed(2)),
-      status: avg >= 3 ? "Achieved" : "Not Achieved",
-    };
-  });
-
-  return finalPLO;
+  return result;
 }
