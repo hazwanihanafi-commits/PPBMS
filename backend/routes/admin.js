@@ -95,19 +95,22 @@ router.get("/programme-graduates", adminAuth, async (req, res) => {
 ========================================================= */
 router.get("/programme-active-students", adminAuth, async (req, res) => {
   const { programme } = req.query;
-  if (!programme) return res.status(400).json({ error: "Programme required" });
-
   const rows = await readMasterTracking(process.env.SHEET_ID);
 
   const students = rows
-    .filter(r =>
-      String(r.Programme || "").trim() === programme.trim() &&
-      String(r.Status || "").trim() === "Active"
+    .filter(
+      r =>
+        String(r.Programme || "").trim() === programme.trim() &&
+        String(r.Status || "").trim() === "Active"
     )
     .map(r => ({
       matric: r.Matric || "",
-      email: (r["Student's Email"] || "").toLowerCase().trim(),
-      status: "Active",
+      name: r["Student Name"] || "",           // ✅ ADD THIS
+      email: r["Student's Email"] || "",
+      status: deriveStatus(
+        r["Development Plan & Learning Contract - Expected"],
+        r["Development Plan & Learning Contract - Actual"]
+      )
     }));
 
   res.json({ count: students.length, students });
