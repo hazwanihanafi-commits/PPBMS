@@ -33,12 +33,14 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
+    const role = detectRole(user, normalizedEmail);
+
     /* ===== FIRST LOGIN ===== */
     if (!user.PASSWORD_HASH) {
       return res.json({
         requirePasswordSetup: true,
         email: normalizedEmail,
-        role: detectRole(user)
+        role
       });
     }
 
@@ -54,7 +56,7 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       {
         email: normalizedEmail,
-        role: detectRole(user)
+        role
       },
       process.env.JWT_SECRET,
       { expiresIn: "12h" }
@@ -62,7 +64,7 @@ router.post("/login", async (req, res) => {
 
     res.json({
       token,
-      role: detectRole(user),
+      role,
       email: normalizedEmail
     });
 
@@ -71,6 +73,7 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ error: "Login failed" });
   }
 });
+
 
 /* =====================================================
    SET PASSWORD (RUNS ONCE ONLY)
