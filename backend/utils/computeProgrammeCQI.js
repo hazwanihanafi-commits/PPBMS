@@ -7,97 +7,68 @@ import { computeFinalStudentPLO } from "./computeFinalStudentPLO.js";
 
 /**
  * Programme-level CQI
- * RULE (MQA-compliant):
+ * RULE:
  * - Use FINAL PLO per student
- * - Graduated students only
- * - Achieved = FINAL PLO average >= 3
- * - Programme achieved if ≥ 70% of graduates achieved
+ * - Graduated students only (MasterTracking)
+ * - Achieved = FINAL PLO >= 3
+ * - Programme achieved if >= 70%
  */
 export async function computeProgrammeCQI(programme, sheetId) {
-  /* ===============================
-     1️⃣ LOAD DATA
-  =============================== */
   const assessmentRows = await readASSESSMENT_PLO(sheetId);
   const masterRows = await readMasterTracking(sheetId);
 
-  /* ===============================
-     2️⃣ GET GRADUATED STUDENTS (MASTER TRACKING)
-  =============================== */
+  /* 1️⃣ Graduated students */
   const graduatedEmails = new Set(
     masterRows
-      .filter(r =>
-        String(r["Status"] || "").trim().toLowerCase() === "graduated"
-      )
+      .filter(r => String(r["Status"] || "") === "Graduated")
       .map(r =>
         (r["Student's Email"] || "").toLowerCase().trim()
       )
   );
 
-  /* ===============================
-     3️⃣ FILTER ASSESSMENTS BY PROGRAMME
-  =============================== */
+  /* 2️⃣ Filter assessment by programme */
   const programmeRows = assessmentRows.filter(
     r => String(r.programme || "").trim() === programme
   );
 
-  /* ===============================
-     4️⃣ GROUP ASSESSMENTS BY STUDENT
-  =============================== */
+  /* 3️⃣ Group by student */
   const byStudent = {};
   programmeRows.forEach(r => {
-    const email = String(r.student_s_email || "")
-      .toLowerCase()
-      .trim();
-
-    if (!email) return;
+    const email = String(r.student_s_email || "").toLowerCase().trim();
+    if (!email || !graduatedEmails.has(email)) return;
 
     if (!byStudent[email]) byStudent[email] = [];
     byStudent[email].push(r);
   });
 
-  /* ===============================
-     5️⃣ FINAL PLO PER GRADUATED STUDENT
-     (THIS MATCHES SUPERVISOR FINAL PLO TABLE)
-  =============================== */
-  const finalPLOPerStudent = [];
+  /* 4️⃣ Final PLO per student */
+  const finalPLOPerStudent = Object.values(byStudent).map(records =>
+    computeFinalStudentPLO(records)
+  );
 
-  Object.entries(byStudent).forEach(([email, records]) => {
-    if (!graduatedEmails.has(email)) return;
-
-    const finalPLO = computeFinalStudentPLO(records);
-    finalPLOPerStudent.push(finalPLO);
-  });
-
-  const totalGraduates = finalPLOPerStudent.length;
-
-  /* ===============================
-     6️⃣ PROGRAMME CQI (70% RULE)
-  =============================== */
   const plo = {};
 
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
-    const assessedStudents = finalPLOPerStudent.filter(
-      s => s[key] && s[key].average !== null
+    const assessed = finalPLOPerStudent.filter(
+      s => s[key]?.average !== null
     );
 
-    const achieved = assessedStudents.filter(
-      s => s[key].status === "Achieved"
+    const achieved = assessed.filter(
+      s => s[key].average >= 3
     ).length;
 
-    const assessed = assessedStudents.length;
-
-    const percent = assessed
-      ? (achieved / assessed) * 100
+    const percent = assessed.length
+      ? (achieved / assessed.length) * 100
       : null;
 
     plo[key] = {
+      assessed: assessed.length,
       achieved,
-      assessed,
       percent: percent !== null ? Number(percent.toFixed(1)) : null,
       status:
-        assessed === 0
+        assessed.length === 0
           ? "Not Assessed"
           : percent >= 70
           ? "Achieved"
@@ -107,12 +78,9 @@ export async function computeProgrammeCQI(programme, sheetId) {
     };
   }
 
-  /* ===============================
-     7️⃣ RETURN PROGRAMME CQI
-  =============================== */
   return {
     programme,
-    graduates: totalGraduates,
+    graduates: finalPLOPerStudent.length,
     plo
   };
 }
