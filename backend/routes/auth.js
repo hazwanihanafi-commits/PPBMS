@@ -21,7 +21,7 @@ router.post("/login", async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const rows = await readAuthUsers(process.env.SHEET_ID);
 
     const user = rows.find(
       r =>
@@ -87,7 +87,7 @@ router.post("/set-password", async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const rows = await readAuthUsers(process.env.SHEET_ID);
     const user = rows.find(
       r =>
         (r["Student's Email"] || "").toLowerCase().trim() === normalizedEmail ||
