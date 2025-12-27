@@ -215,4 +215,17 @@ router.get("/student/:email", adminAuth, async (req, res) => {
   }
 });
 
+function deriveStatus(expected, actual) {
+  if (actual && String(actual).trim() !== "") return "Completed";
+  if (!expected || String(expected).trim() === "") return "On Track";
+
+  const now = new Date();
+  const exp = new Date(expected);
+
+  if (isNaN(exp.getTime())) return "On Track";
+
+  return exp < now ? "Late" : "On Track";
+}
+
+
 export default router;
