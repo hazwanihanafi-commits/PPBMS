@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/utils/api";
+import Link from "next/link";
 
 function Tabs({ active, setActive }) {
   const Tab = ({ id, label }) => (
