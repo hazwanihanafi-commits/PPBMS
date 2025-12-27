@@ -155,43 +155,72 @@ router.get("/student/:email", adminAuth, async (req, res) => {
  * SOURCE: MASTERTRACKING
  * PURPOSE: Admin dashboard student table
  */
-router.get("/programme-students", adminAuth, async (req, res) => {
+router.get("/student/:email", adminAuth, async (req, res) => {
   try {
-    const { programme } = req.query;
+    const key = decodeURIComponent(req.params.email)
+      .trim()
+      .toLowerCase();
 
-    if (!programme) {
-      return res.status(400).json({ error: "Programme required" });
+    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    const studentRows = rows.filter(r => {
+      const email =
+        String(
+          r["Student's Email"] ||
+          r["Student Email"] ||
+          r.studentemail ||
+          r.student_email ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const matric = String(r.matric || "").trim().toLowerCase();
+
+      return email === key || matric === key;
+    });
+
+    if (studentRows.length === 0) {
+      return res.status(404).json({ row: null });
     }
 
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+    const base = studentRows[0];
 
-    const students = rows
-  .filter(r =>
-    String(r["Programme"] || "").trim() === String(programme).trim()
-  )
-  .map(r => ({
-    email:
-      r["Student's Email"] ||
-      r["Student Email"] ||
-      r["Email"] ||
-      r["Email Address"] ||
-      "",
-    matric: r["Matric"] || "",
-    status: r["Status"] || "Active",
-    progress: r["Status"] === "Graduated" ? "Completed" : "On Track"
-  }))
-  // 🚫 REMOVE ROWS WITH NO IDENTIFIER
-  .filter(s => s.email || s.matric);
+    const student = {
+      email:
+        base["Student's Email"] ||
+        base["Student Email"] ||
+        base.studentemail ||
+        "",
+      matric: base.matric || "",
+      student_name: base.studentname || "",
+      programme: base.programme || "",
+      status: base.status || "Active",
+      timeline: [],
+      documents: {},
+    };
 
+    // OPTIONAL: enrich from MasterTracking
+    try {
+      const master = await readMasterTracking(process.env.SHEET_ID);
+      const match = master.find(
+        m => String(m.Matric || "").trim() === student.matric
+      );
 
-    res.json({
-      count: students.length,
-      students
-    });
+      if (match) {
+        student.field = match.Field || "";
+        student.department = match.Department || "";
+        student.supervisor = match["Main Supervisor"] || "";
+        student.coSupervisors = match["Co-Supervisor"] || "";
+      }
+    } catch {}
+
+    res.json({ row: student });
   } catch (err) {
-    console.error("❌ Programme students error:", err);
+    console.error("ADMIN STUDENT ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 export default router;
