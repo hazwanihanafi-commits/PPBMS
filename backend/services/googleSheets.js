@@ -241,3 +241,10 @@ export async function writeSheetCell(
 
   return true;
 }
+
+/* =========================================================
+   MASTER TRACKING READ (RESTORED – REQUIRED)
+========================================================= */
+export async function readMasterTracking(sheetId) {
+  return await readSheet(sheetId, "MasterTracking!A1:ZZ999");
+}
