@@ -8,7 +8,7 @@ export default function TopBar({ user }) {
 
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-xs text-gray-500">Logged in as</div>
+            {/* Removed email display for admin cleanliness */}
             <div className="text-sm font-medium text-gray-800">
               {user?.email || "Unknown user"}
             </div>
