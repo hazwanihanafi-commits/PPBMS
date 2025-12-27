@@ -6,7 +6,7 @@ import { readFINALPROGRAMPLO } from "../services/googleSheets.js";
  * RULE:
  * - Graduated students only
  * - Achieved = FINAL PLO >= 3.0
- * - Programme Achieved if ≥ 70% achieved
+ * - Programme Achieved if ≥ 70% of TOTAL graduates achieved
  */
 export async function computeProgrammeCQI(programme, sheetId) {
   const rows = await readFINALPROGRAMPLO(sheetId);
@@ -21,29 +21,32 @@ export async function computeProgrammeCQI(programme, sheetId) {
   const totalGraduates = students.length;
   const plo = {};
 
-  // 2️⃣ Programme aggregation
+  // 2️⃣ Programme aggregation (TOTAL graduates as denominator)
   for (let i = 1; i <= 11; i++) {
     const key = `PLO${i}`;
 
     const assessed = students.filter(
-      s => s[key] !== "" && !isNaN(Number(s[key]))
+      s => !isNaN(Number(s[key]))
     );
 
-    const achieved = assessed.filter(
-      s => Number(s[key]) >= 3
+    const achieved = students.filter(
+      s => !isNaN(Number(s[key])) && Number(s[key]) >= 3
     ).length;
 
     const assessedCount = assessed.length;
-    const percent = assessedCount
-      ? (achieved / assessedCount) * 100
+
+    const percent = totalGraduates
+      ? (achieved / totalGraduates) * 100
       : null;
 
     plo[key] = {
-      achieved,
-      assessed: assessedCount,
+      achieved,                 // number achieving ≥ 3
+      assessed: assessedCount,  // number with valid data
+      total: totalGraduates,    // TOTAL graduates (benchmark base)
       percent: percent !== null ? Number(percent.toFixed(1)) : null,
+      benchmark: "≥ 70% of graduates",
       status:
-        assessedCount === 0
+        percent === null
           ? "Not Assessed"
           : percent >= 70
           ? "Achieved"
