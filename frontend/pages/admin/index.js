@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { apiGet } from "@/utils/api";
 import Link from "next/link";
+import { apiGet } from "@/utils/api";
 
+/* ======================
+   TABS
+====================== */
 function Tabs({ active, setActive }) {
   const Tab = ({ id, label }) => (
     <button
@@ -25,7 +28,7 @@ function Tabs({ active, setActive }) {
 }
 
 /* ======================
-   STATUS LOGIC
+   STATUS HELPERS
 ====================== */
 function deriveStatus(expected, actual) {
   if (actual) return "Completed";
@@ -33,6 +36,33 @@ function deriveStatus(expected, actual) {
   return new Date(expected) < new Date() ? "Late" : "On Track";
 }
 
+function statusBadge(status) {
+  if (status === "Completed") {
+    return (
+      <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-700">
+        Completed
+      </span>
+    );
+  }
+
+  if (status === "Late") {
+    return (
+      <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">
+        Late
+      </span>
+    );
+  }
+
+  return (
+    <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
+      On Track
+    </span>
+  );
+}
+
+/* ======================
+   PAGE
+====================== */
 export default function AdminDashboard() {
   const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
@@ -48,7 +78,9 @@ export default function AdminDashboard() {
   ====================== */
   useEffect(() => {
     const role = localStorage.getItem("ppbms_role");
-    if (role !== "admin") window.location.href = "/login";
+    if (role !== "admin") {
+      window.location.href = "/login";
+    }
   }, []);
 
   /* ======================
@@ -61,7 +93,7 @@ export default function AdminDashboard() {
   }, []);
 
   /* ======================
-     LOAD DATA PER PROGRAMME
+     LOAD PROGRAMME DATA
   ====================== */
   useEffect(() => {
     if (!programme) return;
@@ -70,7 +102,7 @@ export default function AdminDashboard() {
     Promise.all([
       apiGet(`/api/admin/programme-plo?programme=${programme}`),
       apiGet(`/api/admin/programme-graduates?programme=${programme}`),
-      apiGet(`/api/admin/programme-active-students?programme=${programme}`),
+      apiGet(`/api/admin/programme-active-students?programme=${programme}`)
     ])
       .then(([plo, grad, active]) => {
         setCQI(plo.plo || null);
@@ -94,7 +126,9 @@ export default function AdminDashboard() {
       >
         <option value="">Select Programme</option>
         {programmes.map(p => (
-          <option key={p} value={p}>{p}</option>
+          <option key={p} value={p}>
+            {p}
+          </option>
         ))}
       </select>
 
@@ -102,12 +136,14 @@ export default function AdminDashboard() {
 
       {loading && <div className="text-gray-500">Loading…</div>}
 
-      {/* ================= TAB 1 ================= */}
+      {/* =====================================================
+         TAB 1 — GRADUATED + CQI
+      ===================================================== */}
       {activeTab === "graduates" && (
         <>
-          {/* GRADUATED COUNT */}
+          {/* COUNT */}
           <div className="bg-white p-4 rounded-xl shadow">
-            <h2 className="font-semibold mb-2">
+            <h2 className="font-semibold">
               Graduated Students: {graduates.length}
             </h2>
           </div>
@@ -121,7 +157,7 @@ export default function AdminDashboard() {
 
               {Object.entries(cqi).map(([plo, v]) => (
                 <div key={plo} className="mb-4">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm mb-1">
                     <span>{plo}</span>
                     <span>{v.percent ?? "-"}%</span>
                   </div>
@@ -150,7 +186,7 @@ export default function AdminDashboard() {
                 <tr>
                   <th className="p-2 text-left">Name</th>
                   <th className="p-2">Matric</th>
-                  <th className="p-2">Email</th>
+                  <th className="p-2">Profile</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,13 +194,13 @@ export default function AdminDashboard() {
                   <tr key={i} className="border-t">
                     <td className="p-2">{s.name}</td>
                     <td className="p-2">{s.matric}</td>
-                    <td className="p-2 text-purple-700">
-                      <a
+                    <td className="p-2">
+                      <Link
                         href={`/admin/student/${encodeURIComponent(s.email)}`}
-                        className="underline"
+                        className="text-purple-600 underline"
                       >
                         View
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -174,26 +210,28 @@ export default function AdminDashboard() {
         </>
       )}
 
-      {/* ================= TAB 2 ================= */}
-            {activeTab === "tracking" && (
+      {/* =====================================================
+         TAB 2 — ACTIVE TRACKING
+      ===================================================== */}
+      {activeTab === "tracking" && (
         <div className="bg-white p-4 rounded-xl shadow">
           <h3 className="font-semibold mb-3">Active Student Tracking</h3>
 
           <table className="w-full text-sm">
             <thead className="bg-gray-100">
               <tr>
-                <th>Name</th>
-                <th>Matric</th>
-                <th>Email</th>
-                <th>Status</th>
+                <th className="p-2 text-left">Name</th>
+                <th className="p-2">Matric</th>
+                <th className="p-2">Profile</th>
+                <th className="p-2">Status</th>
               </tr>
             </thead>
             <tbody>
               {activeStudents.map((s, i) => (
                 <tr key={i} className="border-t">
-                  <td>{s.name}</td>
-                  <td>{s.matric}</td>
-                  <td>
+                  <td className="p-2">{s.name}</td>
+                  <td className="p-2">{s.matric}</td>
+                  <td className="p-2">
                     <Link
                       href={`/admin/student/${encodeURIComponent(s.email)}`}
                       className="text-purple-600 underline"
@@ -201,7 +239,7 @@ export default function AdminDashboard() {
                       View
                     </Link>
                   </td>
-                  <td>{statusBadge(s.status)}</td>
+                  <td className="p-2">{statusBadge(s.status)}</td>
                 </tr>
               ))}
             </tbody>
