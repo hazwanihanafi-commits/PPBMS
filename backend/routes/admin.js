@@ -92,124 +92,116 @@ router.get("/programme-active-students", adminAuth, async (req, res) => {
 
   res.json({ count: students.length, students });
 });
-
 /* =========================================================
-   ADMIN STUDENT DETAIL (SUPERVISOR MIRROR)
+   ADMIN STUDENT DETAIL
+   (EXACT MIRROR OF SUPERVISOR – READ ONLY)
 ========================================================= */
 router.get("/student/:email", adminAuth, async (req, res) => {
-  const key = decodeURIComponent(req.params.email).trim().toLowerCase();
+  try {
+    const email = req.params.email.toLowerCase().trim();
 
-  const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-
-  let studentRows = assessmentRows.filter(r => {
-    const email = String(
-      r["Student's Email"] ||
-      r["Student Email"] ||
-      r.studentemail ||
-      ""
-    ).trim().toLowerCase();
-
-    const matric = String(r.matric || "").trim().toLowerCase();
-    return email === key || matric === key;
-  });
-
-  let student = null;
-
-  if (studentRows.length) {
-    const base = studentRows[0];
-    student = {
-      email: base.studentemail || "",
-      student_id: base.matric || "",
-      student_name: base.studentname || "",
-      programme: base.programme || "",
-      status: base.status || "Active",
-      timeline: [],
-      documents: {},
-      cqiByAssessment: {},
-      remarksByAssessment: {},
-      finalPLO: {},
-    };
-  }
-
-  if (!student) {
-    const master = await readMasterTracking(process.env.SHEET_ID);
-    const m = master.find(r =>
-      String(r["Student's Email"] || "").trim().toLowerCase() === key
+    const masterRows = await readMasterTracking(process.env.SHEET_ID);
+    const raw = masterRows.find(
+      r => (r["Student's Email"] || "").toLowerCase().trim() === email
     );
 
-    if (!m) return res.status(404).json({ row: null });
+    if (!raw) return res.status(404).json({ row: null });
 
-    student = {
-      email: m["Student's Email"],
-      student_id: m.Matric,
-      student_name: m["Student Name"],
-      programme: m.Programme,
-      status: m.Status,
-      field: m.Field,
-      department: m.Department,
-      supervisor: m["Main Supervisor"],
-      coSupervisors: m["Co-Supervisor"],
-      timeline: buildTimelineFromMaster(m),
-      documents: extractDocuments(m),
-      cqiByAssessment: {},
-      remarksByAssessment: {},
-      finalPLO: {},
+    /* ---------- PROFILE ---------- */
+    const profile = {
+      student_id: raw["Matric"] || "",
+      student_name: raw["Student Name"] || "",
+      email,
+      programme: raw["Programme"] || "",
+      field: raw["Field"] || "",
+      department: raw["Department"] || "",
+      status: raw["Status"] || "Active",
+      coSupervisors: raw["Co-Supervisor(s)"]
+        ? raw["Co-Supervisor(s)"]
+            .split(/\d+\.\s*/g)
+            .map(s => s.trim())
+            .filter(Boolean)
+        : []
     };
-  }
 
-  const finalRows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
-  const f = finalRows.find(r => String(r.Matric || "") === student.student_id);
-  if (f) {
+    /* ---------- TIMELINE ---------- */
+    const timeline = buildTimelineForRow(raw);
+
+    /* ---------- DOCUMENTS ---------- */
+    const documents = {};
+    Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
+      documents[label] = raw[column] || "";
+    });
+
+    /* ---------- ASSESSMENT_PLO ---------- */
+    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    const matric = String(raw["Matric"] || "").trim();
+    const studentRows = assessmentRows.filter(
+      r => String(r.matric || r.matricno || "").trim() === matric
+    );
+
+    /* ---------- GROUP BY ASSESSMENT ---------- */
+    const grouped = {};
+    studentRows.forEach(r => {
+      const type = String(r.assessment_type || "").toUpperCase();
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type].push(r);
+    });
+
+    /* ---------- CQI + REMARKS ---------- */
+    const cqiByAssessment = {};
+    const remarksByAssessment = {};
+
+    Object.entries(grouped).forEach(([assessment, rows]) => {
+      const ploResult = {};
+
+      for (let i = 1; i <= 11; i++) {
+        const values = rows
+          .map(r => r[`plo${i}`])
+          .filter(v => typeof v === "number");
+
+        if (!values.length) continue;
+
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+        ploResult[`PLO${i}`] = {
+          average: Number(avg.toFixed(2)),
+          status: avg >= 3 ? "Achieved" : "CQI Required"
+        };
+      }
+
+      if (Object.keys(ploResult).length) {
+        cqiByAssessment[assessment] = ploResult;
+      }
+
+      const remarkRow = rows.find(r => r.remarks && r.remarks.trim());
+      if (remarkRow) remarksByAssessment[assessment] = remarkRow.remarks;
+    });
+
+    /* ---------- FINAL PLO ---------- */
+    const finalPLO = aggregateFinalPLO(cqiByAssessment);
     for (let i = 1; i <= 11; i++) {
-      const v = Number(f[`PLO${i}`]);
-      if (!isNaN(v)) student.finalPLO[`PLO${i}`] = v;
+      if (!finalPLO[`PLO${i}`]) {
+        finalPLO[`PLO${i}`] = { average: null, status: "Not Assessed" };
+      }
     }
+
+    res.json({
+      row: {
+        ...profile,
+        timeline,
+        documents,
+        cqiByAssessment,
+        finalPLO,
+        remarksByAssessment
+      }
+    });
+
+  } catch (e) {
+    console.error("ADMIN student error:", e);
+    res.status(500).json({ error: e.message });
   }
-
-  res.json({ row: student });
 });
-
-/* ================= HELPERS ================= */
-
-function deriveStatus(expected, actual) {
-  if (actual) return "Completed";
-  if (!expected) return "On Track";
-  return new Date(expected) < new Date() ? "Late" : "On Track";
-}
-
-function buildTimelineFromMaster(m) {
-  return [
-    {
-      activity: "Development Plan & Learning Contract",
-      expected: m["Development Plan & Learning Contract - Expected"],
-      actual: m["Development Plan & Learning Contract - Actual"],
-      status: deriveStatus(
-        m["Development Plan & Learning Contract - Expected"],
-        m["Development Plan & Learning Contract - Actual"]
-      ),
-    },
-    {
-      activity: "Proposal Defense Endorsed",
-      expected: m["Proposal Defense Endorsed - Expected"],
-      actual: m["Proposal Defense Endorsed - Actual"],
-      status: deriveStatus(
-        m["Proposal Defense Endorsed - Expected"],
-        m["Proposal Defense Endorsed - Actual"]
-      ),
-    },
-  ];
-}
-
-function extractDocuments(m) {
-  return {
-    DPLC: m.DPLC,
-    SUPERVISION_LOG: m.SUPERVISION_LOG,
-    APR_Y1: m.APR_Y1,
-    APR_Y2: m.APR_Y2,
-    APR_Y3: m.APR_Y3,
-    ETHICS_APPROVAL: m.ETHICS_APPROVAL,
-    FINAL_THESIS: m.FINAL_THESIS,
-  };
-}
 
 export default router;
