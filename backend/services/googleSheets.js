@@ -319,3 +319,48 @@ export async function updatePasswordHash({ email, hash }) {
 
   return true;
 }
+/* =========================================================
+   AUTH USERS
+========================================================= */
+export async function readAuthUsers(sheetId) {
+  return await readSheet(sheetId, "AUTH_USERS!A1:Z");
+}
+
+export async function updateAuthUserPassword({ email, hash }) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "AUTH_USERS!A1:Z",
+  });
+
+  const [headers, ...rows] = res.data.values;
+  const emailCol = headers.indexOf("Email");
+  const passCol = headers.indexOf("PasswordHash");
+  const setCol = headers.indexOf("PasswordSet");
+
+  const rowIndex = rows.findIndex(
+    r => (r[emailCol] || "").toLowerCase().trim() === email
+  );
+
+  if (rowIndex === -1) throw new Error("User not found");
+
+  const rowNum = rowIndex + 2;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `AUTH_USERS!${String.fromCharCode(65 + passCol)}${rowNum}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [[hash]] },
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `AUTH_USERS!${String.fromCharCode(65 + setCol)}${rowNum}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [["TRUE"]] },
+  });
+}
+
