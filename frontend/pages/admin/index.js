@@ -1,267 +1,203 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 
-/* ============================
-   ADMIN DASHBOARD
-============================ */
 export default function AdminDashboard() {
-  const router = useRouter();
-
   const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
-
-  const [plo, setPlo] = useState(null);
+  const [ploCQI, setPloCQI] = useState(null);
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const [loadingProgrammes, setLoadingProgrammes] = useState(true);
-  const [loadingCQI, setLoadingCQI] = useState(false);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-
-  /* ============================
-     AUTH GUARD (ADMIN ONLY)
-  ============================ */
+  /* ===============================
+     LOAD PROGRAMMES
+  =============================== */
   useEffect(() => {
     const token = localStorage.getItem("ppbms_token");
-    const role = localStorage.getItem("ppbms_role");
 
-    if (!token || role !== "admin") {
-      router.replace("/admin/login");
-    }
+    fetch(`${API_BASE}/api/admin/programmes`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(d => setProgrammes(d.programmes || []));
   }, []);
 
-  /* ============================
-     LOAD PROGRAMMES
-  ============================ */
-  useEffect(() => {
-    async function loadProgrammes() {
-      try {
-        const res = await fetch(`${API_BASE}/api/admin/programmes`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-          },
-        });
-        const data = await res.json();
-
-        setProgrammes(data.programmes || []);
-        if (data.programmes?.length) {
-          setProgramme(data.programmes[0]);
-        }
-      } catch (e) {
-        console.error("Programme load error:", e);
-      } finally {
-        setLoadingProgrammes(false);
-      }
-    }
-
-    loadProgrammes();
-  }, []);
-
-  /* ============================
-     LOAD PROGRAMME CQI
-  ============================ */
+  /* ===============================
+     LOAD PROGRAMME DATA
+  =============================== */
   useEffect(() => {
     if (!programme) return;
+    const token = localStorage.getItem("ppbms_token");
+    setLoading(true);
 
-    async function loadCQI() {
-      setLoadingCQI(true);
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(
-            programme
-          )}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-            },
-          }
-        );
-        const data = await res.json();
-        setPlo(data.plo || null);
-      } catch (e) {
-        console.error("CQI error:", e);
-        setPlo(null);
-      } finally {
-        setLoadingCQI(false);
-      }
-    }
+    Promise.all([
+      fetch(
+        `${API_BASE}/api/admin/programme-plo?programme=${encodeURIComponent(programme)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).then(r => r.json()),
 
-    loadCQI();
+      fetch(
+        `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(programme)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).then(r => r.json())
+    ])
+      .then(([ploRes, studentRes]) => {
+        setPloCQI(ploRes.plo || null);
+        setStudents(studentRes.students || []);
+      })
+      .finally(() => setLoading(false));
   }, [programme]);
 
-  /* ============================
-     LOAD STUDENTS
-  ============================ */
-  useEffect(() => {
-    if (!programme) return;
-
-    async function loadStudents() {
-      setLoadingStudents(true);
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/admin/programme-students?programme=${encodeURIComponent(
-            programme
-          )}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-            },
-          }
-        );
-        const data = await res.json();
-        setStudents(data.students || []);
-      } catch (e) {
-        console.error("Student list error:", e);
-        setStudents([]);
-      } finally {
-        setLoadingStudents(false);
-      }
-    }
-
-    loadStudents();
-  }, [programme]);
-
-  /* ============================
+  /* ===============================
      LATE / ON TRACK LOGIC
-  ============================ */
-  function getProgressBadge(student) {
-    if (student.status !== "Active") return null;
+  =============================== */
+  function progressBadge(s) {
+    if (s.status === "Graduated") {
+      return (
+        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-700">
+          Completed
+        </span>
+      );
+    }
 
-    return (
-      <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
+    if (!s.expected_end) {
+      return (
+        <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
+          On Track
+        </span>
+      );
+    }
+
+    const now = new Date();
+    const expected = new Date(s.expected_end);
+
+    return expected < now ? (
+      <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">
+        Late
+      </span>
+    ) : (
+      <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
         On Track
       </span>
     );
   }
 
-  /* ============================
-     RENDER
-  ============================ */
   return (
-    <div className="min-h-screen bg-purple-50 p-6 space-y-6">
-      <h1 className="text-3xl font-extrabold text-purple-900">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-bold text-purple-700">
         Admin Dashboard
       </h1>
 
-      {/* ================= PROGRAMME SELECT ================= */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <label className="block text-sm font-semibold mb-2">
-          Select Programme
-        </label>
+      {/* ===============================
+          PROGRAMME SELECT
+      =============================== */}
+      <select
+        className="w-full p-3 border rounded"
+        value={programme}
+        onChange={e => setProgramme(e.target.value)}
+      >
+        <option value="">Select Programme</option>
+        {programmes.map(p => (
+          <option key={p} value={p}>{p}</option>
+        ))}
+      </select>
 
-        {loadingProgrammes ? (
-          <p className="text-sm text-gray-500">Loading programmes…</p>
-        ) : (
-          <select
-            value={programme}
-            onChange={(e) => setProgramme(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            {programmes.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+      {/* ===============================
+          PROGRAMME CQI
+      =============================== */}
+      {ploCQI && (
+        <div className="bg-white rounded shadow p-4">
+          <h2 className="font-semibold mb-3">
+            Programme CQI (Graduated Students)
+          </h2>
 
-      {/* ================= PROGRAMME CQI ================= */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="text-xl font-bold mb-4">
-          Programme CQI (Graduated Students)
-        </h2>
-
-        {loadingCQI && <p className="text-sm text-gray-500">Loading CQI…</p>}
-
-        {!loadingCQI && !plo && (
-          <p className="text-sm text-gray-500">No CQI data available</p>
-        )}
-
-        {plo &&
-          Object.entries(plo).map(([key, d]) => (
-            <div key={key} className="mb-4">
-              <div className="flex justify-between text-sm font-semibold">
-                <span>{key}</span>
+          {Object.entries(ploCQI).map(([k, v]) => (
+            <div key={k} className="mb-3">
+              <div className="flex justify-between text-sm">
+                <span className="font-medium">{k}</span>
                 <span>
-                  {d.percent ?? "-"}% ({d.achieved}/{d.assessed})
+                  {v.percent !== null ? `${v.percent}%` : "-%"} ({v.achieved}/{v.assessed})
                 </span>
               </div>
 
-              <div className="w-full bg-gray-200 h-2 rounded mt-1">
+              <div className="text-xs text-gray-600">
+                Status: <strong>{v.status}</strong>
+              </div>
+
+              <div className="w-full h-2 bg-gray-200 rounded mt-1">
                 <div
                   className={`h-2 rounded ${
-                    d.status === "Achieved"
+                    v.status === "Achieved"
                       ? "bg-green-500"
-                      : d.status === "Borderline"
+                      : v.status === "Borderline"
                       ? "bg-yellow-500"
                       : "bg-red-500"
                   }`}
-                  style={{ width: `${Math.min(d.percent || 0, 100)}%` }}
+                  style={{ width: `${v.percent || 0}%` }}
                 />
               </div>
-
-              <p className="text-xs mt-1 text-gray-600">
-                Status: <strong>{d.status}</strong>
-              </p>
             </div>
           ))}
-      </div>
+        </div>
+      )}
 
-      {/* ================= STUDENT LIST ================= */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="text-xl font-bold mb-4">
+      {/* ===============================
+          STUDENTS TABLE
+      =============================== */}
+      <div className="bg-white rounded shadow p-4">
+        <h2 className="font-semibold mb-3">
           Students ({students.length})
         </h2>
 
-        {loadingStudents && (
-          <p className="text-sm text-gray-500">Loading students…</p>
-        )}
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 text-left">Email</th>
+              <th className="p-2 text-left">Matric</th>
+              <th className="p-2 text-left">Status</th>
+              <th className="p-2 text-left">Progress</th>
+            </tr>
+          </thead>
 
-        {!loadingStudents && students.length === 0 && (
-          <p className="text-sm text-gray-500">No students found</p>
-        )}
+          <tbody>
+            {students.map((s, i) => (
+              <tr key={i} className="border-t">
+                <td className="p-2 text-purple-700 font-medium">
+                  <a
+                    href={`/supervisor/${encodeURIComponent(s.email)}`}
+                    className="hover:underline"
+                  >
+                    {s.email}
+                  </a>
+                </td>
 
-        {!loadingStudents && students.length > 0 && (
-          <table className="w-full text-sm border">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 text-left">Email</th>
-                <th className="p-2 text-left">Matric</th>
-                <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">Progress</th>
+                <td className="p-2">{s.id}</td>
+
+                <td className="p-2">
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${
+                      s.status === "Graduated"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {s.status}
+                  </span>
+                </td>
+
+                <td className="p-2">
+                  {progressBadge(s)}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {students.map((s, i) => (
-                <tr key={i} className="border-t hover:bg-purple-50">
-                  <td className="p-2 font-medium text-purple-700">
-                    <a
-                      href={`/supervisor/${encodeURIComponent(s.email)}`}
-                      className="hover:underline"
-                    >
-                      {s.email}
-                    </a>
-                  </td>
-                  <td className="p-2">{s.id}</td>
-                  <td className="p-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        s.status === "Graduated"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}
-                    >
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="p-2">{getProgressBadge(s)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      {loading && (
+        <div className="text-center text-gray-500">
+          Loading…
+        </div>
+      )}
     </div>
   );
 }
