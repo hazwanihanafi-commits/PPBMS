@@ -223,5 +223,14 @@ export async function updateASSESSMENT_PLO_Cell({
     requestBody: { values: [[value]] }
   });
 
+
   return true;
+}
+
+   export async function readFINALPROGRAMPLO(sheetId) {
+  const rows = await readSheet(
+    sheetId,
+    "FINALPROGRAMPLO!A1:Z"
+  );
+  return rows;
 }
