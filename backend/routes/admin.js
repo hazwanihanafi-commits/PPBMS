@@ -5,6 +5,7 @@ import { computeProgrammeCQI } from "../utils/computeProgrammeCQI.js";
 
 const router = express.Router();
 
+
 function adminAuth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -19,6 +20,7 @@ function adminAuth(req, res, next) {
   }
 }
 
+
 /* Programmes */
 router.get("/programmes", adminAuth, async (req, res) => {
   const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
@@ -26,22 +28,61 @@ router.get("/programmes", adminAuth, async (req, res) => {
   res.json({ programmes });
 });
 
-/* Programme CQI */
 router.get("/programme-plo", adminAuth, async (req, res) => {
-  const data = await computeProgrammeCQI(
-    req.query.programme,
-    process.env.SHEET_ID
-  );
-  res.json(data);
+  try {
+    const { programme } = req.query;
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
+
+    const data = await computeProgrammeCQI(
+      programme,
+      process.env.SHEET_ID
+    );
+
+    res.json(data);
+  } catch (err) {
+    console.error("❌ Programme CQI error:", err);
+    res.status(500).json({
+      error: "Failed to compute programme CQI",
+      detail: err.message
+    });
+  }
 });
 
-/* Programme students */
 router.get("/programme-students", adminAuth, async (req, res) => {
-  const rows = await readMasterTracking(process.env.SHEET_ID);
-  const students = rows.filter(
-    r => r["Programme"] === req.query.programme
-  );
-  res.json({ students });
+  try {
+    const { programme } = req.query;
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
+
+    if (!process.env.SHEET_ID) {
+      throw new Error("SHEET_ID is not defined");
+    }
+
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    if (!Array.isArray(rows)) {
+      throw new Error("MasterTracking did not return an array");
+    }
+
+    const students = rows.filter(r =>
+      String(r["Programme"] || "").trim() ===
+      String(programme).trim()
+    );
+
+    res.json({
+      count: students.length,
+      students
+    });
+  } catch (err) {
+    console.error("❌ Programme students error:", err);
+    res.status(500).json({
+      error: "Failed to load programme students",
+      detail: err.message
+    });
+  }
 });
 
 export default router;
