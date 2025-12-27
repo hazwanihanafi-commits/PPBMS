@@ -175,50 +175,37 @@ export default function AdminDashboard() {
 
       {/* ================= TAB 2 ================= */}
       {activeTab === "tracking" && (
-        <div className="bg-white p-4 rounded-xl shadow">
-          <h3 className="font-semibold mb-3">Active Student Tracking</h3>
+  <div className="bg-white p-4 rounded-xl shadow">
+    <h3 className="font-semibold mb-3">Active Student Tracking</h3>
 
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 text-left">Matric</th>
-                <th className="p-2">Email</th>
-                <th className="p-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeStudents.map((s, i) => {
-                const status = deriveStatus(s.expected, s.actual);
+    <table className="w-full text-sm">
+      <thead className="bg-gray-100">
+        <tr>
+          <th className="p-2 text-left">Name</th>
+          <th className="p-2">Matric</th>
+          <th className="p-2">Email</th>
+          <th className="p-2">Status</th>
+        </tr>
+      </thead>
 
-                return (
-                  <tr key={i} className="border-t">
-                    <td className="p-2">{s.matric}</td>
-                    <td className="p-2 text-purple-700">
-                      <a
-                        href={`/admin/student/${encodeURIComponent(s.email)}`}
-                        className="underline"
-                      >
-                        View
-                      </a>
-                    </td>
-                    <td className="p-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          status === "Late"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        {status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
+      <tbody>
+        {activeStudents.map((s, i) => (
+          <tr key={i} className="border-t">
+            <td className="p-2">{s.name}</td>
+            <td className="p-2">{s.matric}</td>
+            <td className="p-2 text-purple-700">
+              <Link
+                href={`/admin/student/${encodeURIComponent(s.email)}`}
+                className="underline"
+              >
+                View
+              </Link>
+            </td>
+            <td className="p-2">{statusBadge(s.status)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
