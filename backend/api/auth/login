@@ -1,0 +1,81 @@
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { readMasterTracking, updatePasswordHash } from "../services/googleSheets.js";
+
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    /* ===============================
+       1️⃣ FIND USER (SINGLE SOURCE)
+    =============================== */
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const user = rows.find(
+      r =>
+        (r["Student's Email"] || "")
+          .toLowerCase()
+          .trim() === normalizedEmail ||
+        (r["Main Supervisor's Email"] || "")
+          .toLowerCase()
+          .trim() === normalizedEmail
+    );
+
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    const passwordHash = user.PASSWORD_HASH || "";
+
+    /* ===============================
+       2️⃣ FIRST LOGIN → FORCE SET PASSWORD (ONCE)
+    =============================== */
+    if (!passwordHash) {
+      return res.json({
+        requirePasswordSetup: true,
+        email: normalizedEmail,
+        role: detectRole(user)
+      });
+    }
+
+    /* ===============================
+       3️⃣ NORMAL LOGIN
+    =============================== */
+    if (!password) {
+      return res.status(400).json({ error: "Password required" });
+    }
+
+    const valid = await bcrypt.compare(password, passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
+    /* ===============================
+       4️⃣ ISSUE JWT
+    =============================== */
+    const token = jwt.sign(
+      {
+        email: normalizedEmail,
+        role: detectRole(user)
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "12h" }
+    );
+
+    res.json({
+      token,
+      role: detectRole(user),
+      email: normalizedEmail
+    });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ error: "Login failed" });
+  }
+}
