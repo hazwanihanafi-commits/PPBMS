@@ -7,15 +7,28 @@ import studentRoutes from "./routes/student.js";
 import supervisorRoutes from "./routes/supervisor.js";
 import adminRoutes from "./routes/admin.js";
 import alertsRoutes from "./routes/alerts.js";
-import { verifySMTP } from "./services/mailer.js";
 import systemRoutes from "./routes/system.js";
 
+import { verifySMTP } from "./services/mailer.js";
 
 const app = express();
 
-app.use(cors());
+/* ================= CORE MIDDLEWARE ================= */
+
+// ✅ CORS MUST BE FIRST
+app.use(
+  cors({
+    origin: ["https://ppbms-frontend.onrender.com"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+  })
+);
+
+// ✅ Body parser
 app.use(express.json());
 
+/* ================= HEALTH CHECK ================= */
 
 app.get("/", (_, res) => {
   res.json({ status: "PPBMS backend running" });
@@ -24,29 +37,35 @@ app.get("/", (_, res) => {
 /* ================= ROUTES ================= */
 
 // Auth
-app.use("/auth", authRoutes);               // student + supervisor login
-app.use("/admin-auth", adminAuthRoutes);    // admin login
+app.use("/auth", authRoutes);
+app.use("/admin-auth", adminAuthRoutes);
 
 // APIs
-app.use("/api/student", studentRoutes);     // ✅ REQUIRED
+app.use("/api/student", studentRoutes);
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
+
+// Alerts / system
 app.use("/alerts", alertsRoutes);
-
-
-/* 🔑 VERIFY SMTP ON STARTUP */
-verifySMTP();
-
-// 🔔 SYSTEM / AUTOMATION
 app.use("/system", systemRoutes);
 
-/* ================= 404 ================= */
-// 🚫 Disable caching for APIs
+/* ================= NO CACHE ================= */
+
 app.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
   next();
 });
+
+/* ================= STARTUP CHECKS ================= */
+
+// 🔑 Verify SMTP safely (DO NOT crash server)
+verifySMTP().catch(err =>
+  console.error("⚠️ SMTP verification failed:", err.message)
+);
 
 export default app;
