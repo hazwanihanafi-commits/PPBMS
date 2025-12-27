@@ -1,10 +1,13 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { readAuthUsers, updateAuthUserPassword } from "../services/authUsers.js";
+import { readSheet, writeSheetCell } from "../services/googleSheets.js";
 
 const router = express.Router();
 
+/* =====================================================
+   LOGIN
+===================================================== */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -14,10 +17,12 @@ router.post("/login", async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const users = await readAuthUsers(process.env.SHEET_ID);
-    
+    // 🔹 READ AUTH_USERS SHEET
+    const users = await readSheet(
+      process.env.SHEET_ID,
+      "AUTH_USERS!A1:Z"
+    );
 
-    console.log("AUTH USERS:", users);
     const user = users.find(
       u => (u.Email || "").toLowerCase().trim() === normalizedEmail
     );
@@ -26,14 +31,16 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    // 🔐 First login → force password setup
+    // 🔹 FIRST LOGIN → FORCE SET PASSWORD
     if (!user.PasswordHash) {
       return res.json({
         requirePasswordSetup: true,
-        email: normalizedEmail
+        email: normalizedEmail,
+        role: user.Role
       });
     }
 
+    // 🔹 PASSWORD REQUIRED AFTER SET
     if (!password) {
       return res.status(400).json({ error: "Password required" });
     }
@@ -43,11 +50,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
+    // 🔹 ISSUE JWT
     const token = jwt.sign(
-      {
-        email: normalizedEmail,
-        role: user.Role
-      },
+      { email: normalizedEmail, role: user.Role },
       process.env.JWT_SECRET,
       { expiresIn: "12h" }
     );
@@ -61,6 +66,58 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("LOGIN ERROR:", err);
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+/* =====================================================
+   SET PASSWORD (RUNS ONCE)
+===================================================== */
+router.post("/set-password", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const users = await readSheet(
+      process.env.SHEET_ID,
+      "AUTH_USERS!A1:Z"
+    );
+
+    const rowIndex =
+      users.findIndex(
+        u => (u.Email || "").toLowerCase().trim() === normalizedEmail
+      ) + 2; // +2 because header + 1-based index
+
+    if (rowIndex < 2) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+
+    // 🔹 UPDATE PASSWORD HASH
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "PasswordHash",
+      rowIndex,
+      hash
+    );
+
+    // 🔹 MARK PASSWORD SET
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "PasswordSet",
+      rowIndex,
+      "YES"
+    );
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("SET PASSWORD ERROR:", err);
+    res.status(500).json({ error: "Failed to set password" });
   }
 });
 
