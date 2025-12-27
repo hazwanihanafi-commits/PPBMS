@@ -1,6 +1,5 @@
 import { google } from "googleapis";
 
-/* ================= AUTH ================= */
 function getAuth() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
   return new google.auth.GoogleAuth({
@@ -9,7 +8,6 @@ function getAuth() {
   });
 }
 
-/* ================= READ AUTH USERS ================= */
 export async function readAuthUsers(sheetId) {
   const auth = getAuth();
   const client = await auth.getClient();
@@ -20,14 +18,15 @@ export async function readAuthUsers(sheetId) {
     range: "AUTH_USERS!A1:E",
   });
 
-  const [header, ...rows] = res.data.values;
+  const [header, ...rows] = res.data.values || [];
+  if (!header) return [];
+
   return rows.map(r =>
     Object.fromEntries(header.map((h, i) => [h, r[i] || ""]))
   );
 }
 
-/* ================= UPDATE PASSWORD ================= */
-export async function updateAuthPassword({ email, hash }) {
+export async function updateAuthUserPassword({ email, hash }) {
   const auth = getAuth();
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
@@ -38,33 +37,28 @@ export async function updateAuthPassword({ email, hash }) {
   });
 
   const [header, ...rows] = res.data.values;
-
-  const emailCol = header.indexOf("Email");
-  const hashCol = header.indexOf("PasswordHash");
-  const setCol = header.indexOf("PasswordSet");
-
-  if (emailCol === -1 || hashCol === -1 || setCol === -1) {
-    throw new Error("AUTH_USERS column missing");
-  }
+  const emailIdx = header.indexOf("Email");
+  const passIdx = header.indexOf("PasswordHash");
+  const setIdx = header.indexOf("PasswordSet");
 
   const rowIndex = rows.findIndex(
-    r => r[emailCol].toLowerCase().trim() === email
+    r => (r[emailIdx] || "").toLowerCase().trim() === email
   );
 
-  if (rowIndex === -1) throw new Error("Auth user not found");
+  if (rowIndex === -1) throw new Error("User not found");
 
   const rowNum = rowIndex + 2;
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: process.env.SHEET_ID,
-    range: `AUTH_USERS!${String.fromCharCode(65 + hashCol)}${rowNum}`,
+    range: `AUTH_USERS!${String.fromCharCode(65 + passIdx)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [[hash]] },
   });
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: process.env.SHEET_ID,
-    range: `AUTH_USERS!${String.fromCharCode(65 + setCol)}${rowNum}`,
+    range: `AUTH_USERS!${String.fromCharCode(65 + setIdx)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [["TRUE"]] },
   });
