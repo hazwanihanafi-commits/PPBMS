@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import {
   readFINALPROGRAMPLO,
   readASSESSMENT_PLO,
-  readMasterTracking
+  readMasterTracking,
 } from "../services/googleSheets.js";
 
 import { computeProgrammeCQI } from "../utils/computeProgrammeCQI.js";
@@ -12,7 +12,6 @@ import { computeProgrammeCQI } from "../utils/computeProgrammeCQI.js";
 const router = express.Router();
 
 /* ================= AUTH ================= */
-
 function adminAuth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
@@ -29,10 +28,10 @@ function adminAuth(req, res, next) {
   }
 }
 
-/* ================= PROGRAMME LIST ================= */
-/**
- * SOURCE OF TRUTH: FINALPROGRAMPLO
- */
+/* =========================================================
+   PROGRAMME LIST (ADMIN DASHBOARD)
+   SOURCE: FINALPROGRAMPLO
+========================================================= */
 router.get("/programmes", adminAuth, async (req, res) => {
   try {
     const rows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
@@ -42,7 +41,7 @@ router.get("/programmes", adminAuth, async (req, res) => {
         rows
           .map(r => String(r.Programme || "").trim())
           .filter(Boolean)
-      )
+      ),
     ];
 
     res.json({ programmes });
@@ -52,8 +51,9 @@ router.get("/programmes", adminAuth, async (req, res) => {
   }
 });
 
-/* ================= PROGRAMME CQI ================= */
-
+/* =========================================================
+   PROGRAMME CQI
+========================================================= */
 router.get("/programme-plo", adminAuth, async (req, res) => {
   try {
     const { programme } = req.query;
@@ -71,99 +71,57 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
     console.error("❌ Programme CQI error:", err);
     res.status(500).json({
       error: "Failed to compute programme CQI",
-      detail: err.message
+      detail: err.message,
     });
   }
 });
 
-/* ================= ADMIN STUDENT VIEW ================= */
-
-router.get("/student/:email", adminAuth, async (req, res) => {
+/* =========================================================
+   PROGRAMME STUDENTS (ADMIN DASHBOARD TABLE)
+   SOURCE: MASTERTRACKING
+========================================================= */
+router.get("/programme-students", adminAuth, async (req, res) => {
   try {
-    const key = decodeURIComponent(req.params.email)
-      .trim()
-      .toLowerCase();
+    const { programme } = req.query;
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
 
-    /* ===============================
-       STEP 1: LOCATE STUDENT FROM ASSESSMENT_PLO
-    =============================== */
-    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const studentRows = assessmentRows.filter(r => {
-      const email =
-        String(r.studentemail || r["student_email"] || "")
-          .trim()
-          .toLowerCase();
+    const students = rows
+      .filter(
+        r => String(r.Programme || "").trim() === programme.trim()
+      )
+      .map(r => ({
+        email: r.Email || r["Student Email"] || "",
+        matric: r.Matric || "",
+        status: r.Status || "Active",
+      }));
 
-      const matric =
-        String(r.matric || "")
-          .trim()
-          .toLowerCase();
-
-      return email === key || matric === key;
+    res.json({
+      count: students.length,
+      students,
     });
-
-    if (studentRows.length === 0) {
-      return res.status(404).json({ row: null });
-    }
-
-    /* ===============================
-       STEP 2: BASIC STUDENT PROFILE
-    =============================== */
-    const base = studentRows[0];
-
-    const student = {
-      email: base.studentemail || "",
-      matric: base.matric || "",
-      student_name: base.studentname || "",
-      programme: base.programme || "",
-      status: base.status || "Active",
-      timeline: [],
-      documents: {}
-    };
-
-    /* ===============================
-       STEP 3: OPTIONAL ENRICHMENT FROM MASTERTRACKING
-    =============================== */
-    try {
-      const master = await readMasterTracking(process.env.SHEET_ID);
-
-      const match = master.find(m =>
-        String(m["Matric"] || "").trim() === student.matric
-      );
-
-      if (match) {
-        student.field = match["Field"] || "";
-        student.department = match["Department"] || "";
-        student.supervisor = match["Main Supervisor"] || "";
-        student.cosupervisors = match["Co-Supervisor"] || "";
-      }
-    } catch {
-      /* enrichment optional */
-    }
-
-    res.json({ row: student });
-
   } catch (err) {
-    console.error("❌ ADMIN STUDENT VIEW ERROR:", err);
+    console.error("❌ Programme students error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-/* ================= PROGRAMME STUDENTS ================= */
-/**
- * SOURCE: MASTERTRACKING
- * PURPOSE: Admin dashboard student table
- */
+/* =========================================================
+   ADMIN STUDENT VIEW (DETAIL PAGE)
+   SOURCE: ASSESSMENT_PLO + MASTERTRACKING
+========================================================= */
 router.get("/student/:email", adminAuth, async (req, res) => {
   try {
     const key = decodeURIComponent(req.params.email)
       .trim()
       .toLowerCase();
 
-    const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
+    const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
 
-    const studentRows = rows.filter(r => {
+    const matches = assessmentRows.filter(r => {
       const email =
         String(
           r["Student's Email"] ||
@@ -175,16 +133,18 @@ router.get("/student/:email", adminAuth, async (req, res) => {
           .trim()
           .toLowerCase();
 
-      const matric = String(r.matric || "").trim().toLowerCase();
+      const matric = String(r.matric || "")
+        .trim()
+        .toLowerCase();
 
       return email === key || matric === key;
     });
 
-    if (studentRows.length === 0) {
+    if (!matches.length) {
       return res.status(404).json({ row: null });
     }
 
-    const base = studentRows[0];
+    const base = matches[0];
 
     const student = {
       email:
@@ -200,27 +160,28 @@ router.get("/student/:email", adminAuth, async (req, res) => {
       documents: {},
     };
 
-    // OPTIONAL: enrich from MasterTracking
+    /* ===== Optional enrichment from MASTERTRACKING ===== */
     try {
       const master = await readMasterTracking(process.env.SHEET_ID);
-      const match = master.find(
-        m => String(m.Matric || "").trim() === student.matric
+      const m = master.find(
+        x => String(x.Matric || "").trim() === student.matric
       );
 
-      if (match) {
-        student.field = match.Field || "";
-        student.department = match.Department || "";
-        student.supervisor = match["Main Supervisor"] || "";
-        student.coSupervisors = match["Co-Supervisor"] || "";
+      if (m) {
+        student.field = m.Field || "";
+        student.department = m.Department || "";
+        student.supervisor = m["Main Supervisor"] || "";
+        student.coSupervisors = m["Co-Supervisor"] || "";
       }
-    } catch {}
+    } catch {
+      /* enrichment optional */
+    }
 
     res.json({ row: student });
   } catch (err) {
-    console.error("ADMIN STUDENT ERROR:", err);
+    console.error("❌ ADMIN STUDENT VIEW ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
 
 export default router;
