@@ -1,10 +1,10 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
 import {
-  readSheet, 
-   writeSheetCell, 
-   readAuthUsers,
+  readSheet,
+  readAuthUsers,
   updateAuthUserPassword
 } from "../services/googleSheets.js";
 
@@ -16,9 +16,13 @@ const router = express.Router();
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email) {
       return res.status(400).json({ error: "Email required" });
     }
+
+    // ✅ NORMALIZE EMAIL ONCE
+    const normalizedEmail = email.toLowerCase().trim();
 
     // 🔹 READ AUTH_USERS SHEET
     const users = await readSheet(
@@ -34,7 +38,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    // 🔹 FIRST LOGIN → FORCE SET PASSWORD
+    /* ================= FIRST LOGIN ================= */
     if (!user.PasswordHash) {
       return res.json({
         requirePasswordSetup: true,
@@ -43,7 +47,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // 🔹 PASSWORD REQUIRED AFTER SET
+    /* ================= PASSWORD CHECK ================= */
     if (!password) {
       return res.status(400).json({ error: "Password required" });
     }
@@ -53,14 +57,17 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    // 🔹 ISSUE JWT
+    /* ================= ISSUE JWT ================= */
     const token = jwt.sign(
-      { email: normalizedEmail, role: user.Role },
+      {
+        email: normalizedEmail,
+        role: user.Role
+      },
       process.env.JWT_SECRET,
       { expiresIn: "12h" }
     );
 
-    res.json({
+    return res.json({
       token,
       role: user.Role,
       email: normalizedEmail
@@ -68,49 +75,45 @@ router.post("/login", async (req, res) => {
 
   } catch (err) {
     console.error("LOGIN ERROR:", err);
-    res.status(500).json({ error: "Login failed" });
+    return res.status(500).json({ error: "Login failed" });
   }
 });
 
 /* =====================================================
-   SET PASSWORD (RUNS ONCE)
-===================================================== */
-/* =====================================================
-   SET PASSWORD (AUTH_USERS ONLY)
+   SET PASSWORD (RUNS ONLY ONCE)
 ===================================================== */
 router.post("/set-password", async (req, res) => {
   try {
-    const email = req.body.email.toLowerCase().trim();
-const password = req.body.password;
+    const email = req.body.email?.toLowerCase().trim();
+    const password = req.body.password;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Missing email or password" });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // 1️⃣ READ AUTH_USERS
+    // 🔹 READ AUTH_USERS
     const users = await readAuthUsers(process.env.SHEET_ID);
 
     const user = users.find(
-      u => (u.Email || "").toLowerCase().trim() === normalizedEmail
+      u => (u.Email || "").toLowerCase().trim() === email
     );
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // ❌ BLOCK RESET IF PASSWORD ALREADY EXISTS
     if (user.PasswordHash) {
       return res.status(400).json({ error: "Password already set" });
     }
 
-    // 2️⃣ HASH PASSWORD
+    // 🔐 HASH PASSWORD
     const hash = await bcrypt.hash(password, 10);
 
-    // 3️⃣ WRITE TO AUTH_USERS  ✅ (THIS WAS THE BUG)
+    // ✅ WRITE HASH TO AUTH_USERS
     await updateAuthUserPassword({
       sheetId: process.env.SHEET_ID,
-      email: normalizedEmail,
+      email,
       hash
     });
 
@@ -123,5 +126,3 @@ const password = req.body.password;
 });
 
 export default router;
-
-   
