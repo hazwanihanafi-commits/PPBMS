@@ -1,12 +1,14 @@
+// backend/routes/student.js
 import express from "express";
 import jwt from "jsonwebtoken";
-import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js";
+import {
+  readMasterTracking,
+  writeSheetCell,
+} from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { resetSheetCache } from "../utils/sheetCache.js";
-import { columnNumberToLetter } from "../utils/columnUtils.js";
 
 const router = express.Router();
-const SHEET = "MasterTracking";
 
 /* ================= AUTH ================= */
 function auth(req, res, next) {
@@ -30,11 +32,10 @@ router.get("/me", auth, async (req, res) => {
     const raw = rows.find(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
-
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const profile = {
-      student_id: raw["Matric"] || raw["Matric No"] || raw["Student ID"] || "",
+      student_id: raw["Matric"] || raw["Matric No"] || "",
       student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
@@ -87,25 +88,17 @@ router.post("/update-actual", auth, async (req, res) => {
     if (!activity || !date)
       return res.status(400).json({ error: "Missing data" });
 
-    const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
-    const headers = Object.keys(rows[0]);
-
     const idx = rows.findIndex(
-      r => (r["Student's Email"] || "").toLowerCase() === email
+      r =>
+        (r["Student's Email"] || "").toLowerCase() ===
+        req.user.email.toLowerCase()
     );
-    if (idx === -1)
-      return res.status(404).json({ error: "Student not found" });
-
-    const colIndex = headers.indexOf(`${activity} - Actual`);
-    if (colIndex === -1)
-      return res.status(400).json({ error: "Column not found" });
-
-    const col = columnNumberToLetter(colIndex + 1);
+    if (idx === -1) return res.status(404).json({ error: "Student not found" });
 
     await writeSheetCell(
       process.env.SHEET_ID,
-      `${SHEET}!${col}${idx + 2}`,
+      `MasterTracking!${activity} - Actual${idx + 2}`,
       date
     );
 
@@ -117,32 +110,24 @@ router.post("/update-actual", auth, async (req, res) => {
   }
 });
 
-/* ================= SAVE DOCUMENT ================= */
+/* ================= SAVE DOCUMENT LINK ================= */
 router.post("/save-document", auth, async (req, res) => {
   try {
     const { document_key, file_url } = req.body;
     if (!document_key)
       return res.status(400).json({ error: "Missing document_key" });
 
-    const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
-    const headers = Object.keys(rows[0]);
-
     const idx = rows.findIndex(
-      r => (r["Student's Email"] || "").toLowerCase() === email
+      r =>
+        (r["Student's Email"] || "").toLowerCase() ===
+        req.user.email.toLowerCase()
     );
-    if (idx === -1)
-      return res.status(404).json({ error: "Student not found" });
-
-    const colIndex = headers.indexOf(document_key);
-    if (colIndex === -1)
-      return res.status(400).json({ error: "Column not found" });
-
-    const col = columnNumberToLetter(colIndex + 1);
+    if (idx === -1) return res.status(404).json({ error: "Student not found" });
 
     await writeSheetCell(
       process.env.SHEET_ID,
-      `${SHEET}!${col}${idx + 2}`,
+      `MasterTracking!${document_key}${idx + 2}`,
       file_url || ""
     );
 
