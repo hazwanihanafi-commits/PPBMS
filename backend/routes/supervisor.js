@@ -45,23 +45,18 @@ router.get("/students", auth, async (req, res) => {
   try {
     const supervisorEmail = req.user.email.toLowerCase().trim();
 
+    // ✅ ONLY MASTER TRACKING
     const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    console.log("Supervisor:", supervisorEmail);
 
     const students = rows
       .filter(r => {
-        const mainEmail = String(r["Main Supervisor's Email"] || "")
+        const mainSupervisor = String(
+          r["Main Supervisor's Email"] || ""
+        )
           .toLowerCase()
           .trim();
 
-        // DEBUG LOG (IMPORTANT)
-        console.log(
-          "Student:", r["Student Name"],
-          "| Main Supervisor:", mainEmail
-        );
-
-        return mainEmail === supervisorEmail;
+        return mainSupervisor === supervisorEmail;
       })
       .map(r => {
         const timeline = buildTimelineForRow(r);
@@ -84,8 +79,6 @@ router.get("/students", auth, async (req, res) => {
           status
         };
       });
-
-    console.log("Matched students:", students.length);
 
     res.json({ students });
 
