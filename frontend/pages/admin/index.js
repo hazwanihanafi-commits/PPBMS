@@ -141,9 +141,12 @@ export default function AdminDashboard() {
       {/* ================= FINAL PROGRAMME PLO (KEEP) ================= */}
       {cqi && (
         <div className="bg-white p-6 rounded-xl shadow">
-          <h3 className="font-semibold mb-4">
-            Final Programme PLO Achievement
-          </h3>
+         <h3 className="font-semibold mb-1">
+  Final Programme PLO Achievement
+</h3>
+<p className="text-xs text-gray-500 mb-4">
+  Based on {cqi.graduates} graduated student(s)
+</p>
 
           {Object.entries(cqi).map(([plo, v]) => (
             <div key={plo} className="mb-3">
