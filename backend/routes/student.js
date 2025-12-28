@@ -35,22 +35,21 @@ router.get("/me", auth, async (req, res) => {
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const profile = {
-  student_id:
-    raw["Matric"] ||
-    raw["Matric No"] ||
-    raw["Student ID"] ||
-    "",
-
-  student_name: raw["Student Name"] || "",
-  email: raw["Student's Email"] || "",
-  programme: raw["Programme"] || "",
-  start_date: raw["Start Date"] || "",
-  field: raw["Field"] || "",
-  department: raw["Department"] || "",
-  supervisor: raw["Main Supervisor"] || "",
-  cosupervisors: raw["Co-Supervisor(s)"] || "",
-  status: raw["Status"] || "",
-};
+      student_id:
+        raw["Matric"] ||
+        raw["Matric No"] ||
+        raw["Student ID"] ||
+        "",
+      student_name: raw["Student Name"] || "",
+      email: raw["Student's Email"] || "",
+      programme: raw["Programme"] || "",
+      start_date: raw["Start Date"] || "",
+      field: raw["Field"] || "",
+      department: raw["Department"] || "",
+      supervisor: raw["Main Supervisor"] || "",
+      cosupervisors: raw["Co-Supervisor(s)"] || "",
+      status: raw["Status"] || "",
+    };
 
     /* ---------- DOCUMENTS ---------- */
     const DOCUMENT_KEYS = [
@@ -71,9 +70,7 @@ router.get("/me", auth, async (req, res) => {
 
     const documents = {};
     DOCUMENT_KEYS.forEach(key => {
-      const val = raw[key];
-      documents[key] =
-        val !== undefined && val !== null ? String(val).trim() : "";
+      documents[key] = raw[key] ? String(raw[key]).trim() : "";
     });
 
     /* ---------- TIMELINE ---------- */
@@ -113,25 +110,33 @@ router.post("/update-actual", auth, async (req, res) => {
 
     if (date !== undefined) {
       await writeSheetCell(
-  process.env.SHEET_ID,
-  "MasterTracking",           // ✅ sheet name
-  `${activity} - Actual`,     // ✅ column name
-  idx + 2,                    // ✅ row number
-  date
-);
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${activity} - Actual`,
+        idx + 2,
+        date
+      );
     }
 
     if (remark !== undefined) {
       await writeSheetCell(
-  process.env.SHEET_ID,
-  "MasterTracking",
-  `${activity} - Remark`,
-  idx + 2,
-  remark
-);
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${activity} - Remark`,
+        idx + 2,
+        remark
+      );
     }
 
+    resetSheetCache();
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
+/* ================= UPDATE DOCUMENT ================= */
 router.post("/update-document", auth, async (req, res) => {
   try {
     const { key, value } = req.body;
@@ -144,14 +149,13 @@ router.post("/update-document", auth, async (req, res) => {
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
-    if (idx === -1) {
+    if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
-    }
 
     await writeSheetCell(
       process.env.SHEET_ID,
-      "MasterTracking",   // ✅ correct sheet
-      key,               // e.g. DPLC, APR_Y1, etc
+      "MasterTracking",
+      key,
       idx + 2,
       value || ""
     );
@@ -163,8 +167,5 @@ router.post("/update-document", auth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
-
-
 
 export default router;
