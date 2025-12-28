@@ -25,7 +25,7 @@ export default function FinalPLOTable({ finalPLO }) {
         <thead className="bg-purple-100 text-purple-700">
           <tr>
             <th className="p-3 text-left">PLO</th>
-            <th className="p-3 text-center">Average Score</th>
+            <th className="p-3 text-center">Achievement</th>
             <th className="p-3 text-center">Status</th>
           </tr>
         </thead>
@@ -35,11 +35,18 @@ export default function FinalPLOTable({ finalPLO }) {
             <tr key={plo} className="border-t">
               <td className="p-3 font-semibold">{plo}</td>
 
-              <td className="p-3 text-center">
-                {d?.average !== null && d?.average !== undefined
-                  ? d.average
-                  : "-"}
-              </td>
+              <td className="p-3 text-center font-medium">
+  {graduatedCount > 0 && d?.achieved !== undefined ? (
+    <>
+      {d.achieved}/{graduatedCount}
+      <span className="text-xs text-gray-500 ml-1">
+        ({d.percentage}%)
+      </span>
+    </>
+  ) : (
+    "-"
+  )}
+</td>
 
               <td className="p-3 text-center">
                 <span
