@@ -41,22 +41,33 @@ router.use((req, res, next) => {
    GET /api/supervisor/students
    → Supervisor Dashboard List (FIXED)
 ========================================================= */
-router.get("/students", auth, async (req, res) => {
+  router.get("/students", auth, async (req, res) => {
   try {
     const supervisorEmail = req.user.email.toLowerCase().trim();
-
-    // ✅ ONLY MASTER TRACKING
     const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    console.log("👤 Supervisor:", supervisorEmail);
+    console.log("📊 Total rows:", rows.length);
 
     const students = rows
       .filter(r => {
-        const mainSupervisor = String(
-          r["Main Supervisor's Email"] || ""
-        )
-          .toLowerCase()
-          .trim();
+        // 🔒 BULLETPROOF column access
+        const mainEmail =
+          r["Main Supervisor's Email"] ||
+          r["Main Supervisor Email"] ||
+          r["Main Supervisor"] ||
+          "";
 
-        return mainSupervisor === supervisorEmail;
+        const normalized = String(mainEmail).toLowerCase().trim();
+
+        console.log(
+          "➡ Student:",
+          r["Student Name"],
+          "| Supervisor:",
+          normalized
+        );
+
+        return normalized === supervisorEmail;
       })
       .map(r => {
         const timeline = buildTimelineForRow(r);
@@ -80,10 +91,12 @@ router.get("/students", auth, async (req, res) => {
         };
       });
 
+    console.log("✅ Matched students:", students.length);
+
     res.json({ students });
 
   } catch (e) {
-    console.error("Supervisor dashboard error:", e);
+    console.error("❌ Supervisor dashboard error:", e);
     res.status(500).json({ error: e.message });
   }
 });
