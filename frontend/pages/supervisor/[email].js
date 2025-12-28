@@ -122,7 +122,6 @@ useEffect(() => {
 const remarksByAssessment = student?.remarksByAssessment || {};
 
   return (
-  return (
   <>
     <TopBar user={user} />
 
