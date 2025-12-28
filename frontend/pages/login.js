@@ -11,8 +11,8 @@ export default function LoginPage() {
 
   async function handleLogin(e) {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setLoading(true);
 
     try {
       const res = await fetch(
@@ -27,25 +27,32 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        setError(data.error || "Login failed");
+        setLoading(false);
+        return;
       }
 
-      /* 🔐 SAVE AUTH — THIS WAS MISSING */
+      // ✅ STORE AUTH (SINGLE SOURCE OF TRUTH)
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
       localStorage.setItem("ppbms_email", data.email);
 
-      /* 🔀 REDIRECT */
-      if (data.role === "admin") router.replace("/admin");
-      else if (data.role === "supervisor") router.replace("/supervisor");
-      else if (data.role === "student") router.replace("/student");
-      else throw new Error("Unknown role");
+      // ✅ ROLE-BASED REDIRECT
+      if (data.role === "student") {
+        router.replace("/student");
+      } else if (data.role === "supervisor") {
+        router.replace("/supervisor");
+      } else if (data.role === "admin") {
+        router.replace("/admin");
+      } else {
+        setError("Unknown role");
+      }
 
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      setError("Server error");
     }
+
+    setLoading(false);
   }
 
   return (
@@ -54,9 +61,7 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="bg-white p-6 rounded-xl shadow w-96 space-y-4"
       >
-        <h1 className="text-xl font-bold text-purple-700">
-          PPBMS Login
-        </h1>
+        <h1 className="text-xl font-bold text-purple-700">PPBMS Login</h1>
 
         <input
           className="w-full border p-2 rounded"
@@ -75,16 +80,14 @@ export default function LoginPage() {
           required
         />
 
-        {error && (
-          <p className="text-red-600 text-sm">{error}</p>
-        )}
+        {error && <p className="text-red-600 text-sm">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-purple-600 text-white py-2 rounded"
+          className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
         >
-          {loading ? "Logging in…" : "Login"}
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>
