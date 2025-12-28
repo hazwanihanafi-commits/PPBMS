@@ -231,3 +231,46 @@ export async function updateASSESSMENT_PLO_Remark({
 export async function readFINALPROGRAMPLO(sheetId) {
   return await readSheet(sheetId, "FINALPROGRAMPLO!A1:Z");
 }
+
+/* =========================================================
+   UPDATE ASSESSMENT_PLO CELL (NUMERIC / SCORE UPDATE)
+========================================================= */
+export async function updateASSESSMENT_PLO_Cell({
+  rowIndex,
+  column,
+  value
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  // Read header row
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range: "ASSESSMENT_PLO!A1:ZZ1",
+  });
+
+  const headers = headerRes.data.values[0]
+    .map(h => h.toString().trim().toLowerCase());
+
+  const colIdx = headers.indexOf(column.toLowerCase());
+  if (colIdx === -1)
+    throw new Error(`Column not found in ASSESSMENT_PLO: ${column}`);
+
+  // Convert index → column letter
+  let colLetter = "";
+  let n = colIdx;
+  while (n >= 0) {
+    colLetter = String.fromCharCode((n % 26) + 65) + colLetter;
+    n = Math.floor(n / 26) - 1;
+  }
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: `ASSESSMENT_PLO!${colLetter}${rowIndex}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[value]] },
+  });
+
+  return true;
+}
