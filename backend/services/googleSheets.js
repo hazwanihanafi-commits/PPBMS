@@ -132,3 +132,81 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
 
   return true;
 }
+
+/* =========================================================
+   ASSESSMENT_PLO READ (REQUIRED BY SUPERVISOR ROUTES)
+========================================================= */
+export async function readASSESSMENT_PLO(sheetId) {
+  const auth = getAuth(true);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "ASSESSMENT_PLO!A1:ZZ999",
+  });
+
+  const rows = res.data.values || [];
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(h =>
+    (h || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+  );
+
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      let v = row[i] ?? "";
+      if (typeof v === "string") v = v.trim();
+      if (h.startsWith("plo")) v = v === "" ? null : Number(v);
+      obj[h] = v;
+    });
+    return obj;
+  });
+}
+
+/* =========================================================
+   UPDATE ASSESSMENT_PLO CELL (REQUIRED)
+========================================================= */
+export async function updateASSESSMENT_PLO_Cell({
+  rowIndex,
+  column,
+  value,
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range: "ASSESSMENT_PLO!A1:ZZ1",
+  });
+
+  const headers = headerRes.data.values[0]
+    .map(h => h.toString().trim().toLowerCase());
+
+  const colIdx = headers.indexOf(column.toLowerCase());
+  if (colIdx === -1)
+    throw new Error(`Column not found: ${column}`);
+
+  // convert index → column letter
+  let col = "";
+  let n = colIdx;
+  while (n >= 0) {
+    col = String.fromCharCode((n % 26) + 65) + col;
+    n = Math.floor(n / 26) - 1;
+  }
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: `ASSESSMENT_PLO!${col}${rowIndex}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[value]] },
+  });
+
+  return true;
+}
