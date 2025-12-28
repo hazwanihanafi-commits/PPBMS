@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "../utils/api";
+
+export default function LoginPage() {
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,88 +20,95 @@ import { API_BASE } from "../utils/api";
 
     if (!token || !role) return;
 
-    if (role === "supervisor") {
-      router.replace("/supervisor");
-    } else if (role === "student") {
-      router.replace("/student");
-    } else if (role === "admin") {
-      router.replace("/admin");
-    }
+    if (role === "admin") router.replace("/admin");
+    else if (role === "supervisor") router.replace("/supervisor");
+    else router.replace("/student");
   }, [router.isReady]);
 
   /* =====================================
      LOGIN HANDLER
   ===================================== */
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
   async function handleLogin(e) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE}/auth/login`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+        return;
       }
-    );
 
-    const data = await res.json();
+      /* 🔑 FIRST LOGIN → SET PASSWORD */
+      if (data.requirePasswordSetup) {
+        localStorage.setItem("ppbms_email", data.email);
+        localStorage.setItem("ppbms_role", data.role);
+        router.push("/set-password");
+        return;
+      }
 
-    /* ❌ login failed */
-    if (!res.ok) {
-      setError(data.error || "Login failed");
-      return;
-    }
-
-    /* 🔑 FIRST LOGIN → SET PASSWORD */
-    if (data.requirePasswordSetup) {
-      localStorage.setItem("ppbms_email", data.email);
+      /* ✅ NORMAL LOGIN */
+      localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
-      router.push("/set-password");
-      return;
-    }
+      localStorage.setItem("ppbms_email", data.email);
 
-    /* ✅ NORMAL LOGIN */
-    localStorage.setItem("ppbms_token", data.token);
-    localStorage.setItem("ppbms_role", data.role);
-    localStorage.setItem("ppbms_email", data.email);
+      /* 🔀 ROLE-BASED REDIRECT */
+      if (data.role === "admin") router.push("/admin");
+      else if (data.role === "supervisor") router.push("/supervisor");
+      else router.push("/student");
 
-    /* 🔀 ROLE-BASED REDIRECT */
-    if (data.role === "admin") {
-      router.push("/admin");
-    } else if (data.role === "supervisor") {
-      router.push("/supervisor");
-    } else {
-      router.push("/student");
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleLogin}>
-      <input
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        placeholder="Email"
-        required
-      />
+    <div className="min-h-screen flex items-center justify-center">
+      <form
+        onSubmit={handleLogin}
+        className="bg-white p-6 rounded-xl shadow w-96 space-y-4"
+      >
+        <h1 className="text-xl font-bold text-purple-700">PPBMS Login</h1>
 
-      <input
-        type="password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        placeholder="Password"
-      />
+        <input
+          className="w-full border p-2 rounded"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Email"
+          required
+        />
 
-      {error && <p className="text-red-600">{error}</p>}
+        <input
+          className="w-full border p-2 rounded"
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Password"
+        />
 
-      <button type="submit">Login</button>
-    </form>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+      </form>
+    </div>
   );
 }
