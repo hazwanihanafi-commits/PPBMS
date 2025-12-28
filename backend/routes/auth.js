@@ -37,7 +37,7 @@ router.post("/login", async (req, res) => {
       return res.json({
         requirePasswordSetup: true,
         email: normalizedEmail,
-        role: user.Role
+        role: user.Role.toLoweCase(),
       });
     }
 
@@ -52,14 +52,14 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { email: normalizedEmail, role: user.Role },
+      { email: normalizedEmail, role: user.Role.toLoweCase()},
       process.env.JWT_SECRET,
       { expiresIn: "12h" }
     );
 
     return res.json({
       token,
-      role: user.Role,
+      role: user.Role.toLoweCase(),
       email: normalizedEmail
     });
 
