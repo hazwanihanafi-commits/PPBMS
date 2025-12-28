@@ -51,17 +51,26 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    const token = jwt.sign(
-      { email: normalizedEmail, role: user.Role.toLoweCase()},
-      process.env.JWT_SECRET,
-      { expiresIn: "12h" }
-    );
+    const role = (user.Role || "").trim().toLowerCase();
 
-    return res.json({
-      token,
-      role: user.Role.toLoweCase(),
-      email: normalizedEmail
-    });
+if (!["student", "supervisor", "admin"].includes(role)) {
+  return res.status(400).json({
+    error: "Invalid role assigned to user"
+  });
+}
+
+const token = jwt.sign(
+  { email: normalizedEmail, role },
+  process.env.JWT_SECRET,
+  { expiresIn: "12h" }
+);
+
+return res.json({
+  token,
+  role,
+  email: normalizedEmail
+});
+
 
   } catch (err) {
     console.error("LOGIN ERROR:", err);
