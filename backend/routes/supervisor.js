@@ -125,23 +125,25 @@ router.get("/student/:email", auth, async (req, res) => {
     const timeline = buildTimelineForRow(raw);
 
     /* ---------- DOCUMENTS ---------- */
-    const documents = {};
-    [
-      "DPLC",
-      "SUPERVISION_LOG",
-      "APR_Y1",
-      "APR_Y2",
-      "APR_Y3",
-      "ETHICS_APPROVAL",
-      "PUBLICATION_ACCEPTANCE",
-      "PROOF_OF_SUBMISSION",
-      "CONFERENCE_PRESENTATION",
-      "THESIS_NOTICE",
-      "VIVA_REPORT",
-      "FINAL_THESIS"
-    ].forEach(k => {
-      documents[k] = raw[k] || "";
-    });
+  const DOC_MAP = {
+  "Development Plan & Learning Contract (DPLC)": "DPLC",
+  "Student Supervision Logbook": "SUPERVISION_LOG",
+  "Annual Progress Review – Year 1": "APR_Y1",
+  "Annual Progress Review – Year 2": "APR_Y2",
+  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
+  "Ethics Approval": "ETHICS_APPROVAL",
+  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
+  "Proof of Submission": "PROOF_OF_SUBMISSION",
+  "Conference Presentation": "CONFERENCE_PRESENTATION",
+  "Thesis Notice": "THESIS_NOTICE",
+  "Viva Report": "VIVA_REPORT",
+  "Final Thesis": "FINAL_THESIS"
+};
+
+const documents = {};
+Object.entries(DOC_MAP).forEach(([label, col]) => {
+  documents[label] = raw[col] || "";
+});
 
     /* ---------- ASSESSMENT PLO ---------- */
     const assessmentRows = await readASSESSMENT_PLO(process.env.SHEET_ID);
