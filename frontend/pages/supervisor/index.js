@@ -22,8 +22,13 @@ export default function SupervisorDashboard() {
     const token = localStorage.getItem("ppbms_token");
 
     fetch(`${API_BASE}/api/supervisor/students`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+  method: "GET",
+  cache: "no-store",               // 🔥 THIS LINE
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Cache-Control": "no-cache"
+  }
+})
       .then(res => res.json())
       .then(data => {
         console.log("Supervisor students:", data);
