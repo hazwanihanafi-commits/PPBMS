@@ -32,6 +32,11 @@ function auth(req, res, next) {
   }
 }
 
+router.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 /* =========================================================
    GET /api/supervisor/students
    → Supervisor Dashboard List (FIXED)
