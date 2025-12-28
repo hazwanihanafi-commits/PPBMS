@@ -1,139 +1,74 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import Link from "next/link";
 import { apiGet } from "@/utils/api";
 
-/* ======================
-   TABS
-====================== */
-function Tabs({ active, setActive }) {
-  const Tab = ({ id, label }) => (
-    <button
-      onClick={() => setActive(id)}
-      className={`px-4 py-2 rounded-xl font-semibold ${
-        active === id
-          ? "bg-purple-600 text-white"
-          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-      }`}
-    >
-      {label}
-    </button>
-  );
+/* ================= STATUS BADGE ================= */
+function StatusBadge({ status }) {
+  const map = {
+    COMPLETED: "bg-green-100 text-green-700",
+    LATE: "bg-red-100 text-red-700",
+    ON_TRACK: "bg-blue-100 text-blue-700"
+  };
 
   return (
-    <div className="flex gap-3 mb-6">
-      <Tab id="graduates" label="Programme CQI (Graduated)" />
-      <Tab id="tracking" label="Student Tracking (Active)" />
-    </div>
-  );
-}
-
-/* ======================
-   STATUS HELPERS
-====================== */
-function statusBadge(status) {
-  if (status === "Completed") {
-    return (
-      <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-700">
-        Completed
-      </span>
-    );
-  }
-
-  if (status === "Late") {
-    return (
-      <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700">
-        Late
-      </span>
-    );
-  }
-
-  return (
-    <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
-      On Track
+    <span className={`px-2 py-1 rounded text-xs ${map[status]}`}>
+      {status.replace("_", " ")}
     </span>
   );
 }
 
-/* ======================
-   PAGE
-====================== */
+/* ================= PAGE ================= */
 export default function AdminDashboard() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
-
-  const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
-  const [activeTab, setActiveTab] = useState("graduates");
+  const [programmes, setProgrammes] = useState([]);
 
-  const [cqi, setCQI] = useState(null);
   const [graduates, setGraduates] = useState([]);
-  const [activeStudents, setActiveStudents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [active, setActive] = useState([]);
 
-  /* ======================
-     AUTH GUARD (NO BLINK)
-  ====================== */
+  /* ================= AUTH ================= */
   useEffect(() => {
-    if (!router.isReady) return;
-
-    const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
-
-    if (!token || role !== "admin") {
+    if (role !== "admin") {
       router.replace("/login");
       return;
     }
-
     setChecked(true);
-  }, [router.isReady]);
+  }, []);
 
-  /* ======================
-     LOAD PROGRAMMES
-  ====================== */
+  /* ================= LOAD PROGRAMMES ================= */
   useEffect(() => {
     if (!checked) return;
-
-    apiGet("/api/admin/programmes")
-      .then(d => setProgrammes(d.programmes || []))
-      .catch(() => setProgrammes([]));
+    apiGet("/api/admin/programmes").then(r => setProgrammes(r.programmes || []));
   }, [checked]);
 
-  /* ======================
-     LOAD PROGRAMME DATA
-  ====================== */
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
     if (!programme) return;
 
-    setLoading(true);
-
     Promise.all([
-      apiGet(`/api/admin/programme-plo?programme=${programme}`),
       apiGet(`/api/admin/programme-graduates?programme=${programme}`),
       apiGet(`/api/admin/programme-active-students?programme=${programme}`)
-    ])
-      .then(([plo, grad, active]) => {
-        setCQI(plo.plo || null);
-        setGraduates(grad.students || []);
-        setActiveStudents(active.students || []);
-      })
-      .finally(() => setLoading(false));
+    ]).then(([g, a]) => {
+      setGraduates(g.students || []);
+      setActive(a.students || []);
+    });
   }, [programme]);
 
-  /* ======================
-     BLOCK RENDER UNTIL AUTH OK
-  ====================== */
-  if (!checked) {
-    return <div className="p-6">Checking access…</div>;
-  }
+  if (!checked) return <div className="p-6">Checking access…</div>;
+
+  /* ================= SUMMARY ================= */
+  const late = active.filter(s => s.status === "LATE").length;
+  const onTrack = active.filter(s => s.status === "ON_TRACK").length;
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+
       <h1 className="text-2xl font-bold text-purple-700">
         Admin Dashboard
       </h1>
 
-      {/* PROGRAMME SELECT */}
       <select
         className="w-full p-3 border rounded"
         value={programme}
@@ -141,89 +76,61 @@ export default function AdminDashboard() {
       >
         <option value="">Select Programme</option>
         {programmes.map(p => (
-          <option key={p} value={p}>
-            {p}
-          </option>
+          <option key={p} value={p}>{p}</option>
         ))}
       </select>
 
-      <Tabs active={activeTab} setActive={setActiveTab} />
-
-      {loading && <div className="text-gray-500">Loading…</div>}
-
-      {/* ================= TAB 1 ================= */}
-      {activeTab === "graduates" && (
-        <>
-          <div className="bg-white p-4 rounded-xl shadow">
-            <h2 className="font-semibold">
-              Graduated Students: {graduates.length}
-            </h2>
-          </div>
-
-          {cqi && (
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h3 className="font-semibold mb-4">
-                Programme CQI (Benchmark ≥ 70%)
-              </h3>
-
-              {Object.entries(cqi).map(([plo, v]) => (
-                <div key={plo} className="mb-4">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{plo}</span>
-                    <span>{v.percent ?? "-"}%</span>
-                  </div>
-
-                  <div className="w-full h-2 bg-gray-200 rounded">
-                    <div
-                      className={`h-2 rounded ${
-                        v.status === "Achieved"
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                      }`}
-                      style={{ width: `${v.percent || 0}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ================= TAB 2 ================= */}
-      {activeTab === "tracking" && (
-        <div className="bg-white p-4 rounded-xl shadow">
-          <h3 className="font-semibold mb-3">Active Student Tracking</h3>
-
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2">Matric</th>
-                <th className="p-2">Profile</th>
-                <th className="p-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeStudents.map((s, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-2">{s.name}</td>
-                  <td className="p-2">{s.matric}</td>
-                  <td className="p-2">
-                    <Link
-                      href={`/admin/student/${encodeURIComponent(s.email)}`}
-                      className="text-purple-600 underline"
-                    >
-                      View
-                    </Link>
-                  </td>
-                  <td className="p-2">{statusBadge(s.status)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ================= SUMMARY CARDS ================= */}
+      {programme && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <SummaryCard label="Late" value={late} color="red" />
+          <SummaryCard label="On Track" value={onTrack} color="blue" />
+          <SummaryCard label="Graduated" value={graduates.length} color="green" />
         </div>
       )}
+
+      {/* ================= ACTIVE STUDENTS ================= */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h3 className="font-semibold mb-3">Active Students</h3>
+
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 text-left">Name</th>
+              <th className="p-2">Matric</th>
+              <th className="p-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {active.map((s, i) => (
+              <tr key={i} className="border-t">
+                <td className="p-2">{s.name}</td>
+                <td className="p-2">{s.matric}</td>
+                <td className="p-2">
+                  <StatusBadge status={s.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  );
+}
+
+/* ================= SUMMARY CARD ================= */
+function SummaryCard({ label, value, color }) {
+  const colors = {
+    red: "bg-red-100 text-red-700",
+    blue: "bg-blue-100 text-blue-700",
+    green: "bg-green-100 text-green-700"
+  };
+
+  return (
+    <div className={`p-4 rounded-xl ${colors[color]}`}>
+      <div className="text-sm font-semibold">{label}</div>
+      <div className="text-2xl font-bold">{value}</div>
     </div>
   );
 }
