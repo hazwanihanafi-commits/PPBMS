@@ -118,6 +118,9 @@ useEffect(() => {
       )
     : 0;
 
+   const cqiByAssessment = student?.cqiByAssessment || {};
+const remarksByAssessment = student?.remarksByAssessment || {};
+
   return (
   <>
     <TopBar user={user} />
@@ -225,68 +228,60 @@ useEffect(() => {
 
       {/* ================= CQI / PLO ================= */}
       {activeTab === "cqi" && (
-        <div className="space-y-6">
+  <div className="space-y-6">
 
-          {/* CQI BY ASSESSMENT */}
-          <div className="bg-white rounded-2xl p-6 shadow">
-            <h3 className="font-bold mb-4">📊 CQI by Assessment</h3>
+    {/* CQI BY ASSESSMENT */}
+    <div className="bg-white rounded-2xl p-6 shadow">
+      <h3 className="font-bold mb-4">📊 CQI by Assessment</h3>
 
-            {Object.keys(student.cqiByAssessment || {}).length === 0 ? (
-              <p className="text-sm italic text-gray-500">
-                No CQI data available.
-              </p>
-            ) : (
-              Object.entries(student.cqiByAssessment).map(
-                ([assessment, ploData]) => (
-                  <div key={assessment} className="mb-6">
-                    <h4 className="font-semibold text-purple-700 mb-2">
-                      {assessment}
-                    </h4>
+      {Object.keys(cqiByAssessment).length === 0 ? (
+        <p className="text-sm italic text-gray-500">
+          No CQI data available.
+        </p>
+      ) : (
+        Object.entries(cqiByAssessment).map(([assessment, ploData]) => (
+          <div key={assessment} className="mb-6">
+            <h4 className="font-semibold text-purple-700 mb-2">
+              {assessment}
+            </h4>
 
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(ploData)
-                        .sort(([a], [b]) =>
-                          parseInt(a.replace("PLO", "")) -
-                          parseInt(b.replace("PLO", ""))
-                        )
-                        .map(([plo, d]) => (
-                          <span
-                            key={plo}
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              d.status === "Achieved"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            {plo}: Avg {d.average ?? "-"} – {d.status}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ploData)
+                .sort(
+                  ([a], [b]) =>
+                    parseInt(a.replace("PLO", "")) -
+                    parseInt(b.replace("PLO", ""))
                 )
-              )
-            )}
+                .map(([plo, d]) => (
+                  <span
+                    key={plo}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      d.status === "Achieved"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {plo}: Avg {d.average ?? "-"} – {d.status}
+                  </span>
+                ))}
+            </div>
           </div>
-
-          {/* SUPERVISOR INTERVENTION REMARKS */}
-          {Object.keys(student.cqiByAssessment || {}).map(type => (
-            <SupervisorRemark
-              key={type}
-              studentMatric={student.student_id}
-              studentEmail={student.email}
-              assessmentType={type}
-              initialRemark={student.remarksByAssessment?.[type]}
-            />
-          ))}
-
-                    {/* FINAL PLO */}
-          <FinalPLOTable finalPLO={student.finalPLO} />
-
-        </div>
+        ))
       )}
-
     </div>
-    )}
-  </>
-  );
-}
+
+    {/* SUPERVISOR INTERVENTION REMARKS */}
+    {Object.keys(cqiByAssessment).map(type => (
+      <SupervisorRemark
+        key={type}
+        studentMatric={student.student_id}
+        studentEmail={student.email}
+        assessmentType={type}
+        initialRemark={remarksByAssessment[type]}
+      />
+    ))}
+
+    {/* FINAL PLO */}
+    <FinalPLOTable finalPLO={student.finalPLO} />
+  </div>
+)}
