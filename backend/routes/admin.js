@@ -124,4 +124,61 @@ router.get("/programme-summary", adminAuth, async (req, res) => {
   res.json({ late, onTrack, graduated });
 });
 
+/* =========================================================
+   GET SINGLE STUDENT (ADMIN VIEW)
+========================================================= */
+router.get("/student/:email", adminAuth, async (req, res) => {
+  try {
+    const email = req.params.email.toLowerCase().trim();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const raw = rows.find(
+      r => (r["Student's Email"] || "").toLowerCase().trim() === email
+    );
+
+    if (!raw) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    const profile = {
+      student_id: raw["Matric"] || raw["Matric No"] || "",
+      student_name: raw["Student Name"] || "",
+      email: raw["Student's Email"] || "",
+      programme: raw["Programme"] || "",
+      field: raw["Field"] || "",
+      department: raw["Department"] || "",
+      supervisor: raw["Main Supervisor"] || "",
+      cosupervisors: raw["Co-Supervisor(s)"] || "",
+      status: raw["Status"] || "",
+    };
+
+    const timeline = buildTimelineForRow(raw);
+
+    res.json({
+      row: {
+        ...profile,
+        timeline,
+        documents: {
+          DPLC: raw.DPLC || "",
+          SUPERVISION_LOG: raw.SUPERVISION_LOG || "",
+          APR_Y1: raw.APR_Y1 || "",
+          APR_Y2: raw.APR_Y2 || "",
+          APR_Y3: raw.APR_Y3 || "",
+          ETHICS_APPROVAL: raw.ETHICS_APPROVAL || "",
+          PUBLICATION_ACCEPTANCE: raw.PUBLICATION_ACCEPTANCE || "",
+          PROOF_OF_SUBMISSION: raw.PROOF_OF_SUBMISSION || "",
+          CONFERENCE_PRESENTATION: raw.CONFERENCE_PRESENTATION || "",
+          THESIS_NOTICE: raw.THESIS_NOTICE || "",
+          VIVA_REPORT: raw.VIVA_REPORT || "",
+          CORRECTION_VERIFICATION: raw.CORRECTION_VERIFICATION || "",
+          FINAL_THESIS: raw.FINAL_THESIS || "",
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Admin get student error:", err);
+    res.status(500).json({ error: "Failed to load student" });
+  }
+});
+
 export default router;
