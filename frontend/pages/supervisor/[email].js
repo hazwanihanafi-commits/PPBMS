@@ -15,7 +15,7 @@ export default function SupervisorStudentPage() {
   const [user, setUser] = useState(null);
 
   /* ======================
-     AUTH
+     AUTH GUARD
   ====================== */
   useEffect(() => {
     const role = localStorage.getItem("ppbms_role");
@@ -31,7 +31,7 @@ export default function SupervisorStudentPage() {
   }, []);
 
   /* ======================
-     LOAD STUDENT
+     LOAD STUDENT (SAFE)
   ====================== */
   useEffect(() => {
     if (!email) return;
@@ -41,16 +41,30 @@ export default function SupervisorStudentPage() {
   async function loadStudent() {
     try {
       const token = localStorage.getItem("ppbms_token");
+
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-store",
+          },
+        }
       );
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      // ✅ SAFE PARSE (NO CRASH ON 304)
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+
       setStudent(data.row || null);
       setTimeline(data.row?.timeline || []);
     } catch (e) {
-      console.error(e);
+      console.error("Load supervisor student failed:", e);
+      setStudent(null);
     } finally {
       setLoading(false);
     }
