@@ -3,6 +3,9 @@ import SupervisorChecklist from "./SupervisorChecklist";
 import SupervisorRemark from "./SupervisorRemark";
 import FinalPLOTable from "./FinalPLOTable";
 
+/* ======================
+   TABS
+====================== */
 function StudentTabs({ activeTab, setActiveTab }) {
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -30,10 +33,13 @@ function StudentTabs({ activeTab, setActiveTab }) {
   );
 }
 
+/* ======================
+   PAGE
+====================== */
 export default function StudentProfilePage({
   student,
-  timeline,
-  role
+  timeline = [],
+  role = "supervisor",
 }) {
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -65,9 +71,9 @@ export default function StudentProfilePage({
 
       {/* ================= TABS ================= */}
       <StudentTabs
-  activeTab={activeTab}
-  setActiveTab={setActiveTab}
-/>
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
       {/* ================= OVERVIEW ================= */}
       {activeTab === "overview" && (
@@ -109,59 +115,27 @@ export default function StudentProfilePage({
         </div>
       )}
 
-      {/* ================= CQI ================= */}
-     {activeTab === "cqi" && (
-  <div className="space-y-6">
+      {/* ================= CQI / PLO ================= */}
+      {activeTab === "cqi" && (
+        <div className="space-y-6">
 
-    {/* FINAL PROGRAMME PLO */}
-    <FinalPLOTable finalPLO={student.finalPLO || {}} />
+          {/* FINAL PLO */}
+          <FinalPLOTable finalPLO={student.finalPLO} />
 
-    {/* PER-ASSESSMENT CQI */}
-    {student.cqiByAssessment &&
-    Object.keys(student.cqiByAssessment).length > 0 ? (
-      Object.entries(student.cqiByAssessment).map(
-        ([assessment, ploData]) => (
-          <div
-            key={assessment}
-            className="bg-white p-5 rounded-xl shadow"
-          >
-            <h4 className="font-bold text-purple-700 mb-3">
-              {assessment}
-            </h4>
-
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(ploData).map(([plo, d]) => (
-                <span
-                  key={plo}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    d.status === "Achieved"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {plo}: {d.status}
-                </span>
-              ))}
-            </div>
-
-            {/* Supervisor remark */}
-            {role === "supervisor" && (
+          {/* SUPERVISOR REMARKS */}
+          {role === "supervisor" &&
+            Object.keys(student.cqiByAssessment || {}).map(type => (
               <SupervisorRemark
+                key={type}
                 studentMatric={student.student_id}
                 studentEmail={student.email}
-                assessmentType={assessment}
-                initialRemark={
-                  student.remarksByAssessment?.[assessment]
-                }
+                assessmentType={type}
+                initialRemark={student.remarksByAssessment?.[type]}
               />
-            )}
-          </div>
-        )
-      )
-    ) : (
-      <div className="bg-white p-6 rounded-xl shadow text-gray-500 italic">
-        No CQI / PLO assessment data available.
-      </div>
-    )}
-  </div>
-)}
+            ))}
+        </div>
+      )}
+
+    </div>
+  );
+}
