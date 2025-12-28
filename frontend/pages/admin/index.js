@@ -1,74 +1,107 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { apiGet } from "@/utils/api";
 
-/* ================= STATUS BADGE ================= */
+/* ======================
+   STATUS BADGE
+====================== */
 function StatusBadge({ status }) {
   const map = {
-    COMPLETED: "bg-green-100 text-green-700",
-    LATE: "bg-red-100 text-red-700",
-    ON_TRACK: "bg-blue-100 text-blue-700"
+    Late: "bg-red-100 text-red-700",
+    "On Track": "bg-blue-100 text-blue-700",
+    Graduated: "bg-green-100 text-green-700",
   };
 
   return (
-    <span className={`px-2 py-1 rounded text-xs ${map[status]}`}>
-      {status.replace("_", " ")}
+    <span className={`px-2 py-1 rounded text-xs font-semibold ${map[status]}`}>
+      {status}
     </span>
   );
 }
 
-/* ================= PAGE ================= */
+/* ======================
+   PAGE
+====================== */
 export default function AdminDashboard() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
-  const [programme, setProgramme] = useState("");
+
   const [programmes, setProgrammes] = useState([]);
+  const [programme, setProgramme] = useState("");
+  const [activeTab, setActiveTab] = useState("graduates");
 
+  const [cqi, setCQI] = useState(null);
   const [graduates, setGraduates] = useState([]);
-  const [active, setActive] = useState([]);
+  const [activeStudents, setActiveStudents] = useState([]);
 
-  /* ================= AUTH ================= */
+  const [summary, setSummary] = useState({
+    late: 0,
+    onTrack: 0,
+    graduated: 0
+  });
+
+  /* ======================
+     AUTH GUARD
+  ====================== */
   useEffect(() => {
+    if (!router.isReady) return;
+
+    const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
-    if (role !== "admin") {
+
+    if (!token || role !== "admin") {
       router.replace("/login");
       return;
     }
-    setChecked(true);
-  }, []);
 
-  /* ================= LOAD PROGRAMMES ================= */
+    setChecked(true);
+  }, [router.isReady]);
+
+  /* ======================
+     LOAD PROGRAMMES
+  ====================== */
   useEffect(() => {
     if (!checked) return;
-    apiGet("/api/admin/programmes").then(r => setProgrammes(r.programmes || []));
+
+    apiGet("/api/admin/programmes")
+      .then(d => setProgrammes(d.programmes || []))
+      .catch(() => setProgrammes([]));
   }, [checked]);
 
-  /* ================= LOAD DATA ================= */
+  /* ======================
+     LOAD PROGRAMME DATA
+  ====================== */
   useEffect(() => {
     if (!programme) return;
 
     Promise.all([
+      apiGet(`/api/admin/programme-plo?programme=${programme}`),
       apiGet(`/api/admin/programme-graduates?programme=${programme}`),
       apiGet(`/api/admin/programme-active-students?programme=${programme}`)
-    ]).then(([g, a]) => {
-      setGraduates(g.students || []);
-      setActive(a.students || []);
+    ]).then(([plo, grad, active]) => {
+      setCQI(plo.plo || null);
+      setGraduates(grad.students || []);
+      setActiveStudents(active.students || []);
+
+      // 🔢 SUMMARY COUNTS
+      setSummary({
+        graduated: grad.students.length,
+        late: active.students.filter(s => s.status === "Late").length,
+        onTrack: active.students.filter(s => s.status === "On Track").length
+      });
     });
   }, [programme]);
 
   if (!checked) return <div className="p-6">Checking access…</div>;
 
-  /* ================= SUMMARY ================= */
-  const late = active.filter(s => s.status === "LATE").length;
-  const onTrack = active.filter(s => s.status === "ON_TRACK").length;
-
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
-
       <h1 className="text-2xl font-bold text-purple-700">
         Admin Dashboard
       </h1>
 
+      {/* PROGRAMME SELECT */}
       <select
         className="w-full p-3 border rounded"
         value={programme}
@@ -81,11 +114,49 @@ export default function AdminDashboard() {
       </select>
 
       {/* ================= SUMMARY CARDS ================= */}
-      {programme && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SummaryCard label="Late" value={late} color="red" />
-          <SummaryCard label="On Track" value={onTrack} color="blue" />
-          <SummaryCard label="Graduated" value={graduates.length} color="green" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-red-100 p-4 rounded-xl">
+          <div className="text-sm font-semibold">Late</div>
+          <div className="text-2xl font-bold">{summary.late}</div>
+        </div>
+
+        <div className="bg-blue-100 p-4 rounded-xl">
+          <div className="text-sm font-semibold">On Track</div>
+          <div className="text-2xl font-bold">{summary.onTrack}</div>
+        </div>
+
+        <div className="bg-green-100 p-4 rounded-xl">
+          <div className="text-sm font-semibold">Graduated</div>
+          <div className="text-2xl font-bold">{summary.graduated}</div>
+        </div>
+      </div>
+
+      {/* ================= FINAL PROGRAMME PLO (KEEP) ================= */}
+      {cqi && (
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="font-semibold mb-4">
+            Final Programme PLO Achievement
+          </h3>
+
+          {Object.entries(cqi).map(([plo, v]) => (
+            <div key={plo} className="mb-3">
+              <div className="flex justify-between text-sm">
+                <span>{plo}</span>
+                <span>{v.percent ?? "-"}%</span>
+              </div>
+
+              <div className="w-full h-2 bg-gray-200 rounded">
+                <div
+                  className={`h-2 rounded ${
+                    v.status === "Achieved"
+                      ? "bg-green-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${v.percent || 0}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -98,14 +169,23 @@ export default function AdminDashboard() {
             <tr>
               <th className="p-2 text-left">Name</th>
               <th className="p-2">Matric</th>
+              <th className="p-2">Profile</th>
               <th className="p-2">Status</th>
             </tr>
           </thead>
           <tbody>
-            {active.map((s, i) => (
+            {activeStudents.map((s, i) => (
               <tr key={i} className="border-t">
                 <td className="p-2">{s.name}</td>
                 <td className="p-2">{s.matric}</td>
+                <td className="p-2">
+                  <Link
+                    href={`/admin/student/${encodeURIComponent(s.email)}`}
+                    className="text-purple-600 underline"
+                  >
+                    View
+                  </Link>
+                </td>
                 <td className="p-2">
                   <StatusBadge status={s.status} />
                 </td>
@@ -115,22 +195,36 @@ export default function AdminDashboard() {
         </table>
       </div>
 
-    </div>
-  );
-}
+      {/* ================= GRADUATED STUDENTS ================= */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h3 className="font-semibold mb-3">Graduated Students</h3>
 
-/* ================= SUMMARY CARD ================= */
-function SummaryCard({ label, value, color }) {
-  const colors = {
-    red: "bg-red-100 text-red-700",
-    blue: "bg-blue-100 text-blue-700",
-    green: "bg-green-100 text-green-700"
-  };
-
-  return (
-    <div className={`p-4 rounded-xl ${colors[color]}`}>
-      <div className="text-sm font-semibold">{label}</div>
-      <div className="text-2xl font-bold">{value}</div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2">Name</th>
+              <th className="p-2">Matric</th>
+              <th className="p-2">Profile</th>
+            </tr>
+          </thead>
+          <tbody>
+            {graduates.map((g, i) => (
+              <tr key={i} className="border-t">
+                <td className="p-2">{g.name}</td>
+                <td className="p-2">{g.matric}</td>
+                <td className="p-2">
+                  <Link
+                    href={`/admin/student/${encodeURIComponent(g.email)}`}
+                    className="text-purple-600 underline"
+                  >
+                    View
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
