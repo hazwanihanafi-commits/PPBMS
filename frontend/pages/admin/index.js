@@ -167,7 +167,41 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= ACTIVE STUDENTS ================= */}
+      
+
+      {/* ================= GRADUATED STUDENTS ================= */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h3 className="font-semibold mb-3">Graduated Students</h3>
+
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2">Name</th>
+              <th className="p-2">Matric</th>
+              <th className="p-2">Profile</th>
+            </tr>
+          </thead>
+          <tbody>
+            {graduates.map((g, i) => (
+              <tr key={i} className="border-t">
+                <td className="p-2">{g.name}</td>
+                <td className="p-2">{g.matric}</td>
+                <td className="p-2">
+                  <Link
+                    href={`/admin/student/${encodeURIComponent(g.email.trim().toLowerCase())}`}
+                    className="text-purple-600 underline"
+                  >
+                    View
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+  
+
+{/* ================= ACTIVE STUDENTS ================= */}
       <div className="bg-white p-4 rounded-xl shadow">
         <h3 className="font-semibold mb-3">Active Students</h3>
 
@@ -201,37 +235,6 @@ export default function AdminDashboard() {
           </tbody>
         </table>
       </div>
-
-      {/* ================= GRADUATED STUDENTS ================= */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <h3 className="font-semibold mb-3">Graduated Students</h3>
-
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2">Name</th>
-              <th className="p-2">Matric</th>
-              <th className="p-2">Profile</th>
-            </tr>
-          </thead>
-          <tbody>
-            {graduates.map((g, i) => (
-              <tr key={i} className="border-t">
-                <td className="p-2">{g.name}</td>
-                <td className="p-2">{g.matric}</td>
-                <td className="p-2">
-                  <Link
-                    href={`/admin/student/${encodeURIComponent(g.email.trim().toLowerCase())}`}
-                    className="text-purple-600 underline"
-                  >
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
-  );
-}
+);
+
