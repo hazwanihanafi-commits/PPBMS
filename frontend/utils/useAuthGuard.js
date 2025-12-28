@@ -1,4 +1,4 @@
-// frontend/utils/useAuthGuard.js
+// utils/useAuthGuard.js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -21,7 +21,7 @@ export function useAuthGuard(requiredRole) {
 
     setUser({ email, role });
     setReady(true);
-  }, [router.isReady, requiredRole]);
+  }, [router.isReady]);
 
   return { ready, user };
 }
