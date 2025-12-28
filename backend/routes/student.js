@@ -113,21 +113,48 @@ router.post("/update-actual", auth, async (req, res) => {
 
     if (date !== undefined) {
       await writeSheetCell(
-        process.env.SHEET_ID,
-        `${activity} - Actual`,
-        idx + 2,
-        date
-      );
+  process.env.SHEET_ID,
+  "MasterTracking",           // ✅ sheet name
+  `${activity} - Actual`,     // ✅ column name
+  idx + 2,                    // ✅ row number
+  date
+);
     }
 
     if (remark !== undefined) {
       await writeSheetCell(
-        process.env.SHEET_ID,
-        `${activity} - Remark`,
-        idx + 2,
-        remark
-      );
+  process.env.SHEET_ID,
+  "MasterTracking",
+  `${activity} - Remark`,
+  idx + 2,
+  remark
+);
     }
+
+
+router.post("/update-document", auth, async (req, res) => {
+  try {
+    const { key, value } = req.body;
+    if (!key) return res.status(400).json({ error: "Missing key" });
+
+    const email = req.user.email.toLowerCase();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const idx = rows.findIndex(
+      r => (r["Student's Email"] || "").toLowerCase() === email
+    );
+
+    if (idx === -1) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MasterTracking",   // ✅ correct sheet
+      key,               // e.g. DPLC, APR_Y1, etc
+      idx + 2,
+      value || ""
+    );
 
     resetSheetCache();
     res.json({ success: true });
@@ -136,5 +163,8 @@ router.post("/update-actual", auth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+
+
 
 export default router;
