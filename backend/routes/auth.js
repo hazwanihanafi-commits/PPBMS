@@ -20,8 +20,6 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Email required" });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-
     // 🔹 READ AUTH_USERS SHEET
     const users = await readSheet(
       process.env.SHEET_ID,
