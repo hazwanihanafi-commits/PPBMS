@@ -91,9 +91,9 @@ export default function AdminDashboard() {
     ])
       .then(([plo, grad, active, sum]) => {
   setCQI({
-    plo: plo.plo || null,
-    graduates: plo.graduates || 0
-  });
+  plo: plo.plo || {},
+  graduates: plo.graduates || 0,
+});
         setGraduates(grad.students || []);
         setActiveStudents(active.students || []);
         setSummary(sum || { late: 0, onTrack: 0, graduated: 0 });
@@ -142,38 +142,43 @@ export default function AdminDashboard() {
       </div>
 
       {/* ================= FINAL PROGRAMME PLO (KEEP) ================= */}
-      {cqi && (
-        <div className="bg-white p-6 rounded-xl shadow">
-         <h3 className="font-semibold mb-1">
-  Final Programme PLO Achievement
-</h3>
-<p className="text-xs text-gray-500 mb-4">
-  Based on {cqi.graduates} graduated student(s)
-</p>
+     {cqi && (
+  <div className="bg-white p-6 rounded-xl shadow">
+    <h3 className="font-semibold mb-1">
+      Final Programme PLO Achievement
+    </h3>
 
-          {Object.entries(cqi).map(([plo, v]) => (
-            <div key={plo} className="mb-3">
-              <div className="flex justify-between text-sm">
-                <span>{plo}</span>
-                <span>{v.percent ?? "-"}%</span>
-              </div>
+    <p className="text-xs text-gray-500 mb-4">
+      Based on {cqi.graduates} graduated student(s)
+    </p>
 
-              <div className="w-full h-2 bg-gray-200 rounded">
-                <div
-                  className={`h-2 rounded ${
-                    v.status === "Achieved"
-                      ? "bg-green-500"
-                      : "bg-red-500"
-                  }`}
-                  style={{ width: `${v.percent || 0}%` }}
-                />
-              </div>
-            </div>
-          ))}
+    {Object.entries(cqi.plo).map(([plo, v]) => (
+      <div key={plo} className="mb-3">
+        <div className="flex justify-between text-sm">
+          <span>{plo}</span>
+          <span>
+            {v.percent !== null ? `${v.percent}%` : "-"}
+          </span>
         </div>
-      )}
 
-      
+        <div className="w-full h-2 bg-gray-200 rounded">
+          <div
+            className={`h-2 rounded transition-all ${
+              v.status === "Achieved"
+                ? "bg-green-500"
+                : v.status === "Borderline"
+                ? "bg-yellow-400"
+                : "bg-red-500"
+            }`}
+            style={{
+              width: `${v.percent || 0}%`,
+            }}
+          />
+        </div>
+      </div>
+    ))}
+  </div>
+)}
 
       {/* ================= GRADUATED STUDENTS ================= */}
       <div className="bg-white p-4 rounded-xl shadow">
