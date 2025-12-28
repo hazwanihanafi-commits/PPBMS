@@ -43,64 +43,49 @@ router.use((req, res, next) => {
 ========================================================= */
 router.get("/students", auth, async (req, res) => {
   try {
-    const supervisorEmail = String(req.user.email || "")
-      .toLowerCase()
-      .trim();
+    const supervisorEmail = req.user.email.toLowerCase().trim();
 
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
+    console.log("Supervisor:", supervisorEmail);
+
     const students = rows
       .filter(r => {
-        // 🔹 MAIN supervisor email
-        const mainSupervisor = String(r["Main Supervisor's Email"] || "")
+        const mainEmail = String(r["Main Supervisor's Email"] || "")
           .toLowerCase()
           .trim();
 
-        // 🔹 CO-supervisor emails (can be empty / multiple)
-        const coSupervisorsRaw = String(r["Co-Supervisor(s) Email"] || "")
-          .toLowerCase()
-          .trim();
-
-        const coSupervisors = coSupervisorsRaw
-          ? coSupervisorsRaw
-              .split(/[,;]+/)   // support comma / semicolon
-              .map(e => e.trim())
-              .filter(Boolean)
-          : [];
-
-        // ✅ MATCH RULE
-        return (
-          mainSupervisor === supervisorEmail ||
-          coSupervisors.includes(supervisorEmail)
+        // DEBUG LOG (IMPORTANT)
+        console.log(
+          "Student:", r["Student Name"],
+          "| Main Supervisor:", mainEmail
         );
+
+        return mainEmail === supervisorEmail;
       })
       .map(r => {
         const timeline = buildTimelineForRow(r);
 
-        const completed = timeline.filter(
-          t => t.status === "Completed"
-        ).length;
-
+        const completed = timeline.filter(t => t.status === "Completed").length;
         const progress = timeline.length
           ? Math.round((completed / timeline.length) * 100)
           : 0;
 
         let status = "On Track";
-        if (timeline.some(t => t.status === "Late")) {
-          status = "Late";
-        } else if (timeline.some(t => t.status === "Due Soon")) {
-          status = "Due Soon";
-        }
+        if (timeline.some(t => t.status === "Late")) status = "Late";
+        else if (timeline.some(t => t.status === "Due Soon")) status = "Due Soon";
 
         return {
           name: r["Student Name"] || "-",
-          email: String(r["Student's Email"] || "").toLowerCase(),
+          email: (r["Student's Email"] || "").toLowerCase(),
           matric: r["Matric"] || "-",
           programme: r["Programme"] || "-",
           progress,
           status
         };
       });
+
+    console.log("Matched students:", students.length);
 
     res.json({ students });
 
@@ -109,7 +94,6 @@ router.get("/students", auth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
 /* =========================================================
    GET /api/supervisor/student/:email
 ========================================================= */
