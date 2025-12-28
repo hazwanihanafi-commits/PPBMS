@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Link from "next/link";
 import { apiGet } from "@/utils/api";
 
@@ -30,12 +31,6 @@ function Tabs({ active, setActive }) {
 /* ======================
    STATUS HELPERS
 ====================== */
-function deriveStatus(expected, actual) {
-  if (actual) return "Completed";
-  if (!expected) return "On Track";
-  return new Date(expected) < new Date() ? "Late" : "On Track";
-}
-
 function statusBadge(status) {
   if (status === "Completed") {
     return (
@@ -64,6 +59,9 @@ function statusBadge(status) {
    PAGE
 ====================== */
 export default function AdminDashboard() {
+  const router = useRouter();
+  const [checked, setChecked] = useState(false);
+
   const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
   const [activeTab, setActiveTab] = useState("graduates");
@@ -74,29 +72,39 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
 
   /* ======================
-     AUTH GUARD
+     AUTH GUARD (NO BLINK)
   ====================== */
   useEffect(() => {
+    if (!router.isReady) return;
+
+    const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
-    if (role !== "admin") {
-      window.location.href = "/login";
+
+    if (!token || role !== "admin") {
+      router.replace("/login");
+      return;
     }
-  }, []);
+
+    setChecked(true);
+  }, [router.isReady]);
 
   /* ======================
      LOAD PROGRAMMES
   ====================== */
   useEffect(() => {
+    if (!checked) return;
+
     apiGet("/api/admin/programmes")
       .then(d => setProgrammes(d.programmes || []))
       .catch(() => setProgrammes([]));
-  }, []);
+  }, [checked]);
 
   /* ======================
      LOAD PROGRAMME DATA
   ====================== */
   useEffect(() => {
     if (!programme) return;
+
     setLoading(true);
 
     Promise.all([
@@ -111,6 +119,13 @@ export default function AdminDashboard() {
       })
       .finally(() => setLoading(false));
   }, [programme]);
+
+  /* ======================
+     BLOCK RENDER UNTIL AUTH OK
+  ====================== */
+  if (!checked) {
+    return <div className="p-6">Checking access…</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -136,19 +151,15 @@ export default function AdminDashboard() {
 
       {loading && <div className="text-gray-500">Loading…</div>}
 
-      {/* =====================================================
-         TAB 1 — GRADUATED + CQI
-      ===================================================== */}
+      {/* ================= TAB 1 ================= */}
       {activeTab === "graduates" && (
         <>
-          {/* COUNT */}
           <div className="bg-white p-4 rounded-xl shadow">
             <h2 className="font-semibold">
               Graduated Students: {graduates.length}
             </h2>
           </div>
 
-          {/* CQI */}
           {cqi && (
             <div className="bg-white p-6 rounded-xl shadow">
               <h3 className="font-semibold mb-4">
@@ -176,43 +187,10 @@ export default function AdminDashboard() {
               ))}
             </div>
           )}
-
-          {/* GRADUATED TABLE */}
-          <div className="bg-white p-4 rounded-xl shadow">
-            <h3 className="font-semibold mb-3">Graduated Students</h3>
-
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-2 text-left">Name</th>
-                  <th className="p-2">Matric</th>
-                  <th className="p-2">Profile</th>
-                </tr>
-              </thead>
-              <tbody>
-                {graduates.map((s, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="p-2">{s.name}</td>
-                    <td className="p-2">{s.matric}</td>
-                    <td className="p-2">
-                      <Link
-                        href={`/admin/student/${encodeURIComponent(s.email)}`}
-                        className="text-purple-600 underline"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </>
       )}
 
-      {/* =====================================================
-         TAB 2 — ACTIVE TRACKING
-      ===================================================== */}
+      {/* ================= TAB 2 ================= */}
       {activeTab === "tracking" && (
         <div className="bg-white p-4 rounded-xl shadow">
           <h3 className="font-semibold mb-3">Active Student Tracking</h3>
