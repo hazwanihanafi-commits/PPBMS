@@ -228,3 +228,6 @@ export async function updateASSESSMENT_PLO_Remark({
   return true;
 }
 
+export async function readFINALPROGRAMPLO(sheetId) {
+  return await readSheet(sheetId, "FINALPROGRAMPLO!A1:Z");
+}
