@@ -90,7 +90,10 @@ export default function AdminDashboard() {
       apiGet(`/api/admin/programme-summary?programme=${programme}`),
     ])
       .then(([plo, grad, active, sum]) => {
-        setCQI(plo.plo || null);
+  setCQI({
+    plo: plo.plo || null,
+    graduates: plo.graduates || 0
+  });
         setGraduates(grad.students || []);
         setActiveStudents(active.students || []);
         setSummary(sum || { late: 0, onTrack: 0, graduated: 0 });
