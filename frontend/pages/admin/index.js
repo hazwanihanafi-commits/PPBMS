@@ -10,11 +10,16 @@ function StatusBadge({ status }) {
   const map = {
     Late: "bg-red-100 text-red-700",
     "On Track": "bg-blue-100 text-blue-700",
+    Completed: "bg-green-100 text-green-700",
     Graduated: "bg-green-100 text-green-700",
   };
 
   return (
-    <span className={`px-2 py-1 rounded text-xs font-semibold ${map[status]}`}>
+    <span
+      className={`px-2 py-1 rounded text-xs font-semibold ${
+        map[status] || "bg-gray-100 text-gray-700"
+      }`}
+    >
       {status}
     </span>
   );
@@ -29,7 +34,6 @@ export default function AdminDashboard() {
 
   const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
-  const [activeTab, setActiveTab] = useState("graduates");
 
   const [cqi, setCQI] = useState(null);
   const [graduates, setGraduates] = useState([]);
@@ -38,8 +42,10 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState({
     late: 0,
     onTrack: 0,
-    graduated: 0
+    graduated: 0,
   });
+
+  const [loading, setLoading] = useState(false);
 
   /* ======================
      AUTH GUARD
@@ -75,22 +81,21 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!programme) return;
 
+    setLoading(true);
+
     Promise.all([
       apiGet(`/api/admin/programme-plo?programme=${programme}`),
       apiGet(`/api/admin/programme-graduates?programme=${programme}`),
-      apiGet(`/api/admin/programme-active-students?programme=${programme}`)
-    ]).then(([plo, grad, active]) => {
-      setCQI(plo.plo || null);
-      setGraduates(grad.students || []);
-      setActiveStudents(active.students || []);
-
-      // 🔢 SUMMARY COUNTS
-      setSummary({
-        graduated: grad.students.length,
-        late: active.students.filter(s => s.status === "Late").length,
-        onTrack: active.students.filter(s => s.status === "On Track").length
-      });
-    });
+      apiGet(`/api/admin/programme-active-students?programme=${programme}`),
+      apiGet(`/api/admin/programme-summary?programme=${programme}`),
+    ])
+      .then(([plo, grad, active, sum]) => {
+        setCQI(plo.plo || null);
+        setGraduates(grad.students || []);
+        setActiveStudents(active.students || []);
+        setSummary(sum || { late: 0, onTrack: 0, graduated: 0 });
+      })
+      .finally(() => setLoading(false));
   }, [programme]);
 
   if (!checked) return <div className="p-6">Checking access…</div>;
@@ -112,6 +117,8 @@ export default function AdminDashboard() {
           <option key={p} value={p}>{p}</option>
         ))}
       </select>
+
+      {loading && <div className="text-gray-500">Loading…</div>}
 
       {/* ================= SUMMARY CARDS ================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -180,7 +187,7 @@ export default function AdminDashboard() {
                 <td className="p-2">{s.matric}</td>
                 <td className="p-2">
                   <Link
-                    href={`/admin/student/${encodeURIComponent(s.email)}`}
+                    href={`/admin/student/${encodeURIComponent(s.email.trim().toLowerCase())}`}
                     className="text-purple-600 underline"
                   >
                     View
@@ -214,7 +221,7 @@ export default function AdminDashboard() {
                 <td className="p-2">{g.matric}</td>
                 <td className="p-2">
                   <Link
-                    href={`/admin/student/${encodeURIComponent(g.email)}`}
+                    href={`/admin/student/${encodeURIComponent(g.email.trim().toLowerCase())}`}
                     className="text-purple-600 underline"
                   >
                     View
