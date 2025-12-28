@@ -199,9 +199,8 @@ export default function AdminDashboard() {
           </tbody>
         </table>
       </div>
-  
 
-{/* ================= ACTIVE STUDENTS ================= */}
+      {/* ================= ACTIVE STUDENTS ================= */}
       <div className="bg-white p-4 rounded-xl shadow">
         <h3 className="font-semibold mb-3">Active Students</h3>
 
@@ -221,7 +220,9 @@ export default function AdminDashboard() {
                 <td className="p-2">{s.matric}</td>
                 <td className="p-2">
                   <Link
-                    href={`/admin/student/${encodeURIComponent(s.email.trim().toLowerCase())}`}
+                    href={`/admin/student/${encodeURIComponent(
+                      s.email.trim().toLowerCase()
+                    )}`}
                     className="text-purple-600 underline"
                   >
                     View
@@ -235,5 +236,7 @@ export default function AdminDashboard() {
           </tbody>
         </table>
       </div>
+
+    </div>   {/* ✅ CLOSE MAIN WRAPPER */}
   );
 }
