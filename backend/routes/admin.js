@@ -81,17 +81,60 @@ router.get("/programme-active-students", adminAuth, async (req, res) => {
       String(r.Programme || "").trim() === programme.trim() &&
       String(r.Status || "").trim() === "Active"
     )
-    .map(r => {
-      const timeline = buildTimelineForRow(r);
-      return {
-        matric: r.Matric || "",
-        name: r["Student Name"] || "",
-        email: (r["Student's Email"] || "").toLowerCase(),
-        status: deriveOverallStatus(timeline)
-      };
-    });
+.map(r => {
+  const timeline = buildTimelineForRow(r);
+  const summary = summarizeTimelineStatus(timeline);
+
+  let overallStatus = "On Track";
+  if (summary.late > 0) overallStatus = "Late";
+  if (summary.completed === timeline.length) overallStatus = "Completed";
+
+  return {
+    matric: r.Matric || "",
+    name: r["Student Name"] || "",
+    email: (r["Student's Email"] || "").trim(),
+    status: overallStatus,
+    summary
+  };
+});
 
   res.json({ count: students.length, students });
+});
+function summarizeTimelineStatus(timeline) {
+  let late = 0;
+  let completed = 0;
+  let onTrack = 0;
+
+  timeline.forEach(t => {
+    if (t.status === "Completed") completed++;
+    else if (t.status === "Late") late++;
+    else onTrack++;
+  });
+
+  return { late, completed, onTrack };
+}
+router.get("/programme-summary", adminAuth, async (req, res) => {
+  const { programme } = req.query;
+  const rows = await readMasterTracking(process.env.SHEET_ID);
+
+  let late = 0, onTrack = 0, graduated = 0;
+
+  rows
+    .filter(r => String(r.Programme || "").trim() === programme.trim())
+    .forEach(r => {
+      if (String(r.Status).trim() === "Graduated") {
+        graduated++;
+        return;
+      }
+
+      const timeline = buildTimelineForRow(r);
+      const summary = summarizeTimelineStatus(timeline);
+
+      if (summary.late > 0) late++;
+      else onTrack++;
+    });
+
+  res.json({ late, onTrack, graduated });
 });
 
 export default router;
