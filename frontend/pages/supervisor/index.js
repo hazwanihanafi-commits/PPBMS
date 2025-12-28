@@ -23,10 +23,11 @@ export default function SupervisorDashboard() {
     const role = localStorage.getItem("ppbms_role");
     const email = localStorage.getItem("ppbms_email");
 
-    if (role !== "supervisor") {
-      window.location.href = "/login";
-      return;
-    }
+   if (role !== "supervisor") {
+  router.replace("/login");
+  return;
+}
+
 
     if (email && role) {
       setUser({ email, role });
