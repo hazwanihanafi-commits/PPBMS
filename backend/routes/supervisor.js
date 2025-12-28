@@ -58,36 +58,24 @@ function auth(req, res, next) {
 ========================================================= */
 router.get("/students", auth, async (req, res) => {
   const supervisorEmail = req.user.email.toLowerCase();
+  console.log("👤 Logged-in supervisor:", supervisorEmail);
+
   const rows = await readMasterTracking(process.env.SHEET_ID);
+  console.log("📄 Total MasterTracking rows:", rows.length);
 
-  const students = rows
-    .filter(r => {
-      const main = String(r["Main Supervisor"] || "").toLowerCase();
-      const co = String(r["Co-Supervisor(s)"] || "").toLowerCase();
-      return main.includes(supervisorEmail) || co.includes(supervisorEmail);
-    })
-    .map(r => {
-      const timeline = buildTimelineForRow(r);
+  const students = rows.filter(r => {
+    const main = String(r["Main Supervisor"] || "").toLowerCase();
+    const co = String(r["Co-Supervisor(s)"] || "").toLowerCase();
 
-      const completed = timeline.filter(t => t.status === "Completed").length;
-      const progress = timeline.length
-        ? Math.round((completed / timeline.length) * 100)
-        : 0;
+    console.log("----");
+    console.log("Student:", r["Student Name"]);
+    console.log("Main Supervisor:", main);
+    console.log("Co Supervisor:", co);
 
-      let status = "On Track";
-      if (timeline.some(t => t.status === "Late")) status = "Late";
-      else if (timeline.some(t => t.status === "Due Soon")) status = "Due Soon";
+    return main.includes(supervisorEmail) || co.includes(supervisorEmail);
+  });
 
-      return {
-        name: r["Student Name"] || "-",
-        email: (r["Student's Email"] || "").toLowerCase(),
-        programme: r["Programme"] || "-",
-        supervisor: r["Main Supervisor"] || "-",
-        cosupervisors: r["Co-Supervisor(s)"] || "None",
-        progress,
-        status
-      };
-    });
+  console.log("✅ Matched students:", students.length);
 
   res.json({ students });
 });
