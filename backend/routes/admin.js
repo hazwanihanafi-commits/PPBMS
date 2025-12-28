@@ -154,6 +154,27 @@ router.get("/student/:email", adminAuth, async (req, res) => {
 
     const timeline = buildTimelineForRow(raw);
 
+    const DOCUMENT_KEYS = [
+  "DPLC",
+  "SUPERVISION_LOG",
+  "APR_Y1",
+  "APR_Y2",
+  "APR_Y3",
+  "ETHICS_APPROVAL",
+  "PUBLICATION_ACCEPTANCE",
+  "PROOF_OF_SUBMISSION",
+  "CONFERENCE_PRESENTATION",
+  "THESIS_NOTICE",
+  "VIVA_REPORT",
+  "CORRECTION_VERIFICATION",
+  "FINAL_THESIS",
+];
+
+const documents = {};
+DOCUMENT_KEYS.forEach(k => {
+  documents[k] = raw[k] ? String(raw[k]).trim() : "";
+});
+
     res.json({
       row: {
         ...profile,
