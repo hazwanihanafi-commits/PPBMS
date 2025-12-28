@@ -90,6 +90,13 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
+          <p className="text-xs text-gray-500 text-center mt-4">
+  First time login? Use your registered email.
+</p>
+
+<p className="text-xs text-purple-600 text-center mt-1 cursor-pointer">
+  Forgot password? Contact admin.
+</p>
     </div>
   );
 }
