@@ -206,17 +206,49 @@ const remarksByAssessment = student?.remarksByAssessment || {};
           </div>
         )}
 
-        {/* ================= CQI ================= */}
-        {activeTab === "cqi" && (
-          <div className="space-y-6">
-            <FinalPLOTable finalPLO={student.finalPLO} />
-          </div>
-        )}
+{activeTab === "cqi" && (
+  <div className="space-y-6">
 
-      </div>
-    )}
-  </>
-);  
-}
+    {/* CQI BY ASSESSMENT */}
+    <div className="bg-white rounded-2xl p-6 shadow">
+      <h3 className="font-bold mb-4">📊 CQI by Assessment</h3>
 
+      {(!student.cqiByAssessment ||
+        Object.keys(student.cqiByAssessment).length === 0) ? (
+        <p className="text-sm italic text-gray-500">
+          No CQI data available for this student.
+        </p>
+      ) : (
+        Object.entries(student.cqiByAssessment).map(
+          ([assessment, ploData]) => (
+            <div key={assessment} className="mb-4">
+              <h4 className="font-semibold text-purple-700">
+                {assessment}
+              </h4>
 
+              <div className="flex flex-wrap gap-2 mt-2">
+                {Object.entries(ploData).map(([plo, d]) => (
+                  <span
+                    key={plo}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      d.status === "Achieved"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {plo}: {d.status}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )
+        )
+      )}
+    </div>
+
+    {/* FINAL PLO */}
+    <FinalPLOTable finalPLO={student.finalPLO} />
+  </div>
+)}
+
+        
