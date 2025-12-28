@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
+import { useAuthGuard } from "@/utils/useAuthGuard";
 import StudentChecklist from "../../components/StudentChecklist";
 import TopBar from "../../components/TopBar";
 
@@ -8,52 +8,20 @@ import TopBar from "../../components/TopBar";
    PAGE
 ========================= */
 export default function StudentPage() {
-  const router = useRouter();
-
-  const [authState, setAuthState] = useState("checking"); // checking | allowed | denied
-  const [user, setUser] = useState(null);
+  const { ready, user } = useAuthGuard("student");
 
   const [profile, setProfile] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   /* =========================
-     AUTH GUARD (NO BLINK)
+     LOAD STUDENT DATA
   ========================= */
   useEffect(() => {
-    if (!router.isReady) return;
-
-    const token = localStorage.getItem("ppbms_token");
-    const role = localStorage.getItem("ppbms_role");
-    const email = localStorage.getItem("ppbms_email");
-
-    if (!token || role !== "student") {
-      setAuthState("denied");
-      return;
-    }
-
-    setUser({ email, role });
-    setAuthState("allowed");
-  }, [router.isReady]);
-
-  /* =========================
-     REDIRECT (ONCE)
-  ========================= */
-  useEffect(() => {
-    if (authState === "denied") {
-      router.replace("/login");
-    }
-  }, [authState]);
-
-  /* =========================
-     LOAD DATA
-  ========================= */
-  useEffect(() => {
-    if (authState !== "allowed") return;
+    if (!ready) return;
     loadStudent();
-  }, [authState]);
+  }, [ready]);
 
   async function loadStudent() {
     setLoading(true);
@@ -63,7 +31,9 @@ export default function StudentPage() {
       const token = localStorage.getItem("ppbms_token");
 
       const res = await fetch(`${API_BASE}/api/student/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const data = await res.json();
@@ -81,12 +51,8 @@ export default function StudentPage() {
   /* =========================
      EARLY RETURNS (NO BLINK)
   ========================= */
-  if (authState === "checking") {
+  if (!ready) {
     return <div className="p-6 text-center">Checking access…</div>;
-  }
-
-  if (authState === "denied") {
-    return null; // redirecting
   }
 
   if (loading) {
