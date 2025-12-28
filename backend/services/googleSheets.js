@@ -124,9 +124,7 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
 
   return true;
 }
-/* =========================================================
-   ASSESSMENT_PLO READ (RESTORED FOR SUPERVISOR)
-========================================================= */
+
 export async function readASSESSMENT_PLO(sheetId) {
   const auth = getAuth(true);
   const client = await auth.getClient();
@@ -141,14 +139,92 @@ export async function readASSESSMENT_PLO(sheetId) {
   if (rows.length < 2) return [];
 
   const headers = rows[0].map(h =>
-    h.toString().trim().toLowerCase()
+    (h || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
   );
 
   return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((h, i) => {
-      obj[h] = row[i] || "";
+      let v = row[i] ?? "";
+      if (typeof v === "string") v = v.trim();
+      if (h.startsWith("plo")) v = v === "" ? null : Number(v);
+      obj[h] = v;
     });
-    return obj;
+
+    return {
+      matric: obj.matric || "",
+      assessment_type: (obj.assessment_type || "").replace(/\s+/g, ""),
+      ...obj
+    };
   });
 }
+
+
+export async function updateASSESSMENT_PLO_Remark({
+  studentMatric,
+  assessmentType,
+  remark
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  // Read full sheet
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range: "ASSESSMENT_PLO!A1:ZZ999",
+  });
+
+  const rows = res.data.values || [];
+  if (rows.length < 2) throw new Error("ASSESSMENT_PLO empty");
+
+  const headers = rows[0].map(h =>
+    h.toString().trim().toLowerCase()
+  );
+
+  const matricIdx = headers.indexOf("matric");
+  const typeIdx = headers.indexOf("assessment_type");
+  const remarkIdx = headers.indexOf("remarks");
+
+  if (remarkIdx === -1) {
+    throw new Error("Remarks column NOT FOUND in ASSESSMENT_PLO");
+  }
+
+  const rowIndex = rows.findIndex((r, i) =>
+    i > 0 &&
+    String(r[matricIdx]).trim() === String(studentMatric).trim() &&
+    String(r[typeIdx]).toUpperCase().trim() === assessmentType
+  );
+
+  if (rowIndex === -1) {
+    throw new Error("Assessment row not found for remark");
+  }
+
+  // Convert column index → letter
+  function toColLetter(idx) {
+    let s = "";
+    while (idx >= 0) {
+      s = String.fromCharCode((idx % 26) + 65) + s;
+      idx = Math.floor(idx / 26) - 1;
+    }
+    return s;
+  }
+
+  const cell = `ASSESSMENT_PLO!${toColLetter(remarkIdx)}${rowIndex + 1}`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: cell,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[remark]]
+    }
+  });
+
+  return true;
+}
+
