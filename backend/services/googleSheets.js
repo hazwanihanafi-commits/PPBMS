@@ -210,3 +210,72 @@ export async function updateASSESSMENT_PLO_Cell({
 
   return true;
 }
+/* =========================================================
+   UPDATE ASSESSMENT_PLO REMARK (REQUIRED BY SUPERVISOR)
+========================================================= */
+export async function updateASSESSMENT_PLO_Remark({
+  studentMatric,
+  assessmentType,
+  remark,
+}) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.SHEET_ID,
+    range: "ASSESSMENT_PLO!A1:ZZ999",
+  });
+
+  const rows = res.data.values || [];
+  if (rows.length < 2) {
+    throw new Error("ASSESSMENT_PLO sheet is empty");
+  }
+
+  const headers = rows[0].map(h =>
+    h.toString().trim().toLowerCase()
+  );
+
+  const matricIdx = headers.indexOf("matric");
+  const typeIdx = headers.indexOf("assessment_type");
+  const remarkIdx = headers.indexOf("remarks");
+
+  if (matricIdx === -1 || typeIdx === -1 || remarkIdx === -1) {
+    throw new Error("Required columns missing in ASSESSMENT_PLO");
+  }
+
+  const rowIndex = rows.findIndex(
+    (r, i) =>
+      i > 0 &&
+      String(r[matricIdx]).trim() === String(studentMatric).trim() &&
+      String(r[typeIdx]).trim().toUpperCase() ===
+        String(assessmentType).trim().toUpperCase()
+  );
+
+  if (rowIndex === -1) {
+    throw new Error("Matching ASSESSMENT_PLO row not found");
+  }
+
+  // Convert column index → A1 letter
+  function toColLetter(idx) {
+    let s = "";
+    while (idx >= 0) {
+      s = String.fromCharCode((idx % 26) + 65) + s;
+      idx = Math.floor(idx / 26) - 1;
+    }
+    return s;
+  }
+
+  const cell = `ASSESSMENT_PLO!${toColLetter(remarkIdx)}${rowIndex + 1}`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: cell,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[remark]],
+    },
+  });
+
+  return true;
+}
