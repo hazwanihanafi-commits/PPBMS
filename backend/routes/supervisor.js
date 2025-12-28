@@ -43,38 +43,58 @@ router.use((req, res, next) => {
 ========================================================= */
 router.get("/students", auth, async (req, res) => {
   try {
-    const supervisorEmail = req.user.email.toLowerCase().trim();
+    const supervisorEmail = String(req.user.email || "")
+      .toLowerCase()
+      .trim();
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const students = rows
       .filter(r => {
-        const main = String(r["Main Supervisor's Email"] || "")
+        // 🔹 MAIN supervisor email
+        const mainSupervisor = String(r["Main Supervisor's Email"] || "")
           .toLowerCase()
           .trim();
 
-        const cos = String(r["Co-Supervisor(s) Email"] || "")
-          .toLowerCase();
+        // 🔹 CO-supervisor emails (can be empty / multiple)
+        const coSupervisorsRaw = String(r["Co-Supervisor(s) Email"] || "")
+          .toLowerCase()
+          .trim();
 
+        const coSupervisors = coSupervisorsRaw
+          ? coSupervisorsRaw
+              .split(/[,;]+/)   // support comma / semicolon
+              .map(e => e.trim())
+              .filter(Boolean)
+          : [];
+
+        // ✅ MATCH RULE
         return (
-          main === supervisorEmail ||
-          cos.includes(supervisorEmail)
+          mainSupervisor === supervisorEmail ||
+          coSupervisors.includes(supervisorEmail)
         );
       })
       .map(r => {
         const timeline = buildTimelineForRow(r);
 
-        const completed = timeline.filter(t => t.status === "Completed").length;
+        const completed = timeline.filter(
+          t => t.status === "Completed"
+        ).length;
+
         const progress = timeline.length
           ? Math.round((completed / timeline.length) * 100)
           : 0;
 
         let status = "On Track";
-        if (timeline.some(t => t.status === "Late")) status = "Late";
-        else if (timeline.some(t => t.status === "Due Soon")) status = "Due Soon";
+        if (timeline.some(t => t.status === "Late")) {
+          status = "Late";
+        } else if (timeline.some(t => t.status === "Due Soon")) {
+          status = "Due Soon";
+        }
 
         return {
           name: r["Student Name"] || "-",
-          email: (r["Student's Email"] || "").toLowerCase(),
+          email: String(r["Student's Email"] || "").toLowerCase(),
           matric: r["Matric"] || "-",
           programme: r["Programme"] || "-",
           progress,
