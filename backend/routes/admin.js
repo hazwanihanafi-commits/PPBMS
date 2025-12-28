@@ -89,6 +89,38 @@ router.get("/programme-summary", adminAuth, async (req, res) => {
   res.json({ late, onTrack, graduated });
 });
 
+/* ================= GRADUATED STUDENTS ================= */
+router.get("/programme-graduates", adminAuth, async (req, res) => {
+  try {
+    const { programme } = req.query;
+    if (!programme) {
+      return res.status(400).json({ error: "Programme required" });
+    }
+
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const students = rows
+      .filter(
+        r =>
+          String(r.Programme || "").trim() === programme.trim() &&
+          String(r.Status || "").trim() === "Graduated"
+      )
+      .map(r => ({
+        matric: r.Matric || "",
+        name: r["Student Name"] || "",
+        email: (r["Student's Email"] || "").toLowerCase()
+      }));
+
+    res.json({
+      count: students.length,
+      students
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to load graduates" });
+  }
+});
+
 /* ================= ACTIVE STUDENTS (DASHBOARD) ================= */
 router.get("/programme-active-students", adminAuth, async (req, res) => {
   const { programme } = req.query;
@@ -149,5 +181,6 @@ router.get("/student/:email", adminAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to load student" });
   }
 });
+
 
 export default router;
