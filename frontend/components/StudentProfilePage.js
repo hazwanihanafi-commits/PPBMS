@@ -1,8 +1,34 @@
 import { useState } from "react";
-import Tabs from "./StudentTabs";
 import SupervisorChecklist from "./SupervisorChecklist";
 import SupervisorRemark from "./SupervisorRemark";
 import FinalPLOTable from "./FinalPLOTable";
+
+function StudentTabs({ activeTab, setActiveTab }) {
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "timeline", label: "Timeline" },
+    { id: "documents", label: "Documents" },
+    { id: "cqi", label: "CQI / PLO" },
+  ];
+
+  return (
+    <div className="flex gap-2 mb-6">
+      {tabs.map(t => (
+        <button
+          key={t.id}
+          onClick={() => setActiveTab(t.id)}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+            activeTab === t.id
+              ? "bg-purple-600 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function StudentProfilePage({
   student,
@@ -38,7 +64,10 @@ export default function StudentProfilePage({
       </div>
 
       {/* ================= TABS ================= */}
-      <Tabs active={activeTab} setActive={setActiveTab} />
+      <StudentTabs
+  activeTab={activeTab}
+  setActiveTab={setActiveTab}
+/>
 
       {/* ================= OVERVIEW ================= */}
       {activeTab === "overview" && (
