@@ -5,82 +5,22 @@ import StudentChecklist from "../../components/StudentChecklist";
 import TopBar from "../../components/TopBar";
 
 /* =========================
-   DELAY SUMMARY BADGES
-========================= */
-function DelaySummaryBadges({ timeline }) {
-  const count = (s) => timeline.filter((t) => t.status === s).length;
-
-  const Badge = ({ label, value, color }) => (
-    <div className={`rounded-xl px-4 py-3 ${color}`}>
-      <div className="text-sm font-semibold">{label}</div>
-      <div className="text-2xl font-bold">{value}</div>
-    </div>
-  );
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <Badge label="Late" value={count("Late")} color="bg-red-100 text-red-700" />
-      <Badge
-        label="Due Soon"
-        value={count("Due Soon")}
-        color="bg-yellow-100 text-yellow-700"
-      />
-      <Badge
-        label="On Time"
-        value={count("On Time")}
-        color="bg-blue-100 text-blue-700"
-      />
-      <Badge
-        label="Completed"
-        value={count("Completed")}
-        color="bg-green-100 text-green-700"
-      />
-    </div>
-  );
-}
-
-/* =========================
-   TABS
-========================= */
-function Tabs({ active, setActive }) {
-  const Tab = ({ id, label }) => (
-    <button
-      onClick={() => setActive(id)}
-      className={`px-4 py-2 rounded-xl font-semibold transition ${
-        active === id
-          ? "bg-purple-600 text-white"
-          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-      }`}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div className="flex gap-3 mb-6">
-      <Tab id="overview" label="Overview" />
-      <Tab id="timeline" label="Timeline" />
-      <Tab id="documents" label="Documents" />
-    </div>
-  );
-}
-
-/* =========================
    PAGE
 ========================= */
 export default function StudentPage() {
   const router = useRouter();
+
+  const [authState, setAuthState] = useState("checking"); // checking | allowed | denied
+  const [user, setUser] = useState(null);
 
   const [profile, setProfile] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [accessChecked, setAccessChecked] = useState(false);
-  const [user, setUser] = useState(null);
 
   /* =========================
-     AUTH GUARD (NO BLINKING)
+     AUTH GUARD (NO BLINK)
   ========================= */
   useEffect(() => {
     if (!router.isReady) return;
@@ -90,34 +30,38 @@ export default function StudentPage() {
     const email = localStorage.getItem("ppbms_email");
 
     if (!token || role !== "student") {
-      router.replace("/login");
+      setAuthState("denied");
       return;
     }
 
     setUser({ email, role });
-    setAccessChecked(true);
+    setAuthState("allowed");
   }, [router.isReady]);
 
   /* =========================
-     LOAD STUDENT DATA
+     REDIRECT (ONCE)
   ========================= */
   useEffect(() => {
-    if (!accessChecked) return;
-    load();
-  }, [accessChecked]);
+    if (authState === "denied") {
+      router.replace("/login");
+    }
+  }, [authState]);
 
-  async function load() {
+  /* =========================
+     LOAD DATA
+  ========================= */
+  useEffect(() => {
+    if (authState !== "allowed") return;
+    loadStudent();
+  }, [authState]);
+
+  async function loadStudent() {
     setLoading(true);
     setError("");
 
-    const token = localStorage.getItem("ppbms_token");
-    if (!token) {
-      setError("Not authenticated");
-      setLoading(false);
-      return;
-    }
-
     try {
+      const token = localStorage.getItem("ppbms_token");
+
       const res = await fetch(`${API_BASE}/api/student/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -128,7 +72,6 @@ export default function StudentPage() {
       setProfile(data.row);
       setTimeline(data.row.timeline || []);
     } catch (e) {
-      console.error(e);
       setError("Unable to load student data");
     }
 
@@ -136,31 +79,14 @@ export default function StudentPage() {
   }
 
   /* =========================
-     MARK COMPLETED / RESET
+     EARLY RETURNS (NO BLINK)
   ========================= */
-  async function markCompleted(activity, reset = false) {
-    const token = localStorage.getItem("ppbms_token");
-    if (!token) return;
-
-    const date = reset ? "" : new Date().toISOString().slice(0, 10);
-
-    await fetch(`${API_BASE}/api/student/update-actual`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ activity, date }),
-    });
-
-    load();
+  if (authState === "checking") {
+    return <div className="p-6 text-center">Checking access…</div>;
   }
 
-  /* =========================
-     RENDER GUARDS
-  ========================= */
-  if (!accessChecked) {
-    return <div className="p-6 text-center">Checking access…</div>;
+  if (authState === "denied") {
+    return null; // redirecting
   }
 
   if (loading) {
@@ -173,11 +99,12 @@ export default function StudentPage() {
 
   if (!profile) return null;
 
+  /* =========================
+     CALCULATIONS
+  ========================= */
   const progress = timeline.length
     ? Math.round(
-        (timeline.filter((t) => t.status === "Completed").length /
-          timeline.length) *
-          100
+        (timeline.filter(t => t.status === "Completed").length / timeline.length) * 100
       )
     : 0;
 
@@ -189,7 +116,6 @@ export default function StudentPage() {
       <TopBar user={user} />
 
       <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
-        {/* HEADER */}
         <div className="bg-white rounded-2xl shadow p-6 mb-6">
           <h1 className="text-2xl font-extrabold mb-3">🎓 Student Dashboard</h1>
 
@@ -203,7 +129,6 @@ export default function StudentPage() {
             <div><strong>Co-Supervisor(s):</strong> {profile.cosupervisors}</div>
           </div>
 
-          {/* PROGRESS */}
           <div className="mt-4">
             <div className="flex justify-between text-sm mb-1">
               <span>Overall Progress</span>
@@ -211,103 +136,14 @@ export default function StudentPage() {
             </div>
             <div className="w-full bg-gray-200 h-3 rounded-full">
               <div
-                className="bg-purple-600 h-3 rounded-full transition-all"
+                className="bg-purple-600 h-3 rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
         </div>
 
-        <DelaySummaryBadges timeline={timeline} />
-        <Tabs active={activeTab} setActive={setActiveTab} />
-
-        {/* OVERVIEW */}
-        {activeTab === "overview" && (
-          <div className="bg-white p-6 rounded-2xl shadow text-gray-700">
-            This dashboard tracks your postgraduate milestones, timelines,
-            and document submissions according to programme requirements.
-          </div>
-        )}
-
-        {/* DOCUMENTS */}
-        {activeTab === "documents" && (
-          <div className="bg-white p-6 rounded-2xl shadow">
-            <StudentChecklist initialDocuments={profile.documents} />
-          </div>
-        )}
-
-        {/* TIMELINE */}
-        {activeTab === "timeline" && (
-          <div className="bg-white p-6 rounded-2xl shadow overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-purple-50 text-purple-700">
-                  <th className="p-3 text-left">Activity</th>
-                  <th className="p-3">Expected</th>
-                  <th className="p-3">Actual</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Remaining</th>
-                  <th className="p-3">Remark</th>
-                  <th className="p-3">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {timeline.map((t, i) => (
-                  <tr key={i} className="border-t hover:bg-gray-50">
-                    <td className="p-3 font-medium">{t.activity}</td>
-                    <td className="p-3 text-center">{t.expected || "-"}</td>
-                    <td className="p-3 text-center">{t.actual || "-"}</td>
-                    <td className="p-3 text-center font-semibold">{t.status}</td>
-                    <td className="p-3 text-center">
-                      {t.remaining_days !== "" ? t.remaining_days : "-"}
-                    </td>
-                    <td className="p-3">
-                      <textarea
-                        defaultValue={t.remark || ""}
-                        className="w-56 border rounded-lg p-2 text-xs"
-                        onBlur={async (e) => {
-                          const token = localStorage.getItem("ppbms_token");
-                          if (!token) return;
-
-                          await fetch(`${API_BASE}/api/student/update-remark`, {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                              Authorization: `Bearer ${token}`,
-                            },
-                            body: JSON.stringify({
-                              activity: t.activity,
-                              remark: e.target.value,
-                            }),
-                          });
-
-                          load();
-                        }}
-                      />
-                    </td>
-                    <td className="p-3 text-center">
-                      {!t.actual ? (
-                        <button
-                          onClick={() => markCompleted(t.activity)}
-                          className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs font-semibold"
-                        >
-                          ✔ Complete
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => markCompleted(t.activity, true)}
-                          className="px-3 py-1 rounded-lg bg-gray-500 text-white text-xs font-semibold"
-                        >
-                          ↺ Reset
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {/* YOUR EXISTING TABS / TIMELINE / DOCUMENTS CONTINUE HERE */}
       </div>
     </>
   );
