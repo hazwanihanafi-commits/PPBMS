@@ -250,5 +250,12 @@ const remarksByAssessment = student?.remarksByAssessment || {};
     <FinalPLOTable finalPLO={student.finalPLO} />
   </div>
 )}
+                {/* END OF CQI TAB */}
+      </div>
+    )}
+  </>
+);
+}
+
 
         
