@@ -1,13 +1,12 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import {
-  readMasterTracking,
-  writeSheetCell,
-} from "../services/googleSheets.js";
+import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { resetSheetCache } from "../utils/sheetCache.js";
+import { columnNumberToLetter } from "../utils/columnUtils.js";
 
 const router = express.Router();
+const SHEET = "MasterTracking";
 
 /* ================= AUTH ================= */
 function auth(req, res, next) {
@@ -35,11 +34,7 @@ router.get("/me", auth, async (req, res) => {
     if (!raw) return res.status(404).json({ error: "Student not found" });
 
     const profile = {
-      student_id:
-        raw["Matric"] ||
-        raw["Matric No"] ||
-        raw["Student ID"] ||
-        "",
+      student_id: raw["Matric"] || raw["Matric No"] || raw["Student ID"] || "",
       student_name: raw["Student Name"] || "",
       email: raw["Student's Email"] || "",
       programme: raw["Programme"] || "",
@@ -51,7 +46,6 @@ router.get("/me", auth, async (req, res) => {
       status: raw["Status"] || "",
     };
 
-    /* ---------- DOCUMENTS (KEY → VALUE) ---------- */
     const DOCUMENT_KEYS = [
       "DPLC",
       "SUPERVISION_LOG",
@@ -65,34 +59,28 @@ router.get("/me", auth, async (req, res) => {
       "THESIS_NOTICE",
       "VIVA_REPORT",
       "CORRECTION_VERIFICATION",
-      "FINAL_THESIS"
+      "FINAL_THESIS",
     ];
 
     const documents = {};
-    DOCUMENT_KEYS.forEach(key => {
-      documents[key] = raw[key] || "";
-    });
+    DOCUMENT_KEYS.forEach(k => (documents[k] = raw[k] || ""));
 
-    /* ---------- TIMELINE ---------- */
     const timeline = buildTimelineForRow(raw);
 
-    return res.json({
+    res.json({
       row: {
         ...profile,
         documents,
-        timeline
-      }
+        timeline,
+      },
     });
-
   } catch (e) {
-    console.error("student/me error:", e);
-    return res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: e.message });
   }
 });
 
-/* ============================================================
-   POST /api/student/update-actual
-============================================================ */
+/* ================= UPDATE ACTUAL DATE ================= */
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { activity, date } = req.body;
@@ -101,68 +89,69 @@ router.post("/update-actual", auth, async (req, res) => {
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
+    const headers = Object.keys(rows[0]);
 
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
-
     if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
 
+    const colIndex = headers.indexOf(`${activity} - Actual`);
+    if (colIndex === -1)
+      return res.status(400).json({ error: "Column not found" });
+
+    const col = columnNumberToLetter(colIndex + 1);
+
     await writeSheetCell(
       process.env.SHEET_ID,
-      `${activity} - Actual`,
-      idx + 2,
+      `${SHEET}!${col}${idx + 2}`,
       date
     );
 
     resetSheetCache();
-    return res.json({ success: true });
-
+    res.json({ success: true });
   } catch (e) {
-    console.error("update-actual error:", e);
-    return res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: e.message });
   }
 });
 
-/* ============================================================
-   POST /api/student/save-document
-   ✅ SAVE / UPDATE / REMOVE (KEY-BASED)
-============================================================ */
+/* ================= SAVE DOCUMENT ================= */
 router.post("/save-document", auth, async (req, res) => {
   try {
     const { document_key, file_url } = req.body;
-
     if (!document_key)
       return res.status(400).json({ error: "Missing document_key" });
 
-    if (file_url === undefined)
-      return res.status(400).json({ error: "Missing file_url" });
-
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
+    const headers = Object.keys(rows[0]);
 
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
-
     if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
 
+    const colIndex = headers.indexOf(document_key);
+    if (colIndex === -1)
+      return res.status(400).json({ error: "Column not found" });
+
+    const col = columnNumberToLetter(colIndex + 1);
+
     await writeSheetCell(
       process.env.SHEET_ID,
-      document_key,
-      idx + 2,
+      `${SHEET}!${col}${idx + 2}`,
       file_url || ""
     );
 
-    return res.json({ success: true });
-
+    resetSheetCache();
+    res.json({ success: true });
   } catch (e) {
-    console.error("save-document error:", e);
-    return res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: e.message });
   }
 });
-
 
 export default router;
