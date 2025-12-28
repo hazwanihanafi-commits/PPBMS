@@ -57,47 +57,38 @@ function auth(req, res, next) {
    → Supervisor Dashboard List
 ========================================================= */
 router.get("/students", auth, async (req, res) => {
-  try {
-    const rows = await readMasterTracking(process.env.SHEET_ID);
+  const supervisorEmail = req.user.email.toLowerCase();
+  const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    const loginEmail = (req.user.email || "")
-      .toLowerCase()
-      .replace(/\s+/g, "");
+  const students = rows
+    .filter(r =>
+      String(r["Main Supervisor"] || "").toLowerCase() === supervisorEmail
+    )
+    .map(r => {
+      const timeline = buildTimelineForRow(r);
 
-    const students = rows
-      .filter(r => {
-        if (req.user.role === "admin") return true;
+      const completed = timeline.filter(t => t.status === "Completed").length;
+      const progress = timeline.length
+        ? Math.round((completed / timeline.length) * 100)
+        : 0;
 
-        const supervisorEmail = (r["Main Supervisor's Email"] || "")
-          .toLowerCase()
-          .replace(/\s+/g, "");
+      let status = "On Track";
+      if (timeline.some(t => t.status === "Late")) status = "Late";
+      if (timeline.some(t => t.status === "Due Soon")) status = "Due Soon";
 
-        return supervisorEmail.includes(loginEmail);
-      })
-      .map(r => {
-        const timeline = buildTimelineForRow(r);
-        const completed = timeline.filter(t => t.status === "Completed").length;
+      return {
+        name: r["Student Name"] || "-",
+        email: (r["Student's Email"] || "").toLowerCase(),
+        programme: r.Programme || "-",
+        supervisor: r["Main Supervisor"] || "-",
+        cosupervisors: r["Co-Supervisor(s)"] || "None",
+        progress,
+        status
+      };
+    });
 
-        return {
-          id: r["Matric"] || "",
-          name: r["Student Name"] || "",
-          email: (r["Student's Email"] || "").toLowerCase().trim(),
-          programme: r["Programme"] || "",
-          field: r["Field"] || "",
-          status: r["Status"] || "Active",
-          progressPercent: timeline.length
-            ? Math.round((completed / timeline.length) * 100)
-            : 0
-        };
-      });
-
-    res.json({ students });
-  } catch (e) {
-    console.error("students list error:", e);
-    res.status(500).json({ error: e.message });
-  }
+  res.json({ students });
 });
-
 /* =========================================================
    GET /api/supervisor/student/:email
 ========================================================= */
