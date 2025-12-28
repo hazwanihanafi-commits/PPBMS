@@ -61,9 +61,10 @@ router.get("/students", auth, async (req, res) => {
   const rows = await readMasterTracking(process.env.SHEET_ID);
 
   const students = rows
-    .filter(r =>
-      String(r["Main Supervisor"] || "").toLowerCase() === supervisorEmail
-    )
+    .filter(r => {
+      const main = String(r["Main Supervisor"] || "").toLowerCase();
+      return main.includes(supervisorEmail);
+    })
     .map(r => {
       const timeline = buildTimelineForRow(r);
 
@@ -79,6 +80,7 @@ router.get("/students", auth, async (req, res) => {
       return {
         name: r["Student Name"] || "-",
         email: (r["Student's Email"] || "").toLowerCase(),
+        matric: r["Matric"] || "",
         programme: r.Programme || "-",
         supervisor: r["Main Supervisor"] || "-",
         cosupervisors: r["Co-Supervisor(s)"] || "None",
