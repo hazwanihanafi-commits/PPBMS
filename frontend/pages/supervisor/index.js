@@ -7,43 +7,37 @@ export default function SupervisorDashboard() {
   const router = useRouter();
 
   const [students, setStudents] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [roleChecked, setRoleChecked] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState(null);
 
-  /* =========================
-     ROLE GUARD + USER
-  ========================= */
+  /* =====================================================
+     ROLE GUARD + USER INIT (NO BLINKING)
+  ===================================================== */
   useEffect(() => {
-    setMounted(true);
+    if (!router.isReady) return;
 
+    const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
     const email = localStorage.getItem("ppbms_email");
 
-   if (role !== "supervisor") {
-  router.replace("/login");
-  return;
-}
-
-
-    if (email && role) {
-      setUser({ email, role });
+    if (!token || role !== "supervisor") {
+      router.replace("/login");
+      return;
     }
 
+    setUser({ email, role });
     setRoleChecked(true);
-  }, []);
+  }, [router.isReady]);
 
+  /* =====================================================
+     LOAD STUDENTS
+  ===================================================== */
   useEffect(() => {
     if (!roleChecked) return;
     loadStudents();
   }, [roleChecked]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [search, students]);
 
   async function loadStudents() {
     setLoading(true);
@@ -58,60 +52,61 @@ export default function SupervisorDashboard() {
     setLoading(false);
   }
 
-  function applyFilters() {
-    let list = [...students];
-    if (search.trim()) {
-      const s = search.toLowerCase();
-      list = list.filter(
-        (st) =>
-          st.name?.toLowerCase().includes(s) ||
-          st.email?.toLowerCase().includes(s) ||
-          st.programme?.toLowerCase().includes(s)
-      );
-    }
-    setFiltered(list);
-  }
+  /* =====================================================
+     FILTERED STUDENTS (DERIVED — NO STATE LOOP)
+  ===================================================== */
+  const filtered = students.filter((st) => {
+    if (!search.trim()) return true;
+    const s = search.toLowerCase();
+    return (
+      st.name?.toLowerCase().includes(s) ||
+      st.email?.toLowerCase().includes(s) ||
+      st.programme?.toLowerCase().includes(s)
+    );
+  });
 
-  if (!mounted || !roleChecked) {
-    return <div className="p-6 text-center">Checking access…</div>;
-  }
-
-  /* =========================
+  /* =====================================================
      SUMMARY METRICS
-  ========================= */
+  ===================================================== */
   const summary = {
-    graduated: students.filter(s => s.status === "Graduated").length,
+    graduated: students.filter((s) => s.status === "Graduated").length,
     risk: students.filter(
-      s => s.status !== "Graduated" && s.progressPercent < 50
+      (s) => s.status !== "Graduated" && s.progressPercent < 50
     ).length,
     dueSoon: students.filter(
-      s =>
+      (s) =>
         s.status !== "Graduated" &&
         s.progressPercent >= 50 &&
         s.progressPercent < 80
     ).length,
     onTime: students.filter(
-      s => s.status !== "Graduated" && s.progressPercent >= 80
+      (s) => s.status !== "Graduated" && s.progressPercent >= 80
     ).length,
   };
 
   function getStudentStatus(st) {
-  if (st.status === "Graduated") {
-    return { label: "Graduated", color: "bg-green-100 text-green-700" };
+    if (st.status === "Graduated") {
+      return { label: "Graduated", color: "bg-green-100 text-green-700" };
+    }
+    if (st.progressPercent < 50) {
+      return { label: "At Risk", color: "bg-red-100 text-red-700" };
+    }
+    if (st.progressPercent < 80) {
+      return { label: "Due Soon", color: "bg-yellow-100 text-yellow-700" };
+    }
+    return { label: "On Time", color: "bg-blue-100 text-blue-700" };
   }
 
-  if (st.progressPercent < 50) {
-    return { label: "At Risk", color: "bg-red-100 text-red-700" };
+  /* =====================================================
+     ACCESS CHECK PLACEHOLDER
+  ===================================================== */
+  if (!roleChecked) {
+    return <div className="p-6 text-center">Checking access…</div>;
   }
 
-  if (st.progressPercent < 80) {
-    return { label: "Due Soon", color: "bg-yellow-100 text-yellow-700" };
-  }
-
-  return { label: "On Time", color: "bg-blue-100 text-blue-700" };
-}
-
-
+  /* =====================================================
+     RENDER
+  ===================================================== */
   return (
     <>
       <TopBar user={user} />
@@ -121,7 +116,7 @@ export default function SupervisorDashboard() {
           Supervisor Dashboard
         </h1>
 
-        {/* SUMMARY BADGES */}
+        {/* ================= SUMMARY ================= */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-red-100 text-red-700 rounded-xl p-4">
             <div className="text-sm font-semibold">At Risk</div>
@@ -144,7 +139,7 @@ export default function SupervisorDashboard() {
           </div>
         </div>
 
-        {/* SEARCH */}
+        {/* ================= SEARCH ================= */}
         <div className="flex gap-4 mb-6">
           <input
             type="text"
@@ -157,63 +152,61 @@ export default function SupervisorDashboard() {
 
         {loading && <p className="text-gray-600">Loading students…</p>}
 
-        {/* STUDENT CARDS */}
+        {/* ================= STUDENT CARDS ================= */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filtered.map((st) => (
-            <div
-              key={st.email}
-              className="bg-white p-6 rounded-2xl shadow border border-gray-100"
-            >
-              <div className="flex justify-between items-center mb-2">
-  <h2 className="text-lg font-bold text-gray-900 uppercase">
-    {st.name}
-  </h2>
+          {filtered.map((st) => {
+            const s = getStudentStatus(st);
 
-  {(() => {
-    const s = getStudentStatus(st);
-    return (
-      <span
-        className={`px-3 py-1 text-xs font-bold rounded-full ${s.color}`}
-      >
-        {s.label}
-      </span>
-    );
-  })()}
-</div>
-
-
-              <p className="text-sm text-gray-700">
-                <strong>Email:</strong> {st.email}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Matric:</strong> {st.id || "-"}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Programme:</strong> {st.programme || "-"}
-              </p>
-
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-gray-800">
-                  Overall Progress
-                </p>
-                <p className="text-2xl font-extrabold text-purple-700">
-                  {st.progressPercent}%
-                </p>
-              </div>
-
-              <button
-                onClick={() =>
-                  router.push({
-                    pathname: "/supervisor/[email]",
-                    query: { email: st.email.trim().toLowerCase() },
-                  })
-                }
-                className="mt-4 text-purple-700 font-medium hover:underline"
+            return (
+              <div
+                key={st.email}
+                className="bg-white p-6 rounded-2xl shadow border border-gray-100"
               >
-                View Full Progress →
-              </button>
-            </div>
-          ))}
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-lg font-bold text-gray-900 uppercase">
+                    {st.name}
+                  </h2>
+
+                  <span
+                    className={`px-3 py-1 text-xs font-bold rounded-full ${s.color}`}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+
+                <p className="text-sm text-gray-700">
+                  <strong>Email:</strong> {st.email}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Matric:</strong> {st.id || "-"}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Programme:</strong> {st.programme || "-"}
+                </p>
+
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-gray-800">
+                    Overall Progress
+                  </p>
+                  <p className="text-2xl font-extrabold text-purple-700">
+                    {st.progressPercent}%
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
+                    router.push({
+                      pathname: "/supervisor/[email]",
+                      query: { email: st.email.trim().toLowerCase() },
+                    })
+                  }
+                  className="mt-4 text-purple-700 font-medium hover:underline"
+                >
+                  View Full Progress →
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>
