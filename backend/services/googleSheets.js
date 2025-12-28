@@ -279,3 +279,11 @@ export async function updateASSESSMENT_PLO_Remark({
 
   return true;
 }
+
+/* =========================================================
+   FINAL PROGRAMME PLO READ
+   (REQUIRED BY computeProgrammeCQI.js)
+========================================================= */
+export async function readFINALPROGRAMPLO(sheetId) {
+  return await readSheet(sheetId, "FINALPROGRAMPLO!A1:Z");
+}
