@@ -161,8 +161,13 @@ export async function readFINALPROGRAMPLO(sheetId) {
 /* =========================================================
    AUTH USERS (FIXED & SINGLE SOURCE OF TRUTH)
 ========================================================= */
-export async function readAuthUsers(sheetId) {
-  return await readSheet(sheetId, "AUTH_USERS!A1:Z");
+function columnToLetter(col) {
+  let letter = "";
+  while (col >= 0) {
+    letter = String.fromCharCode((col % 26) + 65) + letter;
+    col = Math.floor(col / 26) - 1;
+  }
+  return letter;
 }
 
 export async function updateAuthUserPassword({ sheetId, email, hash }) {
@@ -181,8 +186,14 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
   const passCol = headers.indexOf("PasswordHash");
   const setCol = headers.indexOf("PasswordSet");
 
+  if (emailCol === -1) throw new Error("Email column missing in AUTH_USERS");
+  if (passCol === -1) throw new Error("PasswordHash column missing in AUTH_USERS");
+  if (setCol === -1) throw new Error("PasswordSet column missing in AUTH_USERS");
+
+  const normalizedEmail = email.toLowerCase().trim();
+
   const rowIndex = rows.findIndex(
-    r => (r[emailCol] || "").toLowerCase().trim() === email
+    r => (r[emailCol] || "").toLowerCase().trim() === normalizedEmail
   );
 
   if (rowIndex === -1) throw new Error("User not found in AUTH_USERS");
@@ -191,20 +202,21 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `AUTH_USERS!${String.fromCharCode(65 + passCol)}${rowNum}`,
+    range: `AUTH_USERS!${columnToLetter(passCol)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [[hash]] }
   });
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `AUTH_USERS!${String.fromCharCode(65 + setCol)}${rowNum}`,
+    range: `AUTH_USERS!${columnToLetter(setCol)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [["TRUE"]] }
   });
 
   return true;
 }
+
 
 /* =========================================================
    GENERIC WRITE CELL (KEEP – USED BY MASTERTRACKING)
