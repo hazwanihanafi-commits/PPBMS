@@ -122,6 +122,13 @@ useEffect(() => {
   <>
     <TopBar user={user} />
 
+     <button
+  onClick={() => router.push("/supervisor")}
+  className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-purple-600 hover:underline"
+>
+  ← Back to Supervisor Dashboard
+</button>
+
     {loading ? (
       <div className="p-6">Loading…</div>
     ) : !student ? (
