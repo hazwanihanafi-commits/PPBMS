@@ -4,8 +4,7 @@ import jwt from "jsonwebtoken";
 import {
   readMasterTracking,
   readASSESSMENT_PLO,
-  updateASSESSMENT_PLO_Remark,
-  updateASSESSMENT_PLO_Cell
+  updateASSESSMENT_PLO_Remark
 } from "../services/googleSheets.js";
 
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
