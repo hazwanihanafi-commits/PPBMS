@@ -94,4 +94,34 @@ router.get("/programme-active-students", adminAuth, async (req, res) => {
   res.json({ count: students.length, students });
 });
 
+/* ================= PROGRAMME SUMMARY ================= */
+router.get("/programme-summary", adminAuth, async (req, res) => {
+  const { programme } = req.query;
+  if (!programme) {
+    return res.status(400).json({ error: "Programme required" });
+  }
+
+  const rows = await readMasterTracking(process.env.SHEET_ID);
+
+  let late = 0;
+  let onTrack = 0;
+  let graduated = 0;
+
+  rows
+    .filter(r => String(r.Programme || "").trim() === programme.trim())
+    .forEach(r => {
+      if (String(r.Status || "").trim() === "Graduated") {
+        graduated++;
+        return;
+      }
+
+      const timeline = buildTimelineForRow(r);
+
+      if (timeline.some(t => t.status === "LATE")) late++;
+      else onTrack++;
+    });
+
+  res.json({ late, onTrack, graduated });
+});
+
 export default router;
