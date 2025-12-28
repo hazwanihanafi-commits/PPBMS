@@ -237,6 +237,6 @@ export default function AdminDashboard() {
         </table>
       </div>
 
-    </div>   {/* ✅ CLOSE MAIN WRAPPER */}
+    </div>  
   );
 }
