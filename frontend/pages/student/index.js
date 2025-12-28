@@ -92,15 +92,56 @@ export default function StudentPage() {
       <div className="min-h-screen bg-purple-50 p-6">
 
         {/* PROFILE */}
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h1 className="text-2xl font-bold mb-2">🎓 Student Dashboard</h1>
-          <div className="grid md:grid-cols-2 text-sm gap-2">
-            <div><strong>Name:</strong> {profile.student_name}</div>
-            <div><strong>Matric:</strong> {profile.student_id}</div>
-            <div><strong>Email:</strong> {profile.email}</div>
-            <div><strong>Programme:</strong> {profile.programme}</div>
-          </div>
-        </div>
+        {/* ===============================
+    STUDENT PROFILE CARD
+=============================== */}
+<div className="bg-white rounded-2xl shadow p-6 mb-6">
+  <h1 className="text-xl font-extrabold mb-3 flex items-center gap-2">
+    🎓 Student Dashboard
+  </h1>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+    <div>
+      <span className="font-semibold text-gray-600">Name</span>
+      <div>{profile.student_name}</div>
+    </div>
+
+    <div>
+      <span className="font-semibold text-gray-600">Matric</span>
+      <div>{profile.student_id}</div>
+    </div>
+
+    <div>
+      <span className="font-semibold text-gray-600">Email</span>
+      <div>{profile.email}</div>
+    </div>
+
+    <div>
+      <span className="font-semibold text-gray-600">Programme</span>
+      <div>{profile.programme}</div>
+    </div>
+
+    <div>
+      <span className="font-semibold text-gray-600">Field</span>
+      <div>{profile.field || "-"}</div>
+    </div>
+
+    <div>
+      <span className="font-semibold text-gray-600">Department</span>
+      <div>{profile.department || "-"}</div>
+    </div>
+
+    <div>
+      <span className="font-semibold text-gray-600">Main Supervisor</span>
+      <div>{profile.supervisor || "-"}</div>
+    </div>
+
+    <div>
+      <span className="font-semibold text-gray-600">Co-Supervisor(s)</span>
+      <div>{profile.cosupervisors || "-"}</div>
+    </div>
+  </div>
+</div>
 
         {/* DONUT + SUMMARY */}
         <CompletionDonut percent={progress} />
