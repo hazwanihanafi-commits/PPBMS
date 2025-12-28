@@ -191,13 +191,16 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
 
   const [headers, ...rows] = res.data.values;
 
-  const emailCol = headers.indexOf("Email");
-  const passCol = headers.indexOf("PasswordHash");
-  const setCol = headers.indexOf("PasswordSet");
+  // 🔐 Normalize headers
+  const norm = h => h.toLowerCase().trim();
+
+  const emailCol = headers.findIndex(h => norm(h) === "email");
+  const passCol  = headers.findIndex(h => norm(h) === "passwordhash");
+  const setCol   = headers.findIndex(h => norm(h) === "passwordset");
 
   if (emailCol === -1) throw new Error("Email column missing in AUTH_USERS");
   if (passCol === -1) throw new Error("PasswordHash column missing in AUTH_USERS");
-  if (setCol === -1) throw new Error("PasswordSet column missing in AUTH_USERS");
+  if (setCol === -1)  throw new Error("PasswordSet column missing in AUTH_USERS");
 
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -209,22 +212,35 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
 
   const rowNum = rowIndex + 2;
 
+  // helper
+  const colLetter = col => {
+    let s = "";
+    while (col >= 0) {
+      s = String.fromCharCode((col % 26) + 65) + s;
+      col = Math.floor(col / 26) - 1;
+    }
+    return s;
+  };
+
+  // ✅ Write hash
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `AUTH_USERS!${columnToLetter(passCol)}${rowNum}`,
+    range: `AUTH_USERS!${colLetter(passCol)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [[hash]] }
   });
 
+  // ✅ Mark password set
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `AUTH_USERS!${columnToLetter(setCol)}${rowNum}`,
+    range: `AUTH_USERS!${colLetter(setCol)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [["TRUE"]] }
   });
 
   return true;
 }
+
 
 
 /* =========================================================
