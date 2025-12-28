@@ -122,166 +122,99 @@ useEffect(() => {
 const remarksByAssessment = student?.remarksByAssessment || {};
 
   return (
+  return (
   <>
     <TopBar user={user} />
 
-     <button
-  onClick={() => router.push("/supervisor")}
-  className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-purple-600 hover:underline"
->
-  ← Back to Supervisor Dashboard
-</button>
+    {/* 🔙 BACK BUTTON */}
+    <div className="px-6 pt-4">
+      <button
+        onClick={() => router.push("/supervisor")}
+        className="text-sm font-semibold text-purple-600 hover:underline"
+      >
+        ← Back to Supervisor Dashboard
+      </button>
+    </div>
 
     {loading ? (
       <div className="p-6">Loading…</div>
     ) : !student ? (
       <div className="p-6">Student not found</div>
-    ) : (   
-    <div className="min-h-screen bg-purple-50 p-6 space-y-6">
+    ) : (
+      <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
-      {/* ================= HEADER ================= */}
-      <div className="bg-white p-6 rounded-2xl shadow">
-        <h1 className="text-2xl font-extrabold mb-2">
-          🎓 Student Progress (Supervisor View)
-        </h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <div><strong>Name:</strong> {student.student_name}</div>
-          <div><strong>Matric:</strong> {student.student_id}</div>
-          <div><strong>Email:</strong> {student.email}</div>
-          <div><strong>Programme:</strong> {student.programme}</div>
-          <div><strong>Field:</strong> {student.field}</div>
-          <div><strong>Department:</strong> {student.department}</div>
-          <div><strong>Status:</strong> {student.status}</div>
-          <div>
-            <strong>Co-Supervisor(s):</strong>{" "}
-            {student.coSupervisors?.length
-              ? student.coSupervisors.join(", ")
-              : "None"}
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mt-4">
-          <div className="flex justify-between text-sm mb-1">
-            <span>Overall Progress</span>
-            <span className="font-semibold text-purple-700">{progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 h-3 rounded-full">
-            <div
-              className="bg-purple-600 h-3 rounded-full transition-all"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ================= DELAY SUMMARY ================= */}
-      <DelayBadges timeline={timeline} />
-
-      {/* ================= TABS ================= */}
-      <Tabs active={activeTab} setActive={setActiveTab} />
-
-      {/* ================= OVERVIEW ================= */}
-      {activeTab === "overview" && (
-        <div className="bg-white p-6 rounded-2xl shadow text-gray-700">
-          This supervisor dashboard mirrors the student view and additionally
-          provides CQI monitoring, PLO attainment tracking, and intervention
-          documentation aligned with MQA requirements.
-        </div>
-      )}
-
-      {/* ================= DOCUMENTS ================= */}
-      {activeTab === "documents" && (
+        {/* ================= HEADER ================= */}
         <div className="bg-white p-6 rounded-2xl shadow">
-          <SupervisorChecklist documents={student.documents} />
-        </div>
-      )}
+          <h1 className="text-2xl font-extrabold mb-2">
+            🎓 Student Progress (Supervisor View)
+          </h1>
 
-      {/* ================= TIMELINE ================= */}
-      {activeTab === "timeline" && (
-        <div className="bg-white p-6 rounded-2xl shadow overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-purple-100 text-purple-700">
-              <tr>
-                <th className="p-3 text-left">Activity</th>
-                <th className="p-3">Expected</th>
-                <th className="p-3">Actual</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Remaining</th>
-              </tr>
-            </thead>
-            <tbody>
-              {timeline.map((t, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-3">{t.activity}</td>
-                  <td className="p-3">{t.expected || "-"}</td>
-                  <td className="p-3">{t.actual || "-"}</td>
-                  <td className="p-3 font-semibold">{t.status}</td>
-                  <td className="p-3">{t.remaining_days}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ================= CQI / PLO ================= */}
-      {activeTab === "cqi" && (
-  <div className="space-y-6">
-
-    {/* CQI BY ASSESSMENT */}
-    <div className="bg-white rounded-2xl p-6 shadow">
-      <h3 className="font-bold mb-4">📊 CQI by Assessment</h3>
-
-      {Object.keys(cqiByAssessment).length === 0 ? (
-        <p className="text-sm italic text-gray-500">
-          No CQI data available.
-        </p>
-      ) : (
-        Object.entries(cqiByAssessment).map(([assessment, ploData]) => (
-          <div key={assessment} className="mb-6">
-            <h4 className="font-semibold text-purple-700 mb-2">
-              {assessment}
-            </h4>
-
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(ploData)
-                .sort(
-                  ([a], [b]) =>
-                    parseInt(a.replace("PLO", "")) -
-                    parseInt(b.replace("PLO", ""))
-                )
-                .map(([plo, d]) => (
-                  <span
-                    key={plo}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      d.status === "Achieved"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {plo}: Avg {d.average ?? "-"} – {d.status}
-                  </span>
-                ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div><strong>Name:</strong> {student.student_name}</div>
+            <div><strong>Matric:</strong> {student.student_id}</div>
+            <div><strong>Email:</strong> {student.email}</div>
+            <div><strong>Programme:</strong> {student.programme}</div>
+            <div><strong>Field:</strong> {student.field}</div>
+            <div><strong>Department:</strong> {student.department}</div>
+            <div><strong>Status:</strong> {student.status}</div>
+            <div>
+              <strong>Co-Supervisor(s):</strong>{" "}
+              {student.cosupervisors || "None"}
             </div>
           </div>
-        ))
-      )}
-    </div>
+        </div>
 
-    {/* SUPERVISOR INTERVENTION REMARKS */}
-    {Object.keys(cqiByAssessment).map(type => (
-      <SupervisorRemark
-        key={type}
-        studentMatric={student.student_id}
-        studentEmail={student.email}
-        assessmentType={type}
-        initialRemark={remarksByAssessment[type]}
-      />
-    ))}
+        {/* ================= TABS ================= */}
+        <Tabs active={activeTab} setActive={setActiveTab} />
 
-    {/* FINAL PLO */}
-    <FinalPLOTable finalPLO={student.finalPLO} />
-  </div>
-)}
+        {/* ================= OVERVIEW ================= */}
+        {activeTab === "overview" && (
+          <div className="bg-white p-6 rounded-2xl shadow">
+            Supervisor overview and monitoring dashboard.
+          </div>
+        )}
+
+        {/* ================= TIMELINE ================= */}
+        {activeTab === "timeline" && (
+          <div className="bg-white p-6 rounded-2xl shadow overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-purple-100">
+                <tr>
+                  <th className="p-3 text-left">Activity</th>
+                  <th className="p-3">Expected</th>
+                  <th className="p-3">Actual</th>
+                  <th className="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timeline.map((t, i) => (
+                  <tr key={i} className="border-t">
+                    <td className="p-3">{t.activity}</td>
+                    <td className="p-3">{t.expected || "-"}</td>
+                    <td className="p-3">{t.actual || "-"}</td>
+                    <td className="p-3">{t.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ================= DOCUMENTS ================= */}
+        {activeTab === "documents" && (
+          <div className="bg-white p-6 rounded-2xl shadow">
+            <SupervisorChecklist documents={student.documents} />
+          </div>
+        )}
+
+        {/* ================= CQI ================= */}
+        {activeTab === "cqi" && (
+          <div className="space-y-6">
+            <FinalPLOTable finalPLO={student.finalPLO} />
+          </div>
+        )}
+
+      </div>
+    )}
+  </>
+);
