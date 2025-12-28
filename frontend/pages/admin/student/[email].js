@@ -187,7 +187,9 @@ export default function AdminStudentPage() {
       {/* ================= DOCUMENTS ================= */}
       {activeTab === "documents" && (
         <div className="bg-white p-6 rounded-2xl shadow">
-          <SupervisorChecklist documents={student.documents} />
+          {student.documents && (
+  <SupervisorChecklist documents={student.documents} />
+)}
         </div>
       )}
 
