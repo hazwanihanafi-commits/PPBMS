@@ -110,25 +110,58 @@ export default function StudentProfilePage({
       )}
 
       {/* ================= CQI ================= */}
-      {activeTab === "cqi" && (
-        <div className="space-y-6">
+     {activeTab === "cqi" && (
+  <div className="space-y-6">
 
-          {/* FINAL PLO */}
-          <FinalPLOTable finalPLO={student.finalPLO} />
+    {/* FINAL PROGRAMME PLO */}
+    <FinalPLOTable finalPLO={student.finalPLO || {}} />
 
-          {/* SUPERVISOR REMARKS — ONLY FOR SUPERVISOR */}
-          {role === "supervisor" &&
-            Object.keys(student.cqiByAssessment || {}).map(type => (
+    {/* PER-ASSESSMENT CQI */}
+    {student.cqiByAssessment &&
+    Object.keys(student.cqiByAssessment).length > 0 ? (
+      Object.entries(student.cqiByAssessment).map(
+        ([assessment, ploData]) => (
+          <div
+            key={assessment}
+            className="bg-white p-5 rounded-xl shadow"
+          >
+            <h4 className="font-bold text-purple-700 mb-3">
+              {assessment}
+            </h4>
+
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ploData).map(([plo, d]) => (
+                <span
+                  key={plo}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    d.status === "Achieved"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {plo}: {d.status}
+                </span>
+              ))}
+            </div>
+
+            {/* Supervisor remark */}
+            {role === "supervisor" && (
               <SupervisorRemark
-                key={type}
                 studentMatric={student.student_id}
                 studentEmail={student.email}
-                assessmentType={type}
-                initialRemark={student.remarksByAssessment?.[type]}
+                assessmentType={assessment}
+                initialRemark={
+                  student.remarksByAssessment?.[assessment]
+                }
               />
-            ))}
-        </div>
-      )}
-    </div>
-  );
-}
+            )}
+          </div>
+        )
+      )
+    ) : (
+      <div className="bg-white p-6 rounded-xl shadow text-gray-500 italic">
+        No CQI / PLO assessment data available.
+      </div>
+    )}
+  </div>
+)}
