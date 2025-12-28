@@ -9,18 +9,23 @@ import TopBar from "../../components/TopBar";
 export default function StudentPage() {
   const { ready, user } = useAuthGuard("student");
 
+  /* ================= STATE ================= */
   const [profile, setProfile] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [activeTab, setActiveTab] = useState("timeline");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* ================= LOAD ================= */
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
     if (!ready) return;
     loadStudent();
   }, [ready]);
 
   async function loadStudent() {
+    setLoading(true);
+    setError("");
+
     try {
       const token = localStorage.getItem("ppbms_token");
       const res = await fetch(`${API_BASE}/api/student/me`, {
@@ -28,11 +33,13 @@ export default function StudentPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
       setProfile(data.row);
       setTimeline(data.row.timeline || []);
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "Unable to load student data");
     }
+
     setLoading(false);
   }
 
@@ -77,6 +84,7 @@ export default function StudentPage() {
   if (loading) return <div className="p-6 text-center">Loading…</div>;
   if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
 
+  /* ================= RENDER ================= */
   return (
     <>
       <TopBar user={user} />
@@ -94,64 +102,100 @@ export default function StudentPage() {
           </div>
         </div>
 
-        {/* DONUT */}
+        {/* DONUT + SUMMARY */}
         <CompletionDonut percent={progress} />
-
-        {/* SUMMARY */}
         <TimelineSummary timeline={timeline} />
 
-        {/* DOCUMENTS */}
-        <StudentChecklist initialDocuments={profile.documents} />
+        {/* ================= TABS ================= */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => setActiveTab("timeline")}
+            className={`px-4 py-2 rounded-xl font-semibold ${
+              activeTab === "timeline"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            📅 Timeline
+          </button>
 
-        {/* TIMELINE */}
-        <div className="bg-white rounded-2xl shadow p-6 mt-8">
-          <h3 className="font-bold mb-4">📅 Expected vs Actual Timeline</h3>
-
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-purple-50">
-                <th className="p-2 text-left">Activity</th>
-                <th className="p-2">Expected</th>
-                <th className="p-2">Actual</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {timeline.map((t, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-2">{t.activity}</td>
-                  <td className="p-2">{t.expected || "-"}</td>
-                  <td className="p-2">{t.actual || "-"}</td>
-                  <td className="p-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        t.status === "Completed"
-                          ? "bg-green-100 text-green-700"
-                          : t.remaining_days < 0
-                          ? "bg-red-100 text-red-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}
-                    >
-                      {t.status}
-                    </span>
-                  </td>
-                  <td className="p-2">
-                    {!t.actual && (
-                      <button
-                        onClick={() => markCompleted(t.activity)}
-                        className="px-3 py-1 text-xs bg-purple-600 text-white rounded"
-                      >
-                        Mark Completed
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <button
+            onClick={() => setActiveTab("documents")}
+            className={`px-4 py-2 rounded-xl font-semibold ${
+              activeTab === "documents"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            📁 Documents
+          </button>
         </div>
+
+        {/* ================= TAB CONTENT ================= */}
+
+        {/* TIMELINE TAB */}
+        {activeTab === "timeline" && (
+          <div className="bg-white rounded-2xl shadow p-6">
+            <h3 className="font-bold mb-4">📅 Expected vs Actual Timeline</h3>
+
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-purple-50">
+                  <th className="p-2 text-left">Activity</th>
+                  <th className="p-2">Expected</th>
+                  <th className="p-2">Actual</th>
+                  <th className="p-2">Status</th>
+                  <th className="p-2">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {timeline.map((t, i) => {
+                  const isLate =
+                    !t.actual && t.remaining_days < 0 && t.status !== "Completed";
+
+                  return (
+                    <tr key={i} className="border-t">
+                      <td className="p-2">{t.activity}</td>
+                      <td className="p-2">{t.expected || "-"}</td>
+                      <td className="p-2">{t.actual || "-"}</td>
+                      <td className="p-2">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                            t.status === "Completed"
+                              ? "bg-green-100 text-green-700"
+                              : isLate
+                              ? "bg-red-100 text-red-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {isLate ? "Late" : t.status}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        {!t.actual && (
+                          <button
+                            onClick={() => markCompleted(t.activity)}
+                            className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+                          >
+                            Mark Completed
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* DOCUMENTS TAB */}
+        {activeTab === "documents" && (
+          <div className="bg-white rounded-2xl shadow p-6">
+            <StudentChecklist initialDocuments={profile.documents} />
+          </div>
+        )}
       </div>
     </>
   );
