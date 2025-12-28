@@ -10,40 +10,27 @@ import { computeProgrammeCQI } from "../utils/computeProgrammeCQI.js";
 const router = express.Router();
 
 /* ================= AUTH ================= */
-function auth(req, res, next) {
+function adminAuth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    if (user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    req.user = user;
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-function adminAuth(req, res, next) {
-  auth(req, res, () => {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    next();
-  });
-}
-
-/* ================= HELPERS ================= */
-function summarizeTimelineStatus(timeline) {
-  let late = 0;
-  let completed = 0;
-  let onTrack = 0;
-
-  timeline.forEach(t => {
-    if (t.status === "Completed") completed++;
-    else if (t.status === "Late") late++;
-    else onTrack++;
-  });
-
-  return { late, completed, onTrack };
+/* ================= STATUS DERIVER ================= */
+function deriveOverallStatus(timeline) {
+  if (timeline.every(t => t.status === "COMPLETED")) return "COMPLETED";
+  if (timeline.some(t => t.status === "LATE")) return "LATE";
+  return "ON_TRACK";
 }
 
 /* ================= PROGRAMMES ================= */
@@ -64,123 +51,47 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   res.json(data);
 });
 
-/* ================= PROGRAMME SUMMARY ================= */
-router.get("/programme-summary", adminAuth, async (req, res) => {
+/* ================= GRADUATED STUDENTS ================= */
+router.get("/programme-graduates", adminAuth, async (req, res) => {
   const { programme } = req.query;
   const rows = await readMasterTracking(process.env.SHEET_ID);
 
-  let late = 0, onTrack = 0, graduated = 0;
+  const students = rows.filter(r =>
+    String(r.Programme || "").trim() === programme.trim() &&
+    String(r.Status || "").trim() === "Graduated"
+  );
 
-  rows
-    .filter(r => String(r.Programme || "").trim() === programme.trim())
-    .forEach(r => {
-      if (String(r.Status || "").trim() === "Graduated") {
-        graduated++;
-        return;
-      }
-
-      const timeline = buildTimelineForRow(r);
-      const summary = summarizeTimelineStatus(timeline);
-
-      if (summary.late > 0) late++;
-      else onTrack++;
-    });
-
-  res.json({ late, onTrack, graduated });
+  res.json({
+    count: students.length,
+    students: students.map(r => ({
+      matric: r.Matric || "",
+      name: r["Student Name"] || "",
+      email: (r["Student's Email"] || "").toLowerCase()
+    }))
+  });
 });
 
-/* ================= GRADUATED STUDENTS ================= */
-router.get("/programme-graduates", adminAuth, async (req, res) => {
-  try {
-    const { programme } = req.query;
-    if (!programme) {
-      return res.status(400).json({ error: "Programme required" });
-    }
-
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const students = rows
-      .filter(
-        r =>
-          String(r.Programme || "").trim() === programme.trim() &&
-          String(r.Status || "").trim() === "Graduated"
-      )
-      .map(r => ({
-        matric: r.Matric || "",
-        name: r["Student Name"] || "",
-        email: (r["Student's Email"] || "").toLowerCase()
-      }));
-
-    res.json({
-      count: students.length,
-      students
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to load graduates" });
-  }
-});
-
-/* ================= ACTIVE STUDENTS (DASHBOARD) ================= */
+/* ================= ACTIVE STUDENT TRACKING ================= */
 router.get("/programme-active-students", adminAuth, async (req, res) => {
   const { programme } = req.query;
   const rows = await readMasterTracking(process.env.SHEET_ID);
 
   const students = rows
-    .filter(
-      r =>
-        String(r.Programme || "").trim() === programme.trim() &&
-        String(r.Status || "").trim() === "Active"
+    .filter(r =>
+      String(r.Programme || "").trim() === programme.trim() &&
+      String(r.Status || "").trim() === "Active"
     )
     .map(r => {
       const timeline = buildTimelineForRow(r);
-      const summary = summarizeTimelineStatus(timeline);
-
-      let overallStatus = "On Track";
-      if (summary.late > 0) overallStatus = "Late";
-      if (summary.completed === timeline.length) overallStatus = "Completed";
-
       return {
         matric: r.Matric || "",
         name: r["Student Name"] || "",
         email: (r["Student's Email"] || "").toLowerCase(),
-        status: overallStatus,
-        summary
+        status: deriveOverallStatus(timeline)
       };
     });
 
   res.json({ count: students.length, students });
 });
-
-/* ================= SINGLE STUDENT (ADMIN / SUPERVISOR) ================= */
-router.get("/student/:email", adminAuth, async (req, res) => {
-  try {
-    const email = req.params.email.toLowerCase().trim();
-    const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    const raw = rows.find(
-      r => (r["Student's Email"] || "").toLowerCase().trim() === email
-    );
-
-    if (!raw) return res.status(404).json({ error: "Student not found" });
-
-    const timeline = buildTimelineForRow(raw);
-
-    res.json({
-      student: {
-        matric: raw.Matric || "",
-        name: raw["Student Name"] || "",
-        email,
-        programme: raw.Programme || "",
-        status: raw.Status || "",
-        timeline
-      }
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to load student" });
-  }
-});
-
 
 export default router;
