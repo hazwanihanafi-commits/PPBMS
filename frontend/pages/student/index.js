@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { API_BASE } from "../../utils/api";
 import StudentChecklist from "../../components/StudentChecklist";
 import TopBar from "../../components/TopBar";
@@ -7,7 +8,7 @@ import TopBar from "../../components/TopBar";
    DELAY SUMMARY BADGES
 ========================= */
 function DelaySummaryBadges({ timeline }) {
-  const count = (s) => timeline.filter(t => t.status === s).length;
+  const count = (s) => timeline.filter((t) => t.status === s).length;
 
   const Badge = ({ label, value, color }) => (
     <div className={`rounded-xl px-4 py-3 ${color}`}>
@@ -19,9 +20,21 @@ function DelaySummaryBadges({ timeline }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <Badge label="Late" value={count("Late")} color="bg-red-100 text-red-700" />
-      <Badge label="Due Soon" value={count("Due Soon")} color="bg-yellow-100 text-yellow-700" />
-      <Badge label="On Time" value={count("On Time")} color="bg-blue-100 text-blue-700" />
-      <Badge label="Completed" value={count("Completed")} color="bg-green-100 text-green-700" />
+      <Badge
+        label="Due Soon"
+        value={count("Due Soon")}
+        color="bg-yellow-100 text-yellow-700"
+      />
+      <Badge
+        label="On Time"
+        value={count("On Time")}
+        color="bg-blue-100 text-blue-700"
+      />
+      <Badge
+        label="Completed"
+        value={count("Completed")}
+        color="bg-green-100 text-green-700"
+      />
     </div>
   );
 }
@@ -53,43 +66,50 @@ function Tabs({ active, setActive }) {
 }
 
 /* =========================
-   MAIN PAGE
+   PAGE
 ========================= */
 export default function StudentPage() {
+  const router = useRouter();
+
   const [profile, setProfile] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [roleChecked, setRoleChecked] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(false);
   const [user, setUser] = useState(null);
 
   /* =========================
-     CLIENT-ONLY AUTH INIT
+     AUTH GUARD (NO BLINKING)
   ========================= */
   useEffect(() => {
-    setMounted(true);
+    if (!router.isReady) return;
 
+    const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
-    if (role !== "student") {
-      window.location.href = "/login";
+    const email = localStorage.getItem("ppbms_email");
+
+    if (!token || role !== "student") {
+      router.replace("/login");
       return;
     }
 
-    setUser({
-      email: localStorage.getItem("ppbms_email"),
-      role
-    });
+    setUser({ email, role });
+    setAccessChecked(true);
+  }, [router.isReady]);
 
-    setRoleChecked(true);
-  }, []);
-
+  /* =========================
+     LOAD STUDENT DATA
+  ========================= */
   useEffect(() => {
-    if (roleChecked) load();
-  }, [roleChecked]);
+    if (!accessChecked) return;
+    load();
+  }, [accessChecked]);
 
   async function load() {
+    setLoading(true);
+    setError("");
+
     const token = localStorage.getItem("ppbms_token");
     if (!token) {
       setError("Not authenticated");
@@ -99,17 +119,16 @@ export default function StudentPage() {
 
     try {
       const res = await fetch(`${API_BASE}/api/student/me`, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-});
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       const data = await res.json();
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(data.error || "Load failed");
 
       setProfile(data.row);
       setTimeline(data.row.timeline || []);
-    } catch {
+    } catch (e) {
+      console.error(e);
       setError("Unable to load student data");
     }
 
@@ -138,26 +157,38 @@ export default function StudentPage() {
   }
 
   /* =========================
-     RENDER GUARDS (SSR SAFE)
+     RENDER GUARDS
   ========================= */
-  if (!mounted) return null;
-  if (!roleChecked) return <div className="p-6 text-center">Checking access…</div>;
-  if (loading) return <div className="p-6 text-center">Loading…</div>;
-  if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
+  if (!accessChecked) {
+    return <div className="p-6 text-center">Checking access…</div>;
+  }
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading…</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-600">{error}</div>;
+  }
+
   if (!profile) return null;
 
   const progress = timeline.length
     ? Math.round(
-        (timeline.filter(t => t.status === "Completed").length / timeline.length) * 100
+        (timeline.filter((t) => t.status === "Completed").length /
+          timeline.length) *
+          100
       )
     : 0;
 
+  /* =========================
+     RENDER
+  ========================= */
   return (
     <>
       <TopBar user={user} />
 
       <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6">
-
         {/* HEADER */}
         <div className="bg-white rounded-2xl shadow p-6 mb-6">
           <h1 className="text-2xl font-extrabold mb-3">🎓 Student Dashboard</h1>
@@ -226,9 +257,7 @@ export default function StudentPage() {
                     <td className="p-3 font-medium">{t.activity}</td>
                     <td className="p-3 text-center">{t.expected || "-"}</td>
                     <td className="p-3 text-center">{t.actual || "-"}</td>
-                    <td className="p-3 text-center font-semibold">
-                      {t.status}
-                    </td>
+                    <td className="p-3 text-center font-semibold">{t.status}</td>
                     <td className="p-3 text-center">
                       {t.remaining_days !== "" ? t.remaining_days : "-"}
                     </td>
