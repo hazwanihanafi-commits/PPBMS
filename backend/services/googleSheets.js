@@ -158,6 +158,8 @@ export async function readFINALPROGRAMPLO(sheetId) {
   return await readSheet(sheetId, "FINALPROGRAMPLO!A1:Z");
 }
 
+
+
 /* =========================================================
    AUTH USERS (FIXED & SINGLE SOURCE OF TRUTH)
 ========================================================= */
@@ -168,6 +170,13 @@ function columnToLetter(col) {
     col = Math.floor(col / 26) - 1;
   }
   return letter;
+}
+
+/* =========================================================
+   AUTH USERS READ (REQUIRED BY AUTH ROUTES)
+========================================================= */
+export async function readAuthUsers(sheetId) {
+  return await readSheet(sheetId, "AUTH_USERS!A1:Z");
 }
 
 export async function updateAuthUserPassword({ sheetId, email, hash }) {
