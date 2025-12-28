@@ -9,11 +9,12 @@ export default function SupervisorDashboard() {
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [roleChecked, setRoleChecked] = useState(false);
+
+  const [accessChecked, setAccessChecked] = useState(false);
   const [user, setUser] = useState(null);
 
   /* =====================================================
-     ROLE GUARD + USER INIT (NO BLINKING)
+     AUTH GUARD — SINGLE SOURCE OF TRUTH (NO BLINK)
   ===================================================== */
   useEffect(() => {
     if (!router.isReady) return;
@@ -28,16 +29,16 @@ export default function SupervisorDashboard() {
     }
 
     setUser({ email, role });
-    setRoleChecked(true);
+    setAccessChecked(true);
   }, [router.isReady]);
 
   /* =====================================================
-     LOAD STUDENTS
+     LOAD STUDENTS (ONLY AFTER ACCESS CONFIRMED)
   ===================================================== */
   useEffect(() => {
-    if (!roleChecked) return;
+    if (!accessChecked) return;
     loadStudents();
-  }, [roleChecked]);
+  }, [accessChecked]);
 
   async function loadStudents() {
     setLoading(true);
@@ -53,7 +54,7 @@ export default function SupervisorDashboard() {
   }
 
   /* =====================================================
-     FILTERED STUDENTS (DERIVED — NO STATE LOOP)
+     DERIVED FILTER (NO STATE LOOP)
   ===================================================== */
   const filtered = students.filter((st) => {
     if (!search.trim()) return true;
@@ -66,7 +67,7 @@ export default function SupervisorDashboard() {
   });
 
   /* =====================================================
-     SUMMARY METRICS
+     SUMMARY
   ===================================================== */
   const summary = {
     graduated: students.filter((s) => s.status === "Graduated").length,
@@ -98,9 +99,9 @@ export default function SupervisorDashboard() {
   }
 
   /* =====================================================
-     ACCESS CHECK PLACEHOLDER
+     HARD STOP — NOTHING RENDERS BEFORE AUTH
   ===================================================== */
-  if (!roleChecked) {
+  if (!accessChecked) {
     return <div className="p-6 text-center">Checking access…</div>;
   }
 
@@ -116,91 +117,51 @@ export default function SupervisorDashboard() {
           Supervisor Dashboard
         </h1>
 
-        {/* ================= SUMMARY ================= */}
+        {/* SUMMARY */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-red-100 text-red-700 rounded-xl p-4">
-            <div className="text-sm font-semibold">At Risk</div>
-            <div className="text-2xl font-bold">{summary.risk}</div>
-          </div>
-
-          <div className="bg-yellow-100 text-yellow-700 rounded-xl p-4">
-            <div className="text-sm font-semibold">Due Soon</div>
-            <div className="text-2xl font-bold">{summary.dueSoon}</div>
-          </div>
-
-          <div className="bg-blue-100 text-blue-700 rounded-xl p-4">
-            <div className="text-sm font-semibold">On Time</div>
-            <div className="text-2xl font-bold">{summary.onTime}</div>
-          </div>
-
-          <div className="bg-green-100 text-green-700 rounded-xl p-4">
-            <div className="text-sm font-semibold">Graduated</div>
-            <div className="text-2xl font-bold">{summary.graduated}</div>
-          </div>
+          <SummaryCard label="At Risk" value={summary.risk} color="red" />
+          <SummaryCard label="Due Soon" value={summary.dueSoon} color="yellow" />
+          <SummaryCard label="On Time" value={summary.onTime} color="blue" />
+          <SummaryCard label="Graduated" value={summary.graduated} color="green" />
         </div>
 
-        {/* ================= SEARCH ================= */}
-        <div className="flex gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search student…"
-            className="flex-1 p-3 border rounded-xl bg-white"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        {/* SEARCH */}
+        <input
+          className="w-full p-3 border rounded-xl mb-6"
+          placeholder="Search student…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
-        {loading && <p className="text-gray-600">Loading students…</p>}
+        {loading && <p>Loading students…</p>}
 
-        {/* ================= STUDENT CARDS ================= */}
+        {/* STUDENTS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filtered.map((st) => {
             const s = getStudentStatus(st);
-
             return (
               <div
                 key={st.email}
-                className="bg-white p-6 rounded-2xl shadow border border-gray-100"
+                className="bg-white p-6 rounded-2xl shadow"
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-bold text-gray-900 uppercase">
-                    {st.name}
-                  </h2>
-
-                  <span
-                    className={`px-3 py-1 text-xs font-bold rounded-full ${s.color}`}
-                  >
+                <div className="flex justify-between mb-2">
+                  <h2 className="font-bold">{st.name}</h2>
+                  <span className={`px-3 py-1 text-xs rounded-full ${s.color}`}>
                     {s.label}
                   </span>
                 </div>
 
-                <p className="text-sm text-gray-700">
-                  <strong>Email:</strong> {st.email}
+                <p><strong>Email:</strong> {st.email}</p>
+                <p><strong>Programme:</strong> {st.programme}</p>
+                <p className="text-2xl font-bold text-purple-700 mt-2">
+                  {st.progressPercent}%
                 </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Matric:</strong> {st.id || "-"}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Programme:</strong> {st.programme || "-"}
-                </p>
-
-                <div className="mt-4">
-                  <p className="text-sm font-semibold text-gray-800">
-                    Overall Progress
-                  </p>
-                  <p className="text-2xl font-extrabold text-purple-700">
-                    {st.progressPercent}%
-                  </p>
-                </div>
 
                 <button
                   onClick={() =>
-                    router.push({
-                      pathname: "/supervisor/[email]",
-                      query: { email: st.email.trim().toLowerCase() },
-                    })
+                    router.push(`/supervisor/${st.email.toLowerCase()}`)
                   }
-                  className="mt-4 text-purple-700 font-medium hover:underline"
+                  className="mt-3 text-purple-700 hover:underline"
                 >
                   View Full Progress →
                 </button>
@@ -210,5 +171,24 @@ export default function SupervisorDashboard() {
         </div>
       </div>
     </>
+  );
+}
+
+/* =====================================================
+   SMALL HELPER
+===================================================== */
+function SummaryCard({ label, value, color }) {
+  const colors = {
+    red: "bg-red-100 text-red-700",
+    yellow: "bg-yellow-100 text-yellow-700",
+    blue: "bg-blue-100 text-blue-700",
+    green: "bg-green-100 text-green-700",
+  };
+
+  return (
+    <div className={`rounded-xl p-4 ${colors[color]}`}>
+      <div className="text-sm font-semibold">{label}</div>
+      <div className="text-2xl font-bold">{value}</div>
+    </div>
   );
 }
