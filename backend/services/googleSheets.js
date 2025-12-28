@@ -1,4 +1,3 @@
-// backend/services/googleSheets.js
 import { google } from "googleapis";
 
 /* =========================================================
@@ -41,23 +40,53 @@ export async function readSheet(sheetId, range) {
 }
 
 /* =========================================================
-   MASTER TRACKING READ
+   MASTER TRACKING
 ========================================================= */
 export async function readMasterTracking(sheetId) {
   return await readSheet(sheetId, "MasterTracking!A1:ZZ999");
 }
 
 /* =========================================================
-   GENERIC WRITE CELL (A1 NOTATION – SINGLE SOURCE OF TRUTH)
+   SAFE WRITE CELL (COLUMN NAME → A1)
 ========================================================= */
-export async function writeSheetCell(sheetId, range, value) {
+export async function writeSheetCell(
+  sheetId,
+  sheetName,
+  columnName,
+  rowNumber,
+  value
+) {
   const auth = getAuth(false);
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
 
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: `${sheetName}!A1:ZZ1`,
+  });
+
+  const headers = headerRes.data.values[0].map(h =>
+    h.toString().trim().toLowerCase()
+  );
+
+  const colIdx = headers.indexOf(columnName.toLowerCase());
+  if (colIdx === -1) {
+    throw new Error(`Column not found: ${columnName}`);
+  }
+
+  // Convert index → column letter
+  let colLetter = "";
+  let n = colIdx;
+  while (n >= 0) {
+    colLetter = String.fromCharCode((n % 26) + 65) + colLetter;
+    n = Math.floor(n / 26) - 1;
+  }
+
+  const range = `${sheetName}!${colLetter}${rowNumber}`;
+
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range, // e.g. MasterTracking!F12
+    range,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [[value]] },
   });
@@ -66,7 +95,7 @@ export async function writeSheetCell(sheetId, range, value) {
 }
 
 /* =========================================================
-   AUTH USERS
+   AUTH USERS (LOGIN / ROLES)
 ========================================================= */
 export async function readAuthUsers(sheetId) {
   return await readSheet(sheetId, "AUTH_USERS!A1:Z");
@@ -99,25 +128,25 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
 
   const rowNum = rowIndex + 2;
 
-  const col = n => {
+  const toCol = idx => {
     let s = "";
-    while (n >= 0) {
-      s = String.fromCharCode((n % 26) + 65) + s;
-      n = Math.floor(n / 26) - 1;
+    while (idx >= 0) {
+      s = String.fromCharCode((idx % 26) + 65) + s;
+      idx = Math.floor(idx / 26) - 1;
     }
     return s;
   };
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `AUTH_USERS!${col(passCol)}${rowNum}`,
+    range: `AUTH_USERS!${toCol(passCol)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [[hash]] },
   });
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `AUTH_USERS!${col(setCol)}${rowNum}`,
+    range: `AUTH_USERS!${toCol(setCol)}${rowNum}`,
     valueInputOption: "RAW",
     requestBody: { values: [["TRUE"]] },
   });
@@ -125,6 +154,9 @@ export async function updateAuthUserPassword({ sheetId, email, hash }) {
   return true;
 }
 
+/* =========================================================
+   ASSESSMENT PLO
+========================================================= */
 export async function readASSESSMENT_PLO(sheetId) {
   const auth = getAuth(true);
   const client = await auth.getClient();
@@ -139,11 +171,7 @@ export async function readASSESSMENT_PLO(sheetId) {
   if (rows.length < 2) return [];
 
   const headers = rows[0].map(h =>
-    (h || "")
-      .toString()
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
+    h.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")
   );
 
   return rows.slice(1).map(row => {
@@ -163,6 +191,20 @@ export async function readASSESSMENT_PLO(sheetId) {
   });
 }
 
+export async function updateASSESSMENT_PLO_Cell({
+  sheetId,
+  rowIndex,
+  columnName,
+  value
+}) {
+  return await writeSheetCell(
+    sheetId,
+    "ASSESSMENT_PLO",
+    columnName,
+    rowIndex,
+    value
+  );
+}
 
 export async function updateASSESSMENT_PLO_Remark({
   studentMatric,
@@ -173,104 +215,41 @@ export async function updateASSESSMENT_PLO_Remark({
   const client = await auth.getClient();
   const sheets = google.sheets({ version: "v4", auth: client });
 
-  // Read full sheet
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.SHEET_ID,
     range: "ASSESSMENT_PLO!A1:ZZ999",
   });
 
   const rows = res.data.values || [];
-  if (rows.length < 2) throw new Error("ASSESSMENT_PLO empty");
-
-  const headers = rows[0].map(h =>
-    h.toString().trim().toLowerCase()
-  );
+  const headers = rows[0].map(h => h.toLowerCase().trim());
 
   const matricIdx = headers.indexOf("matric");
   const typeIdx = headers.indexOf("assessment_type");
   const remarkIdx = headers.indexOf("remarks");
 
-  if (remarkIdx === -1) {
-    throw new Error("Remarks column NOT FOUND in ASSESSMENT_PLO");
-  }
-
-  const rowIndex = rows.findIndex((r, i) =>
-    i > 0 &&
-    String(r[matricIdx]).trim() === String(studentMatric).trim() &&
-    String(r[typeIdx]).toUpperCase().trim() === assessmentType
+  const rowIndex = rows.findIndex(
+    (r, i) =>
+      i > 0 &&
+      String(r[matricIdx]).trim() === String(studentMatric).trim() &&
+      String(r[typeIdx]).toUpperCase().trim() === assessmentType
   );
 
-  if (rowIndex === -1) {
-    throw new Error("Assessment row not found for remark");
-  }
+  if (rowIndex === -1) throw new Error("Assessment row not found");
 
-  // Convert column index → letter
-  function toColLetter(idx) {
-    let s = "";
-    while (idx >= 0) {
-      s = String.fromCharCode((idx % 26) + 65) + s;
-      idx = Math.floor(idx / 26) - 1;
-    }
-    return s;
-  }
-
-  const cell = `ASSESSMENT_PLO!${toColLetter(remarkIdx)}${rowIndex + 1}`;
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: process.env.SHEET_ID,
-    range: cell,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[remark]]
-    }
-  });
+  await writeSheetCell(
+    process.env.SHEET_ID,
+    "ASSESSMENT_PLO",
+    "remarks",
+    rowIndex + 1,
+    remark
+  );
 
   return true;
-}
-
-export async function readFINALPROGRAMPLO(sheetId) {
-  return await readSheet(sheetId, "FINALPROGRAMPLO!A1:Z");
 }
 
 /* =========================================================
-   UPDATE ASSESSMENT_PLO CELL (NUMERIC / SCORE UPDATE)
+   FINAL PROGRAMME PLO
 ========================================================= */
-export async function updateASSESSMENT_PLO_Cell({
-  rowIndex,
-  column,
-  value
-}) {
-  const auth = getAuth(false);
-  const client = await auth.getClient();
-  const sheets = google.sheets({ version: "v4", auth: client });
-
-  // Read header row
-  const headerRes = await sheets.spreadsheets.values.get({
-    spreadsheetId: process.env.SHEET_ID,
-    range: "ASSESSMENT_PLO!A1:ZZ1",
-  });
-
-  const headers = headerRes.data.values[0]
-    .map(h => h.toString().trim().toLowerCase());
-
-  const colIdx = headers.indexOf(column.toLowerCase());
-  if (colIdx === -1)
-    throw new Error(`Column not found in ASSESSMENT_PLO: ${column}`);
-
-  // Convert index → column letter
-  let colLetter = "";
-  let n = colIdx;
-  while (n >= 0) {
-    colLetter = String.fromCharCode((n % 26) + 65) + colLetter;
-    n = Math.floor(n / 26) - 1;
-  }
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: process.env.SHEET_ID,
-    range: `ASSESSMENT_PLO!${colLetter}${rowIndex}`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[value]] },
-  });
-
-  return true;
+export async function readFINALPROGRAMPLO(sheetId) {
+  return await readSheet(sheetId, "FINALPROGRAMPLO!A1:Z");
 }
