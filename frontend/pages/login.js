@@ -56,47 +56,49 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-6 rounded-xl shadow w-96 space-y-4"
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <form
+      onSubmit={handleLogin}
+      className="bg-white p-6 rounded-2xl shadow w-full max-w-sm space-y-4"
+    >
+      <h1 className="text-xl font-bold text-purple-700 text-center">
+        PPBMS Login
+      </h1>
+
+      <input
+        className="w-full border p-2 rounded"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        required
+      />
+
+      <input
+        className="w-full border p-2 rounded"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        required
+      />
+
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition"
       >
-        <h1 className="text-xl font-bold text-purple-700">PPBMS Login</h1>
+        {loading ? "Logging in..." : "Login"}
+      </button>
 
-        <input
-          className="w-full border p-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          required
-        />
-
-        <input
-          className="w-full border p-2 rounded"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          required
-        />
-
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
-          <p className="text-xs text-gray-500 text-center mt-4">
-  First time login? Use your registered email.
-</p>
-
-<p className="text-xs text-purple-600 text-center mt-1 cursor-pointer">
-  Forgot password? Contact admin.
-</p>
-    </div>
-  );
-}
+      {/* 👇 MOVED INSIDE CARD */}
+      <div className="text-xs text-center text-gray-500 space-y-1 pt-2">
+        <p>First time login? Use your registered email.</p>
+        <p className="text-purple-600 cursor-pointer">
+          Forgot password? Contact admin.
+        </p>
+      </div>
+    </form>
+  </div>
+);
