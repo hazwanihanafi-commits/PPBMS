@@ -63,7 +63,8 @@ router.get("/students", auth, async (req, res) => {
   const students = rows
     .filter(r => {
       const main = String(r["Main Supervisor"] || "").toLowerCase();
-      return main.includes(supervisorEmail);
+      const co = String(r["Co-Supervisor(s)"] || "").toLowerCase();
+      return main.includes(supervisorEmail) || co.includes(supervisorEmail);
     })
     .map(r => {
       const timeline = buildTimelineForRow(r);
@@ -75,13 +76,12 @@ router.get("/students", auth, async (req, res) => {
 
       let status = "On Track";
       if (timeline.some(t => t.status === "Late")) status = "Late";
-      if (timeline.some(t => t.status === "Due Soon")) status = "Due Soon";
+      else if (timeline.some(t => t.status === "Due Soon")) status = "Due Soon";
 
       return {
         name: r["Student Name"] || "-",
         email: (r["Student's Email"] || "").toLowerCase(),
-        matric: r["Matric"] || "",
-        programme: r.Programme || "-",
+        programme: r["Programme"] || "-",
         supervisor: r["Main Supervisor"] || "-",
         cosupervisors: r["Co-Supervisor(s)"] || "None",
         progress,
