@@ -10,10 +10,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleLogin(e) {
-    e.preventDefault(); // ✅ CRITICAL
-
-    setError("");
+    e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
       const res = await fetch(
@@ -31,29 +30,26 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      /* =========================
-         SAVE AUTH (SINGLE SOURCE)
-      ========================= */
+      /* 🔐 SAVE AUTH — THIS WAS MISSING */
       localStorage.setItem("ppbms_token", data.token);
       localStorage.setItem("ppbms_role", data.role);
       localStorage.setItem("ppbms_email", data.email);
 
-      /* =========================
-         ROLE REDIRECT (ONCE)
-      ========================= */
-      if (data.role === "student") router.push("/student");
-      else if (data.role === "supervisor") router.push("/supervisor");
-      else if (data.role === "admin") router.push("/admin");
+      /* 🔀 REDIRECT */
+      if (data.role === "admin") router.replace("/admin");
+      else if (data.role === "supervisor") router.replace("/supervisor");
+      else if (data.role === "student") router.replace("/student");
       else throw new Error("Unknown role");
 
-    } catch (err) {
-      setError(err.message);
+    } catch (e) {
+      setError(e.message);
+    } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-purple-50">
+    <div className="min-h-screen flex items-center justify-center">
       <form
         onSubmit={handleLogin}
         className="bg-white p-6 rounded-xl shadow w-96 space-y-4"
@@ -86,9 +82,9 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+          className="w-full bg-purple-600 text-white py-2 rounded"
         >
-          {loading ? "Logging in..." : "Login"}
+          {loading ? "Logging in…" : "Login"}
         </button>
       </form>
     </div>
