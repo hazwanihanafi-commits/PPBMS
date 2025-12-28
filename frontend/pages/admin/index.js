@@ -235,6 +235,3 @@ export default function AdminDashboard() {
           </tbody>
         </table>
       </div>
-    </div>
-);
-
