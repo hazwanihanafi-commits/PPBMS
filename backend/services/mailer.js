@@ -52,8 +52,7 @@ ${delayList}
 
 Please take the necessary action and consult your supervisor if required.
 
-This notification is copied to your supervisor and the Graduate School
-for monitoring purposes.
+This notification is copied to your supervisor for monitoring purposes.
 
 — PPBMS System
 `,
