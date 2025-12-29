@@ -148,34 +148,49 @@ router.post("/save-document", auth, async (req, res) => {
   try {
     const { document_key, file_url } = req.body;
 
-    if (!document_key)
+    if (!document_key) {
       return res.status(400).json({ error: "Missing document_key" });
-
-    if (file_url === undefined)
-      return res.status(400).json({ error: "Missing file_url" });
+    }
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
+    if (!rows.length) {
+      return res.status(500).json({ error: "Sheet empty" });
+    }
+
+    // 🔑 FIND STUDENT ROW
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
-    if (idx === -1)
+    if (idx === -1) {
       return res.status(404).json({ error: "Student not found" });
+    }
 
+    // 🔑 RESOLVE COLUMN INDEX FROM HEADER
+    const headers = Object.keys(rows[0]);
+    const colIndex = headers.indexOf(document_key);
+
+    if (colIndex === -1) {
+      return res.status(400).json({
+        error: `Invalid document key: ${document_key}`
+      });
+    }
+
+    // 🔑 WRITE USING COLUMN LETTER
     await writeSheetCell(
       process.env.SHEET_ID,
-      document_key,
-      idx + 2,
+      "MasterTracking",
+      colIndex + 1,   // 1-based index
+      idx + 2,        // row index
       file_url || ""
     );
 
-    return res.json({ success: true });
-
+    res.json({ success: true });
   } catch (e) {
-    console.error("save-document error:", e);
-    return res.status(500).json({ error: e.message });
+    console.error("save-document:", e);
+    res.status(500).json({ error: e.message });
   }
 });
 
