@@ -67,6 +67,14 @@ export default function SupervisorStudentPage() {
         : false
     );
 
+  const mainSupervisor =
+  student.supervisor ||
+  student.mainSupervisor ||
+  student.main_supervisor ||
+  student.supervisor_name ||
+  "-";
+
+  
   /* ================= RENDER ================= */
   return (
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
@@ -163,8 +171,9 @@ export default function SupervisorStudentPage() {
               <strong>Department:</strong> {student.department || "-"}
             </p>
             <p className="md:col-span-2">
-              <strong>Main Supervisor:</strong> {student.supervisor || "-"}
-            </p>
+  <strong>Main Supervisor:</strong> {mainSupervisor}
+</p>
+
             <p className="md:col-span-2">
               <strong>Co-Supervisor(s):</strong>{" "}
               {student.coSupervisors?.length
@@ -289,13 +298,18 @@ export default function SupervisorStudentPage() {
           )}
 
           <div className="mt-6">
-            <h3 className="font-bold mb-2">
-              📊 Final PLO Attainment
-            </h3>
-            <FinalPLOTable finalPLO={student.finalPLO} />
-          </div>
-        </div>
-      )}
+  <h3 className="font-bold mb-2">📊 Final PLO Attainment</h3>
+
+  {student.status === "Graduated" && !student.finalPLO ? (
+    <p className="text-sm text-gray-500 italic">
+      Final PLO attainment was achieved and validated at graduation.
+      Detailed records are archived.
+    </p>
+  ) : (
+    <FinalPLOTable finalPLO={student.finalPLO} />
+  )}
+</div>
+
 
       {/* ================= REMARKS ================= */}
       {activeTab === "remarks" && (
