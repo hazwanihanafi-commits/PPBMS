@@ -5,10 +5,9 @@ import {
   writeSheetCell,
 } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
+import { ACTUAL_COLUMN_MAP } from "../utils/timelineColumnMap.js";
 
 const router = express.Router();
-
-
 
 /* ================= AUTH ================= */
 function auth(req, res, next) {
@@ -23,7 +22,6 @@ function auth(req, res, next) {
   }
 }
 
-
 /* ================= GET STUDENT ================= */
 router.get("/me", auth, async (req, res) => {
   try {
@@ -34,15 +32,11 @@ router.get("/me", auth, async (req, res) => {
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
-console.log("LOOKING FOR STUDENT:", email);
-console.log("FOUND:", !!raw);
-    
     if (!raw) {
-  return res.status(403).json({
-    error: "Student record not found in Master Tracking. Please contact admin."
-  });
-}
-
+      return res.status(403).json({
+        error: "Student record not found in Master Tracking. Please contact admin."
+      });
+    }
 
     const profile = {
       student_id: raw["Matric"] || "",
@@ -77,9 +71,7 @@ console.log("FOUND:", !!raw);
 
     const timeline = buildTimelineForRow(raw);
 
-    res.json({
-      row: { ...profile, documents, timeline },
-    });
+    res.json({ row: { ...profile, documents, timeline } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
@@ -90,8 +82,9 @@ console.log("FOUND:", !!raw);
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { activity, date } = req.body;
-    if (!activity || !date)
+    if (!activity || !date) {
       return res.status(400).json({ error: "Missing data" });
+    }
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -99,17 +92,24 @@ router.post("/update-actual", auth, async (req, res) => {
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
-    if (idx === -1)
+    if (idx === -1) {
       return res.status(404).json({ error: "Student not found" });
+    }
 
-    
-    console.log("Updating activity:", activity);
-    console.log("Target column:", `${activity} - Actual`);
-    
+    const column = ACTUAL_COLUMN_MAP[activity];
+    if (!column) {
+      console.error("❌ Unknown activity:", activity);
+      return res.status(400).json({
+        error: `Unknown activity: ${activity}`
+      });
+    }
+
+    console.log("✅ Writing actual date:", column);
+
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
-      `${activity} - Actual`,
+      column,
       idx + 2,
       date
     );
@@ -135,18 +135,25 @@ router.post("/reset-actual", auth, async (req, res) => {
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
-
     if (idx === -1) {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // ✅ RESET ACTUAL DATE ONLY
+    const column = ACTUAL_COLUMN_MAP[activity];
+    if (!column) {
+      return res.status(400).json({
+        error: `Unknown activity: ${activity}`
+      });
+    }
+
+    console.log("♻️ Resetting actual date:", column);
+
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
-      `${activity} - Actual`,
+      column,
       idx + 2,
-      "" // clear cell
+      ""
     );
 
     res.json({ success: true });
@@ -156,13 +163,10 @@ router.post("/reset-actual", auth, async (req, res) => {
   }
 });
 
-
-
 /* ================= SAVE DOCUMENT ================= */
 router.post("/save-document", auth, async (req, res) => {
   try {
     const { document_key, file_url } = req.body;
-
     if (!document_key) {
       return res.status(400).json({ error: "Missing document_key" });
     }
@@ -173,12 +177,10 @@ router.post("/save-document", auth, async (req, res) => {
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
-
     if (idx === -1) {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // 🔑 SAFETY CHECK: ensure column exists
     const headers = Object.keys(rows[0] || {});
     if (!headers.includes(document_key)) {
       return res.status(400).json({
@@ -186,11 +188,10 @@ router.post("/save-document", auth, async (req, res) => {
       });
     }
 
-    // ✅ PASS HEADER STRING (NOT INDEX)
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
-      document_key,   // ✅ STRING header
+      document_key,
       idx + 2,
       file_url || ""
     );
@@ -201,6 +202,5 @@ router.post("/save-document", auth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
 
 export default router;
