@@ -112,17 +112,7 @@ export default function StudentPage() {
 
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
-      {/* ================= HERO ================= */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow p-6">
-        <h1 className="text-2xl font-bold">
-          Welcome back, {profile.student_name} 🎓
-        </h1>
-        <p className="text-purple-100 mt-1">
-          You have completed {completed} of {timeline.length} milestones
-        </p>
-      </div>
-
-      {/* ================= PROFILE ================= */}
+      {/* PROFILE */}
       <div className="bg-white rounded-2xl shadow p-6">
         <h2 className="text-lg font-bold mb-3">Your Profile</h2>
 
@@ -137,7 +127,7 @@ export default function StudentPage() {
         </div>
       </div>
 
-      {/* ================= TABS ================= */}
+      {/* TABS */}
       <div className="flex gap-3">
         <button
           onClick={() => setActiveTab("timeline")}
@@ -162,14 +152,16 @@ export default function StudentPage() {
         </button>
       </div>
 
-      {/* ================= TIMELINE TAB ================= */}
+      {/* TIMELINE TAB */}
       {activeTab === "timeline" && (
         <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-sm text-gray-600">Timeline content here</p>
+          <p className="text-sm text-gray-600">
+            Timeline renders here.
+          </p>
         </div>
       )}
 
-      {/* ================= DOCUMENTS TAB ================= */}
+      {/* DOCUMENTS TAB */}
       {activeTab === "documents" && (
         <div className="bg-white rounded-2xl shadow p-6">
           <StudentChecklist initialDocuments={profile.documents} />
