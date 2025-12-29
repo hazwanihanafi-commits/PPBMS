@@ -9,7 +9,6 @@ import adminRoutes from "./routes/admin.js";
 import alertsRoutes from "./routes/alerts.js";
 import systemRoutes from "./routes/system.js";
 
-import { verifySMTP } from "./services/mailer.js";
 
 const app = express();
 
@@ -63,10 +62,6 @@ app.use((req, res, next) => {
 
 /* ================= STARTUP CHECKS ================= */
 
-// 🔑 Verify SMTP safely (DO NOT crash server)
-verifySMTP().catch(err =>
-  console.error("⚠️ SMTP verification failed:", err.message)
-);
 
 app.use((err, req, res, next) => {
   console.error("🔥 Unhandled error:", err);
