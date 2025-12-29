@@ -5,6 +5,8 @@ import StudentChecklist from "../../components/StudentChecklist";
 import TimelineSummary from "../../components/TimelineSummary";
 import CompletionDonut from "../../components/CompletionDonut";
 import TopBar from "../../components/TopBar";
+import { authFetch } from "@/utils/authFetch";
+
 
 export default function StudentPage() {
   const { ready, user } = useAuthGuard("student");
@@ -23,25 +25,27 @@ export default function StudentPage() {
   }, [ready]);
 
   async function loadStudent() {
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    try {
-      const token = localStorage.getItem("ppbms_token");
-      const res = await fetch(`${API_BASE}/api/student/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+  try {
+    const res = await authFetch("/api/student/me");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
 
-      setProfile(data.row);
-      setTimeline(data.row.timeline || []);
-    } catch (e) {
-      setError(e.message || "Unable to load student data");
+    setProfile(data.row);
+    setTimeline(data.row.timeline || []);
+  } catch (e) {
+    if (e.message === "NO_TOKEN") {
+      window.location.href = "/login";
+      return;
     }
-
-    setLoading(false);
+    setError(e.message || "Unable to load student data");
   }
+
+  setLoading(false);
+}
+
 
   /* ================= MARK COMPLETED ================= */
   async function markCompleted(activity) {
