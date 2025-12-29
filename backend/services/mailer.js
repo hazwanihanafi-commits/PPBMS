@@ -43,8 +43,7 @@ export async function sendDelayAlert({
     to: studentEmail,
     cc: [supervisorEmail].filter(Boolean),
     subject: `[PPBMS] Milestone Delay Alert – ${studentName}`,
-    text: `
-Dear ${studentName},
+    text: `Dear ${studentName},
 
 The following research milestone(s) are currently delayed:
 
@@ -76,8 +75,7 @@ export async function sendCQIAlert({
   await sendEmail({
     to: supervisorEmail,
     subject: `[PPBMS] CQI Detected – ${studentName} (${assessmentType})`,
-    text: `
-Dear Supervisor,
+    text: `Dear Supervisor,
 
 Continuous Quality Improvement (CQI) has been automatically detected.
 
@@ -110,8 +108,7 @@ export async function sendCQIReminder({
   await sendEmail({
     to: supervisorEmail,
     subject: `[PPBMS] REMINDER: CQI Pending > ${daysPending} Days`,
-    text: `
-Dear Supervisor,
+    text: `Dear Supervisor,
 
 This is a reminder that a CQI case remains pending.
 
@@ -120,7 +117,6 @@ Matric  : ${matric}
 Assessment : ${assessmentType}
 Days pending : ${daysPending} days
 
-(Student is NOT copied.)
 
 — PPBMS System
 `,
