@@ -71,37 +71,29 @@ router.use((req, res, next) => {
 
         return normalized === supervisorEmail;
       })
-      .map(r => {
-        const timeline = buildTimelineForRow(r);
+     .map(r => {
+  const timeline = buildTimelineForRow(r);
 
-        const completed = timeline.filter(t => t.status === "Completed").length;
-        const progress = timeline.length
-          ? Math.round((completed / timeline.length) * 100)
-          : 0;
+  const completed = timeline.filter(t => t.status === "Completed").length;
+  const progressPercent = timeline.length
+    ? Math.round((completed / timeline.length) * 100)
+    : 0;
 
-        let status = "On Track";
-        if (timeline.some(t => t.status === "Late")) status = "Late";
-        else if (timeline.some(t => t.status === "Due Soon")) status = "Due Soon";
+  let status = "Active";
+  if (timeline.some(t => t.status === "Late")) status = "At Risk";
+  else if (timeline.some(t => t.status === "Due Soon")) status = "Slightly Late";
 
-        return {
-          name: r["Student Name"] || "-",
-          email: (r["Student's Email"] || "").toLowerCase(),
-          matric: r["Matric"] || "-",
-          programme: r["Programme"] || "-",
-          progress,
-          status
-        };
-      });
-
-    console.log("✅ Matched students:", students.length);
-
-    res.json({ students });
-
-  } catch (e) {
-    console.error("❌ Supervisor dashboard error:", e);
-    res.status(500).json({ error: e.message });
-  }
+  return {
+    name: r["Student Name"] || "-",
+    email: (r["Student's Email"] || "").toLowerCase().trim(),
+    id: r["Matric"] || "-",                 // ✅ MATCHES OLD UI
+    programme: r["Programme"] || "-",
+    coSupervisors: r["Co-Supervisor(s)"] || "",
+    status,
+    progressPercent                            // ✅ MATCHES OLD UI
+  };
 });
+
 /* =========================================================
    GET /api/supervisor/student/:email
 ========================================================= */
