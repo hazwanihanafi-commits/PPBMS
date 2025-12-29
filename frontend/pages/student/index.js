@@ -192,95 +192,120 @@ export default function StudentPage() {
           </button>
         </div>
 
-        {/* ================= TIMELINE TAB ================= */}
-        {activeTab === "timeline" && (
-          <div className="bg-white rounded-2xl shadow p-6">
-            <h3 className="font-bold mb-4">Your Research Timeline</h3>
+       {/* ================= TIMELINE TAB ================= */}
+{activeTab === "timeline" && (
+  <div className="bg-white rounded-2xl shadow p-6">
+    <h3 className="font-bold mb-4">Your Research Timeline</h3>
 
-            <table className="w-full text-sm">
-              <thead>
-          <tr
-  key={i}
-  className={`border-t ${
-    isLate
-      ? "bg-red-50"
-      : t.remaining_days <= 30 && !t.actual
-      ? "bg-orange-50"
-      : ""
-  }`}
->
-  {/* Activity */}
-  <td className="p-2">{t.activity}</td>
+    <table className="w-full text-sm border-collapse">
+      {/* ===== TABLE HEADER ===== */}
+      <thead>
+        <tr className="bg-purple-50">
+          <th className="p-2 text-left">Activity</th>
+          <th className="p-2 text-center">Expected</th>
+          <th className="p-2 text-center">Actual</th>
+          <th className="p-2 text-center">Remaining</th>
+          <th className="p-2 text-center">Status</th>
+          <th className="p-2 text-center">Action</th>
+        </tr>
+      </thead>
 
-  {/* Expected */}
-  <td className="p-2">{t.expected || "-"}</td>
+      {/* ===== TABLE BODY ===== */}
+      <tbody>
+        {timeline.map((t, i) => {
+          const isLate =
+            !t.actual && t.remaining_days < 0 && t.status !== "Completed";
 
-  {/* Actual */}
-  <td className="p-2">{t.actual || "-"}</td>
+          const isDueSoon =
+            !t.actual && t.remaining_days <= 30 && t.remaining_days >= 0;
 
-  {/* ✅ Remaining Days */}
-  <td className="p-2 text-center">
-    {t.status === "Completed" ? (
-      <span className="text-gray-400">—</span>
-    ) : (
-      <span
-        className={`font-semibold ${
-          t.remaining_days < 0
-            ? "text-red-600"
-            : t.remaining_days <= 30
-            ? "text-orange-600"
-            : "text-blue-600"
-        }`}
-      >
-        {t.remaining_days} days
-      </span>
-    )}
-  </td>
+          return (
+            <tr
+              key={i}
+              className={`border-t ${
+                isLate
+                  ? "bg-red-50"
+                  : isDueSoon
+                  ? "bg-orange-50"
+                  : ""
+              }`}
+            >
+              {/* Activity */}
+              <td className="p-2">{t.activity}</td>
 
-  {/* Status */}
-  <td className="p-2">
-    <span
-      className={`px-2 py-1 rounded text-xs font-semibold ${
-        t.status === "Completed"
-          ? "bg-green-100 text-green-700"
-          : isLate
-          ? "bg-red-100 text-red-700"
-          : "bg-blue-100 text-blue-700"
-      }`}
-    >
-      {isLate
-        ? "Late – action needed"
-        : t.status === "Completed"
-        ? "Completed ✔"
-        : "On track"}
-    </span>
-  </td>
+              {/* Expected */}
+              <td className="p-2 text-center">{t.expected || "-"}</td>
 
-  {/* Action */}
-  <td className="p-2">
-    {t.actual ? (
-      <button
-        onClick={() => resetCompleted(t.activity)}
-        className="px-3 py-1 text-xs border border-red-400 text-red-600 rounded hover:bg-red-50"
-      >
-        Reset completion
-      </button>
-    ) : (
-      <button
-        onClick={() => markCompleted(t.activity)}
-        className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
-      >
-        I’ve completed this
-      </button>
-    )}
-  </td>
-</tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+              {/* Actual */}
+              <td className="p-2 text-center">{t.actual || "-"}</td>
+
+              {/* Remaining Days */}
+              <td className="p-2 text-center">
+                {t.status === "Completed" ? (
+                  <span className="text-gray-400">—</span>
+                ) : (
+                  <span
+                    className={`font-semibold ${
+                      t.remaining_days < 0
+                        ? "text-red-600"
+                        : t.remaining_days <= 30
+                        ? "text-orange-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {t.remaining_days} days
+                  </span>
+                )}
+              </td>
+
+              {/* Status */}
+              <td className="p-2 text-center">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-semibold ${
+                    t.status === "Completed"
+                      ? "bg-green-100 text-green-700"
+                      : isLate
+                      ? "bg-red-100 text-red-700"
+                      : isDueSoon
+                      ? "bg-orange-100 text-orange-700"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {t.status === "Completed"
+                    ? "Completed ✔"
+                    : isLate
+                    ? "Late – action needed"
+                    : isDueSoon
+                    ? "Due soon"
+                    : "On track"}
+                </span>
+              </td>
+
+              {/* Action */}
+              <td className="p-2 text-center">
+                {t.actual ? (
+                  <button
+                    onClick={() => resetCompleted(t.activity)}
+                    className="px-3 py-1 text-xs border border-red-400 text-red-600 rounded hover:bg-red-50"
+                  >
+                    Reset completion
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => markCompleted(t.activity)}
+                    className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+                  >
+                    I’ve completed this
+                  </button>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+)}
 
         {/* ================= DOCUMENTS TAB ================= */}
         {activeTab === "documents" && (
