@@ -10,9 +10,36 @@ export async function sendDelayAlert({
   adminEmails = [],
   delays,
 }) {
-  const delayList = delays
-    .map(d => `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`)
+  // ✅ Basic validation (NO continue here)
+  if (!studentEmail?.includes("@")) {
+    throw new Error("Invalid student email");
+  }
+
+  if (!supervisorEmail?.includes("@")) {
+    throw new Error("Invalid supervisor email");
+  }
+
+  // ✅ Validate milestones
+  const validDelays = delays.filter(
+    d => d?.activity && typeof d.remaining_days === "number"
+  );
+
+  if (!validDelays.length) {
+    throw new Error("No valid delayed milestones");
+  }
+
+  const delayList = validDelays
+    .map(
+      d => `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`
+    )
     .join("\n");
+
+  console.log("📧 Sending delay alert:", {
+    studentEmail,
+    supervisorEmail,
+    adminEmails,
+    milestones: validDelays.map(d => d.activity),
+  });
 
   await sendEmail({
     to: studentEmail,
