@@ -153,6 +153,9 @@ export default function StudentPage() {
             <p><strong>Field:</strong> {profile.field || "-"}</p>
             <p><strong>Department:</strong> {profile.department || "-"}</p>
             <p><strong>Main Supervisor:</strong> {profile.supervisor || "-"}</p>
+            <p><strong>Co-supervisors:</strong> {profile.cosupervisors || "-"}</p>
+        </p>
+
           </div>
         </div>
 
