@@ -30,7 +30,9 @@ export default function SupervisorStudentPage() {
 
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       const data = await res.json();
@@ -49,7 +51,15 @@ export default function SupervisorStudentPage() {
   if (loading) return <div className="p-6">Loading…</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
-  /* ================= PROGRESS ================= */
+  /* ================= DATA NORMALISATION ================= */
+
+  const mainSupervisor =
+    student.supervisor ||
+    student.mainSupervisor ||
+    student.main_supervisor ||
+    student.supervisor_name ||
+    null;
+
   const completed = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
@@ -60,21 +70,16 @@ export default function SupervisorStudentPage() {
   );
 
   const hasCQIAlert =
-    timeline.some(t => t.status === "Late" || t.status === "Due Soon") ||
-    Object.values(cqi || {}).some(a =>
-      a && typeof a === "object"
-        ? Object.values(a).some(p => p?.status !== "Achieved")
-        : false
+    student.status !== "Graduated" &&
+    (
+      timeline.some(t => t.status === "Late" || t.status === "Due Soon") ||
+      Object.values(cqi || {}).some(a =>
+        a && typeof a === "object"
+          ? Object.values(a).some(p => p?.status !== "Achieved")
+          : false
+      )
     );
 
-  const mainSupervisor =
-  student.supervisor ||
-  student.mainSupervisor ||
-  student.main_supervisor ||
-  student.supervisor_name ||
-  "-";
-
-  
   /* ================= RENDER ================= */
   return (
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
@@ -89,7 +94,13 @@ export default function SupervisorStudentPage() {
 
       {/* ================= HERO ================= */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow p-6">
-        <h1 className="text-2xl font-bold">{student.student_name}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">{student.student_name}</h1>
+          <span className="px-3 py-1 rounded-full text-xs bg-white/20">
+            {student.status}
+          </span>
+        </div>
+
         <p className="text-purple-100">
           {student.programme} · {student.department}
         </p>
@@ -100,7 +111,7 @@ export default function SupervisorStudentPage() {
             <p className="text-3xl font-extrabold">{progress}%</p>
           </div>
 
-          {nextMilestone && (
+          {nextMilestone && student.status !== "Graduated" && (
             <div className="bg-white text-gray-800 rounded-xl p-4 shadow">
               <p className="text-xs uppercase font-semibold text-gray-500">
                 Next Milestone
@@ -164,6 +175,7 @@ export default function SupervisorStudentPage() {
             <p><strong>Email:</strong> {student.email}</p>
             <p><strong>Programme:</strong> {student.programme}</p>
             <p><strong>Status:</strong> {student.status}</p>
+
             <p className="md:col-span-2">
               <strong>Field:</strong> {student.field || "-"}
             </p>
@@ -171,9 +183,15 @@ export default function SupervisorStudentPage() {
               <strong>Department:</strong> {student.department || "-"}
             </p>
             <p className="md:col-span-2">
-  <strong>Main Supervisor:</strong> {mainSupervisor}
-</p>
-
+              <strong>Main Supervisor:</strong>{" "}
+              {mainSupervisor ? (
+                mainSupervisor
+              ) : (
+                <span className="italic text-gray-400">
+                  Not recorded / archived
+                </span>
+              )}
+            </p>
             <p className="md:col-span-2">
               <strong>Co-Supervisor(s):</strong>{" "}
               {student.coSupervisors?.length
@@ -258,14 +276,14 @@ export default function SupervisorStudentPage() {
         </div>
       )}
 
-      {/* ================= CQI ================= */}
+      {/* ================= CQI & PLO ================= */}
       {activeTab === "cqi" && (
         <div className="bg-white rounded-2xl shadow p-6 space-y-4">
           <h3 className="font-bold text-lg">🎯 CQI by Assessment</h3>
 
           {Object.keys(cqi || {}).length === 0 ? (
             <p className="text-sm text-gray-500 italic">
-              No CQI / PLO data available yet.
+              No CQI / PLO data available.
             </p>
           ) : (
             Object.entries(cqi).map(([assessment, ploData]) => (
@@ -298,18 +316,21 @@ export default function SupervisorStudentPage() {
           )}
 
           <div className="mt-6">
-  <h3 className="font-bold mb-2">📊 Final PLO Attainment</h3>
+            <h3 className="font-bold mb-2">
+              📊 Final PLO Attainment
+            </h3>
 
-  {student.status === "Graduated" && !student.finalPLO ? (
-    <p className="text-sm text-gray-500 italic">
-      Final PLO attainment was achieved and validated at graduation.
-      Detailed records are archived.
-    </p>
-  ) : (
-    <FinalPLOTable finalPLO={student.finalPLO} />
-  )}
-</div>
-
+            {student.status === "Graduated" && !student.finalPLO ? (
+              <p className="text-sm text-gray-500 italic">
+                Final PLO attainment was achieved and validated at graduation.
+                Detailed records are archived.
+              </p>
+            ) : (
+              <FinalPLOTable finalPLO={student.finalPLO} />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ================= REMARKS ================= */}
       {activeTab === "remarks" && (
