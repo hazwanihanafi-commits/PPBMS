@@ -26,11 +26,16 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.error || "Login failed");
-        setLoading(false);
-        return;
-      }
+// 🔐 FIRST-TIME LOGIN → REDIRECT TO SET PASSWORD
+if (data.requirePasswordSetup) {
+  router.push(`/set-password?email=${data.email}`);
+  return;
+}
+
+if (!res.ok) {
+  setError(data.error || "Login failed");
+  return;
+}
 
       // ✅ STORE AUTH
       localStorage.setItem("ppbms_token", data.token);
