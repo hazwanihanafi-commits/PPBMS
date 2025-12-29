@@ -130,49 +130,157 @@ export default function SupervisorStudentPage() {
 
       {/* ================= TAB CONTENT ================= */}
 
-      {activeTab === "overview" && (
-        <div className="bg-white rounded-2xl shadow p-6 text-sm space-y-2">
-          <p><strong>Matric:</strong> {student.student_id}</p>
-          <p><strong>Email:</strong> {student.email}</p>
-          <p><strong>Status:</strong> {student.status}</p>
-          <p><strong>Main Supervisor:</strong> {student.supervisor}</p>
-        </div>
-      )}
+     {activeTab === "overview" && (
+  <div className="bg-white rounded-2xl shadow p-6 space-y-3 text-sm">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+
+      <p><strong>Matric:</strong> {student.student_id}</p>
+      <p><strong>Email:</strong> {student.email}</p>
+
+      <p><strong>Programme:</strong> {student.programme}</p>
+      <p><strong>Status:</strong> {student.status}</p>
+
+      <p className="md:col-span-2">
+        <strong>Field:</strong> {student.field || "-"}
+      </p>
+
+      <p className="md:col-span-2">
+        <strong>Department:</strong> {student.department || "-"}
+      </p>
+
+      <p className="md:col-span-2">
+        <strong>Main Supervisor:</strong>{" "}
+        {student.supervisor || "-"}
+      </p>
+
+      <p className="md:col-span-2">
+        <strong>Co-Supervisor(s):</strong>{" "}
+        {student.coSupervisors?.length
+          ? student.coSupervisors.join(", ")
+          : "-"}
+      </p>
+    </div>
+  </div>
+)}
+
 
       {activeTab === "documents" && (
         <SupervisorChecklist documents={student.documents || {}} />
       )}
 
       {activeTab === "timeline" && (
-        <div className="bg-white rounded-2xl shadow p-6">
-          <table className="w-full text-sm">
-            <thead className="bg-purple-100">
-              <tr>
-                <th className="p-3 text-left">Activity</th>
-                <th className="p-3">Expected</th>
-                <th className="p-3">Actual</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Remaining</th>
-              </tr>
-            </thead>
-            <tbody>
-              {timeline.map((t, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-3">{t.activity}</td>
-                  <td className="p-3">{t.expected}</td>
-                  <td className="p-3">{t.actual || "-"}</td>
-                  <td className="p-3">{t.status}</td>
-                  <td className="p-3">{t.remaining_days}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+  <div className="bg-white rounded-2xl shadow p-6">
+    <table className="w-full text-sm">
+      <thead className="bg-purple-100">
+        <tr>
+          <th className="p-3 text-left">Activity</th>
+          <th className="p-3">Expected</th>
+          <th className="p-3">Actual</th>
+          <th className="p-3">Status</th>
+          <th className="p-3">Remaining</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {timeline.map((t, i) => (
+          <tr
+            key={i}
+            className={`border-t ${
+              t.status === "Late"
+                ? "bg-red-50"
+                : t.status === "Due Soon"
+                ? "bg-orange-50"
+                : ""
+            }`}
+          >
+            <td className="p-3">{t.activity}</td>
+            <td className="p-3">{t.expected || "-"}</td>
+            <td className="p-3">{t.actual || "-"}</td>
+
+            <td className="p-3">
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  t.status === "Completed"
+                    ? "bg-green-100 text-green-700"
+                    : t.status === "On Time"
+                    ? "bg-blue-100 text-blue-700"
+                    : t.status === "Due Soon"
+                    ? "bg-orange-100 text-orange-700"
+                    : t.status === "Late"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {t.status}
+              </span>
+            </td>
+
+            <td
+              className={`p-3 ${
+                t.remaining_days <= 30 && t.remaining_days > 0
+                  ? "text-orange-600 font-semibold"
+                  : t.remaining_days <= 0
+                  ? "text-red-600 font-semibold"
+                  : ""
+              }`}
+            >
+              {t.remaining_days}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
 
       {activeTab === "cqi" && (
-        <FinalPLOTable finalPLO={student.finalPLO} />
-      )}
+  <div className="bg-white rounded-2xl shadow p-6 space-y-4">
+
+    <h3 className="font-bold text-lg">🎯 CQI by Assessment</h3>
+
+    {Object.keys(cqi || {}).length === 0 ? (
+      <p className="text-sm text-gray-500 italic">
+        No CQI / PLO data available yet.
+      </p>
+    ) : (
+      Object.entries(cqi).map(([assessment, ploData]) => (
+        <div key={assessment} className="border rounded-xl p-4">
+          <h4 className="font-semibold text-purple-700 mb-2">
+            {assessment}
+          </h4>
+
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(ploData || {})
+              .sort(([a], [b]) =>
+                parseInt(a.replace("PLO", "")) -
+                parseInt(b.replace("PLO", ""))
+              )
+              .map(([plo, d]) => (
+                <span
+                  key={plo}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    d.status === "Achieved"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {plo}: Avg {d.average ?? "-"} – {d.status}
+                </span>
+              ))}
+          </div>
+        </div>
+      ))
+    )}
+
+    {/* FINAL PLO (PROGRAMME LEVEL) */}
+    <div className="mt-6">
+      <h3 className="font-bold mb-2">📊 Final PLO Attainment</h3>
+      <FinalPLOTable finalPLO={student.finalPLO} />
+    </div>
+  </div>
+)}
+
 
       {activeTab === "remarks" && (
         <SupervisorRemark
