@@ -106,6 +106,35 @@ router.post("/update-actual", auth, async (req, res) => {
   }
 });
 
+POST /api/student/reset-actual
+router.post("/reset-actual", authStudent, async (req, res) => {
+  const { activity } = req.body;
+
+  if (!activity) {
+    return res.status(400).json({ error: "Missing activity" });
+  }
+
+  await updateTimelineActual({
+    email: req.user.email,
+    activity,
+    actual: "",      // reset actual date
+    status: "On Track"
+  });
+
+  // OPTIONAL (recommended): log audit trail
+  await logStudentAction({
+    email: req.user.email,
+    action: "RESET_TIMELINE_ACTUAL",
+    activity
+  });
+
+  res.json({ success: true });
+});
+
+
+
+
+
 /* ================= SAVE DOCUMENT ================= */
 router.post("/save-document", auth, async (req, res) => {
   try {
