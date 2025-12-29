@@ -97,12 +97,22 @@ if (!res.ok) {
 
         {/* 👇 OUTSIDE FORM (IMPORTANT) */}
         <p className="text-xs text-gray-500 text-center mt-4">
-          First time login? Use your registered email.
+          First time login? Use your registered email. You will go to set password page.
         </p>
 
         <p className="text-xs text-purple-600 text-center mt-1">
           Forgot password? Contact admin.
         </p>
+
+          <div className="mt-4 text-center">
+  <button
+    type="button"
+    onClick={() => router.push("/")}
+    className="text-sm text-purple-600 underline"
+  >
+    ← Back to Landing Page
+  </button>
+</div>
       </div>
     </div>
   );
