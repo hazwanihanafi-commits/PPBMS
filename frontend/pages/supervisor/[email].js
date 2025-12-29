@@ -54,11 +54,16 @@ export default function SupervisorStudentPage() {
   /* ================= DATA NORMALISATION ================= */
 
   const mainSupervisor =
-    student.supervisor ||
-    student.mainSupervisor ||
-    student.main_supervisor ||
-    student.supervisor_name ||
-    null;
+  student.mainSupervisor ||
+  student.supervisor ||
+  student["Main Supervisor"] ||
+  student["Main Supervisor Name"] ||
+  student["Supervisor Name"] ||
+  student.supervisor_name ||
+  student.supervisorEmail ||
+  student["Main Supervisor Email"] ||
+  null;
+
 
   const completed = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
