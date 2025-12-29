@@ -155,11 +155,6 @@ router.post("/save-document", auth, async (req, res) => {
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
-    if (!rows.length) {
-      return res.status(500).json({ error: "Sheet empty" });
-    }
-
-    // 🔑 FIND STUDENT ROW
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
@@ -168,22 +163,20 @@ router.post("/save-document", auth, async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // 🔑 RESOLVE COLUMN INDEX FROM HEADER
-    const headers = Object.keys(rows[0]);
-    const colIndex = headers.indexOf(document_key);
-
-    if (colIndex === -1) {
+    // 🔑 SAFETY CHECK: ensure column exists
+    const headers = Object.keys(rows[0] || {});
+    if (!headers.includes(document_key)) {
       return res.status(400).json({
         error: `Invalid document key: ${document_key}`
       });
     }
 
-    // 🔑 WRITE USING COLUMN LETTER
+    // ✅ PASS HEADER STRING (NOT INDEX)
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
-      colIndex + 1,   // 1-based index
-      idx + 2,        // row index
+      document_key,   // ✅ STRING header
+      idx + 2,
       file_url || ""
     );
 
@@ -193,5 +186,6 @@ router.post("/save-document", auth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 export default router;
