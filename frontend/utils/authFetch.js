@@ -1,3 +1,5 @@
+import { API_BASE } from "./api";
+
 export async function authFetch(url, options = {}) {
   const token = localStorage.getItem("ppbms_token");
 
