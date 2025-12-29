@@ -70,7 +70,7 @@ export default function StudentChecklist({ initialDocuments = {} }) {
     const token = localStorage.getItem("ppbms_token");
 
     try {
-      const res = await fetch(`${API_BASE}/api/student/update-document`, {
+      const res = await fetch(`${API_BASE}/api/student/save-document`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
