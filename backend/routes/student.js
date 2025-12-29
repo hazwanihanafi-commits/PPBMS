@@ -8,6 +8,8 @@ import { buildTimelineForRow } from "../utils/buildTimeline.js";
 
 const router = express.Router();
 
+
+
 /* ================= AUTH ================= */
 function auth(req, res, next) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
@@ -21,6 +23,9 @@ function auth(req, res, next) {
   }
 }
 
+console.log("LOOKING FOR STUDENT:", email);
+console.log("FOUND:", !!raw);
+
 /* ================= GET STUDENT ================= */
 router.get("/me", auth, async (req, res) => {
   try {
@@ -31,7 +36,12 @@ router.get("/me", auth, async (req, res) => {
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
-    if (!raw) return res.status(404).json({ error: "Student not found" });
+    if (!raw) {
+  return res.status(403).json({
+    error: "Student record not found in Master Tracking. Please contact admin."
+  });
+}
+
 
     const profile = {
       student_id: raw["Matric"] || "",
