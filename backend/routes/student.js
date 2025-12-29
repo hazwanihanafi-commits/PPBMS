@@ -106,32 +106,40 @@ router.post("/update-actual", auth, async (req, res) => {
   }
 });
 
-POST /api/student/reset-actual
-router.post("/reset-actual", authStudent, async (req, res) => {
-  const { activity } = req.body;
+/* ================= RESET COMPLETED ================= */
+router.post("/reset-actual", auth, async (req, res) => {
+  try {
+    const { activity } = req.body;
+    if (!activity) {
+      return res.status(400).json({ error: "Missing activity" });
+    }
 
-  if (!activity) {
-    return res.status(400).json({ error: "Missing activity" });
+    const email = req.user.email.toLowerCase();
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const idx = rows.findIndex(
+      r => (r["Student's Email"] || "").toLowerCase() === email
+    );
+
+    if (idx === -1) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // ✅ RESET ACTUAL DATE ONLY
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MasterTracking",
+      `${activity} - Actual`,
+      idx + 2,
+      "" // clear cell
+    );
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error("reset-actual:", e);
+    res.status(500).json({ error: e.message });
   }
-
-  await updateTimelineActual({
-    email: req.user.email,
-    activity,
-    actual: "",      // reset actual date
-    status: "On Track"
-  });
-
-  // OPTIONAL (recommended): log audit trail
-  await logStudentAction({
-    email: req.user.email,
-    action: "RESET_TIMELINE_ACTUAL",
-    activity
-  });
-
-  res.json({ success: true });
 });
-
-
 
 
 
