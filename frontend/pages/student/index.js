@@ -199,70 +199,82 @@ export default function StudentPage() {
 
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-purple-50">
-                  <th className="p-2 text-left">Activity</th>
-                  <th className="p-2">Expected</th>
-                  <th className="p-2">Actual</th>
-                  <th className="p-2">Status</th>
-                  <th className="p-2">Action</th>
-                </tr>
-              </thead>
+          <tr
+  key={i}
+  className={`border-t ${
+    isLate
+      ? "bg-red-50"
+      : t.remaining_days <= 30 && !t.actual
+      ? "bg-orange-50"
+      : ""
+  }`}
+>
+  {/* Activity */}
+  <td className="p-2">{t.activity}</td>
 
-              <tbody>
-                {timeline.map((t, i) => {
-                  const isLate =
-                    !t.actual && t.remaining_days < 0 && t.status !== "Completed";
+  {/* Expected */}
+  <td className="p-2">{t.expected || "-"}</td>
 
-                  return (
-                    <tr
-                      key={i}
-                      className={`border-t ${
-                        isLate
-                          ? "bg-red-50"
-                          : t.remaining_days <= 30 && !t.actual
-                          ? "bg-orange-50"
-                          : ""
-                      }`}
-                    >
-                      <td className="p-2">{t.activity}</td>
-                      <td className="p-2">{t.expected || "-"}</td>
-                      <td className="p-2">{t.actual || "-"}</td>
-                      <td className="p-2">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
-                            t.status === "Completed"
-                              ? "bg-green-100 text-green-700"
-                              : isLate
-                              ? "bg-red-100 text-red-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`}
-                        >
-                          {isLate
-                            ? "Late – action needed"
-                            : t.status === "Completed"
-                            ? "Completed ✔"
-                            : "On track"}
-                        </span>
-                      </td>
-                      <td className="p-2">
-  {t.actual ? (
-    <button
-      onClick={() => resetCompleted(t.activity)}
-      className="px-3 py-1 text-xs border border-red-400 text-red-600 rounded hover:bg-red-50"
+  {/* Actual */}
+  <td className="p-2">{t.actual || "-"}</td>
+
+  {/* ✅ Remaining Days */}
+  <td className="p-2 text-center">
+    {t.status === "Completed" ? (
+      <span className="text-gray-400">—</span>
+    ) : (
+      <span
+        className={`font-semibold ${
+          t.remaining_days < 0
+            ? "text-red-600"
+            : t.remaining_days <= 30
+            ? "text-orange-600"
+            : "text-blue-600"
+        }`}
+      >
+        {t.remaining_days} days
+      </span>
+    )}
+  </td>
+
+  {/* Status */}
+  <td className="p-2">
+    <span
+      className={`px-2 py-1 rounded text-xs font-semibold ${
+        t.status === "Completed"
+          ? "bg-green-100 text-green-700"
+          : isLate
+          ? "bg-red-100 text-red-700"
+          : "bg-blue-100 text-blue-700"
+      }`}
     >
-      Reset completion
-    </button>
-  ) : (
-    <button
-      onClick={() => markCompleted(t.activity)}
-      className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
-    >
-      I’ve completed this
-    </button>
-  )}
-</td>
+      {isLate
+        ? "Late – action needed"
+        : t.status === "Completed"
+        ? "Completed ✔"
+        : "On track"}
+    </span>
+  </td>
 
-                    </tr>
+  {/* Action */}
+  <td className="p-2">
+    {t.actual ? (
+      <button
+        onClick={() => resetCompleted(t.activity)}
+        className="px-3 py-1 text-xs border border-red-400 text-red-600 rounded hover:bg-red-50"
+      >
+        Reset completion
+      </button>
+    ) : (
+      <button
+        onClick={() => markCompleted(t.activity)}
+        className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+      >
+        I’ve completed this
+      </button>
+    )}
+  </td>
+</tr>
                   );
                 })}
               </tbody>
