@@ -109,6 +109,38 @@ export default function StudentPage() {
   return (
   <>
     <TopBar user={user} />
+    
+    {/* ================= HERO ================= */}
+<div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow p-6">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <h1 className="text-2xl font-bold">
+        Welcome back, {profile.student_name} 🎓
+      </h1>
+      <p className="text-purple-100 mt-1">
+        You have completed {completed} of {timeline.length} milestones
+      </p>
+    </div>
+
+    {nextMilestone && (
+      <div className="bg-white text-gray-800 rounded-xl p-4 shadow min-w-[260px]">
+        <p className="text-xs uppercase font-semibold text-gray-500">
+          Next Milestone
+        </p>
+        <p className="font-bold">{nextMilestone.activity}</p>
+        <p className="text-sm text-gray-600">
+          Due in{" "}
+          <span className="font-semibold">
+            {nextMilestone.remaining_days}
+          </span>{" "}
+          days
+        </p>
+      </div>
+    )}
+  </div>
+</div>
+
+    
 
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
@@ -126,6 +158,18 @@ export default function StudentPage() {
           <p><strong>Co-supervisors:</strong> {profile.cosupervisors || "-"}</p>
         </div>
       </div>
+
+  {/* ================= PROGRESS ================= */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div className="bg-white rounded-2xl shadow p-4 flex justify-center">
+    <CompletionDonut percent={progress} />
+  </div>
+
+  <div className="md:col-span-2 bg-white rounded-2xl shadow p-4">
+    <TimelineSummary timeline={timeline} />
+  </div>
+</div>
+
 
       {/* TABS */}
       <div className="flex gap-3">
