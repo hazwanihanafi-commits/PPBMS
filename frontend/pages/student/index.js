@@ -60,6 +60,25 @@ export default function StudentPage() {
     loadStudent();
   }
 
+  async function resetCompleted(activity) {
+  if (!confirm("Are you sure you want to reset this milestone?")) return;
+
+  const token = localStorage.getItem("ppbms_token");
+
+  await fetch(`${API_BASE}/api/student/reset-actual`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ activity }),
+  });
+
+  loadStudent(); // refresh timeline
+}
+
+  
+
   /* ================= SUMMARY ================= */
   const completed = timeline.filter(t => t.status === "Completed").length;
   const late = timeline.filter(
@@ -226,15 +245,23 @@ export default function StudentPage() {
                         </span>
                       </td>
                       <td className="p-2">
-                        {!t.actual && (
-                          <button
-                            onClick={() => markCompleted(t.activity)}
-                            className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
-                          >
-                            I’ve completed this
-                          </button>
-                        )}
-                      </td>
+  {t.actual ? (
+    <button
+      onClick={() => resetCompleted(t.activity)}
+      className="px-3 py-1 text-xs border border-red-400 text-red-600 rounded hover:bg-red-50"
+    >
+      Reset completion
+    </button>
+  ) : (
+    <button
+      onClick={() => markCompleted(t.activity)}
+      className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+    >
+      I’ve completed this
+    </button>
+  )}
+</td>
+
                     </tr>
                   );
                 })}
