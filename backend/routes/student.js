@@ -23,8 +23,6 @@ function auth(req, res, next) {
   }
 }
 
-console.log("LOOKING FOR STUDENT:", email);
-console.log("FOUND:", !!raw);
 
 /* ================= GET STUDENT ================= */
 router.get("/me", auth, async (req, res) => {
@@ -36,6 +34,9 @@ router.get("/me", auth, async (req, res) => {
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
 
+console.log("LOOKING FOR STUDENT:", email);
+console.log("FOUND:", !!raw);
+    
     if (!raw) {
   return res.status(403).json({
     error: "Student record not found in Master Tracking. Please contact admin."
