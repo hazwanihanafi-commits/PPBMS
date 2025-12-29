@@ -7,7 +7,6 @@ export async function sendDelayAlert({
   studentName,
   studentEmail,
   supervisorEmail,
-  adminEmails = [],
   delays,
 }) {
   // ✅ Basic validation (NO continue here)
@@ -37,13 +36,12 @@ export async function sendDelayAlert({
   console.log("📧 Sending delay alert:", {
     studentEmail,
     supervisorEmail,
-    adminEmails,
     milestones: validDelays.map(d => d.activity),
   });
 
   await sendEmail({
     to: studentEmail,
-    cc: [supervisorEmail, ...adminEmails].filter(Boolean),
+    cc: [supervisorEmail].filter(Boolean),
     subject: `[PPBMS] Milestone Delay Alert – ${studentName}`,
     text: `
 Dear ${studentName},
@@ -67,7 +65,6 @@ for monitoring purposes.
 ========================================================= */
 export async function sendCQIAlert({
   supervisorEmail,
-  adminEmails = [],
   studentName,
   matric,
   assessmentType,
@@ -79,7 +76,6 @@ export async function sendCQIAlert({
 
   await sendEmail({
     to: supervisorEmail,
-    cc: adminEmails,
     subject: `[PPBMS] CQI Detected – ${studentName} (${assessmentType})`,
     text: `
 Dear Supervisor,
@@ -107,7 +103,6 @@ Please log in to PPBMS and record intervention within 30 days.
 ========================================================= */
 export async function sendCQIReminder({
   supervisorEmail,
-  adminEmails = [],
   studentName,
   matric,
   assessmentType,
@@ -115,7 +110,6 @@ export async function sendCQIReminder({
 }) {
   await sendEmail({
     to: supervisorEmail,
-    cc: adminEmails,
     subject: `[PPBMS] REMINDER: CQI Pending > ${daysPending} Days`,
     text: `
 Dear Supervisor,
