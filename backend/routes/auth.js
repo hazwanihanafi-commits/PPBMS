@@ -33,13 +33,14 @@ router.post("/login", async (req, res) => {
     }
 
     // FIRST LOGIN → FORCE PASSWORD SET
-    if (!user.PasswordHash) {
-      return res.json({
-        requirePasswordSetup: true,
-        email: normalizedEmail,
-        role: user.Role.toLowerCase(),
-      });
-    }
+   if (!user.PasswordHash || user.PasswordSet !== "TRUE") {
+  return res.json({
+    requirePasswordSetup: true,
+    email: normalizedEmail,
+    role: (user.Role || "").trim().toLowerCase(),
+  });
+}
+
 
     // PASSWORD REQUIRED AFTER SET
     if (!password) {
