@@ -42,3 +42,14 @@ export default async function sendEmail({ to, cc, subject, text }) {
 
   return true;
 }
+
+// TEMPORARY TEST OVERRIDE
+const isTest = true;
+
+await sendEmail({
+  to: isTest ? "hazwanihanafi@gmail.com" : studentEmail,
+  cc: isTest ? undefined : supervisorEmail,
+  subject: `[PPBMS TEST] Milestone Delay Alert`,
+  text: emailText,
+});
+
