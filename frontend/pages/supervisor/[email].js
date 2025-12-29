@@ -316,15 +316,29 @@ export default function SupervisorStudentPage() {
         </div>
       )}
 
-      {/* ================= REMARKS ================= */}
       {activeTab === "remarks" && (
-        <SupervisorRemark
-          studentMatric={student.student_id}
-          studentEmail={student.email}
-          assessmentType="TRX500"
-          initialRemark={student.remarksByAssessment?.TRX500}
-        />
-      )}
+  <div className="space-y-6">
+    {student.remarksByAssessment &&
+    Object.keys(student.remarksByAssessment).length > 0 ? (
+      Object.entries(student.remarksByAssessment).map(
+        ([assessmentType, remark]) => (
+          <SupervisorRemark
+            key={assessmentType}
+            studentMatric={student.student_id}
+            studentEmail={student.email}
+            assessmentType={assessmentType}
+            initialRemark={remark}
+          />
+        )
+      )
+    ) : (
+      <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500 italic">
+        No supervisor remarks recorded yet.
+      </div>
+    )}
+  </div>
+)}
+
     </div>
   );
 }
