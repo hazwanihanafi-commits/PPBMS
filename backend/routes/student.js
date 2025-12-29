@@ -102,6 +102,10 @@ router.post("/update-actual", auth, async (req, res) => {
     if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
 
+    
+    console.log("Updating activity:", activity);
+    console.log("Target column:", `${activity} - Actual`);
+    
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
