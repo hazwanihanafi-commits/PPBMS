@@ -147,8 +147,12 @@ router.post("/reset-actual", auth, async (req, res) => {
 router.post("/save-document", auth, async (req, res) => {
   try {
     const { document_key, file_url } = req.body;
+
     if (!document_key)
       return res.status(400).json({ error: "Missing document_key" });
+
+    if (file_url === undefined)
+      return res.status(400).json({ error: "Missing file_url" });
 
     const email = req.user.email.toLowerCase();
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -156,21 +160,22 @@ router.post("/save-document", auth, async (req, res) => {
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
+
     if (idx === -1)
       return res.status(404).json({ error: "Student not found" });
 
     await writeSheetCell(
       process.env.SHEET_ID,
-      "MasterTracking",
       document_key,
       idx + 2,
       file_url || ""
     );
 
-    res.json({ success: true });
+    return res.json({ success: true });
+
   } catch (e) {
-    console.error("save-document:", e);
-    res.status(500).json({ error: e.message });
+    console.error("save-document error:", e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
