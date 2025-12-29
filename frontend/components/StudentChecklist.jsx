@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { API_BASE } from "@/utils/api";
+import { API_BASE } from "../utils/api";
 
-/* =========================
-   MASTER TRACKING COLUMNS
-========================= */
+/* 🔑 LABEL → MASTER TRACKING COLUMN */
 const DOCUMENTS = [
   {
     section: "Monitoring & Supervision",
@@ -42,15 +40,12 @@ const DOCUMENTS = [
   { section: "Thesis & Viva", label: "Final Thesis", key: "FINAL_THESIS" },
 ];
 
-/* =========================
-   COMPONENT
-========================= */
 export default function StudentChecklist({ initialDocuments = {} }) {
   const [documents, setDocuments] = useState({});
   const [inputs, setInputs] = useState({});
-  const [savingKey, setSavingKey] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  /* hydrate from backend */
+  /* hydrate from MasterTracking */
   useEffect(() => {
     setDocuments(initialDocuments || {});
   }, [initialDocuments]);
@@ -60,79 +55,67 @@ export default function StudentChecklist({ initialDocuments = {} }) {
   }
 
   /* =========================
-     SAVE / UPDATE DOCUMENT
+     SAVE / UPDATE LINK
   ========================== */
   async function saveLink(doc) {
     const url = inputs[doc.key]?.trim();
-    if (!url) return alert("Paste a document link first.");
+    if (!url) return alert("Paste a link first");
 
-    setSavingKey(doc.key);
+    setSaving(true);
     const token = localStorage.getItem("ppbms_token");
 
-    try {
-      const res = await fetch(`${API_BASE}/api/student/save-document`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          key: doc.key,      // ✅ matches backend
-          value: url,        // ✅ matches backend
-        }),
-      });
+    const res = await fetch(`${API_BASE}/api/student/save-document`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        document_key: doc.key,   // ✅ KEY, NOT LABEL
+        file_url: url,
+      }),
+    });
 
-      if (!res.ok) throw new Error("Save failed");
+    setSaving(false);
+    if (!res.ok) return alert("Save failed");
 
-      setDocuments((prev) => ({ ...prev, [doc.key]: url }));
-      setInputs((prev) => ({ ...prev, [doc.key]: "" }));
-    } catch (e) {
-      alert("Failed to save document");
-    } finally {
-      setSavingKey(null);
-    }
+    setDocuments((prev) => ({ ...prev, [doc.key]: url }));
+    setInputs((prev) => ({ ...prev, [doc.key]: "" }));
   }
 
   /* =========================
-     REMOVE DOCUMENT
+     REMOVE LINK
   ========================== */
   async function removeLink(doc) {
-    if (!confirm("Remove this document link?")) return;
+    if (!confirm("Remove this document?")) return;
 
     const token = localStorage.getItem("ppbms_token");
 
-    try {
-      const res = await fetch(`${API_BASE}/api/student/update-document`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          key: doc.key,
-          value: "",
-        }),
-      });
+    const res = await fetch(`${API_BASE}/api/student/save-document`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        document_key: doc.key,   // ✅ KEY, NOT LABEL
+        file_url: "",            // clear cell
+      }),
+    });
 
-      if (!res.ok) throw new Error("Remove failed");
+    if (!res.ok) return alert("Remove failed");
 
-      setDocuments((prev) => ({ ...prev, [doc.key]: "" }));
-    } catch {
-      alert("Failed to remove document");
-    }
+    setDocuments((prev) => ({ ...prev, [doc.key]: "" }));
   }
 
   let currentSection = "";
 
-  /* =========================
-     RENDER
-  ========================== */
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">📁 Student Checklist</h3>
 
       {DOCUMENTS.map((doc) => {
-        const savedUrl = documents[doc.key];
+        const savedUrl = documents[doc.key];   // ✅ USE KEY
         const showSection = doc.section !== currentSection;
         currentSection = doc.section;
 
@@ -171,7 +154,7 @@ export default function StudentChecklist({ initialDocuments = {} }) {
                   <input
                     type="url"
                     placeholder="Paste link here"
-                    className="flex-1 border px-2 py-1 text-sm rounded"
+                    className="flex-1 border px-2 py-1 text-sm"
                     value={inputs[doc.key] || ""}
                     onChange={(e) =>
                       handleChange(doc.key, e.target.value)
@@ -179,8 +162,8 @@ export default function StudentChecklist({ initialDocuments = {} }) {
                   />
                   <button
                     onClick={() => saveLink(doc)}
-                    disabled={savingKey === doc.key}
-                    className="bg-purple-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+                    disabled={saving}
+                    className="bg-purple-600 text-white px-3 rounded text-sm"
                   >
                     Save
                   </button>
