@@ -1,9 +1,11 @@
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const EMAIL_FROM = process.env.EMAIL_FROM || "no-reply@usm.my";
+import fetch from "node-fetch";
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM || "PPBMS <onboarding@resend.dev>";
 
 export default async function sendEmail({ to, cc, subject, text }) {
-  if (!SENDGRID_API_KEY) {
-    throw new Error("Missing SENDGRID_API_KEY");
+  if (!RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
   }
 
   if (!to || !subject || !text) {
@@ -11,28 +13,22 @@ export default async function sendEmail({ to, cc, subject, text }) {
   }
 
   const payload = {
-    personalizations: [
-      {
-        to: [{ email: to }],
-        ...(cc ? { cc: [{ email: cc }] } : {}),
-        subject,
-      },
-    ],
-    from: { email: EMAIL_FROM.replace(/.*<|>.*/g, "") },
-    content: [
-      {
-        type: "text/plain",
-        value: text,
-      },
-    ],
+    from: EMAIL_FROM,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    text,
   };
 
-  console.log("📨 SENDGRID PAYLOAD", JSON.stringify(payload, null, 2));
+  if (cc) {
+    payload.cc = Array.isArray(cc) ? cc : [cc];
+  }
 
-  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+  console.log("📨 RESEND PAYLOAD", payload);
+
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${SENDGRID_API_KEY}`,
+      Authorization: `Bearer ${RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
@@ -40,7 +36,7 @@ export default async function sendEmail({ to, cc, subject, text }) {
 
   if (!res.ok) {
     const err = await res.text();
-    console.error("❌ SENDGRID ERROR:", err);
+    console.error("❌ RESEND ERROR:", err);
     throw new Error(`Email send failed (${res.status})`);
   }
 
