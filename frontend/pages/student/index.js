@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { API_BASE } from "../../utils/api";
 import { useAuthGuard } from "@/utils/useAuthGuard";
+import { authFetch } from "@/utils/authFetch";
+
 import StudentChecklist from "../../components/StudentChecklist";
 import TimelineSummary from "../../components/TimelineSummary";
 import CompletionDonut from "../../components/CompletionDonut";
 import TopBar from "../../components/TopBar";
-import { authFetch } from "@/utils/authFetch";
-
 
 export default function StudentPage() {
   const { ready, user } = useAuthGuard("student");
@@ -18,70 +17,67 @@ export default function StudentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* ================= LOAD DATA ================= */
+  /* ================= LOAD STUDENT ================= */
   useEffect(() => {
     if (!ready) return;
     loadStudent();
   }, [ready]);
 
   async function loadStudent() {
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  try {
-    const res = await authFetch("/api/student/me");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    try {
+      const res = await authFetch("/api/student/me");
+      const data = await res.json();
 
-    setProfile(data.row);
-    setTimeline(data.row.timeline || []);
-  } catch (e) {
-    if (e.message === "NO_TOKEN") {
-      window.location.href = "/login";
-      return;
+      if (!res.ok) throw new Error(data.error);
+
+      setProfile(data.row);
+      setTimeline(data.row.timeline || []);
+    } catch (e) {
+      if (e.message === "NO_TOKEN") {
+        window.location.href = "/login";
+        return;
+      }
+      setError(e.message || "Unable to load student data");
     }
-    setError(e.message || "Unable to load student data");
+
+    setLoading(false);
   }
-
-  setLoading(false);
-}
-
 
   /* ================= MARK COMPLETED ================= */
   async function markCompleted(activity) {
-    const token = localStorage.getItem("ppbms_token");
     const date = new Date().toISOString().slice(0, 10);
 
-    await fetch(`${API_BASE}/api/student/update-actual`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ activity, date }),
-    });
+    try {
+      await authFetch("/api/student/update-actual", {
+        method: "POST",
+        body: JSON.stringify({ activity, date }),
+      });
 
-    loadStudent();
+      loadStudent();
+    } catch (e) {
+      setError(e.message || "Failed to update milestone");
+    }
   }
 
+  /* ================= RESET COMPLETED ================= */
   async function resetCompleted(activity) {
-  if (!confirm("Are you sure you want to reset this milestone?")) return;
+    if (!confirm("Are you sure you want to reset this milestone?")) return;
 
-  const token = localStorage.getItem("ppbms_token");
+    try {
+      await authFetch("/api/student/reset-actual", {
+        method: "POST",
+        body: JSON.stringify({ activity }),
+      });
 
-  await fetch(`${API_BASE}/api/student/reset-actual`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ activity }),
-  });
+      loadStudent();
+    } catch (e) {
+      setError(e.message || "Failed to reset milestone");
+    }
+  }
 
-  loadStudent(); // refresh timeline
-}
-
-  
 
   /* ================= SUMMARY ================= */
   const completed = timeline.filter(t => t.status === "Completed").length;
