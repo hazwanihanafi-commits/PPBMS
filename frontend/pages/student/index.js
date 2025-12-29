@@ -70,6 +70,8 @@ export default function StudentPage() {
     ? Math.round((completed / timeline.length) * 100)
     : 0;
 
+  const nextMilestone = timeline.find(t => t.status !== "Completed");
+
   /* ================= AUTO ALERT ================= */
   useEffect(() => {
     const prevLate = Number(localStorage.getItem("ppbms_prev_late") || 0);
@@ -89,66 +91,65 @@ export default function StudentPage() {
     <>
       <TopBar user={user} />
 
-      <div className="min-h-screen bg-purple-50 p-6">
+      <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
-        {/* PROFILE */}
-        {/* ===============================
-    STUDENT PROFILE CARD
-=============================== */}
-<div className="bg-white rounded-2xl shadow p-6 mb-6">
-  <h1 className="text-xl font-extrabold mb-3 flex items-center gap-2">
-    🎓 Student Dashboard
-  </h1>
+        {/* ================= HERO ================= */}
+        <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">
+                Welcome back, {profile.student_name} 🎓
+              </h1>
+              <p className="text-purple-100 mt-1">
+                You have completed {completed} of {timeline.length} milestones
+              </p>
+            </div>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-    <div>
-      <span className="font-semibold text-gray-600">Name</span>
-      <div>{profile.student_name}</div>
-    </div>
+            {nextMilestone && (
+              <div className="bg-white text-gray-800 rounded-xl p-4 shadow min-w-[260px]">
+                <p className="text-xs uppercase font-semibold text-gray-500">
+                  Next Milestone
+                </p>
+                <p className="font-bold">{nextMilestone.activity}</p>
+                <p className="text-sm text-gray-600">
+                  Due in{" "}
+                  <span className="font-semibold">
+                    {nextMilestone.remaining_days}
+                  </span>{" "}
+                  days
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
 
-    <div>
-      <span className="font-semibold text-gray-600">Matric</span>
-      <div>{profile.student_id}</div>
-    </div>
+        {/* ================= PROFILE ================= */}
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h2 className="text-lg font-bold mb-3">Your Profile</h2>
 
-    <div>
-      <span className="font-semibold text-gray-600">Email</span>
-      <div>{profile.email}</div>
-    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <p><strong>Matric:</strong> {profile.student_id}</p>
+            <p><strong>Email:</strong> {profile.email}</p>
+            <p><strong>Programme:</strong> {profile.programme}</p>
+            <p><strong>Field:</strong> {profile.field || "-"}</p>
+            <p><strong>Department:</strong> {profile.department || "-"}</p>
+            <p><strong>Main Supervisor:</strong> {profile.supervisor || "-"}</p>
+          </div>
+        </div>
 
-    <div>
-      <span className="font-semibold text-gray-600">Programme</span>
-      <div>{profile.programme}</div>
-    </div>
+        {/* ================= DONUT + SUMMARY ================= */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-2xl shadow p-4 flex justify-center">
+            <CompletionDonut percent={progress} />
+          </div>
 
-    <div>
-      <span className="font-semibold text-gray-600">Field</span>
-      <div>{profile.field || "-"}</div>
-    </div>
-
-    <div>
-      <span className="font-semibold text-gray-600">Department</span>
-      <div>{profile.department || "-"}</div>
-    </div>
-
-    <div>
-      <span className="font-semibold text-gray-600">Main Supervisor</span>
-      <div>{profile.supervisor || "-"}</div>
-    </div>
-
-    <div>
-      <span className="font-semibold text-gray-600">Co-Supervisor(s)</span>
-      <div>{profile.cosupervisors || "-"}</div>
-    </div>
-  </div>
-</div>
-
-        {/* DONUT + SUMMARY */}
-        <CompletionDonut percent={progress} />
-        <TimelineSummary timeline={timeline} />
+          <div className="md:col-span-2 bg-white rounded-2xl shadow p-4">
+            <TimelineSummary timeline={timeline} />
+          </div>
+        </div>
 
         {/* ================= TABS ================= */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-3">
           <button
             onClick={() => setActiveTab("timeline")}
             className={`px-4 py-2 rounded-xl font-semibold ${
@@ -172,12 +173,10 @@ export default function StudentPage() {
           </button>
         </div>
 
-        {/* ================= TAB CONTENT ================= */}
-
-        {/* TIMELINE TAB */}
+        {/* ================= TIMELINE TAB ================= */}
         {activeTab === "timeline" && (
           <div className="bg-white rounded-2xl shadow p-6">
-            <h3 className="font-bold mb-4">📅 Expected vs Actual Timeline</h3>
+            <h3 className="font-bold mb-4">Your Research Timeline</h3>
 
             <table className="w-full text-sm">
               <thead>
@@ -196,7 +195,16 @@ export default function StudentPage() {
                     !t.actual && t.remaining_days < 0 && t.status !== "Completed";
 
                   return (
-                    <tr key={i} className="border-t">
+                    <tr
+                      key={i}
+                      className={`border-t ${
+                        isLate
+                          ? "bg-red-50"
+                          : t.remaining_days <= 30 && !t.actual
+                          ? "bg-orange-50"
+                          : ""
+                      }`}
+                    >
                       <td className="p-2">{t.activity}</td>
                       <td className="p-2">{t.expected || "-"}</td>
                       <td className="p-2">{t.actual || "-"}</td>
@@ -210,7 +218,11 @@ export default function StudentPage() {
                               : "bg-blue-100 text-blue-700"
                           }`}
                         >
-                          {isLate ? "Late" : t.status}
+                          {isLate
+                            ? "Late – action needed"
+                            : t.status === "Completed"
+                            ? "Completed ✔"
+                            : "On track"}
                         </span>
                       </td>
                       <td className="p-2">
@@ -219,7 +231,7 @@ export default function StudentPage() {
                             onClick={() => markCompleted(t.activity)}
                             className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
                           >
-                            Mark Completed
+                            I’ve completed this
                           </button>
                         )}
                       </td>
@@ -231,7 +243,7 @@ export default function StudentPage() {
           </div>
         )}
 
-        {/* DOCUMENTS TAB */}
+        {/* ================= DOCUMENTS TAB ================= */}
         {activeTab === "documents" && (
           <div className="bg-white rounded-2xl shadow p-6">
             <StudentChecklist initialDocuments={profile.documents} />
