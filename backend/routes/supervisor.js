@@ -43,57 +43,41 @@ router.use((req, res, next) => {
 ========================================================= */
   router.get("/students", auth, async (req, res) => {
   try {
-    const supervisorEmail = String(req.user.email || "")
-  .toLowerCase()
-  .trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
-
-    console.log("👤 Supervisor:", supervisorEmail);
-    console.log("📊 Total rows:", rows.length);
+    const loginEmail = (req.user.email || "").toLowerCase().trim();
 
     const students = rows
-      .filter(r => {
-        // 🔒 BULLETPROOF column access
-        const mainEmail =
-          r["Main Supervisor's Email"] ||
-          r["Main Supervisor Email"] ||
-          r["Main Supervisor"] ||
-          "";
+      .filter(r =>
+        req.user.role === "admin"
+          ? true
+          : (r["Main Supervisor's Email"] || "")
+              .toLowerCase()
+              .trim() === loginEmail
+      )
+      .map(r => {
+        const timeline = buildTimelineForRow(r);
+        const completed = timeline.filter(t => t.status === "Completed").length;
 
-        const normalized = String(mainEmail).toLowerCase().trim();
+        return {
+          id: r["Matric"] || "",
+          name: r["Student Name"] || "",
+          email: (r["Student's Email"] || "").toLowerCase().trim(),
+          programme: r["Programme"] || "",
+          field: r["Field"] || "",
+          status: r["Status"] || "Active",
+          coSupervisors: r["Co-Supervisor(s)"] || "",
+          progressPercent: timeline.length
+            ? Math.round((completed / timeline.length) * 100)
+            : 0
+        };
+      });
 
-        console.log(
-          "➡ Student:",
-          r["Student Name"],
-          "| Supervisor:",
-          normalized
-        );
-
-        return normalized === supervisorEmail;
-      })
-     .map(r => {
-  const timeline = buildTimelineForRow(r);
-
-  const completed = timeline.filter(t => t.status === "Completed").length;
-  const progressPercent = timeline.length
-    ? Math.round((completed / timeline.length) * 100)
-    : 0;
-
-  let status = "Active";
-  if (timeline.some(t => t.status === "Late")) status = "At Risk";
-  else if (timeline.some(t => t.status === "Due Soon")) status = "Slightly Late";
-
-  return {
-    name: r["Student Name"] || "-",
-    email: (r["Student's Email"] || "").toLowerCase().trim(),
-    id: r["Matric"] || "-",                 // ✅ MATCHES OLD UI
-    programme: r["Programme"] || "-",
-    coSupervisors: r["Co-Supervisor(s)"] || "",
-    status,
-    progressPercent                            // ✅ MATCHES OLD UI
-  };
+    res.json({ students });
+  } catch (e) {
+    console.error("students list error:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
-
 /* =========================================================
    GET /api/supervisor/student/:email
 ========================================================= */
