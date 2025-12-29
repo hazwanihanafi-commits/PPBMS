@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import sendEmail from "./sendEmail.js";
 
 /* =========================================================
    SMTP TRANSPORTER
@@ -29,28 +29,73 @@ export async function verifySMTP() {
 }
 
 /* =========================================================
-   ⏰ DELAY ALERT → SUPERVISOR
+   ⏰ DELAY ALERT → STUDENT
 ========================================================= */
-export async function sendDelayAlert({ to, student, delays }) {
-  const body = delays
-    .map(d => `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`)
+export async function sendDelayAlert({
+  studentName,
+  studentEmail,
+  supervisorEmail,
+  adminEmails = [],
+  delays,
+}) {
+  const delayList = delays
+    .map(
+      d =>
+        `• ${d.activity} (Delayed ${Math.abs(d.remaining_days)} days)`
+    )
     .join("\n");
 
-  await transporter.sendMail({
-    from: process.env.ALERT_FROM_EMAIL,
-    to,
-    subject: `[PPBMS] Student Delay Alert – ${student}`,
-    text: `
-Dear Supervisor,
+  const subject = `[PPBMS] Milestone Delay Alert – ${studentName}`;
 
-The following milestones for your student (${student}) are delayed:
+  const text = `
+Dear ${studentName},
 
-${body}
+The following research milestone(s) are currently delayed:
 
-Please log in to PPBMS for monitoring and intervention.
+${delayList}
+
+Please take the necessary action and consult your supervisor if required.
+
+This notification is copied to your supervisor and the Graduate School for monitoring purposes.
 
 — PPBMS System
-`,
+`;
+
+  const html = `
+<p>Dear ${studentName},</p>
+
+<p>The following research milestone(s) are currently <strong>delayed</strong>:</p>
+
+<ul>
+  ${delays
+    .map(
+      d =>
+        `<li>${d.activity} (Delayed ${Math.abs(
+          d.remaining_days
+        )} days)</li>`
+    )
+    .join("")}
+</ul>
+
+<p>
+Please take the necessary action and consult your supervisor if required.
+</p>
+
+<p>
+This notification is copied to your supervisor and the Division of Academic & International for monitoring purposes.
+</p>
+
+<p>
+— <strong>PPBMS System</strong>
+</p>
+`;
+
+  await sendEmail({
+    to: studentEmail,                              // ✅ STUDENT
+    cc: [supervisorEmail, ...adminEmails].filter(Boolean), // ✅ CC
+    subject,
+    text,
+    html,
   });
 }
 
@@ -110,8 +155,7 @@ export async function sendCQIReminder({
     text: `
 Dear Supervisor,
 
-This is a reminder that a CQI case remains pending without any
-remark or intervention recorded.
+This is a reminder that a CQI case remains pending without any remark or intervention recorded.
 
 Student : ${studentName}
 Matric  : ${matric}
