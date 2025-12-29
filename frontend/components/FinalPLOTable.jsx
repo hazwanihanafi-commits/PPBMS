@@ -1,75 +1,68 @@
-export default function FinalPLOTable({ finalPLO }) {
-  if (!finalPLO || Object.keys(finalPLO).length === 0) {
-    return (
-      <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500 italic">
-        No Final PLO data available yet.
-      </div>
-    );
+import React, { memo } from "react";
+
+const FinalPLOTable = memo(function FinalPLOTable({ data = [] }) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return <p className="text-muted">No data available</p>;
   }
 
-  // 🔑 SORT PLO NUMERICALLY (THIS IS THE MISSING PIECE)
-  const sortedFinalPLO = Object.entries(finalPLO)
-    .sort(([a], [b]) => {
-      const na = parseInt(a.replace("PLO", ""), 10);
-      const nb = parseInt(b.replace("PLO", ""), 10);
-      return na - nb;
-    });
+  // 🔢 Calculate totals
+  const totals = data.reduce(
+    (acc, row = {}) => {
+      acc.active += Number(row.activeCount || 0);
+      acc.ontime += Number(row.ontimeCount || 0);
+      acc.late += Number(row.lateCount || 0);
+      acc.graduated += Number(row.graduatedCount || 0);
+      return acc;
+    },
+    { active: 0, ontime: 0, late: 0, graduated: 0 }
+  );
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow">
-      <h3 className="font-bold mb-4">
-        🎓 Final Programme Learning Outcome (PLO) Attainment
-      </h3>
-
-      <table className="w-full text-sm">
-        <thead className="bg-purple-100 text-purple-700">
+    <div className="table-responsive">
+      <table className="table table-bordered table-striped align-middle">
+        <thead className="table-light">
           <tr>
-            <th className="p-3 text-left">PLO</th>
-            <th className="p-3 text-center">Achievement</th>
-            <th className="p-3 text-center">Status</th>
+            <th>Programme</th>
+            <th>Active</th>
+            <th>On Time</th>
+            <th>Late</th>
+            <th>Graduated</th>
           </tr>
         </thead>
 
         <tbody>
-          {sortedFinalPLO.map(([plo, d]) => (
-            <tr key={plo} className="border-t">
-              <td className="p-3 font-semibold">{plo}</td>
+          {data.map((row = {}, index) => {
+            const {
+              programme = "-",
+              activeCount = 0,
+              ontimeCount = 0,
+              lateCount = 0,
+              graduatedCount = 0
+            } = row;
 
-              <td className="p-3 text-center font-medium">
-  {graduatedCount > 0 && d?.achieved !== undefined ? (
-    <>
-      {d.achieved}/{graduatedCount}
-      <span className="text-xs text-gray-500 ml-1">
-        ({d.percentage}%)
-      </span>
-    </>
-  ) : (
-    "-"
-  )}
-</td>
+            return (
+              <tr key={`${programme}-${index}`}>
+                <td>{programme}</td>
+                <td>{activeCount}</td>
+                <td>{ontimeCount}</td>
+                <td>{lateCount}</td>
+                <td>{graduatedCount}</td>
+              </tr>
+            );
+          })}
 
-              <td className="p-3 text-center">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    d?.status === "Achieved"
-                      ? "bg-green-100 text-green-700"
-                      : d?.status === "CQI Required"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {d?.status || "Not Assessed"}
-                </span>
-              </td>
-            </tr>
-          ))}
+          {/* ✅ TOTAL ROW */}
+          <tr className="table-secondary fw-bold">
+            <td>Total</td>
+            <td>{totals.active}</td>
+            <td>{totals.ontime}</td>
+            <td>{totals.late}</td>
+            <td>{totals.graduated}</td>
+          </tr>
         </tbody>
       </table>
-
-      <p className="mt-3 text-xs text-gray-500 italic">
-        * Final PLO attainment is derived from viva examination and cumulative
-        supervisory rubric assessments in accordance with MQA requirements.
-      </p>
     </div>
   );
-}
+});
+
+export default FinalPLOTable;
