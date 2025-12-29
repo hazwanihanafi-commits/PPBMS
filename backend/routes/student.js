@@ -79,9 +79,11 @@ router.get("/me", auth, async (req, res) => {
 });
 
 /* ================= MARK COMPLETED ================= */
+/* ================= MARK COMPLETED ================= */
 router.post("/update-actual", auth, async (req, res) => {
   try {
     const { activity, date } = req.body;
+
     if (!activity || !date) {
       return res.status(400).json({ error: "Missing data" });
     }
@@ -92,11 +94,14 @@ router.post("/update-actual", auth, async (req, res) => {
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
+
     if (idx === -1) {
       return res.status(404).json({ error: "Student not found" });
     }
 
+    // ✅ THIS IS WHERE YOUR CODE GOES
     const column = ACTUAL_COLUMN_MAP[activity];
+
     if (!column) {
       console.error("❌ Unknown activity:", activity);
       return res.status(400).json({
@@ -104,7 +109,9 @@ router.post("/update-actual", auth, async (req, res) => {
       });
     }
 
-    console.log("✅ Writing actual date:", column);
+    console.log("📝 Writing to column:", column);
+    console.log("📍 Row:", idx + 2);
+    console.log("📅 Date:", date);
 
     await writeSheetCell(
       process.env.SHEET_ID,
@@ -115,6 +122,7 @@ router.post("/update-actual", auth, async (req, res) => {
     );
 
     res.json({ success: true });
+
   } catch (e) {
     console.error("update-actual:", e);
     res.status(500).json({ error: e.message });
@@ -125,6 +133,7 @@ router.post("/update-actual", auth, async (req, res) => {
 router.post("/reset-actual", auth, async (req, res) => {
   try {
     const { activity } = req.body;
+
     if (!activity) {
       return res.status(400).json({ error: "Missing activity" });
     }
@@ -135,28 +144,31 @@ router.post("/reset-actual", auth, async (req, res) => {
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
+
     if (idx === -1) {
       return res.status(404).json({ error: "Student not found" });
     }
 
     const column = ACTUAL_COLUMN_MAP[activity];
+
     if (!column) {
       return res.status(400).json({
         error: `Unknown activity: ${activity}`
       });
     }
 
-    console.log("♻️ Resetting actual date:", column);
+    console.log("♻️ Resetting column:", column);
 
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
       column,
       idx + 2,
-      ""
+      ""   // clear value
     );
 
     res.json({ success: true });
+
   } catch (e) {
     console.error("reset-actual:", e);
     res.status(500).json({ error: e.message });
