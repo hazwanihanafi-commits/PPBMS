@@ -37,7 +37,7 @@ router.post("/login", async (req, res) => {
       return res.json({
         requirePasswordSetup: true,
         email: normalizedEmail,
-        role: user.Role.toLoweCase(),
+        role: user.Role.toLowerCase(),
       });
     }
 
