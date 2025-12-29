@@ -43,7 +43,9 @@ router.use((req, res, next) => {
 ========================================================= */
   router.get("/students", auth, async (req, res) => {
   try {
-    const supervisorEmail = req.user.email.toLowerCase().trim();
+    const supervisorEmail = String(req.user.email || "")
+  .toLowerCase()
+  .trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     console.log("👤 Supervisor:", supervisorEmail);
