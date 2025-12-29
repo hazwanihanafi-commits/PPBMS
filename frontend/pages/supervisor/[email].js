@@ -15,41 +15,59 @@ export default function SupervisorStudentPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
+  /* ================= LOAD STUDENT ================= */
   useEffect(() => {
     if (!email) return;
     loadStudent();
   }, [email]);
 
   async function loadStudent() {
-    const token = localStorage.getItem("ppbms_token");
-    const res = await fetch(
-      `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const data = await res.json();
+    try {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("ppbms_token")
+          : "";
 
-    setStudent(data.row);
-    setTimeline(data.row?.timeline || []);
-    setCqi(data.row?.cqiByAssessment || {});
-    setLoading(false);
+      const res = await fetch(
+        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const data = await res.json();
+
+      setStudent(data.row || null);
+      setTimeline(data.row?.timeline || []);
+      setCqi(data.row?.cqiByAssessment || {});
+    } catch (err) {
+      console.error("Load student error:", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
+  /* ================= GUARDS ================= */
   if (loading) return <div className="p-6">Loading…</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
+  /* ================= PROGRESS ================= */
   const completed = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
 
-  const nextMilestone = timeline.find(t => t.status !== "Completed");
+  const nextMilestone = timeline.find(
+    t => t.status !== "Completed" && t.remaining_days >= 0
+  );
 
   const hasCQIAlert =
     timeline.some(t => t.status === "Late" || t.status === "Due Soon") ||
-    Object.values(cqi).some(a =>
-      Object.values(a).some(p => p.status !== "Achieved")
+    Object.values(cqi || {}).some(a =>
+      a && typeof a === "object"
+        ? Object.values(a).some(p => p?.status !== "Achieved")
+        : false
     );
 
+  /* ================= RENDER ================= */
   return (
     <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
@@ -61,14 +79,14 @@ export default function SupervisorStudentPage() {
         ← Back to Supervisor Dashboard
       </button>
 
-      {/* ================= HERO (STUDENT-STYLE) ================= */}
+      {/* ================= HERO ================= */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow p-6">
         <h1 className="text-2xl font-bold">{student.student_name}</h1>
         <p className="text-purple-100">
           {student.programme} · {student.department}
         </p>
 
-        <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="mt-4 flex flex-col md:flex-row md:justify-between gap-4">
           <div>
             <p className="text-sm">Overall Progress</p>
             <p className="text-3xl font-extrabold">{progress}%</p>
@@ -76,7 +94,7 @@ export default function SupervisorStudentPage() {
 
           {nextMilestone && (
             <div className="bg-white text-gray-800 rounded-xl p-4 shadow">
-              <p className="text-xs uppercase text-gray-500 font-semibold">
+              <p className="text-xs uppercase font-semibold text-gray-500">
                 Next Milestone
               </p>
               <p className="font-bold">{nextMilestone.activity}</p>
@@ -98,7 +116,9 @@ export default function SupervisorStudentPage() {
       {/* ================= CQI ALERT ================= */}
       {hasCQIAlert && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
-          <p className="font-bold text-red-700">🚨 CQI Attention Required</p>
+          <p className="font-bold text-red-700">
+            🚨 CQI Attention Required
+          </p>
           <p className="text-sm text-red-600">
             One or more milestones or PLOs require intervention.
           </p>
@@ -128,160 +148,156 @@ export default function SupervisorStudentPage() {
         ))}
       </div>
 
-      {/* ================= TAB CONTENT ================= */}
+      {/* ================= OVERVIEW ================= */}
+      {activeTab === "overview" && (
+        <div className="bg-white rounded-2xl shadow p-6 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <p><strong>Matric:</strong> {student.student_id}</p>
+            <p><strong>Email:</strong> {student.email}</p>
+            <p><strong>Programme:</strong> {student.programme}</p>
+            <p><strong>Status:</strong> {student.status}</p>
+            <p className="md:col-span-2">
+              <strong>Field:</strong> {student.field || "-"}
+            </p>
+            <p className="md:col-span-2">
+              <strong>Department:</strong> {student.department || "-"}
+            </p>
+            <p className="md:col-span-2">
+              <strong>Main Supervisor:</strong> {student.supervisor || "-"}
+            </p>
+            <p className="md:col-span-2">
+              <strong>Co-Supervisor(s):</strong>{" "}
+              {student.coSupervisors?.length
+                ? student.coSupervisors.join(", ")
+                : "-"}
+            </p>
+          </div>
+        </div>
+      )}
 
-     {activeTab === "overview" && (
-  <div className="bg-white rounded-2xl shadow p-6 space-y-3 text-sm">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-
-      <p><strong>Matric:</strong> {student.student_id}</p>
-      <p><strong>Email:</strong> {student.email}</p>
-
-      <p><strong>Programme:</strong> {student.programme}</p>
-      <p><strong>Status:</strong> {student.status}</p>
-
-      <p className="md:col-span-2">
-        <strong>Field:</strong> {student.field || "-"}
-      </p>
-
-      <p className="md:col-span-2">
-        <strong>Department:</strong> {student.department || "-"}
-      </p>
-
-      <p className="md:col-span-2">
-        <strong>Main Supervisor:</strong>{" "}
-        {student.supervisor || "-"}
-      </p>
-
-      <p className="md:col-span-2">
-        <strong>Co-Supervisor(s):</strong>{" "}
-        {student.coSupervisors?.length
-          ? student.coSupervisors.join(", ")
-          : "-"}
-      </p>
-    </div>
-  </div>
-)}
-
-
+      {/* ================= DOCUMENTS ================= */}
       {activeTab === "documents" && (
         <SupervisorChecklist documents={student.documents || {}} />
       )}
 
+      {/* ================= TIMELINE ================= */}
       {activeTab === "timeline" && (
-  <div className="bg-white rounded-2xl shadow p-6">
-    <table className="w-full text-sm">
-      <thead className="bg-purple-100">
-        <tr>
-          <th className="p-3 text-left">Activity</th>
-          <th className="p-3">Expected</th>
-          <th className="p-3">Actual</th>
-          <th className="p-3">Status</th>
-          <th className="p-3">Remaining</th>
-        </tr>
-      </thead>
+        <div className="bg-white rounded-2xl shadow p-6">
+          {timeline.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">
+              No timeline data available.
+            </p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-purple-100">
+                <tr>
+                  <th className="p-3 text-left">Activity</th>
+                  <th className="p-3">Expected</th>
+                  <th className="p-3">Actual</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timeline.map((t, i) => (
+                  <tr
+                    key={i}
+                    className={`border-t ${
+                      t.status === "Late"
+                        ? "bg-red-50"
+                        : t.status === "Due Soon"
+                        ? "bg-orange-50"
+                        : ""
+                    }`}
+                  >
+                    <td className="p-3">{t.activity}</td>
+                    <td className="p-3">{t.expected || "-"}</td>
+                    <td className="p-3">{t.actual || "-"}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          t.status === "Completed"
+                            ? "bg-green-100 text-green-700"
+                            : t.status === "On Time"
+                            ? "bg-blue-100 text-blue-700"
+                            : t.status === "Due Soon"
+                            ? "bg-orange-100 text-orange-700"
+                            : t.status === "Late"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {t.status}
+                      </span>
+                    </td>
+                    <td
+                      className={`p-3 ${
+                        t.remaining_days <= 30 && t.remaining_days > 0
+                          ? "text-orange-600 font-semibold"
+                          : t.remaining_days <= 0
+                          ? "text-red-600 font-semibold"
+                          : ""
+                      }`}
+                    >
+                      {t.remaining_days}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
-      <tbody>
-        {timeline.map((t, i) => (
-          <tr
-            key={i}
-            className={`border-t ${
-              t.status === "Late"
-                ? "bg-red-50"
-                : t.status === "Due Soon"
-                ? "bg-orange-50"
-                : ""
-            }`}
-          >
-            <td className="p-3">{t.activity}</td>
-            <td className="p-3">{t.expected || "-"}</td>
-            <td className="p-3">{t.actual || "-"}</td>
-
-            <td className="p-3">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  t.status === "Completed"
-                    ? "bg-green-100 text-green-700"
-                    : t.status === "On Time"
-                    ? "bg-blue-100 text-blue-700"
-                    : t.status === "Due Soon"
-                    ? "bg-orange-100 text-orange-700"
-                    : t.status === "Late"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {t.status}
-              </span>
-            </td>
-
-            <td
-              className={`p-3 ${
-                t.remaining_days <= 30 && t.remaining_days > 0
-                  ? "text-orange-600 font-semibold"
-                  : t.remaining_days <= 0
-                  ? "text-red-600 font-semibold"
-                  : ""
-              }`}
-            >
-              {t.remaining_days}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
-
-
+      {/* ================= CQI ================= */}
       {activeTab === "cqi" && (
-  <div className="bg-white rounded-2xl shadow p-6 space-y-4">
+        <div className="bg-white rounded-2xl shadow p-6 space-y-4">
+          <h3 className="font-bold text-lg">🎯 CQI by Assessment</h3>
 
-    <h3 className="font-bold text-lg">🎯 CQI by Assessment</h3>
+          {Object.keys(cqi || {}).length === 0 ? (
+            <p className="text-sm text-gray-500 italic">
+              No CQI / PLO data available yet.
+            </p>
+          ) : (
+            Object.entries(cqi).map(([assessment, ploData]) => (
+              <div key={assessment} className="border rounded-xl p-4">
+                <h4 className="font-semibold text-purple-700 mb-2">
+                  {assessment}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(ploData || {})
+                    .sort(
+                      ([a], [b]) =>
+                        parseInt(a.replace("PLO", "")) -
+                        parseInt(b.replace("PLO", ""))
+                    )
+                    .map(([plo, d]) => (
+                      <span
+                        key={plo}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          d.status === "Achieved"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {plo}: Avg {d.average ?? "-"} – {d.status}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            ))
+          )}
 
-    {Object.keys(cqi || {}).length === 0 ? (
-      <p className="text-sm text-gray-500 italic">
-        No CQI / PLO data available yet.
-      </p>
-    ) : (
-      Object.entries(cqi).map(([assessment, ploData]) => (
-        <div key={assessment} className="border rounded-xl p-4">
-          <h4 className="font-semibold text-purple-700 mb-2">
-            {assessment}
-          </h4>
-
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(ploData || {})
-              .sort(([a], [b]) =>
-                parseInt(a.replace("PLO", "")) -
-                parseInt(b.replace("PLO", ""))
-              )
-              .map(([plo, d]) => (
-                <span
-                  key={plo}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    d.status === "Achieved"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {plo}: Avg {d.average ?? "-"} – {d.status}
-                </span>
-              ))}
+          <div className="mt-6">
+            <h3 className="font-bold mb-2">
+              📊 Final PLO Attainment
+            </h3>
+            <FinalPLOTable finalPLO={student.finalPLO} />
           </div>
         </div>
-      ))
-    )}
+      )}
 
-    {/* FINAL PLO (PROGRAMME LEVEL) */}
-    <div className="mt-6">
-      <h3 className="font-bold mb-2">📊 Final PLO Attainment</h3>
-      <FinalPLOTable finalPLO={student.finalPLO} />
-    </div>
-  </div>
-)}
-
-
+      {/* ================= REMARKS ================= */}
       {activeTab === "remarks" && (
         <SupervisorRemark
           studentMatric={student.student_id}
