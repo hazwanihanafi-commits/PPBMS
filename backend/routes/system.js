@@ -109,106 +109,75 @@ router.post("/run-cqi-detection", async (req, res) => {
    ✅ ROW-LEVEL CQI TRIGGER (ONLY ONE STUDENT)
    THIS IS WHAT APPS SCRIPT MUST CALL
 ========================================================= */
+/* =========================================================
+   🎯 ROW-LEVEL CQI TRIGGER (SAFE)
+========================================================= */
 router.post("/trigger-cqi-row", async (req, res) => {
   try {
-    const { matric, assessmentType, rowIndex } = req.body;
+    const { rowIndex, matric, assessmentType } = req.body;
 
-    if (!matric || !assessmentType || !rowIndex) {
+    if (!rowIndex || !matric || !assessmentType) {
       return res.status(400).json({ error: "Missing data" });
     }
 
     const rows = await readASSESSMENT_PLO(process.env.SHEET_ID);
-    const row = rows[rowIndex - 2]; // sheet row → array index
+    const row = rows[rowIndex - 2]; // Sheet row → array index
 
-    if (!row) return res.json({ skipped: true });
+    if (!row) {
+      return res.json({ skipped: true, reason: "Row not found" });
+    }
 
     // ⛔ Prevent duplicate email
     if (row["CQI_EMAIL_SENT"] === "YES") {
-      return res.json({ skipped: true });
+      return res.json({ skipped: true, reason: "Already emailed" });
     }
 
     // 🔍 Detect CQI ONLY for this row
-    const issues = extractCQIIssues([{ ...row, __rowIndex: rowIndex }]);
+    const issues = extractCQIIssues([{ ...row }]);
     if (issues.length === 0) {
-      return res.json({ skipped: true });
+      return res.json({ skipped: true, reason: "No CQI issues" });
     }
 
     const students = await readMasterTracking(process.env.SHEET_ID);
     const student = students.find(
       s => String(s["Matric"]).trim() === String(matric).trim()
     );
-    if (!student) return res.json({ skipped: true });
+
+    if (!student) {
+      return res.json({ skipped: true, reason: "Student not found" });
+    }
 
     const supervisorEmail = student["Main Supervisor's Email"];
     if (!supervisorEmail || !supervisorEmail.includes("@")) {
-      throw new Error("Invalid supervisor email");
+      return res.status(400).json({ error: "Invalid supervisor email" });
     }
 
-    try {
-      await sendCQIAlert({
-        supervisorEmail,
-        studentName: student["Student Name"],
-        matric,
-        assessmentType,
-        cqiIssues: issues
-      });
-
-      await updateASSESSMENT_PLO_Cell({
-        rowIndex,
-        column: "CQI_EMAIL_SENT",
-        value: "YES"
-      });
-
-      await updateASSESSMENT_PLO_Cell({
-        rowIndex,
-        column: "CQI_EMAIL_DATE",
-        value: new Date().toISOString().slice(0, 10)
-      });
-
-      res.json({ success: true });
-
-    } catch (err) {
-      console.error("❌ Row CQI email failed:", err.message);
-
-      await updateASSESSMENT_PLO_Cell({
-        rowIndex,
-        column: "CQI_EMAIL_SENT",
-        value: "FAILED"
-      });
-
-      res.status(500).json({ error: "Email failed" });
-    }
-
-  } catch (e) {
-    console.error("Row CQI trigger error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* =========================================================
-   🧪 TEST EMAIL (SYSTEM)
-========================================================= */
-router.post("/test-email", async (req, res) => {
-  try {
-    const { to } = req.body;
-
-    if (!to || !to.includes("@")) {
-      return res.status(400).json({ error: "Invalid email" });
-    }
-
+    // 📧 SEND EMAIL (single student)
     await sendCQIAlert({
-      supervisorEmail: to,
-      studentName: "TEST STUDENT",
-      matric: "TEST123",
-      assessmentType: "TEST",
-      cqiIssues: [
-        { plo: "PLO1", reason: "Test CQI trigger" }
-      ]
+      supervisorEmail,
+      studentName: student["Student Name"],
+      matric,
+      assessmentType,
+      cqiIssues: issues
+    });
+
+    // ✅ UPDATE SHEET ONLY AFTER SUCCESS
+    await updateASSESSMENT_PLO_Cell({
+      rowIndex,
+      column: "CQI_EMAIL_SENT",
+      value: "YES"
+    });
+
+    await updateASSESSMENT_PLO_Cell({
+      rowIndex,
+      column: "CQI_EMAIL_DATE",
+      value: new Date().toISOString().slice(0, 10)
     });
 
     res.json({ success: true });
+
   } catch (e) {
-    console.error("❌ Test email failed:", e);
+    console.error("❌ Row CQI email failed:", e);
     res.status(500).json({ error: "Email failed" });
   }
 });
