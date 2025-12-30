@@ -12,14 +12,10 @@ export async function sendDelayAlert({
   supervisorEmail,
   delays,
 }) {
-
-   
   // ✅ Basic validation
   if (!studentEmail || !studentEmail.includes("@")) {
     throw new Error("Invalid student email");
   }
-
-    console.log("📧 CQI supervisorEmail =", supervisorEmail);
 
   if (!supervisorEmail || !supervisorEmail.includes("@")) {
     throw new Error("Invalid supervisor email");
@@ -55,7 +51,7 @@ This notification is copied to your supervisor for monitoring purposes.
 — PPBMS System`
   ).trim();
 
-  // 🔒 TEST MODE GUARD (CRITICAL)
+  // 🔒 TEST MODE GUARD
   const toEmail = TEST_MODE ? TEST_EMAIL : studentEmail;
   const ccEmail = TEST_MODE ? undefined : supervisorEmail;
 
@@ -86,6 +82,16 @@ export async function sendCQIAlert({
   assessmentType,
   cqiIssues,
 }) {
+  // 🔍 DEBUG LOGS (CRITICAL — MUST BE BEFORE VALIDATION)
+  console.log("📧 CQI supervisorEmail =", supervisorEmail);
+  console.log("📧 CQI payload =", {
+    supervisorEmail,
+    studentName,
+    matric,
+    assessmentType,
+    cqiIssues,
+  });
+
   if (!supervisorEmail || !supervisorEmail.includes("@")) {
     throw new Error("Invalid supervisor email");
   }
