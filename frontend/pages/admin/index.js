@@ -10,11 +10,12 @@ function StatusBadge({ status }) {
   const normalized = status?.replace("_", " ");
 
   const map = {
-    LATE: "bg-red-100 text-red-700",
-    ON TRACK: "bg-blue-100 text-blue-700",
-    COMPLETED: "bg-green-100 text-green-700",
-    GRADUATED: "bg-green-100 text-green-700",
-  };
+  LATE: "bg-red-100 text-red-700",
+  "ON TRACK": "bg-blue-100 text-blue-700",
+  COMPLETED: "bg-green-100 text-green-700",
+  GRADUATED: "bg-green-100 text-green-700",
+};
+
 
   return (
     <span
