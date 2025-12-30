@@ -24,14 +24,10 @@ router.post("/run-delay-alert", async (req, res) => {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const rowIndex = i + 2; // Google Sheet row number
+      const rowIndex = i + 2;
 
       const timeline = buildTimelineForRow(row);
-
-      // 🔴 Only LATE milestones
-      const lateMilestones = timeline.filter(
-        t => t.status === "Late"
-      );
+      const lateMilestones = timeline.filter(t => t.status === "Late");
 
       if (!lateMilestones.length) continue;
 
@@ -43,16 +39,11 @@ router.post("/run-delay-alert", async (req, res) => {
       if (!studentEmail || !supervisorEmail) continue;
 
       for (const milestone of lateMilestones) {
-
         const remarkColumn = `${milestone.activity} - Remark`;
         const existingRemark = row[remarkColumn];
 
-        // ⛔ Already emailed for THIS milestone
-        if (existingRemark === "DELAY_EMAIL_SENT") {
-          continue;
-        }
+        if (existingRemark === "DELAY_EMAIL_SENT") continue;
 
-        /* ===== SEND EMAIL ===== */
         try {
           await sendDelayAlert({
             studentName,
@@ -62,7 +53,6 @@ router.post("/run-delay-alert", async (req, res) => {
             delays: [milestone]
           });
 
-          // ✅ Mark as emailed (PER milestone)
           await writeSheetCell(
             process.env.SHEET_ID,
             "MasterTracking",
@@ -74,12 +64,10 @@ router.post("/run-delay-alert", async (req, res) => {
           logs.push({
             student: studentName,
             activity: milestone.activity,
-            expected: milestone.expected,
             daysLate: Math.abs(milestone.remaining_days),
             emailedAt: new Date().toISOString()
           });
 
-          // 🔑 Prevent SMTP overload
           await new Promise(r => setTimeout(r, 1500));
 
         } catch (mailErr) {
@@ -102,10 +90,7 @@ router.post("/run-delay-alert", async (req, res) => {
       JSON.stringify(logs, null, 2)
     );
 
-    res.json({
-      success: true,
-      alertsSent: logs.length
-    });
+    res.json({ success: true, alertsSent: logs.length });
 
   } catch (e) {
     console.error("DELAY ALERT ERROR:", e);
@@ -113,17 +98,30 @@ router.post("/run-delay-alert", async (req, res) => {
   }
 });
 
-
-await sendEmail({
-  to: "hazwanihanafi@gmail.com", // MUST be your own email
-  subject: "[PPBMS TEST] Email system working",
-  text: `
+/* =====================================================
+   POST /alerts/test-email
+   ✔ MANUAL EMAIL TEST (SAFE)
+===================================================== */
+router.post("/test-email", async (req, res) => {
+  try {
+    await sendEmail({
+      to: "hazwanihanafi@gmail.com",
+      subject: "[PPBMS TEST] Email system working",
+      text: `
 This is a test email.
 
 If you receive this, Resend integration is successful.
 
 — PPBMS System
 `,
+    });
+
+    res.json({ success: true, message: "Test email sent" });
+
+  } catch (err) {
+    console.error("TEST EMAIL ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
