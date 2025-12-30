@@ -1,29 +1,23 @@
 import fetch from "node-fetch";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const EMAIL_FROM = process.env.EMAIL_FROM || "PPBMS <onboarding@resend.dev>";
 
-export default async function sendEmail({ to, cc, subject, text }) {
+// ⚠️ TEST MODE SENDER (no domain needed)
+const EMAIL_FROM = "PPBMS <onboarding@resend.dev>";
+
+export default async function sendEmail({ to, subject, text }) {
   if (!RESEND_API_KEY) {
     throw new Error("Missing RESEND_API_KEY");
   }
 
-  if (!to || !subject || !text) {
-    throw new Error("Missing required email fields");
-  }
-
   const payload = {
     from: EMAIL_FROM,
-    to: Array.isArray(to) ? to : [to],
+    to: [to], // MUST be your own email
     subject,
     text,
   };
 
-  if (cc) {
-    payload.cc = Array.isArray(cc) ? cc : [cc];
-  }
-
-  console.log("📨 RESEND PAYLOAD", payload);
+  console.log("📨 TEST EMAIL PAYLOAD", payload);
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -42,14 +36,3 @@ export default async function sendEmail({ to, cc, subject, text }) {
 
   return true;
 }
-
-// TEMPORARY TEST OVERRIDE
-const isTest = true;
-
-await sendEmail({
-  to: isTest ? "hazwanihanafi@gmail.com" : studentEmail,
-  cc: isTest ? undefined : supervisorEmail,
-  subject: `[PPBMS TEST] Milestone Delay Alert`,
-  text: emailText,
-});
-
