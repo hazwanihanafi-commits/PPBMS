@@ -12,10 +12,14 @@ export async function sendDelayAlert({
   supervisorEmail,
   delays,
 }) {
+
+   
   // ✅ Basic validation
   if (!studentEmail || !studentEmail.includes("@")) {
     throw new Error("Invalid student email");
   }
+
+    console.log("📧 CQI supervisorEmail =", supervisorEmail);
 
   if (!supervisorEmail || !supervisorEmail.includes("@")) {
     throw new Error("Invalid supervisor email");
