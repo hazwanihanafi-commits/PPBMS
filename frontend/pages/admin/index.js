@@ -30,6 +30,15 @@ function StatusBadge({ status }) {
 ====================== */
 export default function AdminDashboard() {
   const router = useRouter();
+
+  function handleLogout() {
+  localStorage.removeItem("ppbms_token");
+  localStorage.removeItem("ppbms_role");
+  localStorage.removeItem("ppbms_email");
+
+  window.location.href = "/login"; // or "/"
+}
+
   const [checked, setChecked] = useState(false);
 
   const [programmes, setProgrammes] = useState([]);
@@ -46,6 +55,7 @@ export default function AdminDashboard() {
   });
 
   const [loading, setLoading] = useState(false);
+
 
   /* ======================
      AUTH GUARD
@@ -108,6 +118,25 @@ export default function AdminDashboard() {
       <h1 className="text-2xl font-bold text-purple-700">
         Admin Dashboard
       </h1>
+
+
+  <div className="flex gap-4">
+    <button
+      onClick={() => router.push("/")}
+      className="text-purple-600 underline text-sm"
+    >
+      ← Landing Page
+    </button>
+
+    <button
+      onClick={handleLogout}
+      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold"
+    >
+      Logout
+    </button>
+  </div>
+</div>
+
 
       {/* PROGRAMME SELECT */}
       <select
