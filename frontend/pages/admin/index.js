@@ -114,31 +114,34 @@ export default function AdminDashboard() {
   if (!checked) return <div className="p-6">Checking access…</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+  <div className="max-w-7xl mx-auto p-6 space-y-6">
+
+    {/* ===== HEADER ===== */}
+    <div className="flex justify-between items-center">
       <h1 className="text-2xl font-bold text-purple-700">
         Admin Dashboard
       </h1>
 
+      <div className="flex gap-4">
+        <button
+          onClick={() => router.push("/")}
+          className="text-purple-600 underline text-sm"
+        >
+          ← Landing Page
+        </button>
 
-  <div className="flex gap-4">
-    <button
-      onClick={() => router.push("/")}
-      className="text-purple-600 underline text-sm"
-    >
-      ← Landing Page
-    </button>
-
-    <button
-      onClick={handleLogout}
-      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold"
-    >
-      Logout
-    </button>
-  </div>
-</div>
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+    {/* ===== END HEADER ===== */}
 
 
-      {/* PROGRAMME SELECT */}
+   {/* PROGRAMME SELECT */}
       <select
         className="w-full p-3 border rounded"
         value={programme}
