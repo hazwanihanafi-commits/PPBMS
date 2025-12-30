@@ -185,4 +185,32 @@ router.post("/trigger-cqi-row", async (req, res) => {
   }
 });
 
+/* =========================================================
+   🧪 TEST EMAIL (SYSTEM)
+========================================================= */
+router.post("/test-email", async (req, res) => {
+  try {
+    const { to } = req.body;
+
+    if (!to || !to.includes("@")) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+
+    await sendCQIAlert({
+      supervisorEmail: to,
+      studentName: "TEST STUDENT",
+      matric: "TEST123",
+      assessmentType: "TEST",
+      cqiIssues: [
+        { plo: "PLO1", reason: "Test CQI trigger" }
+      ]
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error("❌ Test email failed:", e);
+    res.status(500).json({ error: "Email failed" });
+  }
+});
+
 export default router;
