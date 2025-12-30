@@ -9,7 +9,7 @@ import {
 
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { sendDelayAlert } from "../services/mailer.js";
-import sendEmail from "./sendEmail.js";
+import sendEmail from "../services/sendEmail.js";
 
 const router = express.Router();
 
