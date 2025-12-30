@@ -1,62 +1,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { API_BASE } from "@/utils/api";
+import { API_BASE } from "../../../utils/api";
 
-import SupervisorChecklist from "@/components/SupervisorChecklist";
-import FinalPLOTable from "@/components/FinalPLOTable";
+import SupervisorChecklist from "../../../components/SupervisorChecklist";
+import SupervisorRemark from "../../../components/SupervisorRemark";
+import FinalPLOTable from "../../../components/FinalPLOTable";
 
-/* ======================
-   TABS
-====================== */
-function Tabs({ active, setActive }) {
-  const Tab = ({ id, label }) => (
-    <button
-      onClick={() => setActive(id)}
-      className={`px-4 py-2 rounded-xl font-semibold transition ${
-        active === id
-          ? "bg-purple-600 text-white"
-          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-      }`}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div className="flex gap-3 mb-6">
-      <Tab id="overview" label="Overview" />
-      <Tab id="timeline" label="Timeline" />
-      <Tab id="documents" label="Documents" />
-      <Tab id="cqi" label="CQI / PLO" />
-    </div>
-  );
-}
-
-/* ======================
-   PAGE
-====================== */
 export default function AdminStudentPage() {
   const router = useRouter();
   const { email } = router.query;
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [cqi, setCqi] = useState({});
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
-  /* ======================
-     AUTH GUARD
-  ====================== */
-  useEffect(() => {
-    const role = localStorage.getItem("ppbms_role");
-    if (role !== "admin") {
-      window.location.href = "/login";
-    }
-  }, []);
+  const isAdmin = true; // 🔥 explicit admin authority
 
-  /* ======================
-     LOAD STUDENT
-  ====================== */
+  /* ================= LOAD STUDENT ================= */
   useEffect(() => {
     if (!email) return;
     loadStudent();
@@ -64,150 +26,159 @@ export default function AdminStudentPage() {
 
   async function loadStudent() {
     try {
-      const token = localStorage.getItem("ppbms_token");
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("ppbms_token")
+          : "";
+
       const res = await fetch(
-        `${API_BASE}/api/admin/student/${encodeURIComponent(email)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
       );
 
-      if (!res.ok) throw new Error("HTTP " + res.status);
-
       const data = await res.json();
+
       setStudent(data.row || null);
       setTimeline(data.row?.timeline || []);
+      setCqi(data.row?.cqiByAssessment || {});
     } catch (err) {
-      console.error("Admin load student error:", err);
-      setStudent(null);
+      console.error("Load student error:", err);
     } finally {
       setLoading(false);
     }
   }
 
-  /* ======================
-     PROGRESS
-  ====================== */
+  /* ================= GUARDS ================= */
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (!student) return <div className="p-6">Student not found</div>;
+
+  /* ================= NORMALISATION ================= */
+  const completed = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
-    ? Math.round(
-        (timeline.filter(t => t.status === "Completed").length /
-          timeline.length) * 100
-      )
+    ? Math.round((completed / timeline.length) * 100)
     : 0;
 
-  /* ======================
-     RENDER
-  ====================== */
-  if (loading) {
-    return <div className="p-6">Loading…</div>;
-  }
+  const hasCQIAlert =
+    student.status !== "Graduated" &&
+    (
+      timeline.some(t => t.status === "Late" || t.status === "Due Soon") ||
+      Object.values(cqi || {}).some(a =>
+        a && typeof a === "object"
+          ? Object.values(a).some(p => p?.status !== "Achieved")
+          : false
+      )
+    );
 
-  if (!student) {
-    return <div className="p-6">Student not found</div>;
-  }
-
+  /* ================= RENDER ================= */
   return (
-    <div className="min-h-screen bg-purple-50 p-6 space-y-6">
+    <div className="min-h-screen bg-red-50 p-6 space-y-6">
 
-      {/* ================= HEADER ================= */}
-      <div className="bg-white p-6 rounded-2xl shadow">
-        <h1 className="text-2xl font-extrabold mb-2">
-          🎓 Student Profile (Admin View)
-        </h1>
+      {/* BACK */}
+      <button
+        onClick={() => router.push("/admin")}
+        className="text-red-700 font-medium hover:underline"
+      >
+        ← Back to Admin Dashboard
+      </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <div><strong>Name:</strong> {student.student_name}</div>
-          <div><strong>Matric:</strong> {student.student_id}</div>
-          <div><strong>Email:</strong> {student.email}</div>
-          <div><strong>Programme:</strong> {student.programme}</div>
-          <div><strong>Field:</strong> {student.field}</div>
-          <div><strong>Department:</strong> {student.department}</div>
-          <div>
-            <strong>Status:</strong>{" "}
-            <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs">
-              {student.status}
-            </span>
-          </div>
-          <div>
-            <strong>Main Supervisor:</strong> {student.supervisor}
-          </div>
+      {/* ================= HERO ================= */}
+      <div className="bg-gradient-to-r from-red-600 to-red-500 text-white rounded-2xl shadow p-6">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">{student.student_name}</h1>
+          <span className="px-3 py-1 rounded-full text-xs bg-white/20">
+            {student.status}
+          </span>
+          <span className="px-3 py-1 rounded-full text-xs bg-black/30">
+            ADMIN VIEW
+          </span>
         </div>
 
-        {/* Progress Bar */}
+        <p className="text-red-100">
+          {student.programme} · {student.department}
+        </p>
+
         <div className="mt-4">
-          <div className="flex justify-between text-sm mb-1">
-            <span>Overall Progress</span>
-            <span className="font-semibold text-purple-700">{progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 h-3 rounded-full">
-            <div
-              className="bg-purple-600 h-3 rounded-full"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+          <p className="text-sm">Overall Progress</p>
+          <p className="text-3xl font-extrabold">{progress}%</p>
         </div>
       </div>
 
-      {/* ================= TABS ================= */}
-      <Tabs active={activeTab} setActive={setActiveTab} />
-
-      {/* ================= OVERVIEW ================= */}
-      {activeTab === "overview" && (
-        <div className="bg-white p-6 rounded-2xl shadow text-gray-700">
-          This page provides an administrative overview of postgraduate
-          progression, documentation completeness, and final PLO attainment
-          aligned with MQA requirements.
+      {/* ================= CQI ALERT ================= */}
+      {hasCQIAlert && (
+        <div className="bg-red-100 border-l-4 border-red-600 p-4 rounded-xl">
+          <p className="font-bold text-red-800">
+            🚨 CQI Intervention Required (Admin)
+          </p>
         </div>
       )}
 
-      {/* ================= TIMELINE ================= */}
-      {activeTab === "timeline" && (
-        <div className="bg-white p-6 rounded-2xl shadow overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-purple-100 text-purple-700">
-              <tr>
-                <th className="p-3 text-left">Activity</th>
-                <th className="p-3">Expected</th>
-                <th className="p-3">Actual</th>
-                <th className="p-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {timeline.map((t, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-3">{t.activity}</td>
-                  <td className="p-3">{t.expected || "-"}</td>
-                  <td className="p-3">{t.actual || "-"}</td>
-                  <td className="p-3 font-semibold">{t.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ================= TABS ================= */}
+      <div className="flex gap-2 flex-wrap">
+        {[
+          ["overview", "📊 Overview"],
+          ["documents", "📁 Documents"],
+          ["timeline", "📅 Timeline"],
+          ["cqi", "🎯 CQI & PLO"],
+          ["remarks", "🛡 Admin Remarks & Override"]
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`px-4 py-2 rounded-full font-semibold ${
+              activeTab === id
+                ? "bg-red-600 text-white"
+                : "bg-red-100 text-red-700"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ================= OVERVIEW ================= */}
+      {activeTab === "overview" && (
+        <div className="bg-white rounded-2xl shadow p-6 text-sm">
+          <p><strong>Matric:</strong> {student.student_id}</p>
+          <p><strong>Email:</strong> {student.email}</p>
+          <p><strong>Status:</strong> {student.status}</p>
         </div>
       )}
 
       {/* ================= DOCUMENTS ================= */}
       {activeTab === "documents" && (
-        <div className="bg-white p-6 rounded-2xl shadow">
-          {student.documents && (
-  <SupervisorChecklist documents={student.documents} />
-)}
-        </div>
+        <SupervisorChecklist documents={student.documents || {}} />
       )}
 
-      {/* ================= CQI / PLO ================= */}
+      {/* ================= TIMELINE ================= */}
+      {activeTab === "timeline" && (
+        <SupervisorChecklist documents={student.documents || {}} />
+      )}
+
+      {/* ================= CQI & PLO ================= */}
       {activeTab === "cqi" && (
+        <FinalPLOTable finalPLO={student.finalPLO} />
+      )}
+
+      {/* ================= ADMIN REMARKS ================= */}
+      {activeTab === "remarks" && (
         <div className="space-y-6">
-
-          {Object.keys(student.cqiByAssessment || {}).length === 0 ? (
-            <div className="bg-white p-6 rounded-2xl shadow text-sm text-gray-500 italic">
-              CQI by assessment is not applicable for graduated students.
-              Final PLO attainment is shown below.
-            </div>
-          ) : null}
-
-          <FinalPLOTable finalPLO={student.finalPLO} />
-
+          {Object.entries(student.remarksByAssessment || {}).map(
+            ([assessmentType, remark]) => (
+              <SupervisorRemark
+                key={assessmentType}
+                studentMatric={student.student_id}
+                studentEmail={student.email}
+                assessmentType={assessmentType}
+                initialRemark={remark}
+                isAdmin={isAdmin} // 🔥 ADMIN POWER
+              />
+            )
+          )}
         </div>
       )}
+
     </div>
   );
 }
