@@ -47,6 +47,8 @@ router.post("/run-cqi-detection", async (req, res) => {
       );
       if (!student) continue;
 
+      console.log("📧 CQI supervisorEmail =", supervisorEmail);
+
       await sendCQIAlert({
         to: student["Main Supervisor's Email"],
         studentName: student["Student Name"],
