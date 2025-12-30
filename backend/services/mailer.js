@@ -1,4 +1,7 @@
-import sendEmail from "./sendEmail.js";
+import sendEmail from "../services/sendEmail.js";
+
+const TEST_MODE = process.env.EMAIL_TEST_MODE === "true";
+const TEST_EMAIL = "hazwanihanafi@gmail.com";
 
 /* =========================================================
    ⏰ DELAY ALERT → STUDENT (CC SUPERVISOR ONLY)
@@ -22,7 +25,6 @@ export async function sendDelayAlert({
     throw new Error("Delays must be an array");
   }
 
-  // ✅ Validate milestones
   const validDelays = delays.filter(
     d => d && d.activity && typeof d.remaining_days === "number"
   );
@@ -49,17 +51,23 @@ This notification is copied to your supervisor for monitoring purposes.
 — PPBMS System`
   ).trim();
 
+  // 🔒 TEST MODE GUARD (CRITICAL)
+  const toEmail = TEST_MODE ? TEST_EMAIL : studentEmail;
+  const ccEmail = TEST_MODE ? undefined : supervisorEmail;
+
   console.log("📧 Sending delay alert:", {
-    to: studentEmail,
-    cc: supervisorEmail,
+    to: toEmail,
+    cc: ccEmail,
+    testMode: TEST_MODE,
     milestones: validDelays.map(d => d.activity),
   });
 
-  // ✅ Provider-safe payload (NO arrays, NO empty fields)
   await sendEmail({
-    to: studentEmail,
-    cc: supervisorEmail, // STRING ONLY
-    subject: `[PPBMS] Milestone Delay Alert – ${studentName}`,
+    to: toEmail,
+    cc: ccEmail,
+    subject: TEST_MODE
+      ? `[PPBMS TEST] Milestone Delay Alert – ${studentName}`
+      : `[PPBMS] Milestone Delay Alert – ${studentName}`,
     text: emailText,
   });
 }
@@ -105,9 +113,13 @@ Please log in to PPBMS and record intervention within 30 days.
 — PPBMS System`
   ).trim();
 
+  const toEmail = TEST_MODE ? TEST_EMAIL : supervisorEmail;
+
   await sendEmail({
-    to: supervisorEmail,
-    subject: `[PPBMS] CQI Detected – ${studentName} (${assessmentType})`,
+    to: toEmail,
+    subject: TEST_MODE
+      ? `[PPBMS TEST] CQI Detected – ${studentName}`
+      : `[PPBMS] CQI Detected – ${studentName} (${assessmentType})`,
     text: emailText,
   });
 }
@@ -141,9 +153,13 @@ Days pending : ${daysPending} days
 — PPBMS System`
   ).trim();
 
+  const toEmail = TEST_MODE ? TEST_EMAIL : supervisorEmail;
+
   await sendEmail({
-    to: supervisorEmail,
-    subject: `[PPBMS] REMINDER: CQI Pending > ${daysPending} Days`,
+    to: toEmail,
+    subject: TEST_MODE
+      ? `[PPBMS TEST] CQI Reminder – ${studentName}`
+      : `[PPBMS] REMINDER: CQI Pending > ${daysPending} Days`,
     text: emailText,
   });
 }
