@@ -9,6 +9,7 @@ import {
 
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { sendDelayAlert } from "../services/mailer.js";
+import sendEmail from "./sendEmail.js";
 
 const router = express.Router();
 
@@ -110,6 +111,19 @@ router.post("/run-delay-alert", async (req, res) => {
     console.error("DELAY ALERT ERROR:", e);
     res.status(500).json({ error: e.message });
   }
+});
+
+
+await sendEmail({
+  to: "hazwanihanafi@gmail.com", // MUST be your own email
+  subject: "[PPBMS TEST] Email system working",
+  text: `
+This is a test email.
+
+If you receive this, Resend integration is successful.
+
+— PPBMS System
+`,
 });
 
 export default router;
