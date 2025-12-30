@@ -25,10 +25,12 @@ router.post("/run-cqi-detection", async (req, res) => {
 
     let emailsSent = 0;
 
-    // group by student + assessment
+    // 🔗 group by matric + assessment
     const keyMap = {};
     for (const r of normalized) {
-      const key = `${r.matric}_${r.assessment_type}`;
+      if (!r.matric || !r.assessment_type) continue;
+
+      const key = `${String(r.matric).trim()}_${String(r.assessment_type).trim()}`;
       if (!keyMap[key]) keyMap[key] = [];
       keyMap[key].push(r);
     }
@@ -36,8 +38,8 @@ router.post("/run-cqi-detection", async (req, res) => {
     for (const key in keyMap) {
       const rows = keyMap[key];
 
-      // 🔒 already emailed → skip
-      if (rows.every(r => r.cqiemailsent === "YES")) continue;
+      // ⛔ Already emailed
+      if (rows.every(r => r["CQI_EMAIL_SENT"] === "YES")) continue;
 
       const issues = extractCQIIssues(rows);
       if (issues.length === 0) continue;
@@ -47,12 +49,21 @@ router.post("/run-cqi-detection", async (req, res) => {
       );
       if (!student) continue;
 
-      console.log("📧 CQI supervisorEmail =", supervisorEmail);
+      const supervisorEmail = student["Main Supervisor's Email"];
+
+      if (!supervisorEmail || !supervisorEmail.includes("@")) {
+        console.warn(
+          "⚠️ Invalid supervisor email for matric:",
+          student["Matric"],
+          supervisorEmail
+        );
+        continue;
+      }
 
       await sendCQIAlert({
-        to: student["Main Supervisor's Email"],
+        supervisorEmail,
         studentName: student["Student Name"],
-        matric: rows[0].matric,
+        matric: student["Matric"],
         assessmentType: rows[0].assessment_type,
         cqiIssues: issues
       });
