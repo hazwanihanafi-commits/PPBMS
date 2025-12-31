@@ -177,6 +177,14 @@ export default function SupervisorStudentPage() {
               <strong>Department:</strong> {student.department || "-"}
             </p>
             <p className="md:col-span-2">
+  <strong>Main Supervisor:</strong>{" "}
+  {student.mainSupervisor || "-"}
+</p>
+<p className="md:col-span-2">
+  <strong>Main Supervisor Email:</strong>{" "}
+  {student.mainSupervisorEmail || "-"}
+</p>
+            <p className="md:col-span-2">
               <strong>Co-Supervisor(s):</strong>{" "}
               {student.coSupervisors?.length
                 ? student.coSupervisors.join(", ")
