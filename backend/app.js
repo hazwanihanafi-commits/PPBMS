@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 
+import cron from "node-cron";
+import { runAutoDelayDetection } from "./jobs/runAutoDelayDetection.js";
+
 import authRoutes from "./routes/auth.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
 import studentRoutes from "./routes/student.js";
@@ -8,8 +11,6 @@ import supervisorRoutes from "./routes/supervisor.js";
 import adminRoutes from "./routes/admin.js";
 import alertsRoutes from "./routes/alerts.js";
 import systemRoutes from "./routes/system.js";
-
-
 
 const app = express();
 
@@ -49,6 +50,19 @@ app.use("/api/admin", adminRoutes);
 // Alerts / system
 app.use("/alerts", alertsRoutes);
 app.use("/system", systemRoutes);
+
+/* ================= ⏰ AUTOMATIC DELAY DETECTION ================= */
+
+// Runs daily at 2:00 AM server time
+cron.schedule("0 2 * * *", async () => {
+  console.log("⏰ Running automatic delay detection job...");
+  try {
+    await runAutoDelayDetection();
+    console.log("✅ Delay detection completed");
+  } catch (err) {
+    console.error("❌ Delay detection failed:", err);
+  }
+});
 
 /* ================= NO CACHE ================= */
 
