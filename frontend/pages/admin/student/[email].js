@@ -149,16 +149,6 @@ export default function AdminStudentPage() {
           <p><strong>Main Supervisor:</strong> {student.supervisor || "-"}</p>
           <p><strong>Co-supervisors:</strong> {student.cosupervisors || "-"}</p>
         </div>
-      </div>
-
-
-
-      {activeTab === "overview" && (
-        <div className="bg-white rounded-2xl shadow p-6 text-sm">
-          <p><strong>Matric:</strong> {student.student_id}</p>
-          <p><strong>Email:</strong> {student.email}</p>
-          <p><strong>Status:</strong> {student.status}</p>
-        </div>
       )}
 
       {/* ================= DOCUMENTS ================= */}
