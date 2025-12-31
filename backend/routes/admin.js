@@ -141,16 +141,25 @@ router.get("/student/:email", adminAuth, async (req, res) => {
     }
 
     const profile = {
-      student_id: raw["Matric"] || raw["Matric No"] || "",
-      student_name: raw["Student Name"] || "",
-      email: raw["Student's Email"] || "",
-      programme: raw["Programme"] || "",
-      field: raw["Field"] || "",
-      department: raw["Department"] || "",
-      supervisor: raw["Main Supervisor"] || "",
-      cosupervisors: raw["Co-Supervisor(s)"] || "",
-      status: raw["Status"] || "",
-    };
+  student_id: raw["Matric"] || raw["Matric No"] || "",
+  name: raw["Student Name"] || "",
+  email: raw["Student's Email"] || "",
+  programme: raw["Programme"] || "",
+  field: raw["Field"] || "",
+  department: raw["Department"] || "",
+  status: raw["Status"] || "",
+
+  // ✅ MUST MATCH FRONTEND
+  mainSupervisor: raw["Main Supervisor"] || "",
+  mainSupervisorEmail: raw["Main Supervisor's Email"] || "",
+
+  coSupervisors: raw["Co-Supervisor(s)"]
+    ? raw["Co-Supervisor(s)"]
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+    : []
+};
 
     const timeline = buildTimelineForRow(raw);
 
