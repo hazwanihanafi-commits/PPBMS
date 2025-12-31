@@ -127,7 +127,7 @@ router.get("/programme-summary", adminAuth, async (req, res) => {
 /* =========================================================
    GET SINGLE STUDENT (ADMIN VIEW)
 ========================================================= */
-router.get("/student/:email", adminAuth, async (req, res) => {
+router.get("admin/student/:email", adminAuth, async (req, res) => {
   try {
     const email = req.params.email.toLowerCase().trim();
     const rows = await readMasterTracking(process.env.SHEET_ID);
@@ -151,7 +151,6 @@ router.get("/student/:email", adminAuth, async (req, res) => {
 
   // ✅ MUST MATCH FRONTEND
   mainSupervisor: raw["Main Supervisor"] || "",
-  mainSupervisorEmail: raw["Main Supervisor's Email"] || "",
 
   coSupervisors: raw["Co-Supervisor(s)"]
     ? raw["Co-Supervisor(s)"]
