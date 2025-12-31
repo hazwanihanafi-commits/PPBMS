@@ -80,16 +80,16 @@ export default function AdminDashboard() {
     setChecked(true);
   }, [router.isReady]);
 
-  /* ======================
-     LOAD PROGRAMMES
-  ====================== */
-  useEffect(() => {
-    if (!checked) return;
+ /* ======================
+   LOAD PROGRAMMES (ALL STUDENTS)
+====================== */
+useEffect(() => {
+  if (!checked) return;
 
-    apiGet("/api/admin/programmes")
-      .then(d => setProgrammes(d.programmes || []))
-      .catch(() => setProgrammes([]));
-  }, [checked]);
+  apiGet("/api/admin/programmes/students")
+    .then(d => setProgrammes(d.programmes || []))
+    .catch(() => setProgrammes([]));
+}, [checked]);
 
   /* ======================
      LOAD PROGRAMME DATA (IMPORTANT)
