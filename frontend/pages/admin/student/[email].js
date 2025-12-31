@@ -151,10 +151,75 @@ export default function AdminStudentPage() {
         <SupervisorChecklist documents={student.documents || {}} />
       )}
 
-      {/* ================= TIMELINE ================= */}
+         {/* ================= TIMELINE ================= */}
       {activeTab === "timeline" && (
-        <SupervisorChecklist documents={student.documents || {}} />
+        <div className="bg-white rounded-2xl shadow p-6">
+          {timeline.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">
+              No timeline data available.
+            </p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-purple-100">
+                <tr>
+                  <th className="p-3 text-left">Activity</th>
+                  <th className="p-3">Expected</th>
+                  <th className="p-3">Actual</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timeline.map((t, i) => (
+                  <tr
+                    key={i}
+                    className={`border-t ${
+                      t.status === "Late"
+                        ? "bg-red-50"
+                        : t.status === "Due Soon"
+                        ? "bg-orange-50"
+                        : ""
+                    }`}
+                  >
+                    <td className="p-3">{t.activity}</td>
+                    <td className="p-3">{t.expected || "-"}</td>
+                    <td className="p-3">{t.actual || "-"}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          t.status === "Completed"
+                            ? "bg-green-100 text-green-700"
+                            : t.status === "On Time"
+                            ? "bg-blue-100 text-blue-700"
+                            : t.status === "Due Soon"
+                            ? "bg-orange-100 text-orange-700"
+                            : t.status === "Late"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {t.status}
+                      </span>
+                    </td>
+                    <td
+                      className={`p-3 ${
+                        t.remaining_days <= 30 && t.remaining_days > 0
+                          ? "text-orange-600 font-semibold"
+                          : t.remaining_days <= 0
+                          ? "text-red-600 font-semibold"
+                          : ""
+                      }`}
+                    >
+                      {t.remaining_days}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       )}
+
 
       {/* ================= CQI & PLO ================= */}
       {activeTab === "cqi" && (
