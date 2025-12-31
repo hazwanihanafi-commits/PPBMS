@@ -202,4 +202,25 @@ DOCUMENT_KEYS.forEach(k => {
   }
 });
 
+/* ================= PROGRAMMES (ALL STUDENTS) ================= */
+router.get("/programmes/students", adminAuth, async (req, res) => {
+  try {
+    const rows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
+
+    const programmes = [
+      ...new Set(
+        rows
+          .map(r => String(r.Programme || "").trim())
+          .filter(Boolean)
+      )
+    ];
+
+    res.json({ programmes });
+
+  } catch (err) {
+    console.error("PROGRAMME STUDENTS DROPDOWN ERROR:", err);
+    res.status(500).json({ error: "Failed to load programmes" });
+  }
+});
+
 export default router;
