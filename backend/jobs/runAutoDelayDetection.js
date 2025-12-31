@@ -2,9 +2,9 @@ import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js"
 import { EXPECTED_COLUMN_MAP } from "../utils/expectedColumnMap.js";
 import { ACTUAL_COLUMN_MAP } from "../utils/timelineColumnMap.js";
 import { DELAY_COLUMN_MAP } from "../utils/delayColumnMap.js";
-import { sendDelayEmail } from "../services/mailer.js";
+import { sendDelayAlert } from "../services/mailer.js";
 
-export async function runDelayDetection() {
+export async function runAutoDelayDetection() {
   const rows = await readMasterTracking(process.env.SHEET_ID);
   const today = new Date().toISOString().split("T")[0];
 
@@ -13,9 +13,12 @@ export async function runDelayDetection() {
     const rowIndex = i + 2; // header offset
 
     const studentEmail = row["Student's Email"];
+    const studentName = row["Student Name"];
     const supervisorEmail = row["Main Supervisor's Email"];
 
-    if (!studentEmail) continue;
+    if (!studentEmail || !supervisorEmail) continue;
+
+    const delays = [];
 
     for (const activity of Object.keys(EXPECTED_COLUMN_MAP)) {
       const expectedCol = EXPECTED_COLUMN_MAP[activity];
@@ -28,14 +31,18 @@ export async function runDelayDetection() {
       const actual = row[actualCol];
       const delaySent = row[delayCols.sent];
 
-      // 🔴 CONDITIONS FOR AUTO DELAY
       if (
         expected &&
         !actual &&
         new Date(expected) < new Date(today) &&
         !delaySent
       ) {
-        // ✅ Write delay flags
+        const remainingDays =
+          Math.ceil(
+            (new Date(today) - new Date(expected)) / (1000 * 60 * 60 * 24)
+          );
+
+        // ✅ Write DELAY EMAIL SENT
         await writeSheetCell(
           process.env.SHEET_ID,
           "MasterTracking",
@@ -44,6 +51,7 @@ export async function runDelayDetection() {
           "YES"
         );
 
+        // ✅ Write DELAY EMAIL DATE
         await writeSheetCell(
           process.env.SHEET_ID,
           "MasterTracking",
@@ -52,14 +60,21 @@ export async function runDelayDetection() {
           today
         );
 
-        // 📧 Send email
-        await sendDelayEmail({
-          to: studentEmail,
-          cc: supervisorEmail,
+        delays.push({
           activity,
-          expectedDate: expected
+          remaining_days: remainingDays,
         });
       }
+    }
+
+    // 📧 SEND EMAIL IF ANY DELAYS FOUND
+    if (delays.length > 0) {
+      await sendDelayAlert({
+        studentName,
+        studentEmail,
+        supervisorEmail,
+        delays,
+      });
     }
   }
 }
