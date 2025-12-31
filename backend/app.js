@@ -10,6 +10,7 @@ import alertsRoutes from "./routes/alerts.js";
 import systemRoutes from "./routes/system.js";
 
 
+
 const app = express();
 
 /* ================= CORE MIDDLEWARE ================= */
@@ -43,6 +44,7 @@ app.use("/admin-auth", adminAuthRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
+
 
 // Alerts / system
 app.use("/alerts", alertsRoutes);
