@@ -1,3 +1,5 @@
+Like this?
+
 import express from "express";
 import {
   readMasterTracking,
@@ -6,6 +8,7 @@ import {
 } from "../services/googleSheets.js";
 import { extractCQIIssues } from "../utils/detectCQIRequired.js";
 import { sendCQIAlert } from "../services/mailer.js";
+import { runAutoDelayDetection } from "../jobs/runAutoDelayDetection.js";
 
 const router = express.Router();
 
@@ -182,4 +185,27 @@ router.post("/trigger-cqi-row", async (req, res) => {
   }
 });
 
+
+
+/* =========================================================
+   🔐 EXTERNAL CRON TRIGGER (SECURE)
+========================================================= */
+router.post("/run-delay-detection", async (req, res) => {
+  const secret = req.headers["x-cron-secret"];
+
+  if (!secret || secret !== process.env.CRON_SECRET) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  try {
+    console.log("⏰ External cron triggered delay detection");
+    await runAutoDelayDetection();
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Delay detection failed:", err);
+    res.status(500).json({ error: "Delay detection failed" });
+  }
+});
+
 export default router;
+
