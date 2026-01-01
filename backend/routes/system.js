@@ -1,5 +1,3 @@
-Like this?
-
 import express from "express";
 import {
   readMasterTracking,
