@@ -5,16 +5,20 @@ import { DELAY_COLUMN_MAP } from "../utils/delayColumnMap.js";
 import { sendDelayAlert } from "../services/mailer.js";
 
 /* =========================================================
-   🧠 SAFE DATE PARSER (ISO + MY FORMAT)
+   🧠 SAFE GOOGLE SHEETS DATE PARSER
 ========================================================= */
 function parseSheetDate(value) {
   if (!value) return null;
 
-  // Google Sheets Date object
+  // Google Sheets serial date (number)
+  if (typeof value === "number") {
+    const d = new Date(Math.round((value - 25569) * 86400 * 1000));
+    return isNaN(d) ? null : d;
+  }
+
+  // Native Date
   if (value instanceof Date && !isNaN(value)) {
-    const d = new Date(value);
-    d.setHours(0, 0, 0, 0);
-    return d;
+    return value;
   }
 
   const str = String(value).trim();
@@ -22,24 +26,14 @@ function parseSheetDate(value) {
   // ISO: YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     const d = new Date(str);
-    if (!isNaN(d)) {
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
+    return isNaN(d) ? null : d;
   }
 
-  // MY format: DD/MM/YYYY
+  // DD/MM/YYYY
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
     const [day, month, year] = str.split("/");
-    const d = new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day)
-    );
-    if (!isNaN(d)) {
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
+    const d = new Date(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+    return isNaN(d) ? null : d;
   }
 
   console.warn("⚠️ Unparseable date value:", value);
@@ -47,7 +41,7 @@ function parseSheetDate(value) {
 }
 
 /* =========================================================
-   ⏰ AUTO DELAY DETECTION JOB
+   ⏰ AUTO DELAY DETECTION (FINAL)
 ========================================================= */
 export async function runAutoDelayDetection() {
   console.log("🚀 Auto delay detection started");
@@ -55,7 +49,10 @@ export async function runAutoDelayDetection() {
   const rows = await readMasterTracking(process.env.SHEET_ID);
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // date-only (timezone safe)
+  today.setHours(0, 0, 0, 0);
+
+  console.log("📅 Today (MY midnight):", today.toISOString().slice(0, 10));
+  console.log("📊 Total rows read:", rows.length);
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -65,9 +62,12 @@ export async function runAutoDelayDetection() {
     const studentName = row["Student Name"];
     const supervisorEmail = row["Main Supervisor's Email"];
 
-    // 🔒 Basic guards
-    if (!studentEmail || !studentEmail.includes("@")) continue;
-    if (!supervisorEmail || !supervisorEmail.includes("@")) continue;
+    if (!studentEmail || !supervisorEmail) {
+      console.log(`⏭️ Row ${rowIndex} skipped (missing email)`);
+      continue;
+    }
+
+    console.log(`\n👤 Checking student [Row ${rowIndex}] ${studentEmail}`);
 
     const delays = [];
 
@@ -76,81 +76,85 @@ export async function runAutoDelayDetection() {
       const actualCol = ACTUAL_COLUMN_MAP[activity];
       const delayCols = DELAY_COLUMN_MAP[activity];
 
-      if (!expectedCol || !actualCol || !delayCols) continue;
+      if (!expectedCol || !actualCol || !delayCols) {
+        console.log(`⚠️ ${activity} mapping missing, skipped`);
+        continue;
+      }
 
       const expectedRaw = row[expectedCol];
       const actualRaw = row[actualCol];
       const delaySent = row[delayCols.sent];
 
-      // ⛔ Skip if completed or already emailed
-      if (actualRaw || delaySent === "YES") continue;
+      console.log(`🔍 ${activity}`);
+      console.log("   Expected raw:", expectedRaw);
+      console.log("   Actual raw  :", actualRaw);
+      console.log("   Delay sent  :", delaySent);
+
+      // Skip completed
+      if (actualRaw) {
+        console.log("   ✅ Completed → skip");
+        continue;
+      }
+
+      // Skip already emailed
+      if (delaySent === "YES") {
+        console.log("   📧 Already emailed → skip");
+        continue;
+      }
 
       const expectedDate = parseSheetDate(expectedRaw);
-      if (!expectedDate) continue;
+      if (!expectedDate) {
+        console.log("   ❌ Expected date invalid → skip");
+        continue;
+      }
 
-      // 🔴 DELAY CONDITION
+      expectedDate.setHours(0, 0, 0, 0);
+
       if (expectedDate < today) {
         const daysLate = Math.floor(
           (today - expectedDate) / (1000 * 60 * 60 * 24)
         );
 
-        console.log("⏰ Delay detected:", {
-          row: rowIndex,
-          student: studentEmail,
-          activity,
-          expected: expectedRaw,
-          daysLate
-        });
+        console.log(`   ⏰ DELAY DETECTED (${daysLate} days late)`);
+
+        // ✅ Write DELAY EMAIL SENT
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "MasterTracking",
+          delayCols.sent,
+          rowIndex,
+          "YES"
+        );
+
+        // ✅ Write DELAY EMAIL DATE
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "MasterTracking",
+          delayCols.date,
+          rowIndex,
+          today.toISOString().slice(0, 10)
+        );
 
         delays.push({
           activity,
-          remaining_days: daysLate,
-          delayCols,
-          rowIndex
+          remaining_days: daysLate
         });
+      } else {
+        console.log("   🟢 On track");
       }
     }
 
-    /* =====================================================
-       📧 SEND EMAIL FIRST (CRITICAL FIX)
-    ===================================================== */
+    // 📧 Send ONE email per student
     if (delays.length > 0) {
-      try {
-        await sendDelayAlert({
-          studentName,
-          studentEmail,
-          supervisorEmail,
-          delays
-        });
-
-        console.log("📧 Delay email sent:", studentEmail);
-
-        // ✅ Mark sheet ONLY after email success
-        for (const d of delays) {
-          await writeSheetCell(
-            process.env.SHEET_ID,
-            "MasterTracking",
-            d.delayCols.sent,
-            d.rowIndex,
-            "YES"
-          );
-
-          await writeSheetCell(
-            process.env.SHEET_ID,
-            "MasterTracking",
-            d.delayCols.date,
-            d.rowIndex,
-            today.toISOString().slice(0, 10)
-          );
-        }
-
-      } catch (err) {
-        console.error("❌ Delay email failed:", {
-          student: studentEmail,
-          error: err.message
-        });
-        // ❗ DO NOT write sheet → allow retry next run
-      }
+      console.log(`📨 Sending delay email to ${studentEmail}`);
+      await sendDelayAlert({
+        studentName,
+        studentEmail,
+        supervisorEmail,
+        delays
+      });
+    } else {
+      console.log("📭 No delays for this student");
     }
   }
 
