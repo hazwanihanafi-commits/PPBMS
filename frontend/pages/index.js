@@ -15,7 +15,7 @@ export default function Home() {
           <div>
             <h1 className="font-semibold text-lg">PPBMS</h1>
             <p className="text-xs text-gray-500 -mt-1">
-              Postgraduate Progress & Benchmarking System
+              Postgraduate Portfolio-Based Monitoring System
             </p>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function Home() {
       </main>
 
       <footer className="text-center py-6 text-gray-500 text-sm">
-        © 2025 PPBMS · Universiti Sains Malaysia
+        © 2025 PPBMS · Universiti Sains Malaysia · Developed by HAY
       </footer>
     </div>
   );
