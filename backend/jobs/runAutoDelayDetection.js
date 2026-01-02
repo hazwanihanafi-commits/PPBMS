@@ -5,12 +5,19 @@ import { DELAY_COLUMN_MAP } from "../utils/delayColumnMap.js";
 import { sendDelayAlert } from "../services/mailer.js";
 
 /* =========================================================
+   🧠 SAFE EMPTY CELL CHECK
+========================================================= */
+function isEmptyCell(value) {
+  return value === null || value === undefined || String(value).trim() === "";
+}
+
+/* =========================================================
    🧠 SAFE GOOGLE SHEETS DATE PARSER
 ========================================================= */
 function parseSheetDate(value) {
-  if (!value) return null;
+  if (isEmptyCell(value)) return null;
 
-  // Google Sheets serial date (number)
+  // Google Sheets serial number
   if (typeof value === "number") {
     const d = new Date(Math.round((value - 25569) * 86400 * 1000));
     return isNaN(d) ? null : d;
@@ -23,20 +30,22 @@ function parseSheetDate(value) {
 
   const str = String(value).trim();
 
-  // ISO: YYYY-MM-DD
+  // ISO format
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     const d = new Date(str);
     return isNaN(d) ? null : d;
   }
 
-  // DD/MM/YYYY
+  // DD/MM/YYYY (Malaysia)
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
     const [day, month, year] = str.split("/");
-    const d = new Date(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+    const d = new Date(
+      `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+    );
     return isNaN(d) ? null : d;
   }
 
-  console.warn("⚠️ Unparseable date value:", value);
+  console.warn("⚠️ Unparseable date:", value);
   return null;
 }
 
@@ -51,23 +60,25 @@ export async function runAutoDelayDetection() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  console.log("📅 Today (MY midnight):", today.toISOString().slice(0, 10));
-  console.log("📊 Total rows read:", rows.length);
+  console.log("📅 Today:", today.toISOString().slice(0, 10));
+  console.log("📊 Rows loaded:", rows.length);
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const rowIndex = i + 2; // Sheet row (row 1 = header)
+    const rowIndex = i + 2; // row 1 = header
 
-    const studentEmail = row["Student's Email"];
-    const studentName = row["Student Name"];
-    const supervisorEmail = row["Main Supervisor's Email"];
+    const studentEmail = String(row["Student's Email"] || "").trim();
+    const supervisorEmail = String(
+      row["Main Supervisor's Email"] || ""
+    ).trim();
+    const studentName = String(row["Student Name"] || "").trim();
 
-    if (!studentEmail || !supervisorEmail) {
-      console.log(`⏭️ Row ${rowIndex} skipped (missing email)`);
+    if (!studentEmail) {
+      console.log(`⏭️ Row ${rowIndex} skipped (no student email)`);
       continue;
     }
 
-    console.log(`\n👤 Checking student [Row ${rowIndex}] ${studentEmail}`);
+    console.log(`\n👤 Student [Row ${rowIndex}] ${studentEmail}`);
 
     const delays = [];
 
@@ -77,7 +88,7 @@ export async function runAutoDelayDetection() {
       const delayCols = DELAY_COLUMN_MAP[activity];
 
       if (!expectedCol || !actualCol || !delayCols) {
-        console.log(`⚠️ ${activity} mapping missing, skipped`);
+        console.warn(`⚠️ ${activity} mapping missing, skipped`);
         continue;
       }
 
@@ -86,17 +97,11 @@ export async function runAutoDelayDetection() {
       const delaySent = row[delayCols.sent];
 
       console.log(`🔍 ${activity}`);
-      console.log("   Expected raw:", expectedRaw);
-      console.log("   Actual raw  :", actualRaw);
-      console.log("   Delay sent  :", delaySent);
+      console.log("   Expected:", expectedRaw);
+      console.log("   Actual  :", actualRaw);
+      console.log("   Emailed :", delaySent);
 
-      // Skip completed
-      if (actualRaw) {
-        console.log("   ✅ Completed → skip");
-        continue;
-      }
-
-      // Skip already emailed
+      // Skip if already emailed
       if (delaySent === "YES") {
         console.log("   📧 Already emailed → skip");
         continue;
@@ -104,20 +109,21 @@ export async function runAutoDelayDetection() {
 
       const expectedDate = parseSheetDate(expectedRaw);
       if (!expectedDate) {
-        console.log("   ❌ Expected date invalid → skip");
+        console.log("   ❌ Invalid expected date → skip");
         continue;
       }
 
       expectedDate.setHours(0, 0, 0, 0);
 
-      if (expectedDate < today) {
+      // 🔑 ONLY RULE YOU WANT:
+      // Actual does NOT exist AND Today > Expected
+      if (isEmptyCell(actualRaw) && expectedDate < today) {
         const daysLate = Math.floor(
           (today - expectedDate) / (1000 * 60 * 60 * 24)
         );
 
-        console.log(`   ⏰ DELAY DETECTED (${daysLate} days late)`);
+        console.log(`   ⏰ OVERDUE (${daysLate} days)`);
 
-        // ✅ Write DELAY EMAIL SENT
         await writeSheetCell(
           process.env.SHEET_ID,
           "MasterTracking",
@@ -126,7 +132,6 @@ export async function runAutoDelayDetection() {
           "YES"
         );
 
-        // ✅ Write DELAY EMAIL DATE
         await writeSheetCell(
           process.env.SHEET_ID,
           "MasterTracking",
@@ -140,19 +145,32 @@ export async function runAutoDelayDetection() {
           remaining_days: daysLate
         });
       } else {
-        console.log("   🟢 On track");
+        console.log("   🟢 Not overdue or already completed");
       }
     }
 
     // 📧 Send ONE email per student
     if (delays.length > 0) {
-      console.log(`📨 Sending delay email to ${studentEmail}`);
-      await sendDelayAlert({
-        studentName,
-        studentEmail,
-        supervisorEmail,
-        delays
-      });
+      console.log(`📨 Sending delay email → ${studentEmail}`);
+
+      if (supervisorEmail && supervisorEmail.includes("@")) {
+        await sendDelayAlert({
+          studentName,
+          studentEmail,
+          supervisorEmail,
+          delays
+        });
+      } else {
+        console.warn(
+          `⚠️ Supervisor email missing for ${studentEmail}, email sent to student only`
+        );
+        await sendDelayAlert({
+          studentName,
+          studentEmail,
+          supervisorEmail: undefined,
+          delays
+        });
+      }
     } else {
       console.log("📭 No delays for this student");
     }
