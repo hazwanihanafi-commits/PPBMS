@@ -1,23 +1,26 @@
 import fetch from "node-fetch";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const EMAIL_FROM = "PPBMS <no-reply@ppbms.my>"; // ✅ VERIFIED DOMAIN
 
-// ⚠️ TEST MODE SENDER (no domain needed)
-const EMAIL_FROM = "PPBMS <onboarding@resend.dev>";
-
-export default async function sendEmail({ to, subject, text }) {
+export default async function sendEmail({ to, cc, subject, text }) {
   if (!RESEND_API_KEY) {
     throw new Error("Missing RESEND_API_KEY");
   }
 
   const payload = {
     from: EMAIL_FROM,
-    to: [to], // MUST be your own email
+    to: Array.isArray(to) ? to : [to],
     subject,
     text,
   };
 
-  console.log("📨 TEST EMAIL PAYLOAD", payload);
+  // Optional CC (supervisor)
+  if (cc) {
+    payload.cc = Array.isArray(cc) ? cc : [cc];
+  }
+
+  console.log("📨 EMAIL PAYLOAD", payload);
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
