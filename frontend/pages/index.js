@@ -24,9 +24,7 @@ export default function Home() {
           href="/login"
           className="px-6 py-2 rounded-full bg-purple-600 text-white font-medium hover:bg-purple-700"
         >
-          General Login
-        </Link>
-      </header>
+          
 
       {/* HERO */}
       <main className="max-w-6xl mx-auto px-6 py-16">
