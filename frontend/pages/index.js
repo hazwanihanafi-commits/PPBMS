@@ -8,8 +8,10 @@ export default function Home() {
       {/* HEADER */}
       <header className="w-full py-5 px-8 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-orange-400 
-            flex items-center justify-center text-white font-bold">
+          <div
+            className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-orange-400 
+            flex items-center justify-center text-white font-bold"
+          >
             P
           </div>
           <div>
@@ -20,16 +22,20 @@ export default function Home() {
           </div>
         </div>
 
+        {/* HEADER LOGIN BUTTON */}
         <Link
           href="/login"
           className="px-6 py-2 rounded-full bg-purple-600 text-white font-medium hover:bg-purple-700"
         >
-          
+          Login
+        </Link>
+      </header>
 
       {/* HERO */}
       <main className="max-w-6xl mx-auto px-6 py-16">
         <h2 className="text-5xl font-extrabold mb-6">
-          Monitor postgraduate <span className="text-purple-700">research progress</span>
+          Monitor postgraduate{" "}
+          <span className="text-purple-700">research progress</span>
         </h2>
 
         <p className="text-gray-600 max-w-3xl mb-10">
@@ -59,7 +65,6 @@ export default function Home() {
             href="/admin/login"
             highlight
           />
-
         </div>
       </main>
 
@@ -72,7 +77,11 @@ export default function Home() {
 
 function Card({ title, desc, href, highlight }) {
   return (
-    <div className={`p-6 bg-white rounded-2xl shadow ${highlight ? "md:col-span-2" : ""}`}>
+    <div
+      className={`p-6 bg-white rounded-2xl shadow ${
+        highlight ? "md:col-span-2" : ""
+      }`}
+    >
       <h3 className="font-bold mb-2">{title}</h3>
       <p className="text-gray-600 mb-4">{desc}</p>
       <Link href={href} className="text-purple-600 font-medium hover:underline">
