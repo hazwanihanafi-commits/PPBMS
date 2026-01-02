@@ -6,6 +6,19 @@ import {
 } from "../services/googleSheets.js";
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { ACTUAL_COLUMN_MAP } from "../utils/timelineColumnMap.js";
+import { TIMELINE_MAP } from "../utils/timelineMap.js";
+
+function normalizeActivity(activity) {
+  if (ACTUAL_COLUMN_MAP[activity]) return activity;
+
+  const entry = Object.entries(TIMELINE_MAP).find(
+    ([_, cols]) =>
+      cols.expected.startsWith(activity) ||
+      cols.actual.startsWith(activity)
+  );
+
+  return entry ? entry[0] : null;
+}
 
 const router = express.Router();
 
@@ -99,15 +112,15 @@ router.post("/update-actual", auth, async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // ✅ THIS IS WHERE YOUR CODE GOES
-    const column = ACTUAL_COLUMN_MAP[activity];
+    const normalized = normalizeActivity(activity);
 
-    if (!column) {
-      console.error("❌ Unknown activity:", activity);
-      return res.status(400).json({
-        error: `Unknown activity: ${activity}`
-      });
-    }
+if (!normalized) {
+  console.error("❌ Unknown activity:", activity);
+  return res.status(400).json({ error: `Unknown activity: ${activity}` });
+}
+
+const column = ACTUAL_COLUMN_MAP[normalized];
+
 
     console.log("📝 Writing to column:", column);
     console.log("📍 Row:", idx + 2);
@@ -149,13 +162,17 @@ router.post("/reset-actual", auth, async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    const column = ACTUAL_COLUMN_MAP[activity];
+       // ✅ NORMALIZE ACTIVITY
+    const normalized = normalizeActivity(activity);
 
-    if (!column) {
+    if (!normalized) {
+      console.error("❌ Unknown activity:", activity);
       return res.status(400).json({
         error: `Unknown activity: ${activity}`
       });
     }
+
+    const column = ACTUAL_COLUMN_MAP[normalized];
 
     console.log("♻️ Resetting column:", column);
 
