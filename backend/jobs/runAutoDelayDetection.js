@@ -110,21 +110,24 @@ export async function runAutoDelayDetection() {
 
         console.log(`   ⏰ OVERDUE (${daysLate} days)`);
 
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "MasterTracking",
-          delayCols.sent,
-          rowIndex,
-          "YES"
-        );
 
         await writeSheetCell(
-          process.env.SHEET_ID,
-          "MasterTracking",
-          delayCols.date,
-          rowIndex,
-          today.toISOString().slice(0, 10)
-        );
+  process.env.SHEET_ID,
+  "MasterTracking",
+  cols.sent,
+  rowIndex,
+  "YES"
+);
+
+         await writeSheetCell(
+  process.env.SHEET_ID,
+  "MasterTracking",
+  cols.date,
+  rowIndex,
+  today.toISOString().slice(0, 10)
+);
+         
+
 
         delays.push({
           activity,
