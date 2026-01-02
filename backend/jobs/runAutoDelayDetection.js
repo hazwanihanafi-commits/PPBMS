@@ -51,7 +51,6 @@ function parseSheetDate(value) {
    ⏰ AUTO DELAY DETECTION — FINAL
 ========================================================= */
 export async function runAutoDelayDetection() {
-  export async function runAutoDelayDetection() {
   // 🔒 ENV SAFETY SWITCH
   if (process.env.AUTO_DELAY_DETECTION !== "true") {
     console.log("⛔ Auto delay detection disabled by env flag");
