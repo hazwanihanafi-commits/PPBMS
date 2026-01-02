@@ -1,7 +1,5 @@
 import { readMasterTracking, writeSheetCell } from "../services/googleSheets.js";
-import { EXPECTED_COLUMN_MAP } from "../utils/expectedColumnMap.js";
-import { ACTUAL_COLUMN_MAP } from "../utils/timelineColumnMap.js";
-import { DELAY_COLUMN_MAP } from "../utils/delayColumnMap.js";
+import { TIMELINE_MAP } from "../utils/timelineMap.js";
 import { sendDelayAlert } from "../services/mailer.js";
 
 /* =========================================================
@@ -50,7 +48,7 @@ function parseSheetDate(value) {
 }
 
 /* =========================================================
-   ⏰ AUTO DELAY DETECTION (FINAL)
+   ⏰ AUTO DELAY DETECTION — FINAL
 ========================================================= */
 export async function runAutoDelayDetection() {
   console.log("🚀 Auto delay detection started");
@@ -65,12 +63,10 @@ export async function runAutoDelayDetection() {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const rowIndex = i + 2; // row 1 = header
+    const rowIndex = i + 2; // sheet row (row 1 = header)
 
     const studentEmail = String(row["Student's Email"] || "").trim();
-    const supervisorEmail = String(
-      row["Main Supervisor's Email"] || ""
-    ).trim();
+    const supervisorEmail = String(row["Main Supervisor's Email"] || "").trim();
     const studentName = String(row["Student Name"] || "").trim();
 
     if (!studentEmail) {
@@ -82,26 +78,16 @@ export async function runAutoDelayDetection() {
 
     const delays = [];
 
-    for (const activity of Object.keys(EXPECTED_COLUMN_MAP)) {
-      const expectedCol = EXPECTED_COLUMN_MAP[activity];
-      const actualCol = ACTUAL_COLUMN_MAP[activity];
-      const delayCols = DELAY_COLUMN_MAP[activity];
-
-      if (!expectedCol || !actualCol || !delayCols) {
-        console.warn(`⚠️ ${activity} mapping missing, skipped`);
-        continue;
-      }
-
-      const expectedRaw = row[expectedCol];
-      const actualRaw = row[actualCol];
-      const delaySent = row[delayCols.sent];
+    for (const [activity, cols] of Object.entries(TIMELINE_MAP)) {
+      const expectedRaw = row[cols.expected];
+      const actualRaw = row[cols.actual];
+      const delaySent = row[cols.sent];
 
       console.log(`🔍 ${activity}`);
       console.log("   Expected:", expectedRaw);
       console.log("   Actual  :", actualRaw);
       console.log("   Emailed :", delaySent);
 
-      // Skip if already emailed
       if (delaySent === "YES") {
         console.log("   📧 Already emailed → skip");
         continue;
