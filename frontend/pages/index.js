@@ -6,7 +6,7 @@ export default function Home() {
 
       {/* HEADER */}
       <header className="w-full py-5">
-        <div className="max-w-7xl mx-auto px-8 flex justify-between items-center">
+        <div className="max-w-[1600px] mx-auto px-12 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-orange-400 flex items-center justify-center text-white font-bold">
               P
@@ -28,37 +28,41 @@ export default function Home() {
         </div>
       </header>
 
-      {/* HERO */}
-      <main className="max-w-7xl mx-auto px-8 py-20">
-        <h2 className="text-5xl font-extrabold mb-6">
-          Monitor postgraduate{" "}
-          <span className="text-purple-700">research progress</span>
-        </h2>
+      <main className="w-full px-12 py-24">
+  <div className="max-w-[1600px] mx-auto">
 
-        <p className="text-gray-600 max-w-3xl mb-12">
-          Secure platform for MSc & PhD monitoring, supervisor oversight, and CQI reporting.
-        </p>
+    <h2 className="text-6xl xl:text-7xl font-extrabold mb-8">
+      Monitor postgraduate{" "}
+      <span className="text-purple-700">research progress</span>
+    </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card
-            title="Student"
-            desc="View timeline, upload documents, and track milestones."
-            href="/login"
-          />
+    <p className="text-gray-600 max-w-3xl mb-14 text-lg">
+      Secure platform for MSc & PhD monitoring, supervisor oversight, and CQI reporting.
+    </p>
 
-          <Card
-            title="Supervisor"
-            desc="Monitor supervisees and intervene early."
-            href="/login"
-          />
+    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 gap-12">
+      <Card
+        title="Student"
+        desc="View timeline, upload documents, track milestones."
+        href="/login"
+      />
 
-          <Card
-            title="Admin"
-            desc="Programme CQI, cohort monitoring, and reports."
-            href="/admin/login"
-          />
-        </div>
-      </main>
+      <Card
+        title="Supervisor"
+        desc="Monitor supervisees and intervene early."
+        href="/login"
+      />
+
+      <Card
+        title="Admin"
+        desc="Programme CQI, cohort monitoring, reports."
+        href="/admin/login"
+      />
+    </div>
+
+  </div>
+</main>
+
 
       <footer className="text-center py-6 text-gray-500 text-sm">
         © 2025 PPBMS · Universiti Sains Malaysia · Developed by HAY
