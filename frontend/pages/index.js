@@ -32,7 +32,7 @@ export default function Home() {
       </header>
 
       {/* HERO */}
-      <main className="max-w-6xl mx-auto px-6 py-16">
+      <main className="max-w-7xl mx-auto px-8 py-20">
         <h2 className="text-5xl font-extrabold mb-6">
           Monitor postgraduate{" "}
           <span className="text-purple-700">research progress</span>
