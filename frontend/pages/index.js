@@ -6,7 +6,9 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
 
       {/* HEADER */}
-      <header className="w-full py-5 px-8 flex justify-between items-center">
+    <header className="w-full py-5">
+  <div className="max-w-[1600px] mx-auto px-12 flex justify-between items-center">
+  
         <div className="flex items-center gap-3">
           <div
             className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-orange-400 
@@ -29,10 +31,11 @@ export default function Home() {
         >
           Login
         </Link>
+             </div>
       </header>
 
       {/* HERO */}
-      <main className="max-w-7xl mx-auto px-8 py-20">
+      <main className="max-w-[1600px] mx-auto px-12 py-24">
         <h2 className="text-5xl font-extrabold mb-6">
           Monitor postgraduate{" "}
           <span className="text-purple-700">research progress</span>
