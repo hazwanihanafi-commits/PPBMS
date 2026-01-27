@@ -28,41 +28,75 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="w-full px-12 py-24">
-  <div className="max-w-[1600px] mx-auto">
+      {/* HERO */}
+      <main className="w-full px-12 py-24 min-h-[75vh]">
+        <div className="max-w-[1600px] mx-auto">
 
-    <h2 className="text-6xl xl:text-7xl font-extrabold mb-8">
-      Monitor postgraduate{" "}
-      <span className="text-purple-700">research progress</span>
-    </h2>
+          <h2 className="text-6xl xl:text-7xl font-extrabold mb-8">
+            Monitor postgraduate{" "}
+            <span className="text-purple-700">research progress</span>
+          </h2>
 
-    <p className="text-gray-600 max-w-3xl mb-14 text-lg">
-      Secure platform for MSc & PhD monitoring, supervisor oversight, and CQI reporting.
-    </p>
+          <p className="text-gray-600 max-w-3xl mb-14 text-lg">
+            Secure platform for MSc & PhD monitoring, supervisor oversight, and CQI reporting.
+          </p>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 gap-12">
-      <Card
-        title="Student"
-        desc="View timeline, upload documents, track milestones."
-        href="/login"
-      />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <Card
+              title="Student"
+              desc="View timeline, upload documents, track milestones."
+              href="/login"
+            />
 
-      <Card
-        title="Supervisor"
-        desc="Monitor supervisees and intervene early."
-        href="/login"
-      />
+            <Card
+              title="Supervisor"
+              desc="Monitor supervisees and intervene early."
+              href="/login"
+            />
 
-      <Card
-        title="Admin"
-        desc="Programme CQI, cohort monitoring, reports."
-        href="/admin/login"
-      />
-    </div>
+            <Card
+              title="Admin"
+              desc="Programme CQI, cohort monitoring, reports."
+              href="/admin/login"
+            />
+          </div>
 
-  </div>
-</main>
+          {/* SECONDARY SECTION */}
+          <section className="mt-24 border-t border-gray-200 pt-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-sm text-gray-600">
 
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">
+                  Structured Monitoring
+                </h4>
+                <p>
+                  Track milestones, candidature status, and progress reviews in one place.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">
+                  Supervisor Oversight
+                </h4>
+                <p>
+                  Early identification of at-risk candidates and timely intervention.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">
+                  CQI & Reporting
+                </h4>
+                <p>
+                  Programme-level monitoring aligned with accreditation and quality assurance.
+                </p>
+              </div>
+
+            </div>
+          </section>
+
+        </div>
+      </main>
 
       <footer className="text-center py-6 text-gray-500 text-sm">
         © 2025 PPBMS · Universiti Sains Malaysia · Developed by HAY
@@ -73,7 +107,7 @@ export default function Home() {
 
 function Card({ title, desc, href }) {
   return (
-    <div className="p-8 bg-white rounded-2xl shadow-sm hover:shadow-md transition">
+    <div className="p-10 bg-white rounded-2xl shadow-md hover:shadow-lg transition">
       <h3 className="font-bold mb-2">{title}</h3>
       <p className="text-gray-600 mb-4">{desc}</p>
       <Link href={href} className="text-purple-600 font-medium hover:underline">
