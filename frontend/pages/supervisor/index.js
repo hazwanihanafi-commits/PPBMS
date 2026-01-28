@@ -169,11 +169,14 @@ export default function SupervisorDashboard() {
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                  statusFilter === s
-                    ? "bg-purple-600 text-white"
-                    : "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                }`}
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition
+  ${
+    statusFilter === s
+      ? "bg-purple-600 text-white shadow"
+      : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+  }
+`}
+
               >
                 {s}
               </button>
@@ -184,77 +187,119 @@ export default function SupervisorDashboard() {
         {loading && <p className="text-gray-600">Loading students…</p>}
 
         {/* STUDENT CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filtered.map((st) => (
-            <div
-              key={st.email}
-              className={`bg-white p-6 rounded-2xl shadow border ${
+        {filtered.map((st) => {
+  const isGraduated = st.status === "Graduated";
+
+  return (
+    <div
+      key={st.email}
+      className={`relative rounded-2xl p-6 shadow-md transition hover:shadow-xl
+        ${
+          isGraduated
+            ? "bg-gradient-to-br from-green-50 to-white border border-green-200"
+            : st.progressPercent < 50
+            ? "bg-gradient-to-br from-red-50 to-white border border-red-200"
+            : st.progressPercent < 80
+            ? "bg-gradient-to-br from-yellow-50 to-white border border-yellow-200"
+            : "bg-white border border-gray-200"
+        }
+      `}
+    >
+      {/* HEADER */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h2 className="text-lg font-extrabold text-gray-900 uppercase">
+            {st.name}
+          </h2>
+          <p className="text-sm text-gray-500">{st.programme}</p>
+        </div>
+
+        <div className="flex flex-col gap-2 items-end">
+          <span
+            className={`px-3 py-1 text-xs font-semibold rounded-full
+              ${
+                isGraduated
+                  ? "bg-green-100 text-green-700"
+                  : "bg-blue-100 text-blue-700"
+              }
+            `}
+          >
+            {isGraduated ? "Graduated" : "Active"}
+          </span>
+
+          <span
+            className={`px-3 py-1 text-xs font-semibold rounded-full
+              ${
                 st.progressPercent < 50
-                  ? "border-red-200 bg-red-50"
+                  ? "bg-red-100 text-red-700"
                   : st.progressPercent < 80
-                  ? "border-yellow-200 bg-yellow-50"
-                  : "border-gray-100"
-              }`}
-            >
-              {/* HEADER */}
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-bold text-gray-900 uppercase">
-                  {st.name}
-                </h2>
-                <div className="flex gap-2">
-                  {registryBadge(st.status)}
-                  {progressBadge(st.progressPercent)}
-                </div>
-              </div>
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-green-100 text-green-700"
+              }
+            `}
+          >
+            {st.progressPercent < 50
+              ? "At Risk"
+              : st.progressPercent < 80
+              ? "Slightly Late"
+              : "On Track"}
+          </span>
+        </div>
+      </div>
 
-              {/* BASIC INFO */}
-              <p className="text-sm text-gray-700">
-                <strong>Email:</strong> {st.email}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Matric:</strong> {st.id || "-"}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Programme:</strong> {st.programme || "-"}
-              </p>
+      {/* INFO */}
+      <div className="space-y-1 text-sm text-gray-700">
+        <p>
+          <strong>Email:</strong> {st.email}
+        </p>
+        <p>
+          <strong>Matric:</strong> {st.id || "-"}
+        </p>
+      </div>
 
-              {/* PROGRESS */}
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-gray-800">
-                  Overall Progress
-                </p>
-                <p className="text-2xl font-extrabold text-purple-700">
-                  {st.progressPercent}%
-                </p>
-              </div>
+      {/* PROGRESS */}
+      <div className="mt-5">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-sm font-semibold text-gray-800">
+            Overall Progress
+          </span>
+          <span className="text-sm font-bold text-purple-700">
+            {st.progressPercent}%
+          </span>
+        </div>
 
-              <div className="mt-2 w-full bg-gray-200 h-2 rounded-full">
-                <div
-                  className={`h-2 rounded-full ${progressBarColor(
-                    st.progressPercent
-                  )}`}
-                  style={{ width: `${st.progressPercent}%` }}
-                />
-              </div>
+        <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
+          <div
+            className={`h-3 rounded-full transition-all duration-500
+              ${
+                st.progressPercent < 50
+                  ? "bg-red-500"
+                  : st.progressPercent < 80
+                  ? "bg-yellow-500"
+                  : "bg-green-500"
+              }
+            `}
+            style={{ width: `${st.progressPercent}%` }}
+          />
+        </div>
+      </div>
 
-              <p className="text-right text-purple-700 font-semibold mt-1">
-                {st.progressPercent}% Progress
-              </p>
+      {/* ACTION */}
+      <button
+        onClick={() =>
+          router.push({
+            pathname: "/supervisor/[email]",
+            query: { email: st.email.trim().toLowerCase() },
+          })
+        }
+        className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline"
+      >
+        View Full Progress →
+      </button>
+    </div>
+  );
+})}
 
-              {/* ACTION */}
-              <button
-                onClick={() =>
-                  router.push({
-                    pathname: "/supervisor/[email]",
-                    query: { email: st.email.trim().toLowerCase() },
-                  })
-                }
-                className="mt-4 text-purple-700 font-medium hover:underline"
-              >
-                View Full Progress →
-              </button>
-            </div>
-          ))}
         </div>
       </div>
     </>
