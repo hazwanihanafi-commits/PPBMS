@@ -127,8 +127,14 @@ const coSupervisors = rawCoSup
   field: raw["Field"] || "",
   department: raw["Department"] || "",
   status: raw["Status"] || "Active",
-  coSupervisors // ✅ ARRAY
+
+  // ✅ TAMBAH INI
+  supervisor: raw["Main Supervisor"] || "",
+  supervisor_email: raw["Main Supervisor's Email"] || "",
+
+  coSupervisors
 };
+
 
     /* ---------- DOCUMENTS ---------- */
 const documents = {};
