@@ -55,10 +55,11 @@ export default function SupervisorStudentPage() {
 
   const mainSupervisorName =
   student.mainSupervisor ||
+  student.supervisor ||              // ✅ INI YANG SEBENAR
   student.main_supervisor ||
   student.main_supervisor_name ||
-  student.supervisor_name ||
   "-";
+
 
 const mainSupervisorEmail =
   student.mainSupervisorEmail ||
