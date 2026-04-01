@@ -17,14 +17,21 @@ import jsPDF from "jspdf";
 /* ================= GLASS CARD ================= */
 const GlassCard = ({ children }) => (
   <motion.div
-    whileHover={{ y: -3 }}
-    className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white/40"
+    whileHover={{ y: -4, scale: 1.02 }}
+    className="bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-sm border border-white/40"
   >
     {children}
   </motion.div>
 );
 
-/* ================= RISK ================= */
+/* ================= HELPERS ================= */
+function getStatusType(t) {
+  if (t.status === "Late") return "late";
+  if (t.status === "Due Soon") return "soon";
+  if (t.status === "Completed") return "done";
+  return "normal";
+}
+
 function getRiskColor(risk) {
   if (risk === "HIGH RISK") return "text-red-600";
   if (risk === "MODERATE RISK") return "text-amber-600";
@@ -37,14 +44,7 @@ function getRiskBg(risk) {
   return "bg-green-100";
 }
 
-/* ================= STATUS ================= */
-function getStatusType(t) {
-  if (t.status === "Late") return "late";
-  if (t.status === "Due Soon") return "soon";
-  if (t.status === "Completed") return "done";
-  return "normal";
-}
-
+/* ================= PAGE ================= */
 export default function SupervisorStudentPage() {
   const router = useRouter();
   const { email } = router.query;
@@ -100,7 +100,7 @@ export default function SupervisorStudentPage() {
   const coSupervisorDisplay =
     student.coSupervisors ||
     student.co_supervisor ||
-    student.cosupervisor ||
+    student.coSupervisor ||
     "-";
 
   /* ================= PDF ================= */
@@ -108,31 +108,19 @@ export default function SupervisorStudentPage() {
     const pdf = new jsPDF();
     let y = 20;
 
+    pdf.setFontSize(16);
     pdf.text("Postgraduate Progress Report", 105, y, { align: "center" });
-    y += 10;
 
+    y += 10;
     pdf.text(`Name: ${student.student_name}`, 20, y);
-    y += 6;
+    y += 7;
     pdf.text(`Programme: ${student.programme}`, 20, y);
-    y += 6;
-
-    pdf.text("Risk:", 20, y);
-
-    if (riskScore === "HIGH RISK") pdf.setTextColor(220, 38, 38);
-    else if (riskScore === "MODERATE RISK") pdf.setTextColor(234, 179, 8);
-    else pdf.setTextColor(22, 163, 74);
-
-    pdf.text(riskScore, 40, y);
-    pdf.setTextColor(0, 0, 0);
+    y += 7;
+    pdf.text(`Risk: ${riskScore}`, 20, y);
 
     y += 10;
-
     timeline.forEach((t, i) => {
-      pdf.text(
-        `${i + 1}. ${t.activity} (${t.status})`,
-        20,
-        y
-      );
+      pdf.text(`${i + 1}. ${t.activity} (${t.status})`, 20, y);
       y += 5;
     });
 
@@ -140,107 +128,111 @@ export default function SupervisorStudentPage() {
   }
 
   /* ================= UI ================= */
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
 
       {/* SIDEBAR */}
-      <div className="md:w-56 w-full md:p-4 p-2">
-        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-3 shadow-sm flex md:flex-col gap-2 overflow-x-auto">
+      <div className="w-56 p-4">
+        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
+
+          <h2 className="font-bold text-purple-700 mb-4">PPBMS</h2>
+
+          <button
+            onClick={() => router.push("/supervisor")}
+            className="mb-3 text-sm text-purple-600 hover:underline"
+          >
+            ← Back to Dashboard
+          </button>
 
           {["overview","documents","timeline","cqi","remarks"].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1
                 ${
                   activeTab === tab
-                    ? "bg-purple-600 text-white"
+                    ? "bg-purple-100 text-purple-700"
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
             >
               {tab.toUpperCase()}
             </button>
           ))}
-
         </div>
       </div>
 
       {/* MAIN */}
-      <div className="flex-1 p-4 md:p-6 space-y-6">
+      <div className="flex-1 p-6 space-y-6">
 
-        {/* EXPORT */}
-        <button
-          onClick={exportPDF}
-          className="px-4 py-2 bg-purple-600 text-white rounded-xl"
-        >
-          Export PDF
-        </button>
+        {/* HEADER */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-bold text-gray-800">
+            Student Overview
+          </h1>
+
+          <button
+            onClick={exportPDF}
+            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+          >
+            Export PDF
+          </button>
+        </div>
 
         {/* HERO */}
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6 shadow">
-          <h1 className="text-lg md:text-xl font-bold">
-            {student.student_name}
-          </h1>
-          <p className="text-sm opacity-80">{student.programme}</p>
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
+          <h1 className="text-xl font-semibold">{student.student_name}</h1>
+          <p className="text-sm">{student.programme}</p>
 
           <div className="mt-4 flex justify-between items-center">
-            <span className="text-3xl font-bold">{progress}%</span>
+            <span className="text-3xl">{progress}%</span>
 
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-semibold
-              ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}`}
-            >
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}`}>
               {riskScore}
             </span>
           </div>
         </div>
 
-        {/* OVERVIEW */}
+        {/* ANALYTICS */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">Completed</p>
+            <p className="text-2xl font-bold text-green-600">{completed}</p>
+          </GlassCard>
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">Due Soon</p>
+            <p className="text-2xl font-bold text-amber-600">{soon}</p>
+          </GlassCard>
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">Late</p>
+            <p className="text-2xl font-bold text-red-600">{late}</p>
+          </GlassCard>
+
+        </div>
+
+        {/* GRAPH */}
+        <GlassCard>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={[
+              { name: "Done", value: completed },
+              { name: "Soon", value: soon },
+              { name: "Late", value: late },
+            ]}>
+              <XAxis dataKey="name" />
+              <Tooltip />
+              <Bar dataKey="value" />
+            </BarChart>
+          </ResponsiveContainer>
+        </GlassCard>
+
+        {/* TABS CONTENT */}
         {activeTab === "overview" && (
-          <div className="space-y-4">
-
-            <GlassCard>
-              <p><strong>Email:</strong> {student.email}</p>
-              <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
-            </GlassCard>
-
-            {/* ANALYTICS */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-              <GlassCard>
-                <p className="text-xs">Completed</p>
-                <p className="text-2xl font-bold text-green-600">{completed}</p>
-              </GlassCard>
-
-              <GlassCard>
-                <p className="text-xs">Due Soon</p>
-                <p className="text-2xl font-bold text-amber-600">{soon}</p>
-              </GlassCard>
-
-              <GlassCard>
-                <p className="text-xs">Late</p>
-                <p className="text-2xl font-bold text-red-600">{late}</p>
-              </GlassCard>
-
-            </div>
-
-            {/* GRAPH */}
-            <GlassCard>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={[
-                  { name: "Done", value: completed },
-                  { name: "Soon", value: soon },
-                  { name: "Late", value: late },
-                ]}>
-                  <XAxis dataKey="name" />
-                  <Tooltip />
-                  <Bar dataKey="value" />
-                </BarChart>
-              </ResponsiveContainer>
-            </GlassCard>
-
-          </div>
+          <GlassCard>
+            <p><strong>Email:</strong> {student.email}</p>
+            <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
+          </GlassCard>
         )}
 
         {/* TIMELINE */}
@@ -252,16 +244,17 @@ export default function SupervisorStudentPage() {
               return (
                 <div
                   key={i}
-                  className={`p-4 rounded-xl border flex justify-between items-center
-                  ${
-                    type === "late"
-                      ? "bg-red-50 border-red-300"
-                      : type === "soon"
-                      ? "bg-amber-50 border-amber-300"
-                      : type === "done"
-                      ? "bg-green-50 border-green-300"
-                      : "bg-white"
-                  }`}
+                  className={`p-4 rounded-xl border flex justify-between
+                    ${
+                      type === "late"
+                        ? "bg-red-50 border-red-300"
+                        : type === "soon"
+                        ? "bg-amber-50 border-amber-300"
+                        : type === "done"
+                        ? "bg-green-50 border-green-300"
+                        : "bg-white"
+                    }
+                  `}
                 >
                   <div>
                     <p className="font-medium">{t.activity}</p>
