@@ -34,11 +34,7 @@ export default function StudentPage() {
       setProfile(data.row);
       setTimeline(data.row.timeline || []);
     } catch (e) {
-      if (e.message === "NO_TOKEN") {
-        window.location.href = "/login";
-        return;
-      }
-      setError(e.message || "Unable to load student data");
+      setError(e.message || "Failed to load");
     }
 
     setLoading(false);
@@ -56,7 +52,7 @@ export default function StudentPage() {
   }
 
   async function resetCompleted(activity) {
-    if (!confirm("Reset this milestone?")) return;
+    if (!confirm("Reset milestone?")) return;
 
     await authFetch("/api/student/reset-actual", {
       method: "POST",
@@ -67,6 +63,10 @@ export default function StudentPage() {
   }
 
   const completed = timeline.filter(t => t.status === "Completed").length;
+  const late = timeline.filter(
+    t => !t.actual && t.remaining_days < 0 && t.status !== "Completed"
+  ).length;
+
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
@@ -84,17 +84,29 @@ export default function StudentPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] p-6 space-y-6">
 
         {/* HERO */}
-        <div className="rounded-3xl bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 shadow-xl">
+        <div className="rounded-3xl bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 text-white p-6 shadow-xl relative overflow-hidden">
+          <div className="absolute right-0 top-0 opacity-10 text-[120px]">
+            🎓
+          </div>
+
           <h1 className="text-2xl font-bold">
-            Welcome back, {profile.student_name} 🎓
+            Welcome back, {profile.student_name}
           </h1>
+
           <p className="text-purple-100 mt-1">
             {completed} / {timeline.length} milestones completed
           </p>
         </div>
 
+        {/* ALERT */}
+        {late > 0 && (
+          <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded-2xl shadow">
+            ⚠️ {late} overdue milestone(s). Immediate action required.
+          </div>
+        )}
+
         {/* PROFILE */}
-        <div className="rounded-3xl bg-white/50 backdrop-blur-xl border shadow-xl p-6">
+        <div className="rounded-3xl bg-white/50 backdrop-blur-xl shadow p-6">
           <h2 className="font-bold mb-3">Profile</h2>
           <div className="grid md:grid-cols-2 gap-2 text-sm">
             <p><strong>Matric:</strong> {profile.student_id}</p>
@@ -104,13 +116,33 @@ export default function StudentPage() {
           </div>
         </div>
 
+        {/* KPI CARDS */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="rounded-2xl p-5 bg-green-50 shadow hover:scale-105 transition">
+            <p className="text-sm text-gray-600">Completed</p>
+            <h2 className="text-2xl font-bold text-green-700">{completed}</h2>
+          </div>
+
+          <div className="rounded-2xl p-5 bg-blue-50 shadow hover:scale-105 transition">
+            <p className="text-sm text-gray-600">On Track</p>
+            <h2 className="text-2xl font-bold text-blue-700">
+              {timeline.length - completed - late}
+            </h2>
+          </div>
+
+          <div className="rounded-2xl p-5 bg-red-50 shadow hover:scale-105 transition">
+            <p className="text-sm text-gray-600">At Risk</p>
+            <h2 className="text-2xl font-bold text-red-700">{late}</h2>
+          </div>
+        </div>
+
         {/* PROGRESS */}
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="rounded-3xl bg-white/50 backdrop-blur-xl p-4 shadow-xl">
+          <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-4 flex justify-center">
             <CompletionDonut percent={progress} />
           </div>
 
-          <div className="md:col-span-2 rounded-3xl bg-white/50 backdrop-blur-xl p-4 shadow-xl">
+          <div className="md:col-span-2 rounded-3xl bg-white/50 backdrop-blur shadow p-4">
             <TimelineSummary timeline={timeline} />
           </div>
         </div>
@@ -132,7 +164,7 @@ export default function StudentPage() {
           ))}
         </div>
 
-        {/* TIMELINE (CARD STYLE) */}
+        {/* TIMELINE CARDS */}
         {activeTab === "timeline" && (
           <div className="grid gap-4">
             {timeline.map((t, i) => {
@@ -142,14 +174,19 @@ export default function StudentPage() {
               return (
                 <div
                   key={i}
-                  className={`rounded-2xl p-4 shadow border ${
+                  className={`rounded-2xl p-5 shadow border-l-4 transition hover:scale-[1.01] ${
                     isLate
-                      ? "bg-red-50 border-red-200"
-                      : "bg-white/50 backdrop-blur"
+                      ? "border-red-500 bg-red-50"
+                      : t.remaining_days <= 30
+                      ? "border-yellow-400 bg-yellow-50"
+                      : "border-green-400 bg-white"
                   }`}
                 >
                   <div className="flex justify-between mb-2">
-                    <h4 className="font-semibold">{t.activity}</h4>
+                    <h4 className="font-semibold flex items-center gap-2">
+                      {isLate ? "🔴" : "🟢"} {t.activity}
+                    </h4>
+
                     <span className="text-sm font-bold text-purple-700">
                       {t.remaining_days} days
                     </span>
@@ -161,7 +198,7 @@ export default function StudentPage() {
 
                   <div className="mt-3 flex justify-between items-center">
                     <span className="text-xs font-semibold">
-                      {isLate ? "⚠️ Late" : t.status}
+                      {isLate ? "Late" : t.status}
                     </span>
 
                     {t.actual ? (
@@ -188,7 +225,7 @@ export default function StudentPage() {
 
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
-          <div className="rounded-3xl bg-white/50 backdrop-blur-xl p-6 shadow-xl">
+          <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
             <StudentChecklist initialDocuments={profile.documents} />
           </div>
         )}
