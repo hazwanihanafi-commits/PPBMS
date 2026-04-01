@@ -1,330 +1,328 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
-import { motion } from "framer-motion";
-import { API_BASE } from "../../utils/api";
-import SupervisorChecklist from "../../components/SupervisorChecklist";
-import SupervisorRemark from "../../components/SupervisorRemark";
-import FinalPLOTable from "../../components/FinalPLOTable";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import jsPDF from "jspdf";
+import Link from "next/link";
+import { apiGet } from "@/utils/api";
 
-/* ================= GLASS CARD ================= */
-const GlassCard = ({ children }) => (
-  <motion.div
-    whileHover={{ y: -4, scale: 1.01 }}
-    className="bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-sm border border-white/40"
-  >
-    {children}
-  </motion.div>
-);
+/* ======================
+   STATUS BADGE
+====================== */
+function StatusBadge({ status }) {
+  const normalized = status
+    ?.toString()
+    .replace("_", " ")
+    .toUpperCase();
 
-/* ================= RISK HELPERS ================= */
-function getRiskColor(risk) {
-  if (risk === "HIGH RISK") return "text-red-600";
-  if (risk === "MODERATE RISK") return "text-amber-600";
-  return "text-green-600";
-}
-
-function getRiskBg(risk) {
-  if (risk === "HIGH RISK") return "bg-red-100";
-  if (risk === "MODERATE RISK") return "bg-amber-100";
-  return "bg-green-100";
-}
-
-/* ================= STATUS ================= */
-function getStatusType(t) {
-  if (t.status === "Late") return "late";
-  if (t.status === "Due Soon") return "soon";
-  if (t.status === "Completed") return "done";
-  return "normal";
-}
-
-export default function SupervisorStudentPage() {
-  const router = useRouter();
-  const { email } = router.query;
-
-  const [student, setStudent] = useState(null);
-  const [timeline, setTimeline] = useState([]);
-  const [cqi, setCqi] = useState({});
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!email) return;
-    loadStudent();
-  }, [email]);
-
-  async function loadStudent() {
-    const token = localStorage.getItem("ppbms_token");
-
-    const res = await fetch(
-      `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    const data = await res.json();
-
-    setStudent(data.row || null);
-    setTimeline(data.row?.timeline || []);
-    setCqi(data.row?.cqiByAssessment || {});
-    setLoading(false);
-  }
-
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!student) return <div className="p-6">Student not found</div>;
-
-  /* ================= DATA ================= */
-  const completed = timeline.filter(t => t.status === "Completed").length;
-  const late = timeline.filter(t => t.status === "Late").length;
-  const soon = timeline.filter(t => t.status === "Due Soon").length;
-
-  const progress = timeline.length
-    ? Math.round((completed / timeline.length) * 100)
-    : 0;
-
-  const riskScore =
-    late > 2
-      ? "HIGH RISK"
-      : late > 0 || soon > 2
-      ? "MODERATE RISK"
-      : "LOW RISK";
-
-  const coSupervisorDisplay =
-    Array.isArray(student.coSupervisors)
-      ? student.coSupervisors.join(", ")
-      : student.coSupervisors ||
-        student.co_supervisor ||
-        student.coSupervisor ||
-        "-";
-
-  /* ================= PDF ================= */
-  function exportPDF() {
-    const pdf = new jsPDF();
-    let y = 20;
-
-    pdf.setFontSize(16);
-    pdf.text("UNIVERSITI SAINS MALAYSIA", 105, y, { align: "center" });
-
-    y += 10;
-    pdf.setFontSize(12);
-    pdf.text("Postgraduate Progress Report", 105, y, { align: "center" });
-
-    y += 10;
-    pdf.text(`Name: ${student.student_name}`, 20, y);
-    y += 7;
-    pdf.text(`Programme: ${student.programme}`, 20, y);
-    y += 7;
-
-    // 🔴 Risk color
-    pdf.text("Risk Level:", 20, y);
-    pdf.setFont(undefined, "bold");
-
-    if (riskScore === "HIGH RISK") {
-      pdf.setTextColor(220, 38, 38);
-    } else if (riskScore === "MODERATE RISK") {
-      pdf.setTextColor(234, 179, 8);
-    } else {
-      pdf.setTextColor(22, 163, 74);
-    }
-
-    pdf.text(riskScore, 55, y);
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFont(undefined, "normal");
-
-    y += 10;
-
-    pdf.text("Timeline:", 20, y);
-    y += 6;
-
-    timeline.forEach((t, i) => {
-      pdf.text(`${i + 1}. ${t.activity} (${t.status})`, 20, y);
-      y += 5;
-    });
-
-    pdf.save("report.pdf");
-  }
-
-  /* ================= UI ================= */
+  const map = {
+    LATE: "bg-red-100 text-red-700",
+    "ON TRACK": "bg-blue-100 text-blue-700",
+    COMPLETED: "bg-green-100 text-green-700",
+    GRADUATED: "bg-green-100 text-green-700",
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
+    <span
+      className={`px-2 py-1 rounded text-xs font-semibold ${
+        map[normalized] || "bg-gray-100 text-gray-700"
+      }`}
+    >
+      {normalized}
+    </span>
+  );
+}
 
-      {/* SIDEBAR */}
-      <div className="w-60 p-4">
-        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm">
+/* ======================
+   PAGE
+====================== */
+export default function AdminDashboard() {
+  const router = useRouter();
 
-          <h2 className="font-semibold text-gray-800 mb-3">PPBMS</h2>
+  function handleLogout() {
+    localStorage.clear();
+    router.push("/login");
+  }
 
-          {["overview","documents","timeline","cqi","remarks"].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm
-                ${
-                  activeTab === tab
-                    ? "bg-purple-100 text-purple-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-            >
-              {tab.toUpperCase()}
-            </button>
-          ))}
+  const [checked, setChecked] = useState(false);
 
+  const [programmes, setProgrammes] = useState([]);
+  const [programme, setProgramme] = useState("");
+
+  const [cqi, setCQI] = useState(null);
+  const [graduates, setGraduates] = useState([]);
+  const [activeStudents, setActiveStudents] = useState([]);
+
+  const [summary, setSummary] = useState({
+    late: 0,
+    onTrack: 0,
+    graduated: 0,
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  /* 🔍 SEARCH + FILTER */
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  /* ======================
+     AUTH GUARD
+  ====================== */
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const token = localStorage.getItem("ppbms_token");
+    const role = localStorage.getItem("ppbms_role");
+
+    if (!token || role !== "admin") {
+      localStorage.clear();
+      router.replace("/login");
+      return;
+    }
+
+    setChecked(true);
+  }, [router.isReady]);
+
+ /* ======================
+   LOAD PROGRAMMES (ALL STUDENTS)
+====================== */
+useEffect(() => {
+  if (!checked) return;
+
+  apiGet("/api/admin/programmes/students")
+    .then(d => setProgrammes(d.programmes || []))
+    .catch(() => setProgrammes([]));
+}, [checked]);
+
+  /* ======================
+     LOAD PROGRAMME DATA (IMPORTANT)
+  ====================== */
+  useEffect(() => {
+    if (!programme) return;
+
+    setLoading(true);
+
+    Promise.all([
+      apiGet(`/api/admin/programme-plo?programme=${programme}`),
+      apiGet(`/api/admin/programme-graduates?programme=${programme}`),
+      apiGet(`/api/admin/programme-active-students?programme=${programme}`),
+      apiGet(`/api/admin/programme-summary?programme=${programme}`),
+    ])
+      .then(([plo, grad, active, sum]) => {
+        setCQI({
+          plo: plo.plo || {},
+          graduates: plo.graduates || 0,
+        });
+
+        setGraduates(
+          (grad.students || []).map(s => ({
+            ...s,
+            status: "GRADUATED",
+          }))
+        );
+
+        setActiveStudents(active.students || []);
+        setSummary(sum || { late: 0, onTrack: 0, graduated: 0 });
+      })
+      .finally(() => setLoading(false));
+  }, [programme]);
+
+  /* ======================
+     MERGE + FILTER STUDENTS
+  ====================== */
+  const students = useMemo(() => {
+    const all = [...activeStudents, ...graduates];
+
+    return all.filter(s => {
+      const q = search.toLowerCase();
+
+      const matchesSearch =
+        s.name?.toLowerCase().includes(q) ||
+        s.matric?.toLowerCase().includes(q);
+
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        s.status?.toUpperCase().replace("_", " ") === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [search, statusFilter, activeStudents, graduates]);
+
+  if (!checked) return <div className="p-6">Checking access…</div>;
+
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+
+      {/* ===== HEADER ===== */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-purple-700">
+          Admin Dashboard
+        </h1>
+
+        <div className="flex gap-4">
+          <button
+            onClick={() => router.push("/")}
+            className="text-purple-600 underline text-sm"
+          >
+            ← Landing Page
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded-xl font-semibold"
+          >
+            Logout
+          </button>
         </div>
       </div>
 
-      {/* MAIN */}
-      <motion.div
-        className="flex-1 p-6 space-y-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+      {/* PROGRAMME SELECT */}
+      <select
+        className="w-full p-3 border rounded"
+        value={programme}
+        onChange={e => setProgramme(e.target.value)}
       >
+        <option value="">Select Programme</option>
+        {programmes.map(p => (
+          <option key={p} value={p}>{p}</option>
+        ))}
+      </select>
 
-        {/* HEADER BUTTON */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          whileHover={{ scale: 1.05 }}
-          onClick={exportPDF}
-          className="px-4 py-2 bg-purple-600 text-white rounded-xl"
-        >
-          Export PDF
-        </motion.button>
+      {loading && <div className="text-gray-500">Loading…</div>}
 
-        {/* HERO */}
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
-
-          <h1 className="text-xl font-semibold">
-            {student.student_name}
-          </h1>
-
-          <p className="text-sm text-white/80">
-            {student.programme}
-          </p>
-
-          <div className="mt-4 flex justify-between items-center">
-            <span className="text-3xl">{progress}%</span>
-
-            <span
-              className={`text-xs px-3 py-1 rounded-full
-                ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}
-              `}
-            >
-              {riskScore}
-            </span>
-          </div>
-
+      {/* ================= SUMMARY CARDS ================= */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-red-100 p-4 rounded-xl">
+          <div className="text-sm font-semibold">Late</div>
+          <div className="text-2xl font-bold">{summary.late}</div>
         </div>
 
-        {/* CONTENT */}
-        <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className="bg-blue-100 p-4 rounded-xl">
+          <div className="text-sm font-semibold">On Track</div>
+          <div className="text-2xl font-bold">{summary.onTrack}</div>
+        </div>
 
-          {/* OVERVIEW */}
-          {activeTab === "overview" && (
-            <div className="space-y-4">
+        <div className="bg-green-100 p-4 rounded-xl">
+          <div className="text-sm font-semibold">Graduated</div>
+          <div className="text-2xl font-bold">{summary.graduated}</div>
+        </div>
+      </div>
 
-              <GlassCard>
-                <p><strong>Email:</strong> {student.email}</p>
-                <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
-              </GlassCard>
+      {/* ================= FINAL PROGRAMME PLO ================= */}
+      {cqi && (
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="font-semibold mb-1">
+            Final Programme PLO Achievement
+          </h3>
 
-              <GlassCard>
-                <p className={`font-semibold ${getRiskColor(riskScore)}`}>
-                  {riskScore}
-                </p>
-              </GlassCard>
+          <p className="text-xs text-gray-500 mb-4">
+            Based on {cqi.graduates} graduated student(s)
+          </p>
 
-              {/* ANALYTICS CARDS */}
-              <div className="grid grid-cols-3 gap-4">
-                <GlassCard><p>Completed: {completed}</p></GlassCard>
-                <GlassCard><p>Due Soon: {soon}</p></GlassCard>
-                <GlassCard><p>Late: {late}</p></GlassCard>
+          {Object.entries(cqi.plo).map(([plo, v]) => (
+            <div key={plo} className="mb-3">
+              <div className="flex justify-between text-sm">
+                <span>{plo}</span>
+                <span>
+                  {v.percent !== null ? `${v.percent}%` : "-"}
+                </span>
               </div>
 
-              {/* 📊 GRAPH (NOT REMOVED) */}
-              <GlassCard>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={[
-                    { name: "Done", value: completed },
-                    { name: "Soon", value: soon },
-                    { name: "Late", value: late },
-                  ]}>
-                    <XAxis dataKey="name" />
-                    <Tooltip />
-                    <Bar dataKey="value" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </GlassCard>
-
+              <div className="w-full h-2 bg-gray-200 rounded">
+                <div
+                  className={`h-2 rounded ${
+                    v.status === "Achieved"
+                      ? "bg-green-500"
+                      : v.status === "Borderline"
+                      ? "bg-yellow-400"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${v.percent || 0}%` }}
+                />
+              </div>
             </div>
-          )}
+          ))}
+        </div>
+      )}
 
-          {/* TIMELINE */}
-          {activeTab === "timeline" && (
-            <div className="space-y-3">
-              {timeline.map((t, i) => {
-                const type = getStatusType(t);
+      {/* ================= SEARCH + FILTER ================= */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <input
+          type="text"
+          placeholder="Search by name or matric…"
+          className="flex-1 p-3 border rounded"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
 
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={`p-4 rounded-xl border
-                      ${
-                        type === "late"
-                          ? "bg-red-50 border-red-300"
-                          : type === "soon"
-                          ? "bg-amber-50 border-amber-300"
-                          : type === "done"
-                          ? "bg-green-50 border-green-300"
-                          : "bg-white"
-                      }
-                    `}
+        <select
+          className="p-3 border rounded w-full md:w-48"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="ALL">All Status</option>
+          <option value="ON TRACK">On Track</option>
+          <option value="LATE">Late</option>
+          <option value="GRADUATED">Graduated</option>
+        </select>
+      </div>
+
+      {/* ================= STUDENT TABLE ================= */}
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="px-6 py-4 border-b">
+          <h3 className="font-semibold">Student List</h3>
+          <p className="text-xs text-gray-500">
+            Showing {students.length} student(s)
+          </p>
+        </div>
+
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 border-b">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Matric
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Status
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Profile
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y">
+            {students.map((s, i) => (
+              <tr key={i} className="hover:bg-gray-50">
+                <td className="px-6 py-4">{s.name}</td>
+                <td className="px-6 py-4">{s.matric}</td>
+                <td className="px-6 py-4">
+                  <StatusBadge status={s.status} />
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <Link
+                    href={`/admin/student/${encodeURIComponent(
+                      s.email.trim().toLowerCase()
+                    )}`}
+                    className="text-purple-600 font-medium hover:underline"
                   >
-                    <p className="font-medium">{t.activity}</p>
-                    <span className="text-xs">{t.status}</span>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
+                    View
+                  </Link>
+                </td>
+              </tr>
+            ))}
 
-          {/* DOCUMENTS */}
-          {activeTab === "documents" && (
-            <SupervisorChecklist documents={student.documents || {}} />
-          )}
+            {!students.length && (
+              <tr>
+                <td colSpan={4} className="px-6 py-6 text-center text-gray-500">
+                  No students found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-          {/* CQI */}
-          {activeTab === "cqi" && (
-            <FinalPLOTable finalPLO={student.finalPLO} />
-          )}
-
-          {/* REMARKS */}
-          {activeTab === "remarks" && (
-            <SupervisorRemark
-              studentMatric={student.student_id}
-              studentEmail={student.email}
-            />
-          )}
-
-        </motion.div>
-
-        {/* FOOTER */}
-        <footer className="text-center text-xs text-gray-400 pt-6">
-          © 2026 PPBMS · Universiti Sains Malaysia  
-          <br />
-          Developed by Hazwani Ahmad Yusof (2025)
-        </footer>
-
-      </motion.div>
     </div>
   );
 }
