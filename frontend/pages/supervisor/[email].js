@@ -17,14 +17,14 @@ import jsPDF from "jspdf";
 /* ================= GLASS CARD ================= */
 const GlassCard = ({ children }) => (
   <motion.div
-    whileHover={{ y: -4, scale: 1.01 }}
-    className="bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-sm border border-white/40"
+    whileHover={{ y: -3 }}
+    className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white/40"
   >
     {children}
   </motion.div>
 );
 
-/* ================= HELPERS ================= */
+/* ================= RISK ================= */
 function getRiskColor(risk) {
   if (risk === "HIGH RISK") return "text-red-600";
   if (risk === "MODERATE RISK") return "text-amber-600";
@@ -37,6 +37,7 @@ function getRiskBg(risk) {
   return "bg-green-100";
 }
 
+/* ================= STATUS ================= */
 function getStatusType(t) {
   if (t.status === "Late") return "late";
   if (t.status === "Due Soon") return "soon";
@@ -97,49 +98,41 @@ export default function SupervisorStudentPage() {
       : "LOW RISK";
 
   const coSupervisorDisplay =
-    Array.isArray(student.coSupervisors)
-      ? student.coSupervisors.join(", ")
-      : student.coSupervisors ||
-        student.co_supervisor ||
-        student.coSupervisor ||
-        "-";
+    student.coSupervisors ||
+    student.co_supervisor ||
+    student.cosupervisor ||
+    "-";
 
   /* ================= PDF ================= */
   function exportPDF() {
     const pdf = new jsPDF();
     let y = 20;
 
-    pdf.setFontSize(16);
-    pdf.text("UNIVERSITI SAINS MALAYSIA", 105, y, { align: "center" });
-
-    y += 10;
-    pdf.setFontSize(12);
     pdf.text("Postgraduate Progress Report", 105, y, { align: "center" });
-
     y += 10;
-    pdf.text(`Name: ${student.student_name}`, 20, y);
-    y += 7;
-    pdf.text(`Programme: ${student.programme}`, 20, y);
-    y += 7;
 
-    pdf.text("Risk Level:", 20, y);
-    pdf.setFont(undefined, "bold");
+    pdf.text(`Name: ${student.student_name}`, 20, y);
+    y += 6;
+    pdf.text(`Programme: ${student.programme}`, 20, y);
+    y += 6;
+
+    pdf.text("Risk:", 20, y);
 
     if (riskScore === "HIGH RISK") pdf.setTextColor(220, 38, 38);
     else if (riskScore === "MODERATE RISK") pdf.setTextColor(234, 179, 8);
     else pdf.setTextColor(22, 163, 74);
 
-    pdf.text(riskScore, 55, y);
+    pdf.text(riskScore, 40, y);
     pdf.setTextColor(0, 0, 0);
-    pdf.setFont(undefined, "normal");
 
     y += 10;
 
-    pdf.text("Timeline:", 20, y);
-    y += 6;
-
     timeline.forEach((t, i) => {
-      pdf.text(`${i + 1}. ${t.activity} (${t.status})`, 20, y);
+      pdf.text(
+        `${i + 1}. ${t.activity} (${t.status})`,
+        20,
+        y
+      );
       y += 5;
     });
 
@@ -149,116 +142,118 @@ export default function SupervisorStudentPage() {
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex flex-col md:flex-row">
 
       {/* SIDEBAR */}
-      <div className="w-60 p-4">
-        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm">
-          <h2 className="font-semibold text-gray-800 mb-3">PPBMS</h2>
+      <div className="md:w-56 w-full md:p-4 p-2">
+        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-3 shadow-sm flex md:flex-col gap-2 overflow-x-auto">
 
           {["overview","documents","timeline","cqi","remarks"].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm
+              className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap
                 ${
                   activeTab === tab
-                    ? "bg-purple-100 text-purple-700"
+                    ? "bg-purple-600 text-white"
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
             >
               {tab.toUpperCase()}
             </button>
           ))}
+
         </div>
       </div>
 
       {/* MAIN */}
-      <motion.div
-        className="flex-1 p-6 space-y-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <div className="flex-1 p-4 md:p-6 space-y-6">
 
-        {/* 🔥 TOP BAR (BACK + EXPORT) */}
-        <div className="flex justify-between items-center">
-
-          <button
-            onClick={() => router.back() || router.push("/supervisor")}
-            className="text-sm text-purple-600 hover:underline"
-          >
-            ← Back to Dashboard
-          </button>
-
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            whileHover={{ scale: 1.05 }}
-            onClick={exportPDF}
-            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
-          >
-            Export PDF
-          </motion.button>
-
-        </div>
+        {/* EXPORT */}
+        <button
+          onClick={exportPDF}
+          className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+        >
+          Export PDF
+        </button>
 
         {/* HERO */}
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
-          <h1 className="text-xl font-semibold">{student.student_name}</h1>
-          <p className="text-sm text-white/80">{student.programme}</p>
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6 shadow">
+          <h1 className="text-lg md:text-xl font-bold">
+            {student.student_name}
+          </h1>
+          <p className="text-sm opacity-80">{student.programme}</p>
 
           <div className="mt-4 flex justify-between items-center">
-            <span className="text-3xl">{progress}%</span>
+            <span className="text-3xl font-bold">{progress}%</span>
 
-            <span className={`text-xs px-3 py-1 rounded-full ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}`}>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold
+              ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}`}
+            >
               {riskScore}
             </span>
           </div>
         </div>
 
-        {/* CONTENT */}
-        <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        {/* OVERVIEW */}
+        {activeTab === "overview" && (
+          <div className="space-y-4">
 
-          {activeTab === "overview" && (
-            <div className="space-y-4">
+            <GlassCard>
+              <p><strong>Email:</strong> {student.email}</p>
+              <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
+            </GlassCard>
+
+            {/* ANALYTICS */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
               <GlassCard>
-                <p><strong>Email:</strong> {student.email}</p>
-                <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
+                <p className="text-xs">Completed</p>
+                <p className="text-2xl font-bold text-green-600">{completed}</p>
               </GlassCard>
 
               <GlassCard>
-                <p className={`font-semibold ${getRiskColor(riskScore)}`}>
-                  {riskScore}
-                </p>
+                <p className="text-xs">Due Soon</p>
+                <p className="text-2xl font-bold text-amber-600">{soon}</p>
               </GlassCard>
-
-              <div className="grid grid-cols-3 gap-4">
-                <GlassCard>Completed: {completed}</GlassCard>
-                <GlassCard>Due Soon: {soon}</GlassCard>
-                <GlassCard>Late: {late}</GlassCard>
-              </div>
 
               <GlassCard>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={[
-                    { name: "Done", value: completed },
-                    { name: "Soon", value: soon },
-                    { name: "Late", value: late },
-                  ]}>
-                    <XAxis dataKey="name" />
-                    <Tooltip />
-                    <Bar dataKey="value" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <p className="text-xs">Late</p>
+                <p className="text-2xl font-bold text-red-600">{late}</p>
               </GlassCard>
+
             </div>
-          )}
 
-          {activeTab === "timeline" && (
-            <div className="space-y-3">
-              {timeline.map((t, i) => {
-                const type = getStatusType(t);
-                return (
-                  <div key={i} className={`p-4 rounded-xl border ${
+            {/* GRAPH */}
+            <GlassCard>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={[
+                  { name: "Done", value: completed },
+                  { name: "Soon", value: soon },
+                  { name: "Late", value: late },
+                ]}>
+                  <XAxis dataKey="name" />
+                  <Tooltip />
+                  <Bar dataKey="value" />
+                </BarChart>
+              </ResponsiveContainer>
+            </GlassCard>
+
+          </div>
+        )}
+
+        {/* TIMELINE */}
+        {activeTab === "timeline" && (
+          <div className="space-y-3">
+            {timeline.map((t, i) => {
+              const type = getStatusType(t);
+
+              return (
+                <div
+                  key={i}
+                  className={`p-4 rounded-xl border flex justify-between items-center
+                  ${
                     type === "late"
                       ? "bg-red-50 border-red-300"
                       : type === "soon"
@@ -266,30 +261,41 @@ export default function SupervisorStudentPage() {
                       : type === "done"
                       ? "bg-green-50 border-green-300"
                       : "bg-white"
-                  }`}>
-                    {t.activity} ({t.status})
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium">{t.activity}</p>
+                    <p className="text-xs">{t.status}</p>
                   </div>
-                );
-              })}
-            </div>
-          )}
 
-          {activeTab === "documents" && (
-            <SupervisorChecklist documents={student.documents || {}} />
-          )}
+                  <div className="text-sm font-semibold">
+                    {t.remaining_days < 0
+                      ? `${Math.abs(t.remaining_days)} days overdue`
+                      : `${t.remaining_days} days`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-          {activeTab === "cqi" && (
-            <FinalPLOTable finalPLO={student.finalPLO} />
-          )}
+        {/* DOCUMENTS */}
+        {activeTab === "documents" && (
+          <SupervisorChecklist documents={student.documents || {}} />
+        )}
 
-          {activeTab === "remarks" && (
-            <SupervisorRemark
-              studentMatric={student.student_id}
-              studentEmail={student.email}
-            />
-          )}
+        {/* CQI */}
+        {activeTab === "cqi" && (
+          <FinalPLOTable finalPLO={student.finalPLO} />
+        )}
 
-        </motion.div>
+        {/* REMARKS */}
+        {activeTab === "remarks" && (
+          <SupervisorRemark
+            studentMatric={student.student_id}
+            studentEmail={student.email}
+          />
+        )}
 
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 pt-6">
@@ -298,7 +304,7 @@ export default function SupervisorStudentPage() {
           Developed by Hazwani Ahmad Yusof (2025)
         </footer>
 
-      </motion.div>
+      </div>
     </div>
   );
 }
