@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { motion } from "framer-motion";
 import { API_BASE } from "../../utils/api";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import SupervisorRemark from "../../components/SupervisorRemark";
@@ -13,18 +14,28 @@ import {
 } from "recharts";
 import jsPDF from "jspdf";
 
+/* ================= GLASS CARD ================= */
+const GlassCard = ({ children }) => (
+  <motion.div
+    whileHover={{ y: -4, scale: 1.01 }}
+    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+    className="bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-sm border border-white/40"
+  >
+    {children}
+  </motion.div>
+);
+
 /* ================= CHART ================= */
 function AnalyticsChart({ completed, soon, late }) {
   const data = [
     { name: "Completed", value: completed },
-    { name: "Due Soon", value: soon },
+    { name: "Soon", value: soon },
     { name: "Late", value: late },
   ];
 
   return (
-    <div className="bg-white/40 backdrop-blur-xl p-4 rounded-2xl shadow">
+    <GlassCard>
       <h3 className="font-semibold mb-3">Timeline Analytics</h3>
-
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data}>
           <XAxis dataKey="name" />
@@ -32,7 +43,7 @@ function AnalyticsChart({ completed, soon, late }) {
           <Bar dataKey="value" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
-    </div>
+    </GlassCard>
   );
 }
 
@@ -41,8 +52,6 @@ function AnalyticsChart({ completed, soon, late }) {
 export default function SupervisorStudentPage() {
   const router = useRouter();
   const { email } = router.query;
-
-  const reportRef = useRef();
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -111,136 +120,173 @@ export default function SupervisorStudentPage() {
 
     pdf.setFontSize(12);
     pdf.text(`Name: ${student.student_name}`, 20, 40);
-    pdf.text(`Programme: ${student.programme}`, 20, 50);
-    pdf.text(`Progress: ${progress}%`, 20, 60);
-    pdf.text(`Risk: ${riskScore}`, 20, 70);
-
-    pdf.text("Timeline:", 20, 90);
+    pdf.text(`Progress: ${progress}%`, 20, 50);
+    pdf.text(`Risk: ${riskScore}`, 20, 60);
 
     timeline.forEach((t, i) => {
-      pdf.text(`${i + 1}. ${t.activity} - ${t.status}`, 20, 100 + i * 10);
+      pdf.text(`${i + 1}. ${t.activity} - ${t.status}`, 20, 80 + i * 10);
     });
 
-    pdf.save(`${student.student_name}_report.pdf`);
+    pdf.save("report.pdf");
   }
 
   /* ================= UI ================= */
 
-  const GlassCard = ({ children }) => (
-    <div className="relative p-5 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/30 shadow-lg">
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-200 via-transparent to-indigo-200 opacity-20 blur-xl"></div>
-      <div className="relative z-10">{children}</div>
-    </div>
-  );
-
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#eef2ff] to-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
 
       {/* SIDEBAR */}
-      <div className="w-64 bg-white shadow-lg p-4 space-y-3">
+      <div className="w-60 p-4">
+        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm space-y-2">
 
-        <h2 className="font-bold text-purple-700">PPBMS</h2>
+          <h2 className="font-semibold text-gray-800 mb-3">PPBMS</h2>
 
-        {["overview","documents","timeline","cqi","remarks"].map(tab => (
+          {["overview","documents","timeline","cqi","remarks"].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm
+                ${
+                  activeTab === tab
+                    ? "bg-purple-100 text-purple-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+            >
+              {tab.toUpperCase()}
+            </button>
+          ))}
+
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`block w-full text-left px-4 py-2 rounded-xl ${
-              activeTab === tab ? "bg-purple-600 text-white" : ""
-            }`}
+            onClick={() => router.push("/supervisor")}
+            className="text-sm text-purple-600 mt-4"
           >
-            {tab.toUpperCase()}
+            ← Back
           </button>
-        ))}
 
-        <button onClick={() => router.push("/supervisor")}>
-          ← Back
-        </button>
-
+        </div>
       </div>
 
-      {/* CONTENT */}
-      <div className="flex-1 p-6 space-y-6">
+      {/* MAIN */}
+      <motion.div
+        className="flex-1 p-6 space-y-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
 
-        <button
+        {/* BUTTON */}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
           onClick={exportPDF}
-          className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+          className="px-4 py-2 bg-purple-600 text-white rounded-xl shadow"
         >
           Export PDF
-        </button>
+        </motion.button>
 
         {/* HERO */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 rounded-2xl">
-          <h1 className="text-2xl font-bold">
+        <div className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-3xl p-6 shadow-lg">
+
+          <h1 className="text-xl font-semibold">
             {student.student_name}
           </h1>
-          <p>{progress}% Progress</p>
+
+          <p className="text-sm text-white/80">
+            {student.programme}
+          </p>
+
+          <div className="mt-4 flex justify-between">
+            <span className="text-3xl">{progress}%</span>
+            <span className="text-xs bg-white/20 px-3 py-1 rounded-full">
+              {riskScore}
+            </span>
+          </div>
+
+          <div className="mt-3 h-1.5 bg-white/30 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.8 }}
+              className="h-1.5 bg-white rounded-full"
+            />
+          </div>
+
         </div>
 
-        {/* OVERVIEW */}
-        {activeTab === "overview" && (
-          <div className="space-y-4">
+        {/* TAB CONTENT */}
+        <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 
-            <GlassCard>
-              <p><strong>Email:</strong> {student.email}</p>
-              <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
-            </GlassCard>
+          {/* OVERVIEW */}
+          {activeTab === "overview" && (
+            <div className="space-y-4">
 
-            <GlassCard>
-              <p className="font-bold">{riskScore}</p>
-            </GlassCard>
+              <GlassCard>
+                <p><strong>Email:</strong> {student.email}</p>
+                <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
+              </GlassCard>
 
-            <AnalyticsChart
-              completed={completed}
-              soon={soon}
-              late={late}
-            />
+              <GlassCard>
+                <p className="font-semibold">{riskScore}</p>
+              </GlassCard>
 
-          </div>
-        )}
-
-        {/* DOCUMENTS */}
-        {activeTab === "documents" && (
-          <SupervisorChecklist documents={student.documents || {}} />
-        )}
-
-        {/* TIMELINE */}
-        {activeTab === "timeline" && (
-          <div className="space-y-4">
-            {timeline.map((t, i) => (
-              <div
-                key={i}
-                className={`p-4 rounded-xl border ${
-                  t.status === "Late"
-                    ? "bg-red-50 border-red-300"
-                    : t.status === "Due Soon"
-                    ? "bg-yellow-50 border-yellow-300"
-                    : t.status === "Completed"
-                    ? "bg-green-50 border-green-300"
-                    : "bg-white"
-                }`}
-              >
-                <p className="font-semibold">{t.activity}</p>
-                <span>{t.status}</span>
+              <div className="grid grid-cols-3 gap-4">
+                <GlassCard><p>Completed: {completed}</p></GlassCard>
+                <GlassCard><p>Due Soon: {soon}</p></GlassCard>
+                <GlassCard><p>Late: {late}</p></GlassCard>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* CQI */}
-        {activeTab === "cqi" && (
-          <FinalPLOTable finalPLO={student.finalPLO} />
-        )}
+              <AnalyticsChart completed={completed} soon={soon} late={late} />
 
-        {/* REMARKS */}
-        {activeTab === "remarks" && (
-          <SupervisorRemark
-            studentMatric={student.student_id}
-            studentEmail={student.email}
-          />
-        )}
+            </div>
+          )}
 
-      </div>
+          {/* DOCUMENTS */}
+          {activeTab === "documents" && (
+            <SupervisorChecklist documents={student.documents || {}} />
+          )}
+
+          {/* TIMELINE */}
+          {activeTab === "timeline" && (
+            <div className="space-y-3">
+              {timeline.map((t, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className={`p-4 rounded-xl border
+                    ${
+                      t.status === "Late"
+                        ? "bg-red-50 border-red-300"
+                        : t.status === "Due Soon"
+                        ? "bg-yellow-50 border-yellow-300"
+                        : t.status === "Completed"
+                        ? "bg-green-50 border-green-300"
+                        : "bg-white"
+                    }`}
+                >
+                  <p className="font-medium">{t.activity}</p>
+                  <span className="text-xs">{t.status}</span>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* CQI */}
+          {activeTab === "cqi" && (
+            <FinalPLOTable finalPLO={student.finalPLO} />
+          )}
+
+          {/* REMARKS */}
+          {activeTab === "remarks" && (
+            <SupervisorRemark
+              studentMatric={student.student_id}
+              studentEmail={student.email}
+            />
+          )}
+
+        </motion.div>
+
+      </motion.div>
     </div>
   );
 }
