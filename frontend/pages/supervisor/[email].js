@@ -12,7 +12,6 @@ export default function SupervisorStudentPage() {
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [cqi, setCqi] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export default function SupervisorStudentPage() {
 
       setStudent(data.row || null);
       setTimeline(data.row?.timeline || []);
-      setCqi(data.row?.cqiByAssessment || {});
     } catch (err) {
       console.error(err);
     } finally {
@@ -43,33 +41,23 @@ export default function SupervisorStudentPage() {
     }
   }
 
-  /* ================= EXPORT PDF ================= */
+  /* ================= PDF ================= */
   async function exportPDF() {
-    const element = reportRef.current;
-
-    const canvas = await html2canvas(element);
-    const imgData = canvas.toDataURL("image/png");
+    const canvas = await html2canvas(reportRef.current);
+    const img = canvas.toDataURL("image/png");
 
     const pdf = new jsPDF("p", "mm", "a4");
-    const imgWidth = 210;
-    const pageHeight = 295;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-    pdf.save(`${student.student_name}_Report.pdf`);
+    pdf.addImage(img, "PNG", 0, 0, 210, 295);
+    pdf.save(`${student.student_name}_report.pdf`);
   }
 
-  if (loading) return <div className="p-6">Loading…</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
-  /* ================= DATA ================= */
   const completed = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
-
-  const hasRisk =
-    timeline.some(t => t.status === "Late" || t.status === "Due Soon");
 
   const GlassCard = ({ children }) => (
     <div className="relative rounded-3xl p-5 bg-white/40 backdrop-blur-xl border border-white/30 shadow-xl overflow-hidden transition hover:scale-[1.03]">
@@ -81,7 +69,7 @@ export default function SupervisorStudentPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] p-6 space-y-6">
 
-      {/* BACK + EXPORT */}
+      {/* TOP */}
       <div className="flex justify-between">
         <button
           onClick={() => router.push("/supervisor")}
@@ -98,7 +86,7 @@ export default function SupervisorStudentPage() {
         </button>
       </div>
 
-      {/* REPORT AREA */}
+      {/* REPORT */}
       <div ref={reportRef} className="space-y-6">
 
         {/* HERO */}
@@ -112,7 +100,7 @@ export default function SupervisorStudentPage() {
           </p>
 
           <p className="mt-2 text-3xl font-bold">
-            {progress}% Progress
+            {progress}%
           </p>
 
           <div className="mt-3 h-2 bg-white/30 rounded">
@@ -123,55 +111,88 @@ export default function SupervisorStudentPage() {
           </div>
         </div>
 
-        {/* ANALYTICS */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* SUMMARY */}
+        <div className="grid grid-cols-3 gap-4">
 
-          {/* DISTRIBUTION */}
           <GlassCard>
-            <h3 className="font-semibold mb-2">Timeline Status</h3>
-
-            {["Completed","On Time","Due Soon","Late"].map(status => {
-              const count = timeline.filter(t => t.status === status).length;
-
-              return (
-                <p key={status} className="text-sm">
-                  {status}: {count}
-                </p>
-              );
-            })}
-          </GlassCard>
-
-          {/* RISK */}
-          <GlassCard>
-            <h3 className="font-semibold mb-2">Risk Assessment</h3>
-            <p className={hasRisk ? "text-red-600" : "text-green-600"}>
-              {hasRisk
-                ? "Intervention Required"
-                : "On Track"}
+            <p className="text-sm">Completed</p>
+            <p className="text-xl font-bold text-green-600">
+              {timeline.filter(t => t.status === "Completed").length}
             </p>
           </GlassCard>
 
-          {/* INSIGHT */}
           <GlassCard>
-            <h3 className="font-semibold mb-2">System Insight</h3>
-            <p className="text-sm">
-              {hasRisk
-                ? "Student shows delay in milestones. Supervisor action recommended."
-                : "Student progressing within expected timeline."}
+            <p className="text-sm">Due Soon</p>
+            <p className="text-xl font-bold text-yellow-600">
+              {timeline.filter(t => t.status === "Due Soon").length}
+            </p>
+          </GlassCard>
+
+          <GlassCard>
+            <p className="text-sm">Late</p>
+            <p className="text-xl font-bold text-red-600">
+              {timeline.filter(t => t.status === "Late").length}
             </p>
           </GlassCard>
 
         </div>
 
         {/* TIMELINE */}
-        <div className="bg-white rounded-2xl p-6 shadow">
-          <h3 className="font-semibold mb-3">Timeline</h3>
+        <div className="space-y-4">
 
-          {timeline.map((t, i) => (
-            <p key={i} className="text-sm border-b py-1">
-              {t.activity} — {t.status}
-            </p>
-          ))}
+          {timeline.map((t, i) => {
+            const isLate = t.status === "Late";
+            const isSoon = t.status === "Due Soon";
+            const isDone = t.status === "Completed";
+
+            return (
+              <div
+                key={i}
+                className={`relative rounded-2xl p-4 border shadow-sm transition hover:shadow-lg
+                  ${
+                    isLate
+                      ? "bg-red-50 border-red-200"
+                      : isSoon
+                      ? "bg-yellow-50 border-yellow-200"
+                      : isDone
+                      ? "bg-green-50 border-green-200"
+                      : "bg-white border-gray-200"
+                  }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-200 via-transparent to-indigo-200 opacity-20 blur-xl"></div>
+
+                <div className="relative z-10 flex justify-between items-center">
+
+                  <div>
+                    <p className="font-semibold">
+                      {t.activity}
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      Expected: {t.expected || "-"} | Actual: {t.actual || "-"}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold
+                      ${
+                        isLate
+                          ? "bg-red-100 text-red-700"
+                          : isSoon
+                          ? "bg-yellow-100 text-yellow-700"
+                          : isDone
+                          ? "bg-green-100 text-green-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}
+                  >
+                    {t.status}
+                  </span>
+
+                </div>
+              </div>
+            );
+          })}
+
         </div>
 
       </div>
