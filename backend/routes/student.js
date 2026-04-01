@@ -181,7 +181,7 @@ router.post("/reset-actual", auth, async (req, res) => {
       "MasterTracking",
       column,
       idx + 2,
-      null   // clear value
+      "" 
     );
 
     res.json({ success: true });
