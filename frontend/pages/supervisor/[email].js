@@ -15,7 +15,6 @@ export default function SupervisorStudentPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
-  /* ================= LOAD ================= */
   useEffect(() => {
     if (!email) return;
     loadStudent();
@@ -55,32 +54,44 @@ export default function SupervisorStudentPage() {
     student.main_supervisor ||
     "-";
 
+  const mainSupervisorEmail =
+    student.mainSupervisorEmail ||
+    student.main_supervisor_email ||
+    student.supervisor_email ||
+    "-";
+
   const completed = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
 
   const hasCQIAlert =
-    timeline.some(t => t.status === "Late" || t.status === "Due Soon");
+    student.status !== "Graduated" &&
+    (
+      timeline.some(t => t.status === "Late" || t.status === "Due Soon") ||
+      Object.values(cqi || {}).some(a =>
+        Object.values(a || {}).some(p => p?.status !== "Achieved")
+      )
+    );
 
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-6 space-y-6">
+    <div className="min-h-screen bg-purple-50 p-6 space-y-6">
 
       {/* BACK */}
       <button
         onClick={() => router.push("/supervisor")}
-        className="text-purple-700 font-medium hover:underline"
+        className="text-purple-700 hover:underline"
       >
-        ← Back to Dashboard
+        ← Back
       </button>
 
       {/* HERO */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-500 text-white rounded-2xl p-6 shadow">
         <h1 className="text-2xl font-bold">{student.student_name}</h1>
         <p className="text-purple-100 text-sm">
-          {student.programme}
+          {student.programme} · {student.department}
         </p>
 
         <p className="mt-3 text-3xl font-bold">{progress}%</p>
@@ -108,7 +119,7 @@ export default function SupervisorStudentPage() {
           ["overview", "Overview"],
           ["documents", "Documents"],
           ["timeline", "Timeline"],
-          ["cqi", "CQI"],
+          ["cqi", "CQI & PLO"],
           ["remarks", "Remarks"],
         ].map(([id, label]) => (
           <button
@@ -127,11 +138,16 @@ export default function SupervisorStudentPage() {
 
       {/* OVERVIEW */}
       {activeTab === "overview" && (
-        <div className="bg-white rounded-2xl shadow p-6 text-sm">
+        <div className="bg-white rounded-2xl shadow p-6 text-sm space-y-2">
           <p><strong>Matric:</strong> {student.student_id}</p>
           <p><strong>Email:</strong> {student.email}</p>
           <p><strong>Programme:</strong> {student.programme}</p>
           <p><strong>Main Supervisor:</strong> {mainSupervisorName}</p>
+          <p><strong>Supervisor Email:</strong> {mainSupervisorEmail}</p>
+          <p>
+            <strong>Co-Supervisors:</strong>{" "}
+            {student.coSupervisors?.join(", ") || "-"}
+          </p>
         </div>
       )}
 
@@ -140,35 +156,10 @@ export default function SupervisorStudentPage() {
         <SupervisorChecklist documents={student.documents || {}} />
       )}
 
-      {/* 🔥 TIMELINE (NEW CARD STYLE) */}
+      {/* 🔥 TIMELINE */}
       {activeTab === "timeline" && (
         <div className="space-y-4">
 
-          {/* SUMMARY */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-green-50 p-3 rounded-xl text-center">
-              <p className="text-xs">Completed</p>
-              <p className="font-bold text-green-700">
-                {timeline.filter(t => t.status === "Completed").length}
-              </p>
-            </div>
-
-            <div className="bg-yellow-50 p-3 rounded-xl text-center">
-              <p className="text-xs">Due Soon</p>
-              <p className="font-bold text-yellow-700">
-                {timeline.filter(t => t.status === "Due Soon").length}
-              </p>
-            </div>
-
-            <div className="bg-red-50 p-3 rounded-xl text-center">
-              <p className="text-xs">Late</p>
-              <p className="font-bold text-red-700">
-                {timeline.filter(t => t.status === "Late").length}
-              </p>
-            </div>
-          </div>
-
-          {/* CARDS */}
           {timeline.map((t, i) => {
             const isLate = t.status === "Late";
             const isSoon = t.status === "Due Soon";
@@ -189,7 +180,6 @@ export default function SupervisorStudentPage() {
                   }`}
               >
                 <div className="flex justify-between">
-
                   <div>
                     <p className="font-semibold">{t.activity}</p>
                     <p className="text-xs text-gray-500">
@@ -211,26 +201,59 @@ export default function SupervisorStudentPage() {
                   >
                     {t.status}
                   </span>
-
                 </div>
               </div>
             );
           })}
+
         </div>
       )}
 
       {/* CQI */}
       {activeTab === "cqi" && (
-        <FinalPLOTable finalPLO={student.finalPLO} />
+        <div className="bg-white rounded-2xl shadow p-6 space-y-4">
+          {Object.entries(cqi || {}).map(([assessment, ploData]) => (
+            <div key={assessment}>
+              <h4 className="font-semibold text-purple-700 mb-2">
+                {assessment}
+              </h4>
+
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(ploData || {}).map(([plo, d]) => (
+                  <span
+                    key={plo}
+                    className={`px-3 py-1 rounded-full text-xs
+                      ${
+                        d.status === "Achieved"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                  >
+                    {plo}: {d.status}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <FinalPLOTable finalPLO={student.finalPLO} />
+        </div>
       )}
 
       {/* REMARKS */}
       {activeTab === "remarks" && (
-        <div>
-          <SupervisorRemark
-            studentMatric={student.student_id}
-            studentEmail={student.email}
-          />
+        <div className="space-y-4">
+          {Object.entries(student.remarksByAssessment || {}).map(
+            ([assessmentType, remark]) => (
+              <SupervisorRemark
+                key={assessmentType}
+                studentMatric={student.student_id}
+                studentEmail={student.email}
+                assessmentType={assessmentType}
+                initialRemark={remark}
+              />
+            )
+          )}
         </div>
       )}
 
