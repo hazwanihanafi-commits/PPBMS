@@ -98,9 +98,11 @@ export default function Home() {
         </section>
 
         {/* FOOTER */}
-        <footer className="text-center text-xs text-gray-500 pb-6">
-          © 2026 PPBMS · Universiti Sains Malaysia
-        </footer>
+<footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
+  © 2026 PPBMS · Universiti Sains Malaysia
+  <br />
+  Developed by Hazwani Ahmad Yusof (2025)
+</footer>
       </div>
     </div>
   );
