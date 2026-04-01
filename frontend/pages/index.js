@@ -103,6 +103,6 @@ function GlassCard({ title, desc, href }) {
       >
         Go to login →
       </Link>
-     </div>
-  </div>
-);
+    </div>
+  );
+}
