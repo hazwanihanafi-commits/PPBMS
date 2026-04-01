@@ -114,7 +114,13 @@ export default function StudentPage() {
             <p><span className="font-medium">Email Address:</span> {profile.email}</p>
             <p><span className="font-medium">Programme:</span> {profile.programme}</p>
             <p><span className="font-medium">Main Supervisor:</span> {profile.supervisor}</p>
-            <p><span className="font-medium">Co-Supervisor(s):</span>{" "}{profile.cosupervisor || profile.co_supervisor || "-"}</p>
+            <p>
+  <strong>Co-Supervisor(s):</strong>{" "}
+  {profile.cosupervisor ||
+   profile.cosupervisors ||
+   profile.co_supervisor ||
+   "-"}
+</p>
           </div>
         </div>
 
