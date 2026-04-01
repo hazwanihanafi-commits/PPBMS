@@ -10,14 +10,12 @@ import TopBar from "../../components/TopBar";
 export default function StudentPage() {
   const { ready, user } = useAuthGuard("student");
 
-  /* ================= STATE ================= */
   const [profile, setProfile] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [activeTab, setActiveTab] = useState("timeline");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* ================= LOAD STUDENT ================= */
   useEffect(() => {
     if (!ready) return;
     loadStudent();
@@ -46,277 +44,163 @@ export default function StudentPage() {
     setLoading(false);
   }
 
-  /* ================= MARK COMPLETED ================= */
   async function markCompleted(activity) {
     const date = new Date().toISOString().slice(0, 10);
 
-    try {
-      await authFetch("/api/student/update-actual", {
-        method: "POST",
-        body: JSON.stringify({ activity, date }),
-      });
+    await authFetch("/api/student/update-actual", {
+      method: "POST",
+      body: JSON.stringify({ activity, date }),
+    });
 
-      loadStudent();
-    } catch (e) {
-      setError(e.message || "Failed to update milestone");
-    }
+    loadStudent();
   }
 
-  /* ================= RESET COMPLETED ================= */
   async function resetCompleted(activity) {
-    if (!confirm("Are you sure you want to reset this milestone?")) return;
+    if (!confirm("Reset this milestone?")) return;
 
-    try {
-      await authFetch("/api/student/reset-actual", {
-        method: "POST",
-        body: JSON.stringify({ activity }),
-      });
+    await authFetch("/api/student/reset-actual", {
+      method: "POST",
+      body: JSON.stringify({ activity }),
+    });
 
-      loadStudent();
-    } catch (e) {
-      setError(e.message || "Failed to reset milestone");
-    }
+    loadStudent();
   }
 
-
-  /* ================= SUMMARY ================= */
   const completed = timeline.filter(t => t.status === "Completed").length;
-  const late = timeline.filter(
-    t => !t.actual && t.remaining_days < 0 && t.status !== "Completed"
-  ).length;
-
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
 
   const nextMilestone = timeline.find(t => t.status !== "Completed");
 
-  /* ================= AUTO ALERT ================= */
-  useEffect(() => {
-    const prevLate = Number(localStorage.getItem("ppbms_prev_late") || 0);
-    if (late > prevLate) {
-      alert(`⚠️ ${late - prevLate} new milestone(s) are now LATE`);
-    }
-    localStorage.setItem("ppbms_prev_late", late);
-  }, [late]);
-
-  /* ================= GUARDS ================= */
   if (!ready) return <div className="p-6 text-center">Checking access…</div>;
   if (loading) return <div className="p-6 text-center">Loading…</div>;
   if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
 
-  /* ================= RENDER ================= */
   return (
-  <>
-    <TopBar user={user} />
-    
-    {/* ================= HERO ================= */}
-<div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow p-6">
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-      <h1 className="text-2xl font-bold">
-        Welcome back, {profile.student_name} 🎓
-      </h1>
-      <p className="text-purple-100 mt-1">
-        You have completed {completed} of {timeline.length} milestones
-      </p>
-    </div>
+    <>
+      <TopBar user={user} />
 
-    {nextMilestone && (
-      <div className="bg-white text-gray-800 rounded-xl p-4 shadow min-w-[260px]">
-        <p className="text-xs uppercase font-semibold text-gray-500">
-          Next Milestone
-        </p>
-        <p className="font-bold">{nextMilestone.activity}</p>
-        <p className="text-sm text-gray-600">
-          Due in{" "}
-          <span className="font-semibold">
-            {nextMilestone.remaining_days}
-          </span>{" "}
-          days
-        </p>
-      </div>
-    )}
-  </div>
-</div>
+      <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] p-6 space-y-6">
 
-    
-
-    <div className="min-h-screen bg-purple-50 p-6 space-y-6">
-
-      {/* PROFILE */}
-      <div className="bg-white rounded-2xl shadow p-6">
-        <h2 className="text-lg font-bold mb-3">Your Profile</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <p><strong>Matric:</strong> {profile.student_id}</p>
-          <p><strong>Email:</strong> {profile.email}</p>
-          <p><strong>Programme:</strong> {profile.programme}</p>
-          <p><strong>Field:</strong> {profile.field || "-"}</p>
-          <p><strong>Department:</strong> {profile.department || "-"}</p>
-          <p><strong>Main Supervisor:</strong> {profile.supervisor || "-"}</p>
-          <p><strong>Co-supervisors:</strong> {profile.cosupervisors || "-"}</p>
+        {/* HERO */}
+        <div className="rounded-3xl bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 shadow-xl">
+          <h1 className="text-2xl font-bold">
+            Welcome back, {profile.student_name} 🎓
+          </h1>
+          <p className="text-purple-100 mt-1">
+            {completed} / {timeline.length} milestones completed
+          </p>
         </div>
-      </div>
 
-  {/* ================= PROGRESS ================= */}
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-  <div className="bg-white rounded-2xl shadow p-4 flex justify-center">
-    <CompletionDonut percent={progress} />
-  </div>
+        {/* PROFILE */}
+        <div className="rounded-3xl bg-white/50 backdrop-blur-xl border shadow-xl p-6">
+          <h2 className="font-bold mb-3">Profile</h2>
+          <div className="grid md:grid-cols-2 gap-2 text-sm">
+            <p><strong>Matric:</strong> {profile.student_id}</p>
+            <p><strong>Email:</strong> {profile.email}</p>
+            <p><strong>Programme:</strong> {profile.programme}</p>
+            <p><strong>Supervisor:</strong> {profile.supervisor}</p>
+          </div>
+        </div>
 
-  <div className="md:col-span-2 bg-white rounded-2xl shadow p-4">
-    <TimelineSummary timeline={timeline} />
-  </div>
-</div>
+        {/* PROGRESS */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="rounded-3xl bg-white/50 backdrop-blur-xl p-4 shadow-xl">
+            <CompletionDonut percent={progress} />
+          </div>
 
+          <div className="md:col-span-2 rounded-3xl bg-white/50 backdrop-blur-xl p-4 shadow-xl">
+            <TimelineSummary timeline={timeline} />
+          </div>
+        </div>
 
-      {/* TABS */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => setActiveTab("timeline")}
-          className={`px-4 py-2 rounded-xl font-semibold ${
-            activeTab === "timeline"
-              ? "bg-purple-600 text-white"
-              : "bg-gray-100 text-gray-700"
-          }`}
-        >
-          📅 Timeline
-        </button>
-
-        <button
-          onClick={() => setActiveTab("documents")}
-          className={`px-4 py-2 rounded-xl font-semibold ${
-            activeTab === "documents"
-              ? "bg-purple-600 text-white"
-              : "bg-gray-100 text-gray-700"
-          }`}
-        >
-          📁 Documents
-        </button>
-      </div>
-
-      {/* TIMELINE TAB */}
-      {/* ================= TIMELINE TAB ================= */}
-{activeTab === "timeline" && (
-  <div className="bg-white rounded-2xl shadow p-6">
-    <h3 className="font-bold mb-4">Your Research Timeline</h3>
-
-    <table className="w-full text-sm border-collapse">
-      <thead>
-        <tr className="bg-purple-50">
-          <th className="p-2 text-left">Activity</th>
-          <th className="p-2">Expected</th>
-          <th className="p-2">Actual</th>
-          <th className="p-2 text-center">Remaining</th>
-          <th className="p-2">Status</th>
-          <th className="p-2">Action</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {timeline.map((t, i) => {
-          const isLate =
-            !t.actual && t.remaining_days < 0 && t.status !== "Completed";
-
-          return (
-            <tr
-              key={i}
-              className={`border-t ${
-                isLate
-                  ? "bg-red-50"
-                  : t.remaining_days <= 30 && !t.actual
-                  ? "bg-orange-50"
-                  : ""
+        {/* TABS */}
+        <div className="flex gap-3">
+          {["timeline", "documents"].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2 rounded-full font-semibold ${
+                activeTab === tab
+                  ? "bg-gradient-to-r from-purple-600 to-indigo-500 text-white"
+                  : "bg-white/50"
               }`}
             >
-              {/* Activity */}
-              <td className="p-2">{t.activity}</td>
+              {tab === "timeline" ? "📅 Timeline" : "📁 Documents"}
+            </button>
+          ))}
+        </div>
 
-              {/* Expected */}
-              <td className="p-2 text-center">{t.expected || "-"}</td>
+        {/* TIMELINE (CARD STYLE) */}
+        {activeTab === "timeline" && (
+          <div className="grid gap-4">
+            {timeline.map((t, i) => {
+              const isLate =
+                !t.actual && t.remaining_days < 0 && t.status !== "Completed";
 
-              {/* Actual */}
-              <td className="p-2 text-center">{t.actual || "-"}</td>
-
-              {/* Remaining */}
-              <td className="p-2 text-center">
-                {t.status === "Completed" ? (
-                  <span className="text-gray-400">—</span>
-                ) : (
-                  <span
-                    className={`font-semibold ${
-                      t.remaining_days < 0
-                        ? "text-red-600"
-                        : t.remaining_days <= 30
-                        ? "text-orange-600"
-                        : "text-blue-600"
-                    }`}
-                  >
-                    {t.remaining_days} days
-                  </span>
-                )}
-              </td>
-
-              {/* Status */}
-              <td className="p-2 text-center">
-                <span
-                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                    t.status === "Completed"
-                      ? "bg-green-100 text-green-700"
-                      : isLate
-                      ? "bg-red-100 text-red-700"
-                      : "bg-blue-100 text-blue-700"
+              return (
+                <div
+                  key={i}
+                  className={`rounded-2xl p-4 shadow border ${
+                    isLate
+                      ? "bg-red-50 border-red-200"
+                      : "bg-white/50 backdrop-blur"
                   }`}
                 >
-                  {isLate
-                    ? "Late – action needed"
-                    : t.status === "Completed"
-                    ? "Completed ✔"
-                    : "On track"}
-                </span>
-              </td>
+                  <div className="flex justify-between mb-2">
+                    <h4 className="font-semibold">{t.activity}</h4>
+                    <span className="text-sm font-bold text-purple-700">
+                      {t.remaining_days} days
+                    </span>
+                  </div>
 
-              {/* Action */}
-              <td className="p-2 text-center">
-                {t.actual ? (
-                  <button
-                    onClick={() => resetCompleted(t.activity)}
-                    className="px-3 py-1 text-xs border border-red-400 text-red-600 rounded hover:bg-red-50"
-                  >
-                    Reset
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => markCompleted(t.activity)}
-                    className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
-                  >
-                    I’ve completed this
-                  </button>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                  <p className="text-sm text-gray-600">
+                    Expected: {t.expected || "-"} | Actual: {t.actual || "-"}
+                  </p>
 
-    {timeline.length === 0 && (
-      <p className="text-sm text-gray-500 mt-4">
-        No timeline data available.
-      </p>
-    )}
-  </div>
-)}
+                  <div className="mt-3 flex justify-between items-center">
+                    <span className="text-xs font-semibold">
+                      {isLate ? "⚠️ Late" : t.status}
+                    </span>
 
-      {/* DOCUMENTS TAB */}
-      {activeTab === "documents" && (
-        <div className="bg-white rounded-2xl shadow p-6">
-          <StudentChecklist initialDocuments={profile.documents} />
-        </div>
-      )}
+                    {t.actual ? (
+                      <button
+                        onClick={() => resetCompleted(t.activity)}
+                        className="text-xs text-red-600"
+                      >
+                        Reset
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => markCompleted(t.activity)}
+                        className="text-xs text-purple-700"
+                      >
+                        Complete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-    </div>
-  </>
-);
+        {/* DOCUMENTS */}
+        {activeTab === "documents" && (
+          <div className="rounded-3xl bg-white/50 backdrop-blur-xl p-6 shadow-xl">
+            <StudentChecklist initialDocuments={profile.documents} />
+          </div>
+        )}
+
+        {/* FOOTER */}
+        <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
+          © 2026 PPBMS · Universiti Sains Malaysia
+          <br />
+          Developed by <span className="font-medium text-gray-600">Hazwani Ahmad Yusof</span> (2025)
+        </footer>
+
+      </div>
+    </>
+  );
 }
