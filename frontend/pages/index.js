@@ -5,7 +5,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
 
       {/* HEADER */}
-      <header className="w-full py-5 backdrop-blur bg-white/70 border-b border-gray-200">
+      <header className="w-full py-5 backdrop-blur bg-white/70 border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-[1400px] mx-auto px-10 flex justify-between items-center">
 
           {/* LOGO */}
@@ -33,7 +33,7 @@ export default function Home() {
 
       {/* HERO */}
       <main className="w-full px-10 py-24">
-        <div className="max-w-[1200px] mx-auto text-center">
+        <div className="max-w-[1100px] mx-auto text-center">
 
           <h2 className="text-5xl xl:text-6xl font-extrabold leading-tight mb-6">
             Monitor Postgraduate
@@ -59,19 +59,19 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
             <Card
               title="Student"
-              desc="View timeline, upload documents, and track research milestones."
+              desc="Track milestones, upload documents, and monitor research progress."
               href="/login"
             />
 
             <Card
               title="Supervisor"
-              desc="Monitor supervisees and identify risks early."
-              href="/login"
+              desc="Monitor supervisees, identify risks, and intervene early."
+              href="/supervisor"
             />
 
             <Card
               title="Admin"
-              desc="Programme CQI monitoring, cohort tracking, and reports."
+              desc="Manage CQI reporting, cohort analytics, and programme performance."
               href="/admin/login"
             />
           </div>
@@ -92,7 +92,7 @@ export default function Home() {
 
               <Feature
                 title="CQI & Reporting"
-                desc="Programme-level monitoring aligned with accreditation standards."
+                desc="Programme-level monitoring aligned with accreditation and quality assurance."
               />
 
             </div>
@@ -102,7 +102,7 @@ export default function Home() {
       </main>
 
       {/* FOOTER */}
-      <footer className="text-center py-6 text-gray-500 text-sm">
+      <footer className="text-center py-6 text-gray-500 text-sm border-t">
         © 2025 PPBMS · Universiti Sains Malaysia · Developed by HAY
       </footer>
     </div>
@@ -112,15 +112,19 @@ export default function Home() {
 /* CARD */
 function Card({ title, desc, href }) {
   return (
-    <div className="p-8 bg-white/80 backdrop-blur rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300">
-      <h3 className="font-semibold text-lg mb-2">{title}</h3>
+    <div className="p-8 bg-white/80 backdrop-blur rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 group">
+
+      <h3 className="font-semibold text-lg mb-2 group-hover:text-purple-600 transition">
+        {title}
+      </h3>
+
       <p className="text-gray-600 mb-5 text-sm">{desc}</p>
 
       <Link
         href={href}
         className="text-purple-600 font-medium text-sm hover:underline"
       >
-        Go to login →
+        Go to dashboard →
       </Link>
     </div>
   );
