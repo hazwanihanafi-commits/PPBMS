@@ -24,7 +24,7 @@ const GlassCard = ({ children }) => (
   </motion.div>
 );
 
-/* ================= RISK HELPERS ================= */
+/* ================= HELPERS ================= */
 function getRiskColor(risk) {
   if (risk === "HIGH RISK") return "text-red-600";
   if (risk === "MODERATE RISK") return "text-amber-600";
@@ -37,7 +37,6 @@ function getRiskBg(risk) {
   return "bg-green-100";
 }
 
-/* ================= STATUS ================= */
 function getStatusType(t) {
   if (t.status === "Late") return "late";
   if (t.status === "Due Soon") return "soon";
@@ -123,17 +122,12 @@ export default function SupervisorStudentPage() {
     pdf.text(`Programme: ${student.programme}`, 20, y);
     y += 7;
 
-    // 🔴 Risk color
     pdf.text("Risk Level:", 20, y);
     pdf.setFont(undefined, "bold");
 
-    if (riskScore === "HIGH RISK") {
-      pdf.setTextColor(220, 38, 38);
-    } else if (riskScore === "MODERATE RISK") {
-      pdf.setTextColor(234, 179, 8);
-    } else {
-      pdf.setTextColor(22, 163, 74);
-    }
+    if (riskScore === "HIGH RISK") pdf.setTextColor(220, 38, 38);
+    else if (riskScore === "MODERATE RISK") pdf.setTextColor(234, 179, 8);
+    else pdf.setTextColor(22, 163, 74);
 
     pdf.text(riskScore, 55, y);
     pdf.setTextColor(0, 0, 0);
@@ -160,7 +154,6 @@ export default function SupervisorStudentPage() {
       {/* SIDEBAR */}
       <div className="w-60 p-4">
         <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm">
-
           <h2 className="font-semibold text-gray-800 mb-3">PPBMS</h2>
 
           {["overview","documents","timeline","cqi","remarks"].map(tab => (
@@ -177,7 +170,6 @@ export default function SupervisorStudentPage() {
               {tab.toUpperCase()}
             </button>
           ))}
-
         </div>
       </div>
 
@@ -188,48 +180,46 @@ export default function SupervisorStudentPage() {
         animate={{ opacity: 1 }}
       >
 
-        {/* HEADER BUTTON */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          whileHover={{ scale: 1.05 }}
-          onClick={exportPDF}
-          className="px-4 py-2 bg-purple-600 text-white rounded-xl"
-        >
-          Export PDF
-        </motion.button>
+        {/* 🔥 TOP BAR (BACK + EXPORT) */}
+        <div className="flex justify-between items-center">
+
+          <button
+            onClick={() => router.back() || router.push("/supervisor")}
+            className="text-sm text-purple-600 hover:underline"
+          >
+            ← Back to Dashboard
+          </button>
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={exportPDF}
+            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+          >
+            Export PDF
+          </motion.button>
+
+        </div>
 
         {/* HERO */}
         <div className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
-
-          <h1 className="text-xl font-semibold">
-            {student.student_name}
-          </h1>
-
-          <p className="text-sm text-white/80">
-            {student.programme}
-          </p>
+          <h1 className="text-xl font-semibold">{student.student_name}</h1>
+          <p className="text-sm text-white/80">{student.programme}</p>
 
           <div className="mt-4 flex justify-between items-center">
             <span className="text-3xl">{progress}%</span>
 
-            <span
-              className={`text-xs px-3 py-1 rounded-full
-                ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}
-              `}
-            >
+            <span className={`text-xs px-3 py-1 rounded-full ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}`}>
               {riskScore}
             </span>
           </div>
-
         </div>
 
         {/* CONTENT */}
         <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 
-          {/* OVERVIEW */}
           {activeTab === "overview" && (
             <div className="space-y-4">
-
               <GlassCard>
                 <p><strong>Email:</strong> {student.email}</p>
                 <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
@@ -241,14 +231,12 @@ export default function SupervisorStudentPage() {
                 </p>
               </GlassCard>
 
-              {/* ANALYTICS CARDS */}
               <div className="grid grid-cols-3 gap-4">
-                <GlassCard><p>Completed: {completed}</p></GlassCard>
-                <GlassCard><p>Due Soon: {soon}</p></GlassCard>
-                <GlassCard><p>Late: {late}</p></GlassCard>
+                <GlassCard>Completed: {completed}</GlassCard>
+                <GlassCard>Due Soon: {soon}</GlassCard>
+                <GlassCard>Late: {late}</GlassCard>
               </div>
 
-              {/* 📊 GRAPH (NOT REMOVED) */}
               <GlassCard>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={[
@@ -262,52 +250,38 @@ export default function SupervisorStudentPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </GlassCard>
-
             </div>
           )}
 
-          {/* TIMELINE */}
           {activeTab === "timeline" && (
             <div className="space-y-3">
               {timeline.map((t, i) => {
                 const type = getStatusType(t);
-
                 return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={`p-4 rounded-xl border
-                      ${
-                        type === "late"
-                          ? "bg-red-50 border-red-300"
-                          : type === "soon"
-                          ? "bg-amber-50 border-amber-300"
-                          : type === "done"
-                          ? "bg-green-50 border-green-300"
-                          : "bg-white"
-                      }
-                    `}
-                  >
-                    <p className="font-medium">{t.activity}</p>
-                    <span className="text-xs">{t.status}</span>
-                  </motion.div>
+                  <div key={i} className={`p-4 rounded-xl border ${
+                    type === "late"
+                      ? "bg-red-50 border-red-300"
+                      : type === "soon"
+                      ? "bg-amber-50 border-amber-300"
+                      : type === "done"
+                      ? "bg-green-50 border-green-300"
+                      : "bg-white"
+                  }`}>
+                    {t.activity} ({t.status})
+                  </div>
                 );
               })}
             </div>
           )}
 
-          {/* DOCUMENTS */}
           {activeTab === "documents" && (
             <SupervisorChecklist documents={student.documents || {}} />
           )}
 
-          {/* CQI */}
           {activeTab === "cqi" && (
             <FinalPLOTable finalPLO={student.finalPLO} />
           )}
 
-          {/* REMARKS */}
           {activeTab === "remarks" && (
             <SupervisorRemark
               studentMatric={student.student_id}
