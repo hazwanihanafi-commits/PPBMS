@@ -18,33 +18,18 @@ import jsPDF from "jspdf";
 const GlassCard = ({ children }) => (
   <motion.div
     whileHover={{ y: -4, scale: 1.01 }}
-    transition={{ type: "spring", stiffness: 200, damping: 15 }}
     className="bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-sm border border-white/40"
   >
     {children}
   </motion.div>
 );
 
-/* ================= CHART ================= */
-function AnalyticsChart({ completed, soon, late }) {
-  const data = [
-    { name: "Completed", value: completed },
-    { name: "Soon", value: soon },
-    { name: "Late", value: late },
-  ];
-
-  return (
-    <GlassCard>
-      <h3 className="font-semibold mb-3">Timeline Analytics</h3>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={data}>
-          <XAxis dataKey="name" />
-          <Tooltip />
-          <Bar dataKey="value" radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </GlassCard>
-  );
+/* ================= STATUS LOGIC ================= */
+function getStatusType(t) {
+  if (t.status === "Late") return "late";
+  if (t.status === "Due Soon") return "soon";
+  if (t.status === "Completed") return "done";
+  return "normal";
 }
 
 /* ================= MAIN ================= */
@@ -115,16 +100,12 @@ export default function SupervisorStudentPage() {
   function exportPDF() {
     const pdf = new jsPDF();
 
-    pdf.setFontSize(16);
-    pdf.text("Student Progress Report", 20, 20);
-
-    pdf.setFontSize(12);
-    pdf.text(`Name: ${student.student_name}`, 20, 40);
-    pdf.text(`Progress: ${progress}%`, 20, 50);
-    pdf.text(`Risk: ${riskScore}`, 20, 60);
+    pdf.text(`Student: ${student.student_name}`, 20, 20);
+    pdf.text(`Progress: ${progress}%`, 20, 30);
+    pdf.text(`Risk: ${riskScore}`, 20, 40);
 
     timeline.forEach((t, i) => {
-      pdf.text(`${i + 1}. ${t.activity} - ${t.status}`, 20, 80 + i * 10);
+      pdf.text(`${i + 1}. ${t.activity} - ${t.status}`, 20, 60 + i * 10);
     });
 
     pdf.save("report.pdf");
@@ -139,7 +120,7 @@ export default function SupervisorStudentPage() {
       <div className="w-60 p-4">
         <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm space-y-2">
 
-          <h2 className="font-semibold text-gray-800 mb-3">PPBMS</h2>
+          <h2 className="font-semibold text-gray-800">PPBMS</h2>
 
           {["overview","documents","timeline","cqi","remarks"].map(tab => (
             <button
@@ -169,8 +150,8 @@ export default function SupervisorStudentPage() {
       {/* MAIN */}
       <motion.div
         className="flex-1 p-6 space-y-6"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
       >
 
         {/* BUTTON */}
@@ -178,13 +159,13 @@ export default function SupervisorStudentPage() {
           whileTap={{ scale: 0.95 }}
           whileHover={{ scale: 1.05 }}
           onClick={exportPDF}
-          className="px-4 py-2 bg-purple-600 text-white rounded-xl shadow"
+          className="px-4 py-2 bg-purple-600 text-white rounded-xl"
         >
           Export PDF
         </motion.button>
 
         {/* HERO */}
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-3xl p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
 
           <h1 className="text-xl font-semibold">
             {student.student_name}
@@ -205,8 +186,7 @@ export default function SupervisorStudentPage() {
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.8 }}
-              className="h-1.5 bg-white rounded-full"
+              className="h-1.5 bg-white"
             />
           </div>
 
@@ -234,7 +214,19 @@ export default function SupervisorStudentPage() {
                 <GlassCard><p>Late: {late}</p></GlassCard>
               </div>
 
-              <AnalyticsChart completed={completed} soon={soon} late={late} />
+              <GlassCard>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={[
+                    { name: "Done", value: completed },
+                    { name: "Soon", value: soon },
+                    { name: "Late", value: late },
+                  ]}>
+                    <XAxis dataKey="name" />
+                    <Tooltip />
+                    <Bar dataKey="value" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </GlassCard>
 
             </div>
           )}
@@ -244,30 +236,84 @@ export default function SupervisorStudentPage() {
             <SupervisorChecklist documents={student.documents || {}} />
           )}
 
-          {/* TIMELINE */}
+          {/* 🔥 TIMELINE WITH COLOR DIFFERENTIATION */}
           {activeTab === "timeline" && (
             <div className="space-y-3">
-              {timeline.map((t, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={`p-4 rounded-xl border
-                    ${
-                      t.status === "Late"
-                        ? "bg-red-50 border-red-300"
-                        : t.status === "Due Soon"
-                        ? "bg-yellow-50 border-yellow-300"
-                        : t.status === "Completed"
-                        ? "bg-green-50 border-green-300"
-                        : "bg-white"
-                    }`}
-                >
-                  <p className="font-medium">{t.activity}</p>
-                  <span className="text-xs">{t.status}</span>
-                </motion.div>
-              ))}
+
+              {timeline.map((t, i) => {
+                const type = getStatusType(t);
+
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={`relative p-4 rounded-xl border
+
+                      ${
+                        type === "late"
+                          ? "bg-red-50 border-red-300"
+                          : type === "soon"
+                          ? "bg-amber-50 border-amber-300"
+                          : type === "done"
+                          ? "bg-green-50 border-green-300"
+                          : "bg-white"
+                      }
+                    `}
+                  >
+
+                    {/* LEFT COLOR BAR */}
+                    <div className={`absolute left-0 top-0 h-full w-1 rounded-l-xl
+                      ${
+                        type === "late"
+                          ? "bg-red-500"
+                          : type === "soon"
+                          ? "bg-amber-400"
+                          : type === "done"
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }
+                    `} />
+
+                    <div className="flex justify-between items-center">
+
+                      <div>
+                        <p className="font-medium">{t.activity}</p>
+                        <p className="text-xs text-gray-500">
+                          {t.expected} → {t.actual || "-"}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+
+                        <span className={`px-3 py-1 rounded-full text-xs
+                          ${
+                            type === "late"
+                              ? "bg-red-100 text-red-600"
+                              : type === "soon"
+                              ? "bg-amber-100 text-amber-600"
+                              : type === "done"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-gray-100"
+                          }
+                        `}>
+                          {t.status}
+                        </span>
+
+                        {type === "late" && (
+                          <p className="text-[10px] text-red-500 mt-1">
+                            ⚠ Immediate action needed
+                          </p>
+                        )}
+
+                      </div>
+
+                    </div>
+                  </motion.div>
+                );
+              })}
+
             </div>
           )}
 
