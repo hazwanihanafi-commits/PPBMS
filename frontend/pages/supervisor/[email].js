@@ -15,7 +15,6 @@ export default function SupervisorStudentPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
-  /* ================= LOAD STUDENT ================= */
   useEffect(() => {
     if (!email) return;
     loadStudent();
@@ -41,33 +40,21 @@ export default function SupervisorStudentPage() {
       setTimeline(data.row?.timeline || []);
       setCqi(data.row?.cqiByAssessment || {});
     } catch (err) {
-      console.error("Load student error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
-  /* ================= GUARDS ================= */
   if (loading) return <div className="p-6">Loading…</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
-  /* ================= DATA NORMALISATION ================= */
-
+  /* ================= DATA ================= */
   const mainSupervisorName =
-  student.mainSupervisor ||
-  student.supervisor ||              // ✅ INI YANG SEBENAR
-  student.main_supervisor ||
-  student.main_supervisor_name ||
-  "-";
-
-
-const mainSupervisorEmail =
-  student.mainSupervisorEmail ||
-  student.main_supervisor_email ||
-  student.supervisor_email ||
-  "-";
-
-
+    student.mainSupervisor ||
+    student.supervisor ||
+    student.main_supervisor ||
+    "-";
 
   const completed = timeline.filter(t => t.status === "Completed").length;
   const progress = timeline.length
@@ -79,19 +66,14 @@ const mainSupervisorEmail =
   );
 
   const hasCQIAlert =
-    student.status !== "Graduated" &&
-    (
-      timeline.some(t => t.status === "Late" || t.status === "Due Soon") ||
-      Object.values(cqi || {}).some(a =>
-        a && typeof a === "object"
-          ? Object.values(a).some(p => p?.status !== "Achieved")
-          : false
-      )
+    timeline.some(t => t.status === "Late" || t.status === "Due Soon") ||
+    Object.values(cqi || {}).some(a =>
+      Object.values(a || {}).some(p => p?.status !== "Achieved")
     );
 
-  /* ================= RENDER ================= */
+  /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-purple-50 p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] p-6 space-y-6">
 
       {/* BACK */}
       <button
@@ -101,31 +83,23 @@ const mainSupervisorEmail =
         ← Back to Supervisor Dashboard
       </button>
 
-      {/* ================= HERO ================= */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow p-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{student.student_name}</h1>
-          <span className="px-3 py-1 rounded-full text-xs bg-white/20">
-            {student.status}
-          </span>
-        </div>
-
-        <p className="text-purple-100">
+      {/* HERO */}
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 text-white rounded-2xl shadow p-6">
+        <h1 className="text-2xl font-semibold">{student.student_name}</h1>
+        <p className="text-sm text-purple-100">
           {student.programme} · {student.department}
         </p>
 
-        <div className="mt-4 flex flex-col md:flex-row md:justify-between gap-4">
+        <div className="mt-4 flex justify-between">
           <div>
             <p className="text-sm">Overall Progress</p>
-            <p className="text-3xl font-extrabold">{progress}%</p>
+            <p className="text-3xl font-bold">{progress}%</p>
           </div>
 
-          {nextMilestone && student.status !== "Graduated" && (
+          {nextMilestone && (
             <div className="bg-white text-gray-800 rounded-xl p-4 shadow">
-              <p className="text-xs uppercase font-semibold text-gray-500">
-                Next Milestone
-              </p>
-              <p className="font-bold">{nextMilestone.activity}</p>
+              <p className="text-xs font-semibold">Next Milestone</p>
+              <p>{nextMilestone.activity}</p>
               <p className="text-sm">
                 Due in {nextMilestone.remaining_days} days
               </p>
@@ -133,236 +107,156 @@ const mainSupervisorEmail =
           )}
         </div>
 
-        <div className="mt-4 bg-purple-300/30 h-3 rounded-full">
+        <div className="mt-4 h-2 bg-white/30 rounded">
           <div
-            className="bg-white h-3 rounded-full"
+            className="h-2 bg-white rounded"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      {/* ================= CQI ALERT ================= */}
+      {/* ALERT */}
       {hasCQIAlert && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
-          <p className="font-bold text-red-700">
-            🚨 CQI Attention Required
+          <p className="font-semibold text-red-700">
+            CQI Attention Required
           </p>
           <p className="text-sm text-red-600">
-            One or more milestones or PLOs require intervention.
+            Intervention required based on timeline or PLO.
           </p>
         </div>
       )}
 
-      {/* ================= TABS ================= */}
+      {/* TABS */}
       <div className="flex gap-2 flex-wrap">
-        {[
-          ["overview", "📊 Overview"],
-          ["documents", "📁 Documents"],
-          ["timeline", "📅 Timeline"],
-          ["cqi", "🎯 CQI & PLO"],
-          ["remarks", "📝 Supervisor Remarks"],
-        ].map(([id, label]) => (
+        {["overview", "documents", "timeline", "cqi", "remarks"].map(tab => (
           <button
-            key={id}
-            onClick={() => setActiveTab(id)}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-full font-semibold ${
-              activeTab === id
+              activeTab === tab
                 ? "bg-purple-600 text-white"
-                : "bg-purple-100 text-purple-700"
+                : "bg-white/60 backdrop-blur"
             }`}
           >
-            {label}
+            {tab.toUpperCase()}
           </button>
         ))}
       </div>
 
-      {/* ================= OVERVIEW ================= */}
+      {/* OVERVIEW + ANALYTICS */}
       {activeTab === "overview" && (
-        <div className="bg-white rounded-2xl shadow p-6 text-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-6">
+
+          {/* INFO */}
+          <div className="bg-white/70 backdrop-blur rounded-2xl p-6 shadow">
+            <h3 className="font-semibold mb-3">Student Information</h3>
+
             <p><strong>Matric:</strong> {student.student_id}</p>
             <p><strong>Email:</strong> {student.email}</p>
-            <p><strong>Programme:</strong> {student.programme}</p>
-            <p><strong>Status:</strong> {student.status}</p>
+            <p><strong>Main Supervisor:</strong> {mainSupervisorName}</p>
+          </div>
 
-            <p className="md:col-span-2">
-              <strong>Field:</strong> {student.field || "-"}
-            </p>
-            <p className="md:col-span-2">
-              <strong>Department:</strong> {student.department || "-"}
-            </p>
-            <p className="md:col-span-2">
-              <strong>Main Supervisor:</strong>{" "}
-              {mainSupervisorName}
-            </p>
+          {/* ANALYTICS */}
+          <div className="grid md:grid-cols-3 gap-6">
 
-            <p className="md:col-span-2">
-              <strong>Main Supervisor Email:</strong>{" "}
-              {mainSupervisorEmail}
-            </p>
+            {/* DISTRIBUTION */}
+            <div className="bg-white/70 backdrop-blur p-5 rounded-2xl shadow">
+              <h3 className="font-semibold mb-3">Timeline Status</h3>
 
-            <p className="md:col-span-2">
-              <strong>Co-Supervisor(s):</strong>{" "}
-              {student.coSupervisors?.length
-                ? student.coSupervisors.join(", ")
-                : "-"}
-            </p>
+              {["Completed","On Time","Due Soon","Late"].map(status => {
+                const count = timeline.filter(t => t.status === status).length;
+                const percent = timeline.length ? (count / timeline.length) * 100 : 0;
+
+                const color =
+                  status === "Completed"
+                    ? "bg-green-500"
+                    : status === "On Time"
+                    ? "bg-blue-500"
+                    : status === "Due Soon"
+                    ? "bg-yellow-500"
+                    : "bg-red-500";
+
+                return (
+                  <div key={status} className="mb-2">
+                    <div className="flex justify-between text-sm">
+                      <span>{status}</span>
+                      <span>{count}</span>
+                    </div>
+
+                    <div className="h-2 bg-gray-200 rounded mt-1">
+                      <div
+                        className={`h-2 rounded ${color}`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* RISK */}
+            <div className="bg-white/70 backdrop-blur p-5 rounded-2xl shadow">
+              <h3 className="font-semibold mb-3">Risk Assessment</h3>
+              <p className={hasCQIAlert ? "text-red-600" : "text-green-600"}>
+                {hasCQIAlert
+                  ? "Intervention Required"
+                  : "On Track"}
+              </p>
+            </div>
+
+            {/* PROGRESS */}
+            <div className="bg-white/70 backdrop-blur p-5 rounded-2xl shadow">
+              <h3 className="font-semibold mb-3">Completion Rate</h3>
+              <p className="text-2xl font-bold text-purple-700">{progress}%</p>
+
+              <div className="h-2 bg-gray-200 rounded mt-2">
+                <div
+                  className="bg-purple-600 h-2 rounded"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* ================= DOCUMENTS ================= */}
+      {/* DOCUMENTS */}
       {activeTab === "documents" && (
         <SupervisorChecklist documents={student.documents || {}} />
       )}
 
-      {/* ================= TIMELINE ================= */}
+      {/* TIMELINE */}
       {activeTab === "timeline" && (
         <div className="bg-white rounded-2xl shadow p-6">
-          {timeline.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">
-              No timeline data available.
+          {timeline.map((t, i) => (
+            <p key={i} className="text-sm border-b py-2">
+              {t.activity} — {t.status}
             </p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-purple-100">
-                <tr>
-                  <th className="p-3 text-left">Activity</th>
-                  <th className="p-3">Expected</th>
-                  <th className="p-3">Actual</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Remaining</th>
-                </tr>
-              </thead>
-              <tbody>
-                {timeline.map((t, i) => (
-                  <tr
-                    key={i}
-                    className={`border-t ${
-                      t.status === "Late"
-                        ? "bg-red-50"
-                        : t.status === "Due Soon"
-                        ? "bg-orange-50"
-                        : ""
-                    }`}
-                  >
-                    <td className="p-3">{t.activity}</td>
-                    <td className="p-3">{t.expected || "-"}</td>
-                    <td className="p-3">{t.actual || "-"}</td>
-                    <td className="p-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          t.status === "Completed"
-                            ? "bg-green-100 text-green-700"
-                            : t.status === "On Time"
-                            ? "bg-blue-100 text-blue-700"
-                            : t.status === "Due Soon"
-                            ? "bg-orange-100 text-orange-700"
-                            : t.status === "Late"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {t.status}
-                      </span>
-                    </td>
-                    <td
-                      className={`p-3 ${
-                        t.remaining_days <= 30 && t.remaining_days > 0
-                          ? "text-orange-600 font-semibold"
-                          : t.remaining_days <= 0
-                          ? "text-red-600 font-semibold"
-                          : ""
-                      }`}
-                    >
-                      {t.remaining_days}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          ))}
         </div>
       )}
 
-      {/* ================= CQI & PLO ================= */}
+      {/* CQI */}
       {activeTab === "cqi" && (
-        <div className="bg-white rounded-2xl shadow p-6 space-y-4">
-          <h3 className="font-bold text-lg">🎯 CQI by Assessment</h3>
-
-          {Object.keys(cqi || {}).length === 0 ? (
-            <p className="text-sm text-gray-500 italic">
-              No CQI / PLO data available.
-            </p>
-          ) : (
-            Object.entries(cqi).map(([assessment, ploData]) => (
-              <div key={assessment} className="border rounded-xl p-4">
-                <h4 className="font-semibold text-purple-700 mb-2">
-                  {assessment}
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(ploData || {})
-                    .sort(
-                      ([a], [b]) =>
-                        parseInt(a.replace("PLO", "")) -
-                        parseInt(b.replace("PLO", ""))
-                    )
-                    .map(([plo, d]) => (
-                      <span
-                        key={plo}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          d.status === "Achieved"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {plo}: Avg {d.average ?? "-"} – {d.status}
-                      </span>
-                    ))}
-                </div>
-              </div>
-            ))
-          )}
-
-          <div className="mt-6">
-            <h3 className="font-bold mb-2">
-              📊 Final PLO Attainment
-            </h3>
-
-            {student.status === "Graduated" && !student.finalPLO ? (
-              <p className="text-sm text-gray-500 italic">
-                Final PLO attainment was achieved and validated at graduation.
-                Detailed records are archived.
-              </p>
-            ) : (
-              <FinalPLOTable finalPLO={student.finalPLO} />
-            )}
-          </div>
-        </div>
+        <FinalPLOTable finalPLO={student.finalPLO} />
       )}
 
+      {/* REMARKS */}
       {activeTab === "remarks" && (
-  <div className="space-y-6">
-    {student.remarksByAssessment &&
-    Object.keys(student.remarksByAssessment).length > 0 ? (
-      Object.entries(student.remarksByAssessment).map(
-        ([assessmentType, remark]) => (
-          <SupervisorRemark
-            key={assessmentType}
-            studentMatric={student.student_id}
-            studentEmail={student.email}
-            assessmentType={assessmentType}
-            initialRemark={remark}
-          />
-        )
-      )
-    ) : (
-      <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500 italic">
-        No supervisor remarks recorded yet.
-      </div>
-    )}
-  </div>
-)}
+        <SupervisorRemark
+          studentMatric={student.student_id}
+          studentEmail={student.email}
+        />
+      )}
+
+      {/* FOOTER */}
+      <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
+        © 2026 PPBMS · Universiti Sains Malaysia  
+        <br />
+        Developed by <span className="font-medium text-gray-600">Hazwani Ahmad Yusof</span> (2025)
+      </footer>
 
     </div>
   );
