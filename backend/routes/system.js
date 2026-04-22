@@ -7,6 +7,7 @@ import {
 import { extractCQIIssues } from "../utils/detectCQIRequired.js";
 import { sendCQIAlert } from "../services/mailer.js";
 import { runAutoDelayDetection } from "../jobs/runAutoDelayDetection.js";
+import { generateExpectedTimeline } from "../cron/expectedTimeline.js";
 
 const router = express.Router();
 
@@ -205,5 +206,41 @@ router.post("/run-delay-detection", async (req, res) => {
   }
 });
 
+/* =========================================================
+   📅 GENERATE EXPECTED TIMELINE
+========================================================= */
+router.post("/generate-expected-timeline", async (req, res) => {
+
+  const secret = req.headers["x-cron-secret"];
+
+  if (!secret || secret !== process.env.CRON_SECRET) {
+    return res.status(403).json({
+      error: "Forbidden"
+    });
+  }
+
+  try {
+
+    console.log("📅 Generating expected timeline");
+
+    const result = await generateExpectedTimeline();
+
+    res.json({
+      success: true,
+      rowsProcessed: result.length
+    });
+
+  } catch (err) {
+
+    console.error(
+      "❌ Timeline generation failed:",
+      err
+    );
+
+    res.status(500).json({
+      error: err.message
+    });
+  }
+});
 export default router;
 
