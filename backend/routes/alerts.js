@@ -149,18 +149,34 @@ router.post("/run-delay-alert", async (req, res) => {
 
       if (!studentEmail || !supervisorEmail) continue;
 
-      for (const m of MILESTONES) {
-        const expected = row[m.expected];
-        const actual = row[m.actual];
-        const sent = row[m.sent];
+        for (const m of MILESTONES) {
 
-        if (!expected) continue;
-        if (actual) continue;
-        if (sent === "YES") continue;
+  const expected = row[m.expected];
+  const actual = row[m.actual];
+  const sent = row[m.sent];
 
-        const expectedDate = new Date(expected);
-        if (isNaN(expectedDate)) continue;
-        if (expectedDate >= new Date()) continue;
+  console.log({
+    student: studentName,
+    milestone: m.name,
+    expected,
+    actual,
+    sent
+  });
+
+  if (!expected) continue;
+
+  if (
+    actual &&
+    String(actual).trim() !== ""
+  ) continue;
+
+  if (sent === "YES") continue;
+
+  const expectedDate = new Date(expected);
+
+  if (isNaN(expectedDate)) continue;
+
+  if (expectedDate >= new Date()) continue;
 
         const daysLate = Math.floor(
           (new Date() - expectedDate) / (1000 * 60 * 60 * 24)
