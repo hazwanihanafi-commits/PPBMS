@@ -1,26 +1,36 @@
-// ===============================
+// ==========================================
 // backend/routes/admin.js
-// ===============================
+// ==========================================
 
 import express from "express";
 import jwt from "jsonwebtoken";
+
 import {
   readMasterTracking,
   readFINALPROGRAMPLO
 } from "../services/googleSheets.js";
 
-import { buildTimelineForRow } from "../utils/buildTimeline.js";
-import { computeProgrammeCQI } from "../utils/computeProgrammeCQI.js";
+import {
+  buildTimelineForRow
+} from "../utils/buildTimeline.js";
+
+import {
+  computeProgrammeCQI
+} from "../utils/computeProgrammeCQI.js";
 
 const router = express.Router();
 
-/* ================= AUTH ================= */
+/* ==========================================
+   AUTH
+========================================== */
 function adminAuth(req, res, next) {
 
-  const token = (req.headers.authorization || "")
-    .replace("Bearer ", "");
+  const token = (
+    req.headers.authorization || ""
+  ).replace("Bearer ", "");
 
   if (!token) {
+
     return res.status(401).json({
       error: "No token"
     });
@@ -34,6 +44,7 @@ function adminAuth(req, res, next) {
     );
 
     if (user.role !== "admin") {
+
       return res.status(403).json({
         error: "Forbidden"
       });
@@ -51,203 +62,326 @@ function adminAuth(req, res, next) {
   }
 }
 
-/* ================= STATUS DERIVER ================= */
+/* ==========================================
+   OVERALL STATUS DERIVER
+========================================== */
 function deriveOverallStatus(timeline) {
 
-  if (!Array.isArray(timeline) || timeline.length === 0) {
+  if (
+    !Array.isArray(timeline) ||
+    timeline.length === 0
+  ) {
+
     return "NO_DATA";
   }
 
   const statuses = timeline.map(t =>
+
     String(t.status || "")
       .toUpperCase()
       .trim()
   );
 
-  if (statuses.every(s => s === "COMPLETED")) {
-    return "GRADUATED";
-  }
+  // highest priority
+  if (
+    statuses.some(
+      s => s === "AT_RISK"
+    )
+  ) {
 
-  if (statuses.some(s => s === "AT_RISK")) {
     return "AT_RISK";
   }
 
-  if (statuses.some(s => s === "SLIGHTLY_DELAYED")) {
+  // medium priority
+  if (
+    statuses.some(
+      s => s === "SLIGHTLY_DELAYED"
+    )
+  ) {
+
     return "SLIGHTLY_DELAYED";
+  }
+
+  // all completed
+  if (
+    statuses.every(
+      s => s === "COMPLETED"
+    )
+  ) {
+
+    return "GRADUATED";
   }
 
   return "ON_TRACK";
 }
 
-/* ================= PROGRAMMES ================= */
-router.get("/programmes", adminAuth, async (req, res) => {
+/* ==========================================
+   GET PROGRAMMES
+========================================== */
+router.get(
+  "/programmes",
+  adminAuth,
+  async (req, res) => {
 
-  const rows = await readFINALPROGRAMPLO(
-    process.env.SHEET_ID
-  );
+    const rows =
+      await readFINALPROGRAMPLO(
+        process.env.SHEET_ID
+      );
 
-  const programmes = [
-    ...new Set(
-      rows
-        .map(r => String(r.Programme || "").trim())
-        .filter(Boolean)
-    )
-  ];
+    const programmes = [
 
-  res.json({ programmes });
-});
+      ...new Set(
 
-/* ================= PROGRAMME PLO ================= */
-router.get("/programme-plo", adminAuth, async (req, res) => {
+        rows
 
-  const { programme } = req.query;
+          .map(r =>
+            String(
+              r.Programme || ""
+            ).trim()
+          )
 
-  if (!programme) {
-    return res.status(400).json({
-      error: "Programme required"
+          .filter(Boolean)
+      )
+    ];
+
+    res.json({ programmes });
+  }
+);
+
+/* ==========================================
+   PROGRAMME PLO
+========================================== */
+router.get(
+  "/programme-plo",
+  adminAuth,
+  async (req, res) => {
+
+    const { programme } =
+      req.query;
+
+    if (!programme) {
+
+      return res.status(400).json({
+        error:
+          "Programme required"
+      });
+    }
+
+    const data =
+      await computeProgrammeCQI(
+
+        programme,
+
+        process.env.SHEET_ID
+      );
+
+    res.json(data);
+  }
+);
+
+/* ==========================================
+   GRADUATED STUDENTS
+========================================== */
+router.get(
+  "/programme-graduates",
+  adminAuth,
+  async (req, res) => {
+
+    const { programme } =
+      req.query;
+
+    const rows =
+      await readMasterTracking(
+        process.env.SHEET_ID
+      );
+
+    const students = rows.filter(r =>
+
+      String(
+        r.Programme || ""
+      ).trim() ===
+        programme.trim()
+
+      &&
+
+      String(
+        r.Status || ""
+      ).trim() ===
+        "Graduated"
+    );
+
+    res.json({
+
+      count:
+        students.length,
+
+      students:
+        students.map(r => ({
+
+          matric:
+            r.Matric || "",
+
+          name:
+            r["Student Name"] || "",
+
+          email:
+            (
+              r["Student's Email"] || ""
+            )
+              .toLowerCase(),
+
+          status:
+            "GRADUATED"
+        }))
     });
   }
+);
 
-  const data = await computeProgrammeCQI(
-    programme,
-    process.env.SHEET_ID
-  );
-
-  res.json(data);
-});
-
-/* ================= GRADUATED STUDENTS ================= */
-router.get("/programme-graduates", adminAuth, async (req, res) => {
-
-  const { programme } = req.query;
-
-  const rows = await readMasterTracking(
-    process.env.SHEET_ID
-  );
-
-  const students = rows.filter(r =>
-
-    String(r.Programme || "").trim() === programme.trim() &&
-
-    String(r.Status || "").trim() === "Graduated"
-  );
-
-  res.json({
-    count: students.length,
-
-    students: students.map(r => ({
-      matric: r.Matric || "",
-      name: r["Student Name"] || "",
-      email: (
-        r["Student's Email"] || ""
-      ).toLowerCase(),
-
-      status: "GRADUATED"
-    }))
-  });
-});
-
-/* ================= ACTIVE STUDENTS ================= */
+/* ==========================================
+   ACTIVE STUDENTS
+========================================== */
 router.get(
   "/programme-active-students",
   adminAuth,
   async (req, res) => {
 
-    const { programme } = req.query;
+    const { programme } =
+      req.query;
 
-    const rows = await readMasterTracking(
-      process.env.SHEET_ID
-    );
+    const rows =
+      await readMasterTracking(
+        process.env.SHEET_ID
+      );
 
     const students = rows
 
       .filter(r =>
 
-        String(r.Programme || "").trim() ===
-          programme.trim() &&
+        String(
+          r.Programme || ""
+        ).trim() ===
+          programme.trim()
 
-        String(r.Status || "").trim() ===
+        &&
+
+        String(
+          r.Status || ""
+        ).trim() ===
           "Active"
       )
 
       .map(r => {
 
-        const timeline = buildTimelineForRow(r);
+        const timeline =
+          buildTimelineForRow(r);
 
         return {
-          matric: r.Matric || "",
-          name: r["Student Name"] || "",
-          email: (
-            r["Student's Email"] || ""
-          ).toLowerCase(),
 
-          status: deriveOverallStatus(timeline)
+          matric:
+            r.Matric || "",
+
+          name:
+            r["Student Name"] || "",
+
+          email:
+            (
+              r["Student's Email"] || ""
+            )
+              .toLowerCase(),
+
+          status:
+            deriveOverallStatus(
+              timeline
+            )
         };
       });
 
     res.json({
-      count: students.length,
+
+      count:
+        students.length,
+
       students
     });
   }
 );
 
-/* ================= PROGRAMME SUMMARY ================= */
+/* ==========================================
+   PROGRAMME SUMMARY
+========================================== */
 router.get(
   "/programme-summary",
   adminAuth,
   async (req, res) => {
 
-    const { programme } = req.query;
+    const { programme } =
+      req.query;
 
     if (!programme) {
+
       return res.status(400).json({
-        error: "Programme required"
+        error:
+          "Programme required"
       });
     }
 
-    const rows = await readMasterTracking(
-      process.env.SHEET_ID
-    );
+    const rows =
+      await readMasterTracking(
+        process.env.SHEET_ID
+      );
 
     let onTrack = 0;
+
     let slightlyDelayed = 0;
+
     let atRisk = 0;
+
     let graduated = 0;
 
     rows
 
       .filter(r =>
-        String(r.Programme || "").trim() ===
-        programme.trim()
+
+        String(
+          r.Programme || ""
+        ).trim() ===
+          programme.trim()
       )
 
       .forEach(r => {
 
+        // graduated
         if (
-          String(r.Status || "").trim() ===
-          "Graduated"
+
+          String(
+            r.Status || ""
+          ).trim() ===
+            "Graduated"
         ) {
+
           graduated++;
+
           return;
         }
 
-        const timeline = buildTimelineForRow(r);
+        const timeline =
+          buildTimelineForRow(r);
 
-        const statuses = timeline.map(t =>
-          String(t.status || "")
-            .toUpperCase()
-            .trim()
-        );
+        const overall =
+          deriveOverallStatus(
+            timeline
+          );
 
-        if (statuses.some(s => s === "AT_RISK")) {
+        if (
+          overall === "AT_RISK"
+        ) {
 
           atRisk++;
 
         } else if (
-          statuses.some(
-            s => s === "SLIGHTLY_DELAYED"
-          )
+
+          overall ===
+          "SLIGHTLY_DELAYED"
         ) {
 
           slightlyDelayed++;
@@ -259,15 +393,21 @@ router.get(
       });
 
     res.json({
+
       onTrack,
+
       slightlyDelayed,
+
       atRisk,
+
       graduated
     });
   }
 );
 
-/* ================= SINGLE STUDENT ================= */
+/* ==========================================
+   SINGLE STUDENT
+========================================== */
 router.get(
   "/admin/student/:email",
   adminAuth,
@@ -275,34 +415,49 @@ router.get(
 
     try {
 
-      const email = req.params.email
-        .toLowerCase()
-        .trim();
+      const email =
+        req.params.email
+          .toLowerCase()
+          .trim();
 
-      const rows = await readMasterTracking(
-        process.env.SHEET_ID
-      );
+      const rows =
+        await readMasterTracking(
+          process.env.SHEET_ID
+        );
 
       const raw = rows.find(
 
         r => (
           r["Student's Email"] || ""
         )
+
           .toLowerCase()
-          .trim() === email
+
+          .trim()
+
+          === email
       );
 
       if (!raw) {
+
         return res.status(404).json({
-          error: "Student not found"
+          error:
+            "Student not found"
         });
       }
 
       const profile = {
 
         student_id:
-          raw["Matric"] ||
-          raw["Matric No"] ||
+
+          raw["Matric"]
+
+          ||
+
+          raw["Matric No"]
+
+          ||
+
           "",
 
         name:
@@ -327,22 +482,38 @@ router.get(
           raw["Main Supervisor"] || "",
 
         coSupervisors:
+
           raw["Co-Supervisor(s)"]
 
-            ? raw["Co-Supervisor(s)"]
-                .split(",")
-                .map(s => s.trim())
-                .filter(Boolean)
+            ?
 
-            : []
+            raw["Co-Supervisor(s)"]
+
+              .split(",")
+
+              .map(s => s.trim())
+
+              .filter(Boolean)
+
+            :
+
+            []
       };
 
       const timeline =
         buildTimelineForRow(raw);
 
       res.json({
+
         row: {
+
           ...profile,
+
+          overallStatus:
+            deriveOverallStatus(
+              timeline
+            ),
+
           timeline
         }
       });
@@ -355,29 +526,37 @@ router.get(
       );
 
       res.status(500).json({
-        error: "Failed to load student"
+        error:
+          "Failed to load student"
       });
     }
   }
 );
 
-/* ================= PROGRAMMES ================= */
+/* ==========================================
+   ALL PROGRAMMES
+========================================== */
 router.get(
   "/programmes/students",
   adminAuth,
   async (req, res) => {
 
-    const rows = await readMasterTracking(
-      process.env.SHEET_ID
-    );
+    const rows =
+      await readMasterTracking(
+        process.env.SHEET_ID
+      );
 
     const programmes = [
+
       ...new Set(
 
         rows
 
           .map(r =>
-            String(r.Programme || "").trim()
+
+            String(
+              r.Programme || ""
+            ).trim()
           )
 
           .filter(Boolean)
