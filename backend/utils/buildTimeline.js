@@ -73,21 +73,46 @@ export function buildTimelineForRow(raw) {
     const actual = raw[actualCol] || "";
     const expected = e.expectedDate || "";
 
-    let remaining_days = "";
-    let status = "Pending";
+   let remaining_days = "";
+let status = "PENDING";
 
-    if (actual) {
-      status = "Completed";
-      remaining_days = 0;
-    } else if (expected) {
-      const rem = dayjs(expected).diff(dayjs(), "day");
-      remaining_days = rem;
-      status = rem < 0 ? "Late" : (rem <= 14 ? "Due Soon" : "On Time");
-    } else {
-      status = "Pending";
-      remaining_days = "";
-    }
+if (actual) {
 
+  status = "COMPLETED";
+  remaining_days = 0;
+
+} else if (expected) {
+
+  const rem = dayjs(expected)
+    .diff(dayjs(), "day");
+
+  remaining_days = rem;
+
+  // more than 30 days overdue
+  if (rem < -30) {
+
+    status = "AT_RISK";
+
+  }
+
+  // overdue but within 30 days
+  else if (rem < 0) {
+
+    status = "SLIGHTLY_DELAYED";
+
+  }
+
+  // future timeline
+  else {
+
+    status = "ON_TRACK";
+  }
+
+} else {
+
+  status = "PENDING";
+  remaining_days = "";
+}
     return {
       activity: e.activity,
       expected,
