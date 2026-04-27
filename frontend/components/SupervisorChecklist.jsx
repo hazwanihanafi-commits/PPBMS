@@ -1,15 +1,3 @@
-Revise your SupervisorChecklist.jsx to support:
-
-* ✅ Approve
-* ❌ Revision Required
-* 💬 Supervisor feedback
-* ⏳ Pending Review
-* auto refresh
-
-Your current version only displays links.
-
-Use this FULL upgraded version:
-
 import { useState } from "react";
 import { authFetch } from "../utils/authFetch";
 const ITEMS = [
