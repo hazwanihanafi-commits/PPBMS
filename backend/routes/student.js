@@ -63,24 +63,27 @@ router.get("/me", auth, async (req, res) => {
       cosupervisors: raw["Co-Supervisor(s)"] || "",
     };
 
-    const DOCUMENT_KEYS = [
-      "DPLC",
-      "SUPERVISION_LOG",
-      "APR_Y1",
-      "APR_Y2",
-      "APR_Y3",
-      "ETHICS_APPROVAL",
-      "PUBLICATION_ACCEPTANCE",
-      "PROOF_OF_SUBMISSION",
-      "CONFERENCE_PRESENTATION",
-      "THESIS_NOTICE",
-      "VIVA_REPORT",
-      "CORRECTION_VERIFICATION",
-      "FINAL_THESIS",
-    ];
+    const DOC_COLUMN_MAP = {
+  "Development Plan & Learning Contract (DPLC)": "DPLC",
+  "Student Supervision Logbook": "SUPERVISION_LOG",
+  "Annual Progress Review – Year 1": "APR_Y1",
+  "Annual Progress Review – Year 2": "APR_Y2",
+  "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
+  "Ethics Approval": "ETHICS_APPROVAL",
+  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
+  "Proof of Submission": "PROOF_OF_SUBMISSION",
+  "Conference Presentation": "CONFERENCE_PRESENTATION",
+  "Thesis Notice": "THESIS_NOTICE",
+  "Viva Report": "VIVA_REPORT",
+  "Correction Verification": "CORRECTION_VERIFICATION",
+  "Final Thesis": "FINAL_THESIS",
+};
 
-    const documents = {};
-    DOCUMENT_KEYS.forEach(k => (documents[k] = raw[k] || ""));
+const documents = {};
+
+Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
+  documents[label] = raw[column] || "";
+});
 
     const timeline = buildTimelineForRow(raw);
 
