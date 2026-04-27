@@ -49,9 +49,15 @@ function SupervisorTopBar() {
 export default function SupervisorDashboard() {
   const router = useRouter();
 
-  const [students, setStudents] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [search, setSearch] = useState("");
+  const [students, setStudents] =
+    useState([]);
+
+  const [filtered, setFiltered] =
+    useState([]);
+
+  const [search, setSearch] =
+    useState("");
+
   const [statusFilter, setStatusFilter] =
     useState("All");
 
@@ -71,9 +77,11 @@ export default function SupervisorDashboard() {
   }, [students, search, statusFilter]);
 
   async function loadStudents() {
+
     setLoading(true);
 
     try {
+
       const res = await fetch(
         `${API_BASE}/api/supervisor/students`,
         {
@@ -85,12 +93,19 @@ export default function SupervisorDashboard() {
         }
       );
 
-      const json = await res.json();
+      const json =
+        await res.json();
 
       if (res.ok) {
-        setStudents(json.students || []);
+
+        setStudents(
+          json.students || []
+        );
+
       } else {
+
         setStudents([]);
+
       }
 
     } catch (err) {
@@ -120,7 +135,7 @@ export default function SupervisorDashboard() {
     }
 
     const p =
-      st.progressPercent || 0;
+      calculateProgress(st);
 
     if (p >= 80) {
       return "On Track";
@@ -131,6 +146,40 @@ export default function SupervisorDashboard() {
     }
 
     return "At Risk";
+  }
+
+  /* =========================
+     AUTO PROGRESS
+  ========================= */
+
+  function calculateProgress(st) {
+
+    const timeline =
+      Array.isArray(st.timeline)
+        ? st.timeline
+        : [];
+
+    /* FALLBACK */
+    if (timeline.length === 0) {
+      return (
+        st.progressPercent || 0
+      );
+    }
+
+    const completed =
+      timeline.filter(
+        (t) =>
+          t.status ===
+            "Completed" ||
+          t.status ===
+            "COMPLETED"
+      ).length;
+
+    return Math.round(
+      (completed /
+        timeline.length) *
+        100
+    );
   }
 
   /* =========================
@@ -161,13 +210,16 @@ export default function SupervisorDashboard() {
       );
     }
 
-    /* STATUS FILTER */
-    if (statusFilter !== "All") {
+    /* STATUS */
+    if (
+      statusFilter !== "All"
+    ) {
 
       list = list.filter(
         (st) =>
-          getStudentCategory(st) ===
-          statusFilter
+          getStudentCategory(
+            st
+          ) === statusFilter
       );
     }
 
@@ -184,29 +236,34 @@ export default function SupervisorDashboard() {
   const graduated =
     students.filter(
       (s) =>
-        getStudentCategory(s) ===
-        "Graduated"
+        getStudentCategory(
+          s
+        ) === "Graduated"
     ).length;
 
   const onTrack =
     students.filter(
       (s) =>
-        getStudentCategory(s) ===
-        "On Track"
+        getStudentCategory(
+          s
+        ) === "On Track"
     ).length;
 
   const slightlyLate =
     students.filter(
       (s) =>
-        getStudentCategory(s) ===
+        getStudentCategory(
+          s
+        ) ===
         "Slightly Late"
     ).length;
 
   const atRisk =
     students.filter(
       (s) =>
-        getStudentCategory(s) ===
-        "At Risk"
+        getStudentCategory(
+          s
+        ) === "At Risk"
     ).length;
 
   /* =========================
@@ -218,11 +275,17 @@ export default function SupervisorDashboard() {
     const category =
       getStudentCategory(st);
 
-    if (category === "Graduated") {
+    if (
+      category ===
+      "Graduated"
+    ) {
       return "bg-blue-500";
     }
 
-    if (category === "On Track") {
+    if (
+      category ===
+      "On Track"
+    ) {
       return "bg-green-500";
     }
 
@@ -236,50 +299,45 @@ export default function SupervisorDashboard() {
     return "bg-red-500";
   }
 
-  function statusTextColor(st) {
-
-    const category =
-      getStudentCategory(st);
-
-    if (category === "Graduated") {
-      return "text-blue-700";
-    }
-
-    if (category === "On Track") {
-      return "text-green-700";
-    }
-
-    if (
-      category ===
-      "Slightly Late"
-    ) {
-      return "text-yellow-700";
-    }
-
-    return "text-red-700";
-  }
-
   function statusBadge(st) {
 
     const category =
       getStudentCategory(st);
 
-    if (category === "Graduated") {
-      return "bg-blue-100 text-blue-700";
+    if (
+      category ===
+      "Graduated"
+    ) {
+      return `
+        bg-blue-100
+        text-blue-700
+      `;
     }
 
-    if (category === "On Track") {
-      return "bg-green-100 text-green-700";
+    if (
+      category ===
+      "On Track"
+    ) {
+      return `
+        bg-green-100
+        text-green-700
+      `;
     }
 
     if (
       category ===
       "Slightly Late"
     ) {
-      return "bg-yellow-100 text-yellow-700";
+      return `
+        bg-yellow-100
+        text-yellow-700
+      `;
     }
 
-    return "bg-red-100 text-red-700";
+    return `
+      bg-red-100
+      text-red-700
+    `;
   }
 
   function cardBackground(st) {
@@ -287,7 +345,10 @@ export default function SupervisorDashboard() {
     const category =
       getStudentCategory(st);
 
-    if (category === "Graduated") {
+    if (
+      category ===
+      "Graduated"
+    ) {
       return `
         bg-gradient-to-br
         from-blue-50
@@ -297,7 +358,10 @@ export default function SupervisorDashboard() {
       `;
     }
 
-    if (category === "On Track") {
+    if (
+      category ===
+      "On Track"
+    ) {
       return `
         bg-gradient-to-br
         from-green-50
@@ -424,7 +488,9 @@ export default function SupervisorDashboard() {
           className="w-full p-3 rounded-xl border bg-white"
           value={search}
           onChange={(e) =>
-            setSearch(e.target.value)
+            setSearch(
+              e.target.value
+            )
           }
         />
 
@@ -478,6 +544,9 @@ export default function SupervisorDashboard() {
 
             const category =
               getStudentCategory(st);
+
+            const progress =
+              calculateProgress(st);
 
             return (
               <div
@@ -535,8 +604,9 @@ export default function SupervisorDashboard() {
 
                 </div>
 
-                {/* GRADUATED MESSAGE */}
-                {category === "Graduated" && (
+                {/* GRADUATED */}
+                {category ===
+                  "Graduated" && (
                   <div className="mt-5 bg-blue-100 border border-blue-200 rounded-xl p-4">
 
                     <p className="text-blue-700 font-semibold">
@@ -547,7 +617,8 @@ export default function SupervisorDashboard() {
                 )}
 
                 {/* PROGRESS */}
-                {category !== "Graduated" && (
+                {category !==
+                  "Graduated" && (
                   <div className="mt-5">
 
                     <div className="flex justify-between text-sm font-semibold">
@@ -557,7 +628,7 @@ export default function SupervisorDashboard() {
                       </span>
 
                       <span>
-                        {st.progressPercent || 0}%
+                        {progress}%
                       </span>
 
                     </div>
@@ -569,9 +640,7 @@ export default function SupervisorDashboard() {
                           st
                         )}`}
                         style={{
-                          width: `${
-                            st.progressPercent || 0
-                          }%`,
+                          width: `${progress}%`,
                         }}
                       />
 
@@ -587,7 +656,8 @@ export default function SupervisorDashboard() {
                       pathname:
                         "/supervisor/[email]",
                       query: {
-                        email: st.email,
+                        email:
+                          st.email,
                       },
                     })
                   }
