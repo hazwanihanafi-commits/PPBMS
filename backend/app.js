@@ -46,7 +46,9 @@ app.use(express.json());
 /* ================= HEALTH CHECK ================= */
 
 app.get("/", (_, res) => {
-  res.json({ status: "PPBMS backend running" });
+  res.json({
+    status: "PPBMS backend running"
+  });
 });
 
 /* ================= ROUTES ================= */
@@ -60,7 +62,6 @@ app.use("/api/student", studentRoutes);
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
 
-
 // Alerts / system
 app.use("/alerts", alertsRoutes);
 app.use("/system", systemRoutes);
@@ -69,37 +70,65 @@ app.use("/system", systemRoutes);
 
 // Runs daily at 2:00 AM server time
 cron.schedule("0 2 * * *", async () => {
-  console.log("⏰ Running automatic delay detection job...");
+
+  console.log(
+    "⏰ Running automatic delay detection job..."
+  );
+
   try {
+
     await runAutoDelayDetection();
-    console.log("✅ Delay detection completed");
+
+    console.log(
+      "✅ Delay detection completed"
+    );
+
   } catch (err) {
-    console.error("❌ Delay detection failed:", err);
+
+    console.error(
+      "❌ Delay detection failed:",
+      err
+    );
+
   }
 });
 
 /* ================= NO CACHE ================= */
 
 app.use((req, res, next) => {
+
   res.setHeader(
     "Cache-Control",
     "no-store, no-cache, must-revalidate, proxy-revalidate"
   );
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
+
+  res.setHeader(
+    "Pragma",
+    "no-cache"
+  );
+
+  res.setHeader(
+    "Expires",
+    "0"
+  );
+
   next();
 });
 
-/* ================= STARTUP CHECKS ================= */
-
+/* ================= ERROR HANDLER ================= */
 
 app.use((err, req, res, next) => {
-  console.error("🔥 Unhandled error:", err);
+
+  console.error(
+    "🔥 Unhandled error:",
+    err
+  );
+
   res.status(500).json({
     error: "Internal server error",
     detail: err.message
   });
 });
 
-
 export default app;
+```
