@@ -19,9 +19,23 @@ const app = express();
 // ✅ CORS MUST BE FIRST
 app.use(
   cors({
-    origin: ["https://ppbms-frontend.onrender.com"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: [
+      "https://ppbms.my",
+      "https://www.ppbms.my",
+      "https://ppbms-frontend.onrender.com",
+      "http://localhost:3000"
+    ],
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "OPTIONS"
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization"
+    ],
     credentials: true
   })
 );
