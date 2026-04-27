@@ -645,11 +645,41 @@ export default function SupervisorStudentPage() {
                 className="border rounded-lg px-3 py-2 text-sm"
               >
 
-                <option value="PROGRESS">
-                  PROGRESS
-                </option>
+                <option value="PROGRESS_1">
+  PROGRESS 1
+</option>
 
-                <option value="VIVA">
+<option value="PROGRESS_2">
+  PROGRESS 2
+</option>
+
+<option value="PROGRESS_3">
+  PROGRESS 3
+</option>
+
+                  <option value="PROGRESS_4">
+  PROGRESS 4
+</option>
+                <option value="PROGRESS_5">
+  PROGRESS 5
+</option>
+
+                  <option value="PROGRESS_6">
+  PROGRESS 6
+</option>
+
+                  <option value="PROGRESS_7">
+  PROGRESS 7
+</option>
+
+
+                  <option value="PROGRESS_8">
+  PROGRESS 8
+</option>
+
+
+                  
+                  <option value="VIVA">
                   VIVA
                 </option>
 
@@ -670,16 +700,15 @@ export default function SupervisorStudentPage() {
             </div>
 
             <SupervisorRemark
-              studentMatric={
-                student.student_id
-              }
-              studentEmail={
-                student.email
-              }
-              assessmentType={
-                selectedAssessment
-              }
-            />
+  studentMatric={student.student_id}
+  studentEmail={student.email}
+  assessmentType={
+    selectedAssessment.startsWith("PROGRESS")
+      ? "PROGRESS"
+      : selectedAssessment
+  }
+  assessmentInstance={selectedAssessment}
+/>
 
           </div>
 
