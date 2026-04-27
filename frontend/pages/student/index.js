@@ -134,40 +134,30 @@ export default function StudentPage() {
      CALCULATIONS
   ========================= */
 
-  const completed =
-    timeline.filter(
-      (t) =>
-        t.status ===
-          "Completed" ||
-        t.status ===
-          "COMPLETED"
-    ).length;
+  const completed = timeline.filter(
+    (t) =>
+      t.status?.toLowerCase() ===
+      "completed"
+  ).length;
 
   const late =
     timeline.filter(
       (t) =>
-        t.status ===
-          "Late" ||
-        t.status ===
-          "AT_RISK" ||
+        t.status === "Late" ||
+        t.status === "AT_RISK" ||
         (
           !t.actual &&
           t.remaining_days < 0 &&
-          t.status !==
-            "Completed" &&
-          t.status !==
-            "COMPLETED"
+          t.status !== "Completed" &&
+          t.status !== "COMPLETED"
         )
     ).length;
 
-  const progress =
-    timeline.length
-      ? Math.round(
-          (completed /
-            timeline.length) *
-            100
-        )
-      : 0;
+  const progress = timeline.length
+    ? Math.round(
+        (completed / timeline.length) * 100
+      )
+    : 0;
 
   /* =========================
      LOADING
@@ -414,18 +404,13 @@ export default function StudentPage() {
               (t, i) => {
 
                 const isLate =
-                  t.status ===
-                    "Late" ||
-                  t.status ===
-                    "AT_RISK" ||
+                  t.status === "Late" ||
+                  t.status === "AT_RISK" ||
                   (
                     !t.actual &&
-                    t.remaining_days <
-                      0 &&
-                    t.status !==
-                      "Completed" &&
-                    t.status !==
-                      "COMPLETED"
+                    t.remaining_days < 0 &&
+                    t.status !== "Completed" &&
+                    t.status !== "COMPLETED"
                   );
 
                 return (
@@ -435,8 +420,7 @@ export default function StudentPage() {
                     className={`rounded-2xl p-5 shadow border-l-4 ${
                       isLate
                         ? "border-red-500 bg-red-50"
-                        : t.remaining_days <=
-                          30
+                        : t.remaining_days <= 30
                         ? "border-yellow-400 bg-yellow-50"
                         : "border-green-400 bg-white"
                     }`}
@@ -450,8 +434,11 @@ export default function StudentPage() {
 
                       <span className="text-sm font-bold text-purple-700">
 
-                        {t.remaining_days}{" "}
-                        days
+                        {t.remaining_days < 0
+                          ? `${Math.abs(
+                              t.remaining_days
+                            )} days overdue`
+                          : `${t.remaining_days} days`}
 
                       </span>
 
@@ -460,11 +447,9 @@ export default function StudentPage() {
                     <p className="text-sm text-gray-600">
 
                       Expected:{" "}
-                      {t.expected ||
-                        "-"}{" "}
+                      {t.expected || "-"}{" "}
                       | Actual:{" "}
-                      {t.actual ||
-                        "-"}
+                      {t.actual || "-"}
 
                     </p>
 
@@ -521,17 +506,18 @@ export default function StudentPage() {
 
         )}
 
-       {/* DOCUMENTS */}
-{activeTab === "documents" && (
-  <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
+        {/* DOCUMENTS */}
+        {activeTab === "documents" && (
+          <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
 
-    <StudentChecklist
-      documents={profile.documents || {}}
-      onSaved={loadStudent}
-    />
+            <StudentChecklist
+              documents={profile.documents || {}}
+              onSaved={loadStudent}
+            />
 
-  </div>
-)}
+          </div>
+        )}
+
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
 
