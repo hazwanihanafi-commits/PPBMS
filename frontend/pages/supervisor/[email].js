@@ -274,10 +274,14 @@ export default function SupervisorStudentPage() {
           </div>
         )}
 
-        {/* DOCUMENTS */}
-        {activeTab === "documents" && (
-          <SupervisorChecklist documents={student.documents || {}} />
-        )}
+    {/* DOCUMENTS */}
+{activeTab === "documents" && (
+  <SupervisorChecklist
+    documents={student.documents || {}}
+    studentEmail={student.email}
+    onUpdated={loadStudent}
+  />
+)}
 
         {/* CQI */}
         {activeTab === "cqi" && (
