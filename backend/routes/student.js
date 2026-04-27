@@ -199,39 +199,59 @@ router.post("/reset-actual", auth, async (req, res) => {
 router.post("/save-document", auth, async (req, res) => {
   try {
     const { document_key, file_url } = req.body;
+
     if (!document_key) {
-      return res.status(400).json({ error: "Missing document_key" });
+      return res.status(400).json({
+        error: "Missing document_key"
+      });
+    }
+
+    const DOC_COLUMN_MAP = {
+      "Development Plan & Learning Contract (DPLC)": "DPLC",
+      "Student Supervision Logbook": "SUPERVISION_LOG",
+      "Annual Progress Review – Year 1": "APR_Y1",
+      "Annual Progress Review – Year 2": "APR_Y2",
+      "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
+    };
+
+    const column = DOC_COLUMN_MAP[document_key];
+
+    if (!column) {
+      return res.status(400).json({
+        error: `Invalid document key: ${document_key}`
+      });
     }
 
     const email = req.user.email.toLowerCase();
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const idx = rows.findIndex(
       r => (r["Student's Email"] || "").toLowerCase() === email
     );
-    if (idx === -1) {
-      return res.status(404).json({ error: "Student not found" });
-    }
 
-    const headers = Object.keys(rows[0] || {});
-    if (!headers.includes(document_key)) {
-      return res.status(400).json({
-        error: `Invalid document key: ${document_key}`
+    if (idx === -1) {
+      return res.status(404).json({
+        error: "Student not found"
       });
     }
 
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
-      document_key,
+      column,
       idx + 2,
       file_url || ""
     );
 
     res.json({ success: true });
+
   } catch (e) {
     console.error("save-document:", e);
-    res.status(500).json({ error: e.message });
+
+    res.status(500).json({
+      error: e.message
+    });
   }
 });
 
