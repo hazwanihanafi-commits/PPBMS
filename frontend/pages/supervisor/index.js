@@ -1,415 +1,550 @@
 import { useEffect, useState } from "react";
-import { API_BASE } from "../../utils/api";
 import { useRouter } from "next/router";
+import { motion } from "framer-motion";
+import { API_BASE } from "../../utils/api";
+import SupervisorChecklist from "../../components/SupervisorChecklist";
+import SupervisorRemark from "../../components/SupervisorRemark";
+import FinalPLOTable from "../../components/FinalPLOTable";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import jsPDF from "jspdf";
 
-/* =========================
-   TOP BAR
-========================= */
-function SupervisorTopBar() {
-  const router = useRouter();
+/* ================= GLASS CARD ================= */
+const GlassCard = ({ children }) => (
+  <motion.div
+    whileHover={{ y: -4, scale: 1.02 }}
+    className="bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-sm border border-white/40"
+  >
+    {children}
+  </motion.div>
+);
 
-  const logout = () => {
-    localStorage.removeItem("ppbms_token");
-    localStorage.removeItem("ppbms_role");
-    router.push("/login");
-  };
+/* ================= HELPERS ================= */
 
-  return (
-    <div className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-      <div className="flex items-center gap-4">
-        <span className="text-xl font-extrabold text-purple-700">
-          PPBMS
-        </span>
+function getStatusType(t) {
+  if (t.status === "Late") return "late";
+  if (t.status === "Due Soon") return "soon";
+  if (t.status === "Completed") return "done";
 
-        <span className="text-sm px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
-          SUPERVISOR PANEL
-        </span>
-      </div>
-
-      <button
-        onClick={logout}
-        className="text-sm font-semibold text-red-600 hover:underline"
-      >
-        Logout
-      </button>
-    </div>
-  );
+  return "normal";
 }
 
-/* =========================
-   MAIN PAGE
-========================= */
+function getRiskColor(risk) {
+  if (risk === "GRADUATED") return "text-blue-700";
+  if (risk === "HIGH RISK") return "text-red-600";
+  if (risk === "MODERATE RISK") return "text-amber-600";
 
-export default function SupervisorDashboard() {
+  return "text-green-600";
+}
+
+function getRiskBg(risk) {
+  if (risk === "GRADUATED") return "bg-blue-100";
+  if (risk === "HIGH RISK") return "bg-red-100";
+  if (risk === "MODERATE RISK") return "bg-amber-100";
+
+  return "bg-green-100";
+}
+
+/* ================= PAGE ================= */
+
+export default function SupervisorStudentPage() {
   const router = useRouter();
+  const { email } = router.query;
 
-  const [students, setStudents] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [student, setStudent] = useState(null);
+  const [timeline, setTimeline] = useState([]);
+  const [cqi, setCqi] = useState({});
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStudents();
-  }, []);
+  const [selectedAssessment, setSelectedAssessment] =
+    useState("PROGRESS");
 
   useEffect(() => {
-    applyFilters();
-  }, [students, search, statusFilter]);
+    if (!email) return;
 
-  /* =========================
-     LOAD STUDENTS
-  ========================= */
+    loadStudent();
+  }, [email]);
 
-  async function loadStudents() {
-    setLoading(true);
+  /* ================= LOAD ================= */
 
+  async function loadStudent() {
     try {
-      const res = await fetch(`${API_BASE}/api/supervisor/students`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
-      });
+      const token = localStorage.getItem("ppbms_token");
 
-      const json = await res.json();
+      const res = await fetch(
+        `${API_BASE}/api/supervisor/student/${encodeURIComponent(
+          email
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      if (res.ok) {
-        setStudents(json.students || []);
-      } else {
-        setStudents([]);
-      }
+      const data = await res.json();
+
+      setStudent(data.row || null);
+      setTimeline(data.row?.timeline || []);
+      setCqi(data.row?.cqiByAssessment || {});
     } catch (err) {
       console.error(err);
-      setStudents([]);
     }
 
     setLoading(false);
   }
 
-  /* =========================
-     CATEGORY LOGIC
-  ========================= */
+  /* ================= LOADING ================= */
 
-  function getStudentCategory(st) {
-    // PRIORITY: GRADUATED / COMPLETED
-    if (
-      st.status?.toLowerCase() === "graduated" ||
-      st.status?.toLowerCase() === "completed"
-    ) {
-      return "Graduated";
-    }
-
-    const p = st.progressPercent || 0;
-
-    if (p >= 80) return "On Track";
-    if (p >= 50) return "Slightly Late";
-
-    return "At Risk";
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
   }
 
-  /* =========================
-     FILTERING
-  ========================= */
+  if (!student) {
+    return <div className="p-6">Student not found</div>;
+  }
 
-  function applyFilters() {
-    let list = [...students];
+  /* ================= DATA ================= */
 
-    // SEARCH
-    if (search.trim()) {
-      const s = search.toLowerCase();
+  const completed = timeline.filter(
+    (t) => t.status === "Completed"
+  ).length;
 
-      list = list.filter(
-        (st) =>
-          st.name?.toLowerCase().includes(s) ||
-          st.email?.toLowerCase().includes(s) ||
-          st.programme?.toLowerCase().includes(s)
+  const late = timeline.filter(
+    (t) => t.status === "Late"
+  ).length;
+
+  const soon = timeline.filter(
+    (t) => t.status === "Due Soon"
+  ).length;
+
+  /* ================= GRADUATION ================= */
+
+  const isGraduated =
+    student.status?.toLowerCase() === "graduated" ||
+    student.status?.toLowerCase() === "completed";
+
+  /* ================= PROGRESS ================= */
+
+  const progress = isGraduated
+    ? 100
+    : timeline.length
+    ? Math.round((completed / timeline.length) * 100)
+    : student.progressPercent || 0;
+
+  /* ================= RISK ================= */
+
+  const riskScore = isGraduated
+    ? "GRADUATED"
+    : late > 2
+    ? "HIGH RISK"
+    : late > 0 || soon > 2
+    ? "MODERATE RISK"
+    : "LOW RISK";
+
+  /* ================= CO-SUPERVISOR ================= */
+
+  const coSupervisorDisplay =
+    student.coSupervisors ||
+    student.co_supervisor ||
+    student.coSupervisor ||
+    "-";
+
+  /* ================= PDF ================= */
+
+  function exportPDF() {
+    const pdf = new jsPDF();
+
+    let y = 20;
+
+    pdf.setFontSize(16);
+
+    pdf.text(
+      "Postgraduate Progress Report",
+      105,
+      y,
+      { align: "center" }
+    );
+
+    y += 10;
+
+    pdf.text(
+      `Name: ${student.student_name}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+    pdf.text(
+      `Programme: ${student.programme}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+    pdf.text(
+      `Risk: ${riskScore}`,
+      20,
+      y
+    );
+
+    y += 10;
+
+    timeline.forEach((t, i) => {
+      pdf.text(
+        `${i + 1}. ${t.activity} (${t.status})`,
+        20,
+        y
       );
-    }
 
-    // STATUS FILTER
-    if (statusFilter !== "All") {
-      list = list.filter(
-        (st) => getStudentCategory(st) === statusFilter
-      );
-    }
+      y += 5;
+    });
 
-    setFiltered(list);
+    pdf.save("report.pdf");
   }
 
-  /* =========================
-     KPI COUNTS
-  ========================= */
-
-  const total = students.length;
-
-  const graduated = students.filter(
-    (s) => getStudentCategory(s) === "Graduated"
-  ).length;
-
-  const onTrack = students.filter(
-    (s) => getStudentCategory(s) === "On Track"
-  ).length;
-
-  const slightlyLate = students.filter(
-    (s) => getStudentCategory(s) === "Slightly Late"
-  ).length;
-
-  const atRisk = students.filter(
-    (s) => getStudentCategory(s) === "At Risk"
-  ).length;
-
-  /* =========================
-     PROGRESS BAR COLOUR
-  ========================= */
-
-  function progressColor(st) {
-    const category = getStudentCategory(st);
-
-    if (category === "Graduated") return "bg-blue-500";
-    if (category === "On Track") return "bg-green-500";
-    if (category === "Slightly Late") return "bg-yellow-500";
-
-    return "bg-red-500";
-  }
-
-  /* =========================
-     STATUS TEXT COLOUR
-  ========================= */
-
-  function statusTextColor(st) {
-    const category = getStudentCategory(st);
-
-    if (category === "Graduated") return "text-blue-700";
-    if (category === "On Track") return "text-green-700";
-    if (category === "Slightly Late") return "text-yellow-700";
-
-    return "text-red-700";
-  }
-
-  /* =========================
-     CARD BACKGROUND
-  ========================= */
-
-  function cardBackground(st) {
-    const category = getStudentCategory(st);
-
-    if (category === "Graduated") {
-      return "bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100";
-    }
-
-    if (category === "On Track") {
-      return "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100";
-    }
-
-    if (category === "Slightly Late") {
-      return "bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-100";
-    }
-
-    return "bg-gradient-to-br from-red-50 to-rose-50 border border-red-100";
-  }
-
-  /* =========================
-     UI
-  ========================= */
+  /* ================= UI ================= */
 
   return (
-    <>
-      <SupervisorTopBar />
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
 
-      <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] p-6 space-y-6 text-gray-800">
+      {/* SIDEBAR */}
+      <div className="w-56 p-4">
+
+        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
+
+          <h2 className="font-bold text-purple-700 mb-4">
+            PPBMS
+          </h2>
+
+          <button
+            onClick={() => router.push("/supervisor")}
+            className="mb-3 text-sm text-purple-600 hover:underline"
+          >
+            ← Back to Dashboard
+          </button>
+
+          {[
+            "overview",
+            "documents",
+            "timeline",
+            "cqi",
+            "remarks",
+          ].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1
+                ${
+                  activeTab === tab
+                    ? "bg-purple-100 text-purple-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+            >
+              {tab.toUpperCase()}
+            </button>
+          ))}
+
+        </div>
+
+      </div>
+
+      {/* MAIN */}
+      <div className="flex-1 p-6 space-y-6">
 
         {/* HEADER */}
-        <div className="rounded-3xl bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 shadow-xl">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Supervisor Monitoring Dashboard
+        <div className="flex justify-between items-center">
+
+          <h1 className="text-xl font-bold text-gray-800">
+            Student Overview
+          </h1>
+
+          <button
+            onClick={exportPDF}
+            className="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700"
+          >
+            Export PDF
+          </button>
+
+        </div>
+
+        {/* HERO */}
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6 shadow-lg">
+
+          <h1 className="text-2xl font-semibold">
+            {student.student_name}
           </h1>
 
           <p className="text-sm text-purple-100">
-            Overview of postgraduate research progress under your supervision
+            {student.programme}
           </p>
-        </div>
 
-        {/* KPI */}
-        <div className="grid md:grid-cols-5 gap-6">
+          <div className="mt-4 flex justify-between items-center">
 
-          <div className="bg-white rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">Total Students</p>
-            <h2 className="text-2xl font-bold">{total}</h2>
-          </div>
+            {!isGraduated ? (
+              <span className="text-4xl font-bold">
+                {progress}%
+              </span>
+            ) : (
+              <span className="text-lg font-semibold text-blue-100">
+                Student has graduated
+              </span>
+            )}
 
-          <div className="bg-green-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">On Track</p>
-            <h2 className="text-2xl font-bold text-green-700">
-              {onTrack}
-            </h2>
-          </div>
-
-          <div className="bg-yellow-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">Slightly Delayed</p>
-            <h2 className="text-2xl font-bold text-yellow-700">
-              {slightlyLate}
-            </h2>
-          </div>
-
-          <div className="bg-red-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">At Risk</p>
-            <h2 className="text-2xl font-bold text-red-700">
-              {atRisk}
-            </h2>
-          </div>
-
-          <div className="bg-blue-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">Graduated</p>
-            <h2 className="text-2xl font-bold text-blue-700">
-              {graduated}
-            </h2>
-          </div>
-
-        </div>
-
-        {/* SEARCH */}
-        <input
-          type="text"
-          placeholder="Search by name, email, or programme..."
-          className="w-full p-3 rounded-xl border bg-white"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        {/* FILTERS */}
-        <div className="flex gap-2 flex-wrap">
-          {[
-            "All",
-            "On Track",
-            "Slightly Late",
-            "At Risk",
-            "Graduated",
-          ].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                statusFilter === s
-                  ? "bg-purple-600 text-white"
-                  : "bg-white border hover:bg-gray-50"
-              }`}
+            <span
+              className={`px-4 py-2 rounded-full text-xs font-bold ${getRiskBg(
+                riskScore
+              )} ${getRiskColor(riskScore)}`}
             >
-              {s}
-            </button>
-          ))}
+              {riskScore}
+            </span>
+
+          </div>
+
         </div>
 
-        {/* LOADING */}
-        {loading && (
-          <div className="bg-white rounded-2xl p-6 shadow text-center">
-            Loading students...
+        {/* ANALYTICS */}
+        {!isGraduated && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+            <GlassCard>
+              <p className="text-xs text-gray-500">
+                Completed
+              </p>
+
+              <p className="text-2xl font-bold text-green-600">
+                {completed}
+              </p>
+            </GlassCard>
+
+            <GlassCard>
+              <p className="text-xs text-gray-500">
+                Due Soon
+              </p>
+
+              <p className="text-2xl font-bold text-amber-600">
+                {soon}
+              </p>
+            </GlassCard>
+
+            <GlassCard>
+              <p className="text-xs text-gray-500">
+                Late
+              </p>
+
+              <p className="text-2xl font-bold text-red-600">
+                {late}
+              </p>
+            </GlassCard>
+
           </div>
         )}
 
-        {/* STUDENT LIST */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* GRAPH */}
+        {!isGraduated && (
+          <GlassCard>
 
-          {!loading && filtered.length === 0 && (
-            <div className="bg-white rounded-2xl p-6 shadow">
-              No students found.
-            </div>
-          )}
+            <ResponsiveContainer width="100%" height={200}>
 
-          {filtered.map((st) => (
-            <div
-              key={st.email}
-              className={`rounded-2xl p-6 shadow hover:shadow-xl transition ${cardBackground(
-                st
-              )}`}
-            >
-              {/* TOP */}
-              <div className="flex justify-between mb-4">
-
-                <div>
-                  <h2 className="font-bold uppercase text-lg">
-                    {st.name}
-                  </h2>
-
-                  <p className="text-sm text-gray-600">
-                    {st.programme}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">
-                    {st.status || "-"}
-                  </p>
-
-                  <p
-                    className={`font-bold ${statusTextColor(st)}`}
-                  >
-                    {getStudentCategory(st)}
-                  </p>
-                </div>
-
-              </div>
-
-              {/* INFO */}
-              <div className="space-y-1 text-sm">
-                <p>
-                  <strong>Email:</strong> {st.email}
-                </p>
-
-                <p>
-                  <strong>Matric:</strong> {st.id || "-"}
-                </p>
-              </div>
-
-              {/* PROGRESS */}
-              <div className="mt-5">
-
-                <div className="flex justify-between text-sm font-semibold">
-                  <span>Overall Progress</span>
-                  <span>{st.progressPercent || 0}%</span>
-                </div>
-
-                <div className="w-full h-3 bg-white/70 rounded-full mt-2 overflow-hidden">
-                  <div
-                    className={`h-3 rounded-full transition-all duration-500 ${progressColor(
-                      st
-                    )}`}
-                    style={{
-                      width: `${st.progressPercent || 0}%`,
-                    }}
-                  />
-                </div>
-
-              </div>
-
-              {/* BUTTON */}
-              <button
-                onClick={() =>
-                  router.push({
-                    pathname: "/supervisor/[email]",
-                    query: { email: st.email },
-                  })
-                }
-                className="mt-5 text-purple-700 font-semibold hover:underline"
+              <BarChart
+                data={[
+                  {
+                    name: "Done",
+                    value: completed,
+                  },
+                  {
+                    name: "Soon",
+                    value: soon,
+                  },
+                  {
+                    name: "Late",
+                    value: late,
+                  },
+                ]}
               >
-                View Detailed Progress →
-              </button>
-            </div>
-          ))}
+                <XAxis dataKey="name" />
 
-        </div>
+                <Tooltip />
+
+                <Bar dataKey="value" />
+
+              </BarChart>
+
+            </ResponsiveContainer>
+
+          </GlassCard>
+        )}
+
+        {/* OVERVIEW */}
+        {activeTab === "overview" && (
+          <GlassCard>
+
+            <div className="space-y-2 text-sm">
+
+              <p>
+                <strong>Email:</strong> {student.email}
+              </p>
+
+              <p>
+                <strong>Programme:</strong>{" "}
+                {student.programme}
+              </p>
+
+              <p>
+                <strong>Status:</strong>{" "}
+                {student.status || "-"}
+              </p>
+
+              <p>
+                <strong>Co-Supervisor:</strong>{" "}
+                {coSupervisorDisplay}
+              </p>
+
+            </div>
+
+          </GlassCard>
+        )}
+
+        {/* TIMELINE */}
+        {activeTab === "timeline" && !isGraduated && (
+          <div className="space-y-3">
+
+            {timeline.length === 0 && (
+              <GlassCard>
+                No timeline data available.
+              </GlassCard>
+            )}
+
+            {timeline.map((t, i) => {
+              const type = getStatusType(t);
+
+              return (
+                <div
+                  key={i}
+                  className={`p-4 rounded-xl border flex justify-between
+                    ${
+                      type === "late"
+                        ? "bg-red-50 border-red-300"
+                        : type === "soon"
+                        ? "bg-amber-50 border-amber-300"
+                        : type === "done"
+                        ? "bg-green-50 border-green-300"
+                        : "bg-white"
+                    }
+                  `}
+                >
+
+                  <div>
+                    <p className="font-medium">
+                      {t.activity}
+                    </p>
+
+                    <p className="text-xs">
+                      {t.status}
+                    </p>
+                  </div>
+
+                  <div className="text-sm font-semibold">
+                    {t.remaining_days < 0
+                      ? `${Math.abs(
+                          t.remaining_days
+                        )} days overdue`
+                      : `${t.remaining_days} days`}
+                  </div>
+
+                </div>
+              );
+            })}
+
+          </div>
+        )}
+
+        {/* DOCUMENTS */}
+        {activeTab === "documents" && (
+          <SupervisorChecklist
+            documents={student.documents || {}}
+          />
+        )}
+
+        {/* CQI */}
+        {activeTab === "cqi" && (
+          <FinalPLOTable
+            finalPLO={student.finalPLO}
+          />
+        )}
+
+        {/* REMARKS */}
+        {activeTab === "remarks" && (
+          <div className="space-y-4">
+
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+
+              <label className="block text-sm font-medium mb-2">
+                Assessment Type
+              </label>
+
+              <select
+                value={selectedAssessment}
+                onChange={(e) =>
+                  setSelectedAssessment(
+                    e.target.value
+                  )
+                }
+                className="border rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="PROGRESS">
+                  PROGRESS
+                </option>
+
+                <option value="VIVA">
+                  VIVA
+                </option>
+
+                <option value="THESIS">
+                  THESIS
+                </option>
+
+                <option value="TURNITIN">
+                  TURNITIN
+                </option>
+
+                <option value="TRX500">
+                  TRX500
+                </option>
+
+              </select>
+
+            </div>
+
+            <SupervisorRemark
+              studentMatric={student.student_id}
+              studentEmail={student.email}
+              assessmentType={selectedAssessment}
+            />
+
+          </div>
+        )}
 
         {/* FOOTER */}
-        <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
+        <footer className="text-center text-xs text-gray-400 pt-6">
+
           © 2026 PPBMS · Universiti Sains Malaysia
+
           <br />
-          Developed by{" "}
-          <span className="font-medium text-gray-600">
-            Hazwani Ahmad Yusof
-          </span>{" "}
-          (2025)
+
+          Developed by Hazwani Ahmad Yusof (2025)
+
         </footer>
 
       </div>
-    </>
+    </div>
   );
 }
