@@ -70,7 +70,7 @@ export default function StudentPage() {
 
       setError(
         e.message ||
-          "Unable to load student data"
+        "Unable to load student data"
       );
 
     }
@@ -136,26 +136,40 @@ export default function StudentPage() {
 
   const completed = timeline.filter(
     (t) =>
-      t.status?.toLowerCase() ===
+      t.status
+        ?.trim()
+        .toLowerCase() ===
       "completed"
   ).length;
 
-  const late =
-    timeline.filter(
-      (t) =>
-        t.status === "Late" ||
-        t.status === "AT_RISK" ||
-        (
-          !t.actual &&
-          t.remaining_days < 0 &&
-          t.status !== "Completed" &&
-          t.status !== "COMPLETED"
-        )
-    ).length;
+  const late = timeline.filter(
+    (t) =>
+      t.status
+        ?.trim()
+        .toLowerCase() ===
+        "late" ||
+
+      t.status
+        ?.trim()
+        .toUpperCase() ===
+        "AT_RISK" ||
+
+      (
+        !t.actual &&
+        t.remaining_days < 0 &&
+        t.status
+          ?.trim()
+          .toLowerCase() !==
+          "completed"
+      )
+  ).length;
 
   const progress = timeline.length
     ? Math.round(
-        (completed / timeline.length) * 100
+        (
+          completed /
+          timeline.length
+        ) * 100
       )
     : 0;
 
@@ -404,13 +418,24 @@ export default function StudentPage() {
               (t, i) => {
 
                 const isLate =
-                  t.status === "Late" ||
-                  t.status === "AT_RISK" ||
+
+                  t.status
+                    ?.trim()
+                    .toLowerCase() ===
+                    "late" ||
+
+                  t.status
+                    ?.trim()
+                    .toUpperCase() ===
+                    "AT_RISK" ||
+
                   (
                     !t.actual &&
                     t.remaining_days < 0 &&
-                    t.status !== "Completed" &&
-                    t.status !== "COMPLETED"
+                    t.status
+                      ?.trim()
+                      .toLowerCase() !==
+                      "completed"
                   );
 
                 return (
@@ -459,10 +484,12 @@ export default function StudentPage() {
 
                         {isLate
                           ? "Overdue – Attention Required"
-                          : t.status?.replaceAll(
-                              "_",
-                              " "
-                            )}
+                          : t.status
+                              ?.replaceAll(
+                                "_",
+                                " "
+                              )
+                              ?.trim()}
 
                       </span>
 
