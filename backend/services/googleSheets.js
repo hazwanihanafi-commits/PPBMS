@@ -405,3 +405,97 @@ export async function upsertSUPERVISOR_REMARK({
 
   return true;
 }
+
+/* =========================================================
+   READ SUPERVISOR REMARKS
+========================================================= */
+export async function readSUPERVISOR_REMARKS(
+  studentEmail
+) {
+
+  const auth = getAuth(true);
+
+  const client =
+    await auth.getClient();
+
+  const sheets =
+    google.sheets({
+      version: "v4",
+      auth: client,
+    });
+
+  const res =
+    await sheets.spreadsheets.values.get({
+      spreadsheetId:
+        process.env.SHEET_ID,
+
+      range:
+        "ASSESSMENT_PLO!A1:ZZ999",
+    });
+
+  const rows =
+    res.data.values || [];
+
+  if (rows.length < 2) {
+    return [];
+  }
+
+  const headers =
+    rows[0].map(h =>
+      h
+        .toString()
+        .trim()
+        .toLowerCase()
+    );
+
+  const emailIdx =
+    headers.indexOf(
+      "student's email"
+    );
+
+  const typeIdx =
+    headers.indexOf(
+      "assessment_type"
+    );
+
+  const remarkIdx =
+    headers.indexOf(
+      "remarks"
+    );
+
+  const assessedByIdx =
+    headers.indexOf(
+      "assessed_by"
+    );
+
+  return rows
+    .slice(1)
+    .filter(r =>
+
+      String(
+        r[emailIdx] || ""
+      )
+        .trim()
+        .toLowerCase() ===
+
+      String(studentEmail || "")
+        .trim()
+        .toLowerCase()
+    )
+    .map(r => ({
+
+      assessmentType:
+        r[typeIdx] || "",
+
+      assessmentInstance:
+        r[typeIdx] || "",
+
+      remark:
+        r[remarkIdx] || "",
+
+      supervisorEmail:
+        r[assessedByIdx] || "",
+
+      timestamp: ""
+    }));
+}
