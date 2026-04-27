@@ -1,13 +1,6 @@
-Replace your StudentChecklist with this improved version so students can see:
-
-* submission link
-* approval status
-* supervisor feedback
-* reviewed by
-* reviewed date
-
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
+
 const checklistItems = [
   "Development Plan & Learning Contract (DPLC)",
   "Student Supervision Logbook",
@@ -23,25 +16,36 @@ const checklistItems = [
   "Correction Verification",
   "Final Thesis",
 ];
+
 export default function StudentChecklist({
   documents = {},
   onSaved,
 }) {
+
   const [links, setLinks] =
     useState({});
+
   useEffect(() => {
+
     const mapped = {};
+
     Object.entries(documents)
       .forEach(([key, value]) => {
+
         mapped[key] =
           typeof value === "string"
             ? value
             : value?.url || "";
       });
+
     setLinks(mapped);
+
   }, [documents]);
+
   async function saveDocument(name) {
+
     try {
+
       await authFetch(
         "/api/student/save-document",
         {
@@ -52,43 +56,59 @@ export default function StudentChecklist({
           }),
         }
       );
+
       alert("Document saved");
+
       if (onSaved) {
         onSaved();
       }
+
     } catch (err) {
+
       console.error(err);
+
       alert(
         "Failed to save document"
       );
     }
   }
+
   function badgeColor(status) {
+
     if (status === "Approved") {
       return "bg-green-100 text-green-700";
     }
+
     if (
       status ===
       "Revision Required"
     ) {
       return "bg-red-100 text-red-700";
     }
+
     if (
       status ===
       "Pending Review"
     ) {
       return "bg-yellow-100 text-yellow-700";
     }
+
     return "bg-gray-100 text-gray-600";
   }
+
   return (
+
     <div className="space-y-6">
+
       <h2 className="text-2xl font-bold">
         📁 Student Checklist
       </h2>
+
       {checklistItems.map((item) => {
+
         const doc =
           documents[item] || {};
+
         const status =
           doc.status ||
           (
@@ -96,7 +116,9 @@ export default function StudentChecklist({
               ? "Pending Review"
               : "Not Submitted"
           );
+
         return (
+
           <div
             key={item}
             className="
@@ -107,27 +129,43 @@ export default function StudentChecklist({
               border
             "
           >
+
             {/* HEADER */}
+
             <div className="flex justify-between items-start mb-4">
+
               <div>
+
                 <h3 className="font-semibold text-lg">
                   {item}
                 </h3>
+
                 {doc.reviewed_by && (
+
                   <p className="text-xs text-gray-400 mt-1">
+
                     Reviewed by:
                     {" "}
                     {doc.reviewed_by}
+
                   </p>
+
                 )}
+
                 {doc.reviewed_at && (
+
                   <p className="text-xs text-gray-400">
+
                     Reviewed at:
                     {" "}
                     {doc.reviewed_at}
+
                   </p>
+
                 )}
+
               </div>
+
               <span
                 className={`
                   px-3
@@ -135,14 +173,19 @@ export default function StudentChecklist({
                   rounded-full
                   text-xs
                   font-semibold
+
                   ${badgeColor(status)}
                 `}
               >
                 {status}
               </span>
+
             </div>
+
             {/* INPUT */}
+
             <div className="flex gap-3">
+
               <input
                 type="text"
                 placeholder="Paste link here"
@@ -162,6 +205,7 @@ export default function StudentChecklist({
                   py-3
                 "
               />
+
               <button
                 onClick={() =>
                   saveDocument(item)
@@ -178,9 +222,13 @@ export default function StudentChecklist({
               >
                 Save
               </button>
+
             </div>
+
             {/* LINK */}
+
             {links[item] && (
+
               <a
                 href={links[item]}
                 target="_blank"
@@ -195,9 +243,13 @@ export default function StudentChecklist({
               >
                 View Submitted Document
               </a>
+
             )}
+
             {/* FEEDBACK */}
+
             {doc.feedback && (
+
               <div
                 className="
                   mt-4
@@ -207,17 +259,24 @@ export default function StudentChecklist({
                   p-4
                 "
               >
+
                 <p className="text-xs font-semibold text-gray-500 mb-2">
                   Supervisor Feedback
                 </p>
+
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">
                   {doc.feedback}
                 </p>
+
               </div>
+
             )}
+
           </div>
+
         );
       })}
+
     </div>
   );
 }
