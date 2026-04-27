@@ -1,175 +1,123 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { API_BASE } from "../utils/api";
 
-/* 🔑 LABEL → MASTER TRACKING COLUMN */
-const DOCUMENTS = [
-  {
-    section: "Monitoring & Supervision",
-    label: "Development Plan & Learning Contract (DPLC)",
-    key: "DPLC",
-  },
-  {
-    section: "Monitoring & Supervision",
-    label: "Student Supervision Logbook",
-    key: "SUPERVISION_LOG",
-  },
-  {
-    section: "Monitoring & Supervision",
-    label: "Annual Progress Review – Year 1",
-    key: "APR_Y1",
-  },
-  {
-    section: "Monitoring & Supervision",
-    label: "Annual Progress Review – Year 2",
-    key: "APR_Y2",
-  },
-  {
-    section: "Monitoring & Supervision",
-    label: "Annual Progress Review – Year 3 (Final Year)",
-    key: "APR_Y3",
-  },
-
-  { section: "Ethics & Publications", label: "Ethics Approval", key: "ETHICS_APPROVAL" },
-  { section: "Ethics & Publications", label: "Publication Acceptance", key: "PUBLICATION_ACCEPTANCE" },
-  { section: "Ethics & Publications", label: "Proof of Submission", key: "PROOF_OF_SUBMISSION" },
-  { section: "Ethics & Publications", label: "Conference Presentation", key: "CONFERENCE_PRESENTATION" },
-
-  { section: "Thesis & Viva", label: "Thesis Notice", key: "THESIS_NOTICE" },
-  { section: "Thesis & Viva", label: "Viva Report", key: "VIVA_REPORT" },
-  { section: "Thesis & Viva", label: "Correction Verification", key: "CORRECTION_VERIFICATION" },
-  { section: "Thesis & Viva", label: "Final Thesis", key: "FINAL_THESIS" },
+const ITEMS = [
+  "Development Plan & Learning Contract (DPLC)",
+  "Student Supervision Logbook",
+  "Annual Progress Review – Year 1",
+  "Annual Progress Review – Year 2",
+  "Annual Progress Review – Year 3 (Final Year)",
 ];
 
-export default function StudentChecklist({ initialDocuments = {} }) {
-  const [documents, setDocuments] = useState({});
+export default function StudentChecklist({
+  documents = {},
+  onSaved,
+}) {
   const [inputs, setInputs] = useState({});
   const [saving, setSaving] = useState(false);
 
-  /* hydrate from MasterTracking */
-  useEffect(() => {
-    setDocuments(initialDocuments || {});
-  }, [initialDocuments]);
-
-  function handleChange(key, value) {
-    setInputs((prev) => ({ ...prev, [key]: value }));
+  function handleChange(label, value) {
+    setInputs(prev => ({
+      ...prev,
+      [label]: value,
+    }));
   }
 
-  /* =========================
-     SAVE / UPDATE LINK
-  ========================== */
-  async function saveLink(doc) {
-    const url = inputs[doc.key]?.trim();
-    if (!url) return alert("Paste a link first");
+  async function save(label) {
+    const url = inputs[label]?.trim();
 
-    setSaving(true);
-    const token = localStorage.getItem("ppbms_token");
+    if (!url) {
+      alert("Paste a link first");
+      return;
+    }
 
-    const res = await fetch(`${API_BASE}/api/student/save-document`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        document_key: doc.key,   // ✅ KEY, NOT LABEL
-        file_url: url,
-      }),
-    });
+    try {
+      setSaving(true);
 
-    setSaving(false);
-    if (!res.ok) return alert("Save failed");
+      const res = await fetch(
+        `${API_BASE}/api/student/save-document`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
+          },
+          body: JSON.stringify({
+            document_key: label,
+            file_url: url,
+          }),
+        }
+      );
 
-    setDocuments((prev) => ({ ...prev, [doc.key]: url }));
-    setInputs((prev) => ({ ...prev, [doc.key]: "" }));
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Save failed");
+      }
+
+      setInputs(prev => ({
+        ...prev,
+        [label]: "",
+      }));
+
+      if (onSaved) onSaved();
+
+    } catch (e) {
+      console.error(e);
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
   }
-
-  /* =========================
-     REMOVE LINK
-  ========================== */
-  async function removeLink(doc) {
-    if (!confirm("Remove this document?")) return;
-
-    const token = localStorage.getItem("ppbms_token");
-
-    const res = await fetch(`${API_BASE}/api/student/save-document`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        document_key: doc.key,   // ✅ KEY, NOT LABEL
-        file_url: "",            // clear cell
-      }),
-    });
-
-    if (!res.ok) return alert("Remove failed");
-
-    setDocuments((prev) => ({ ...prev, [doc.key]: "" }));
-  }
-
-  let currentSection = "";
 
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold">📁 Student Checklist</h3>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">
+        📁 Student Checklist
+      </h3>
 
-      {DOCUMENTS.map((doc) => {
-        const savedUrl = documents[doc.key];   // ✅ USE KEY
-        const showSection = doc.section !== currentSection;
-        currentSection = doc.section;
+      {ITEMS.map(label => {
+        const savedUrl = documents[label];
 
         return (
-          <div key={doc.key}>
-            {showSection && (
-              <h4 className="mt-4 mb-2 font-semibold text-purple-700">
-                {doc.section}
-              </h4>
-            )}
-
-            <div className="border p-3 rounded bg-white">
-              <div className="font-medium mb-1">
-                {savedUrl ? "✅" : "⬜"} {doc.label}
-              </div>
-
-              {savedUrl ? (
-                <div className="flex gap-4 text-sm">
-                  <a
-                    href={savedUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-purple-600 underline"
-                  >
-                    View document
-                  </a>
-                  <button
-                    onClick={() => removeLink(doc)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="url"
-                    placeholder="Paste link here"
-                    className="flex-1 border px-2 py-1 text-sm"
-                    value={inputs[doc.key] || ""}
-                    onChange={(e) =>
-                      handleChange(doc.key, e.target.value)
-                    }
-                  />
-                  <button
-                    onClick={() => saveLink(doc)}
-                    disabled={saving}
-                    className="bg-purple-600 text-white px-3 rounded text-sm"
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
+          <div
+            key={label}
+            className="border p-3 rounded bg-white"
+          >
+            <div className="font-medium">
+              {label}
             </div>
+
+            {savedUrl ? (
+              <a
+                href={savedUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-purple-600 underline text-sm"
+              >
+                View document
+              </a>
+            ) : (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="url"
+                  placeholder="Paste link here"
+                  className="flex-1 border px-2 py-1 text-sm"
+                  value={inputs[label] || ""}
+                  onChange={(e) =>
+                    handleChange(label, e.target.value)
+                  }
+                />
+
+                <button
+                  onClick={() => save(label)}
+                  disabled={saving}
+                  className="bg-purple-600 text-white px-3 rounded text-sm"
+                >
+                  Save
+                </button>
+              </div>
+            )}
           </div>
         );
       })}
