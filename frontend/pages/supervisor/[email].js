@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import { API_BASE } from "../../utils/api";
+
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import SupervisorRemark from "../../components/SupervisorRemark";
 import FinalPLOTable from "../../components/FinalPLOTable";
@@ -115,7 +116,7 @@ export default function SupervisorStudentPage() {
   const [
     selectedAssessment,
     setSelectedAssessment,
-  ] = useState("PROGRESS");
+  ] = useState("PROGRESS_1");
 
   /* ================= LOAD ================= */
 
@@ -249,6 +250,13 @@ export default function SupervisorStudentPage() {
     student.co_supervisor ||
     student.coSupervisor ||
     "-";
+
+  /* ================= CURRENT REMARK ================= */
+
+  const currentRemark =
+    student?.remarksByAssessment?.[
+      selectedAssessment
+    ] || "";
 
   /* ================= PDF ================= */
 
@@ -435,7 +443,6 @@ export default function SupervisorStudentPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
           <GlassCard>
-
             <p className="text-xs text-gray-500">
               Completed
             </p>
@@ -443,11 +450,9 @@ export default function SupervisorStudentPage() {
             <p className="text-2xl font-bold text-green-600">
               {completed}
             </p>
-
           </GlassCard>
 
           <GlassCard>
-
             <p className="text-xs text-gray-500">
               Due Soon
             </p>
@@ -455,11 +460,9 @@ export default function SupervisorStudentPage() {
             <p className="text-2xl font-bold text-amber-600">
               {soon}
             </p>
-
           </GlassCard>
 
           <GlassCard>
-
             <p className="text-xs text-gray-500">
               Late
             </p>
@@ -467,7 +470,6 @@ export default function SupervisorStudentPage() {
             <p className="text-2xl font-bold text-red-600">
               {late}
             </p>
-
           </GlassCard>
 
         </div>
@@ -509,95 +511,6 @@ export default function SupervisorStudentPage() {
           </ResponsiveContainer>
 
         </GlassCard>
-
-        {/* OVERVIEW */}
-
-        {activeTab === "overview" && (
-
-          <GlassCard>
-
-            <p>
-              <strong>Email:</strong>{" "}
-              {student.email}
-            </p>
-
-            <p>
-              <strong>Co-Supervisor:</strong>{" "}
-              {coSupervisorDisplay}
-            </p>
-
-          </GlassCard>
-
-        )}
-
-        {/* TIMELINE */}
-
-        {activeTab === "timeline" && (
-
-          <div className="space-y-3">
-
-            {timeline.map((t, i) => {
-
-              const type =
-                getStatusType(t);
-
-              return (
-
-                <div
-                  key={i}
-                  className={`
-                    p-4
-                    rounded-xl
-                    border
-                    flex
-                    justify-between
-
-                    ${
-                      type === "late"
-                        ? "bg-red-50 border-red-300"
-                        : type === "soon"
-                        ? "bg-amber-50 border-amber-300"
-                        : type === "done"
-                        ? "bg-green-50 border-green-300"
-                        : "bg-white"
-                    }
-                  `}
-                >
-
-                  <div>
-
-                    <p className="font-medium">
-                      {t.activity}
-                    </p>
-
-                    <p className="text-xs">
-
-                      {t.status
-                        ?.replaceAll("_", " ")
-                        ?.trim()}
-
-                    </p>
-
-                  </div>
-
-                  <div className="text-sm font-semibold">
-
-                    {t.remaining_days < 0
-                      ? `${Math.abs(
-                          t.remaining_days
-                        )} days overdue`
-                      : `${t.remaining_days} days`}
-
-                  </div>
-
-                </div>
-
-              );
-            })}
-
-          </div>
-
-        )}
 
         {/* DOCUMENTS */}
 
@@ -646,40 +559,34 @@ export default function SupervisorStudentPage() {
               >
 
                 <option value="PROGRESS_1">
-  PROGRESS 1
-</option>
+                  PROGRESS 1
+                </option>
 
-<option value="PROGRESS_2">
-  PROGRESS 2
-</option>
+                <option value="PROGRESS_2">
+                  PROGRESS 2
+                </option>
 
-<option value="PROGRESS_3">
-  PROGRESS 3
-</option>
+                <option value="PROGRESS_3">
+                  PROGRESS 3
+                </option>
 
-                  <option value="PROGRESS_4">
-  PROGRESS 4
-</option>
+                <option value="PROGRESS_4">
+                  PROGRESS 4
+                </option>
+
                 <option value="PROGRESS_5">
-  PROGRESS 5
-</option>
+                  PROGRESS 5
+                </option>
 
-                  <option value="PROGRESS_6">
-  PROGRESS 6
-</option>
+                <option value="PROGRESS_6">
+                  PROGRESS 6
+                </option>
 
-                  <option value="PROGRESS_7">
-  PROGRESS 7
-</option>
+                <option value="PROGRESS_7">
+                  PROGRESS 7
+                </option>
 
-
-                  <option value="PROGRESS_8">
-  PROGRESS 8
-</option>
-
-
-                  
-                  <option value="VIVA">
+                <option value="VIVA">
                   VIVA
                 </option>
 
@@ -700,15 +607,16 @@ export default function SupervisorStudentPage() {
             </div>
 
             <SupervisorRemark
-  studentMatric={student.student_id}
-  studentEmail={student.email}
-  assessmentType={
-    selectedAssessment.startsWith("PROGRESS")
-      ? "PROGRESS"
-      : selectedAssessment
-  }
-  assessmentInstance={selectedAssessment}
-/>
+              studentMatric={student.student_id}
+              studentEmail={student.email}
+              assessmentType={
+                selectedAssessment.startsWith("PROGRESS")
+                  ? "PROGRESS"
+                  : selectedAssessment
+              }
+              assessmentInstance={selectedAssessment}
+              initialRemark={currentRemark}
+            />
 
           </div>
 
