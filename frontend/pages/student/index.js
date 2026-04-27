@@ -521,22 +521,17 @@ export default function StudentPage() {
 
         )}
 
-        {/* DOCUMENTS */}
-        {activeTab ===
-          "documents" && (
+       {/* DOCUMENTS */}
+{activeTab === "documents" && (
+  <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
 
-          <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
+    <StudentChecklist
+      documents={profile.documents || {}}
+      onSaved={loadStudent}
+    />
 
-            <StudentChecklist
-              initialDocuments={
-                profile.documents
-              }
-            />
-
-          </div>
-
-        )}
-
+  </div>
+)}
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
 
