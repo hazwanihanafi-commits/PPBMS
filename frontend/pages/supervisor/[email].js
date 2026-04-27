@@ -54,6 +54,8 @@ export default function SupervisorStudentPage() {
   const [cqi, setCqi] = useState({});
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+  const [selectedAssessment, setSelectedAssessment] =
+  useState("PROGRESS");
 
   useEffect(() => {
     if (!email) return;
@@ -284,11 +286,36 @@ export default function SupervisorStudentPage() {
 
         {/* REMARKS */}
 {activeTab === "remarks" && (
-  <SupervisorRemark
-    studentMatric={student.student_id}
-    studentEmail={student.email}
-    assessmentType="TRX500"
-  />
+  <div className="space-y-4">
+
+    <div className="bg-white rounded-xl p-4">
+
+      <label className="block text-sm font-medium mb-2">
+        Assessment Type
+      </label>
+
+      <select
+        value={selectedAssessment}
+        onChange={(e) =>
+          setSelectedAssessment(e.target.value)
+        }
+        className="border rounded-lg px-3 py-2 text-sm"
+      >
+        <option value="PROGRESS">PROGRESS</option>
+        <option value="VIVA">VIVA</option>
+        <option value="THESIS">THESIS</option>
+        <option value="TURNITIN">TURNITIN</option>
+        <option value="TRX500">TRX500</option>
+      </select>
+    </div>
+
+    <SupervisorRemark
+      studentMatric={student.student_id}
+      studentEmail={student.email}
+      assessmentType={selectedAssessment}
+    />
+
+  </div>
 )}
 
         {/* FOOTER */}
