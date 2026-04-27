@@ -18,6 +18,9 @@ export default function StudentPage() {
   const [timeline, setTimeline] =
     useState([]);
 
+  const [remarks, setRemarks] =
+    useState([]);
+
   const [activeTab, setActiveTab] =
     useState("timeline");
 
@@ -64,6 +67,10 @@ export default function StudentPage() {
 
       setTimeline(
         data.row.timeline || []
+      );
+
+      setRemarks(
+        data.row.remarks || []
       );
 
     } catch (e) {
@@ -144,6 +151,7 @@ export default function StudentPage() {
 
   const late = timeline.filter(
     (t) =>
+
       t.status
         ?.trim()
         .toLowerCase() ===
@@ -384,6 +392,7 @@ export default function StudentPage() {
           {[
             "timeline",
             "documents",
+            "remarks",
           ].map((tab) => (
 
             <button
@@ -400,7 +409,9 @@ export default function StudentPage() {
 
               {tab === "timeline"
                 ? "📅 Timeline"
-                : "📁 Documents"}
+                : tab === "documents"
+                ? "📁 Documents"
+                : "💬 Remarks"}
 
             </button>
 
@@ -543,6 +554,59 @@ export default function StudentPage() {
             />
 
           </div>
+        )}
+
+        {/* REMARKS */}
+        {activeTab === "remarks" && (
+
+          <div className="space-y-4">
+
+            {remarks.length === 0 ? (
+
+              <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500">
+                No supervisor remarks yet.
+              </div>
+
+            ) : (
+
+              remarks.map((r, i) => (
+
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl p-5 shadow"
+                >
+
+                  <div className="flex justify-between items-center mb-3">
+
+                    <div>
+                      <h4 className="font-semibold text-purple-700">
+                        {r.assessment_instance ||
+                          r.assessmentType}
+                      </h4>
+
+                      <p className="text-xs text-gray-400">
+                        {r.supervisorEmail}
+                      </p>
+                    </div>
+
+                    <span className="text-xs text-gray-400">
+                      {r.timestamp}
+                    </span>
+
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                    {r.remark}
+                  </div>
+
+                </div>
+
+              ))
+
+            )}
+
+          </div>
+
         )}
 
         {/* FOOTER */}
