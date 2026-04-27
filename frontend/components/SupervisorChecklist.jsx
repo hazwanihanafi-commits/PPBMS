@@ -42,16 +42,14 @@ export default function SupervisorChecklist({
   ) {
     try {
       await authFetch(
-        "/api/supervisor/document-review",
+  "/api/supervisor/document-status",
         {
           method: "POST",
           body: JSON.stringify({
-            studentEmail,
-            documentName,
-            status,
-            feedback:
-              feedbacks[documentName] || "",
-          }),
+  studentEmail,
+  document_key: documentName,
+  status,
+}),
         }
       );
       alert("Document updated");
@@ -91,10 +89,10 @@ export default function SupervisorChecklist({
           <ul className="space-y-5">
             {group.items.map((label) => {
               const doc = documents[label];
-              const url =
-                typeof doc === "string"
-                  ? doc
-                  : doc?.link;
+         const url =
+  typeof doc === "string"
+    ? doc
+    : doc?.url;
               const status =
                 typeof doc === "object"
                   ? doc?.status ||
