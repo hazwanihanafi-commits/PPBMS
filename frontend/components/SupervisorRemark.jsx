@@ -5,19 +5,95 @@ export default function SupervisorRemark({
   studentMatric,
   studentEmail,
   assessmentType = "GENERAL",
+  assessmentInstance = "",
   initialRemark = ""
 }) {
-  const [remark, setRemark] = useState(initialRemark);
-  const [status, setStatus] = useState("Saved");
 
-  /* ================= LOAD INITIAL REMARK ================= */
-  useEffect(() => {
-    setRemark(initialRemark || "");
-  }, [initialRemark]);
+  const [remark, setRemark] =
+    useState(initialRemark);
 
-  /* ================= AUTOSAVE ================= */
+  const [status, setStatus] =
+    useState("Saved");
+
+  /* =========================
+     LOAD EXISTING REMARK
+  ========================= */
+
   useEffect(() => {
-    // prevent autosave on first render before values ready
+
+    if (!studentEmail) return;
+
+    loadRemark();
+
+  }, [
+    studentEmail,
+    assessmentType,
+    assessmentInstance
+  ]);
+
+  async function loadRemark() {
+
+    try {
+
+      const token =
+        localStorage.getItem(
+          "ppbms_token"
+        );
+
+      const res = await fetch(
+        `${API_BASE}/api/supervisor/remark/${encodeURIComponent(studentEmail)}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${token}`
+          }
+        }
+      );
+
+      const data =
+        await res.json();
+
+      if (!res.ok) return;
+
+      const remarks =
+        data.remarks || [];
+
+      const current =
+        remarks.find(
+          r =>
+
+            r.assessmentType ===
+              assessmentType &&
+
+            (
+              r.assessmentInstance ||
+              ""
+            ) ===
+            (
+              assessmentInstance ||
+              ""
+            )
+        );
+
+      setRemark(
+        current?.remark || ""
+      );
+
+    } catch (e) {
+
+      console.error(
+        "Load remark error:",
+        e
+      );
+    }
+  }
+
+  /* =========================
+     AUTOSAVE
+  ========================= */
+
+  useEffect(() => {
+
     if (
       remark === undefined ||
       remark === null ||
@@ -26,49 +102,65 @@ export default function SupervisorRemark({
       return;
     }
 
-    const timer = setTimeout(() => {
-      saveRemark();
-    }, 1000);
+    const timer =
+      setTimeout(() => {
+        saveRemark();
+      }, 1000);
 
-    return () => clearTimeout(timer);
+    return () =>
+      clearTimeout(timer);
+
   }, [remark]);
 
-  /* ================= SAVE FUNCTION ================= */
+  /* =========================
+     SAVE
+  ========================= */
+
   async function saveRemark() {
+
     try {
+
       setStatus("Saving...");
 
-      const token = localStorage.getItem("ppbms_token");
-
-      console.log("SAVING REMARK:", {
-        studentMatric,
-        studentEmail,
-        assessmentType,
-        remark
-      });
+      const token =
+        localStorage.getItem(
+          "ppbms_token"
+        );
 
       const res = await fetch(
         `${API_BASE}/api/supervisor/remark`,
         {
           method: "POST",
+
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`
           },
+
           body: JSON.stringify({
+
             studentMatric,
+
             studentEmail,
+
             assessmentType,
+
+            assessmentInstance,
+
             remark
+
           })
         }
       );
 
-      const data = await res.json();
-
-      console.log("REMARK RESPONSE:", data);
+      const data =
+        await res.json();
 
       if (!res.ok) {
+
         throw new Error(
           data.message ||
           data.error ||
@@ -77,36 +169,66 @@ export default function SupervisorRemark({
       }
 
       setStatus("Saved");
+
     } catch (e) {
-      console.error("Remark save error:", e);
-      setStatus(`Error: ${e.message}`);
+
+      console.error(
+        "Remark save error:",
+        e
+      );
+
+      setStatus(
+        `Error: ${e.message}`
+      );
     }
   }
 
-  /* ================= UI ================= */
+  /* =========================
+     UI
+  ========================= */
+
   return (
+
     <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
 
       <h3 className="font-semibold mb-2 text-gray-800">
         🛠 Supervisor Intervention & Remarks
       </h3>
 
-      <p className="text-xs text-gray-500 mb-3">
-        Assessment Type: {assessmentType}
+      <p className="text-xs text-gray-500 mb-1">
+        Assessment Type:
+        {" "}
+        {assessmentType}
       </p>
+
+      {assessmentInstance && (
+
+        <p className="text-xs text-purple-600 mb-3">
+          Instance:
+          {" "}
+          {assessmentInstance}
+        </p>
+
+      )}
 
       <textarea
         className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
         rows={5}
         placeholder={`Supervisor intervention notes for ${assessmentType}...`}
         value={remark}
-        onChange={(e) => setRemark(e.target.value)}
+        onChange={(e) =>
+          setRemark(
+            e.target.value
+          )
+        }
       />
 
       <div className="mt-2 flex justify-between items-center">
 
         <p className="text-xs text-gray-500">
-          Student: {studentEmail}
+          Student:
+          {" "}
+          {studentEmail}
         </p>
 
         <p
@@ -122,6 +244,7 @@ export default function SupervisorRemark({
         </p>
 
       </div>
+
     </div>
   );
 }
