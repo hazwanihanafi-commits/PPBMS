@@ -17,7 +17,10 @@ function SupervisorTopBar() {
   return (
     <div className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
       <div className="flex items-center gap-4">
-        <span className="text-xl font-extrabold text-purple-700">PPBMS</span>
+        <span className="text-xl font-extrabold text-purple-700">
+          PPBMS
+        </span>
+
         <span className="text-sm px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
           SUPERVISOR PANEL
         </span>
@@ -33,7 +36,9 @@ function SupervisorTopBar() {
   );
 }
 
-/* ========================= */
+/* =========================
+   MAIN PAGE
+========================= */
 
 export default function SupervisorDashboard() {
   const router = useRouter();
@@ -50,10 +55,15 @@ export default function SupervisorDashboard() {
 
   useEffect(() => {
     applyFilters();
-  }, [search, students, statusFilter]);
+  }, [students, search, statusFilter]);
+
+  /* =========================
+     LOAD STUDENTS
+  ========================= */
 
   async function loadStudents() {
     setLoading(true);
+
     try {
       const res = await fetch(`${API_BASE}/api/supervisor/students`, {
         headers: {
@@ -62,19 +72,52 @@ export default function SupervisorDashboard() {
       });
 
       const json = await res.json();
-      setStudents(res.ok ? json.students || [] : []);
-    } catch (e) {
-      console.error(e);
+
+      if (res.ok) {
+        setStudents(json.students || []);
+      } else {
+        setStudents([]);
+      }
+    } catch (err) {
+      console.error(err);
       setStudents([]);
     }
+
     setLoading(false);
   }
+
+  /* =========================
+     CATEGORY LOGIC
+  ========================= */
+
+  function getStudentCategory(st) {
+    // PRIORITY: GRADUATED / COMPLETED
+    if (
+      st.status?.toLowerCase() === "graduated" ||
+      st.status?.toLowerCase() === "completed"
+    ) {
+      return "Graduated";
+    }
+
+    const p = st.progressPercent || 0;
+
+    if (p >= 80) return "On Track";
+    if (p >= 50) return "Slightly Late";
+
+    return "At Risk";
+  }
+
+  /* =========================
+     FILTERING
+  ========================= */
 
   function applyFilters() {
     let list = [...students];
 
+    // SEARCH
     if (search.trim()) {
       const s = search.toLowerCase();
+
       list = list.filter(
         (st) =>
           st.name?.toLowerCase().includes(s) ||
@@ -83,42 +126,91 @@ export default function SupervisorDashboard() {
       );
     }
 
+    // STATUS FILTER
     if (statusFilter !== "All") {
-      list = list.filter((st) => {
-        if (statusFilter === "Graduated") return st.status === "Graduated";
-        if (statusFilter === "On Track") return st.progressPercent >= 80;
-        if (statusFilter === "Slightly Late")
-          return st.progressPercent >= 50 && st.progressPercent < 80;
-        if (statusFilter === "At Risk") return st.progressPercent < 50;
-        return true;
-      });
+      list = list.filter(
+        (st) => getStudentCategory(st) === statusFilter
+      );
     }
 
     setFiltered(list);
   }
 
-  /* ================= KPI ================= */
+  /* =========================
+     KPI COUNTS
+  ========================= */
 
   const total = students.length;
-  const atRisk = students.filter((s) => s.progressPercent < 50).length;
-  const slightlyLate = students.filter(
-    (s) => s.progressPercent >= 50 && s.progressPercent < 80
+
+  const graduated = students.filter(
+    (s) => getStudentCategory(s) === "Graduated"
   ).length;
-  const onTrack = students.filter((s) => s.progressPercent >= 80).length;
 
-  function progressColor(p) {
-    if (p < 50) return "bg-red-500";
-    if (p < 80) return "bg-yellow-500";
-    return "bg-green-500";
+  const onTrack = students.filter(
+    (s) => getStudentCategory(s) === "On Track"
+  ).length;
+
+  const slightlyLate = students.filter(
+    (s) => getStudentCategory(s) === "Slightly Late"
+  ).length;
+
+  const atRisk = students.filter(
+    (s) => getStudentCategory(s) === "At Risk"
+  ).length;
+
+  /* =========================
+     PROGRESS BAR COLOUR
+  ========================= */
+
+  function progressColor(st) {
+    const category = getStudentCategory(st);
+
+    if (category === "Graduated") return "bg-blue-500";
+    if (category === "On Track") return "bg-green-500";
+    if (category === "Slightly Late") return "bg-yellow-500";
+
+    return "bg-red-500";
   }
 
-  function progressLabel(p) {
-    if (p < 50) return "At Risk";
-    if (p < 80) return "Slightly Delayed";
-    return "On Track";
+  /* =========================
+     STATUS TEXT COLOUR
+  ========================= */
+
+  function statusTextColor(st) {
+    const category = getStudentCategory(st);
+
+    if (category === "Graduated") return "text-blue-700";
+    if (category === "On Track") return "text-green-700";
+    if (category === "Slightly Late") return "text-yellow-700";
+
+    return "text-red-700";
   }
 
-  /* ================= UI ================= */
+  /* =========================
+     CARD BACKGROUND
+  ========================= */
+
+  function cardBackground(st) {
+    const category = getStudentCategory(st);
+
+    if (category === "Graduated") {
+      return "bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100";
+    }
+
+    if (category === "On Track") {
+      return "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100";
+    }
+
+    if (category === "Slightly Late") {
+      return "bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-100";
+    }
+
+    return "bg-gradient-to-br from-red-50 to-rose-50 border border-red-100";
+  }
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <>
@@ -131,13 +223,15 @@ export default function SupervisorDashboard() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Supervisor Monitoring Dashboard
           </h1>
+
           <p className="text-sm text-purple-100">
             Overview of postgraduate research progress under your supervision
           </p>
         </div>
 
-        {/* KPI CARDS */}
-        <div className="grid md:grid-cols-4 gap-6">
+        {/* KPI */}
+        <div className="grid md:grid-cols-5 gap-6">
+
           <div className="bg-white rounded-2xl p-5 shadow">
             <p className="text-sm text-gray-500">Total Students</p>
             <h2 className="text-2xl font-bold">{total}</h2>
@@ -145,18 +239,32 @@ export default function SupervisorDashboard() {
 
           <div className="bg-green-50 rounded-2xl p-5 shadow">
             <p className="text-sm text-gray-500">On Track</p>
-            <h2 className="text-2xl font-bold text-green-700">{onTrack}</h2>
+            <h2 className="text-2xl font-bold text-green-700">
+              {onTrack}
+            </h2>
           </div>
 
           <div className="bg-yellow-50 rounded-2xl p-5 shadow">
             <p className="text-sm text-gray-500">Slightly Delayed</p>
-            <h2 className="text-2xl font-bold text-yellow-700">{slightlyLate}</h2>
+            <h2 className="text-2xl font-bold text-yellow-700">
+              {slightlyLate}
+            </h2>
           </div>
 
           <div className="bg-red-50 rounded-2xl p-5 shadow">
             <p className="text-sm text-gray-500">At Risk</p>
-            <h2 className="text-2xl font-bold text-red-700">{atRisk}</h2>
+            <h2 className="text-2xl font-bold text-red-700">
+              {atRisk}
+            </h2>
           </div>
+
+          <div className="bg-blue-50 rounded-2xl p-5 shadow">
+            <p className="text-sm text-gray-500">Graduated</p>
+            <h2 className="text-2xl font-bold text-blue-700">
+              {graduated}
+            </h2>
+          </div>
+
         </div>
 
         {/* SEARCH */}
@@ -168,67 +276,112 @@ export default function SupervisorDashboard() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {/* FILTER */}
+        {/* FILTERS */}
         <div className="flex gap-2 flex-wrap">
-          {["All", "On Track", "Slightly Late", "At Risk", "Graduated"].map(
-            (s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                  statusFilter === s
-                    ? "bg-purple-600 text-white"
-                    : "bg-white border"
-                }`}
-              >
-                {s}
-              </button>
-            )
-          )}
+          {[
+            "All",
+            "On Track",
+            "Slightly Late",
+            "At Risk",
+            "Graduated",
+          ].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                statusFilter === s
+                  ? "bg-purple-600 text-white"
+                  : "bg-white border hover:bg-gray-50"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
         </div>
 
-        {loading && <p>Loading students...</p>}
+        {/* LOADING */}
+        {loading && (
+          <div className="bg-white rounded-2xl p-6 shadow text-center">
+            Loading students...
+          </div>
+        )}
 
-        {/* STUDENTS */}
+        {/* STUDENT LIST */}
         <div className="grid md:grid-cols-2 gap-6">
+
+          {!loading && filtered.length === 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow">
+              No students found.
+            </div>
+          )}
+
           {filtered.map((st) => (
             <div
               key={st.email}
-              className="bg-white/60 backdrop-blur rounded-2xl p-6 shadow hover:shadow-xl transition"
+              className={`rounded-2xl p-6 shadow hover:shadow-xl transition ${cardBackground(
+                st
+              )}`}
             >
-              <div className="flex justify-between mb-3">
-                <div>
-                  <h2 className="font-semibold uppercase">{st.name}</h2>
-                  <p className="text-sm text-gray-500">{st.programme}</p>
-                </div>
+              {/* TOP */}
+              <div className="flex justify-between mb-4">
 
-                <div className="text-right text-sm">
-                  <p>{st.status}</p>
-                  <p className="text-purple-700 font-semibold">
-                    {progressLabel(st.progressPercent)}
+                <div>
+                  <h2 className="font-bold uppercase text-lg">
+                    {st.name}
+                  </h2>
+
+                  <p className="text-sm text-gray-600">
+                    {st.programme}
                   </p>
                 </div>
+
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">
+                    {st.status || "-"}
+                  </p>
+
+                  <p
+                    className={`font-bold ${statusTextColor(st)}`}
+                  >
+                    {getStudentCategory(st)}
+                  </p>
+                </div>
+
               </div>
 
-              <p className="text-sm"><strong>Email:</strong> {st.email}</p>
-              <p className="text-sm"><strong>Matric:</strong> {st.id || "-"}</p>
+              {/* INFO */}
+              <div className="space-y-1 text-sm">
+                <p>
+                  <strong>Email:</strong> {st.email}
+                </p>
 
-              <div className="mt-4">
+                <p>
+                  <strong>Matric:</strong> {st.id || "-"}
+                </p>
+              </div>
+
+              {/* PROGRESS */}
+              <div className="mt-5">
+
                 <div className="flex justify-between text-sm font-semibold">
                   <span>Overall Progress</span>
-                  <span>{st.progressPercent}%</span>
+                  <span>{st.progressPercent || 0}%</span>
                 </div>
 
-                <div className="w-full h-2 bg-gray-200 rounded-full mt-2">
+                <div className="w-full h-3 bg-white/70 rounded-full mt-2 overflow-hidden">
                   <div
-                    className={`h-2 rounded-full ${progressColor(
-                      st.progressPercent
+                    className={`h-3 rounded-full transition-all duration-500 ${progressColor(
+                      st
                     )}`}
-                    style={{ width: `${st.progressPercent}%` }}
+                    style={{
+                      width: `${st.progressPercent || 0}%`,
+                    }}
                   />
                 </div>
+
               </div>
 
+              {/* BUTTON */}
               <button
                 onClick={() =>
                   router.push({
@@ -236,19 +389,24 @@ export default function SupervisorDashboard() {
                     query: { email: st.email },
                   })
                 }
-                className="mt-4 text-purple-700 font-medium hover:underline"
+                className="mt-5 text-purple-700 font-semibold hover:underline"
               >
                 View Detailed Progress →
               </button>
             </div>
           ))}
+
         </div>
 
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
-          © 2026 PPBMS · Universiti Sains Malaysia  
+          © 2026 PPBMS · Universiti Sains Malaysia
           <br />
-          Developed by <span className="font-medium text-gray-600">Hazwani Ahmad Yusof</span> (2025)
+          Developed by{" "}
+          <span className="font-medium text-gray-600">
+            Hazwani Ahmad Yusof
+          </span>{" "}
+          (2025)
         </footer>
 
       </div>
