@@ -287,7 +287,7 @@ export default function SupervisorStudentPage() {
   <SupervisorRemark
     studentMatric={student.student_id}
     studentEmail={student.email}
-    assessmentType={student.assessment_type}
+    assessmentType="TRX500"
   />
 )}
 
