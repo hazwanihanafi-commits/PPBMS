@@ -283,12 +283,13 @@ export default function SupervisorStudentPage() {
         )}
 
         {/* REMARKS */}
-        {activeTab === "remarks" && (
-          <SupervisorRemark
-            studentMatric={student.student_id}
-            studentEmail={student.email}
-          />
-        )}
+{activeTab === "remarks" && (
+  <SupervisorRemark
+    studentMatric={student.student_id}
+    studentEmail={student.email}
+    assessmentType="GENERAL"
+  />
+)}
 
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 pt-6">
