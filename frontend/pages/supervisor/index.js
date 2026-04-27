@@ -5,18 +5,22 @@ import { useRouter } from "next/router";
 /* =========================
    TOP BAR
 ========================= */
+
 function SupervisorTopBar() {
   const router = useRouter();
 
   const logout = () => {
     localStorage.removeItem("ppbms_token");
     localStorage.removeItem("ppbms_role");
+
     router.push("/login");
   };
 
   return (
     <div className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+
       <div className="flex items-center gap-4">
+
         <span className="text-xl font-extrabold text-purple-700">
           PPBMS
         </span>
@@ -24,6 +28,7 @@ function SupervisorTopBar() {
         <span className="text-sm px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
           SUPERVISOR PANEL
         </span>
+
       </div>
 
       <button
@@ -32,6 +37,7 @@ function SupervisorTopBar() {
       >
         Logout
       </button>
+
     </div>
   );
 }
@@ -46,8 +52,15 @@ export default function SupervisorDashboard() {
   const [students, setStudents] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] =
+    useState("All");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  /* =========================
+     LOAD
+  ========================= */
 
   useEffect(() => {
     loadStudents();
@@ -57,19 +70,20 @@ export default function SupervisorDashboard() {
     applyFilters();
   }, [students, search, statusFilter]);
 
-  /* =========================
-     LOAD STUDENTS
-  ========================= */
-
   async function loadStudents() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/supervisor/students`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`,
-        },
-      });
+      const res = await fetch(
+        `${API_BASE}/api/supervisor/students`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem(
+              "ppbms_token"
+            )}`,
+          },
+        }
+      );
 
       const json = await res.json();
 
@@ -78,58 +92,82 @@ export default function SupervisorDashboard() {
       } else {
         setStudents([]);
       }
+
     } catch (err) {
+
       console.error(err);
+
       setStudents([]);
+
     }
 
     setLoading(false);
   }
 
   /* =========================
-     CATEGORY LOGIC
+     CATEGORY
   ========================= */
 
   function getStudentCategory(st) {
-    // PRIORITY: GRADUATED / COMPLETED
+
     if (
-      st.status?.toLowerCase() === "graduated" ||
-      st.status?.toLowerCase() === "completed"
+      st.status?.toLowerCase() ===
+        "graduated" ||
+      st.status?.toLowerCase() ===
+        "completed"
     ) {
       return "Graduated";
     }
 
-    const p = st.progressPercent || 0;
+    const p =
+      st.progressPercent || 0;
 
-    if (p >= 80) return "On Track";
-    if (p >= 50) return "Slightly Late";
+    if (p >= 80) {
+      return "On Track";
+    }
+
+    if (p >= 50) {
+      return "Slightly Late";
+    }
 
     return "At Risk";
   }
 
   /* =========================
-     FILTERING
+     FILTERS
   ========================= */
 
   function applyFilters() {
+
     let list = [...students];
 
-    // SEARCH
+    /* SEARCH */
     if (search.trim()) {
-      const s = search.toLowerCase();
+
+      const s =
+        search.toLowerCase();
 
       list = list.filter(
         (st) =>
-          st.name?.toLowerCase().includes(s) ||
-          st.email?.toLowerCase().includes(s) ||
-          st.programme?.toLowerCase().includes(s)
+          st.name
+            ?.toLowerCase()
+            .includes(s) ||
+          st.email
+            ?.toLowerCase()
+            .includes(s) ||
+          st.programme
+            ?.toLowerCase()
+            .includes(s)
       );
     }
 
-    // STATUS FILTER
+    /* STATUS FILTER */
     if (statusFilter !== "All") {
+
       list = list.filter(
-        (st) => getStudentCategory(st) === statusFilter
+        (st) =>
+          getStudentCategory(st) ===
+          statusFilter
       );
     }
 
@@ -137,75 +175,158 @@ export default function SupervisorDashboard() {
   }
 
   /* =========================
-     KPI COUNTS
+     KPI
   ========================= */
 
-  const total = students.length;
+  const total =
+    students.length;
 
-  const graduated = students.filter(
-    (s) => getStudentCategory(s) === "Graduated"
-  ).length;
+  const graduated =
+    students.filter(
+      (s) =>
+        getStudentCategory(s) ===
+        "Graduated"
+    ).length;
 
-  const onTrack = students.filter(
-    (s) => getStudentCategory(s) === "On Track"
-  ).length;
+  const onTrack =
+    students.filter(
+      (s) =>
+        getStudentCategory(s) ===
+        "On Track"
+    ).length;
 
-  const slightlyLate = students.filter(
-    (s) => getStudentCategory(s) === "Slightly Late"
-  ).length;
+  const slightlyLate =
+    students.filter(
+      (s) =>
+        getStudentCategory(s) ===
+        "Slightly Late"
+    ).length;
 
-  const atRisk = students.filter(
-    (s) => getStudentCategory(s) === "At Risk"
-  ).length;
+  const atRisk =
+    students.filter(
+      (s) =>
+        getStudentCategory(s) ===
+        "At Risk"
+    ).length;
 
   /* =========================
-     PROGRESS BAR COLOUR
+     COLORS
   ========================= */
 
   function progressColor(st) {
-    const category = getStudentCategory(st);
 
-    if (category === "Graduated") return "bg-blue-500";
-    if (category === "On Track") return "bg-green-500";
-    if (category === "Slightly Late") return "bg-yellow-500";
+    const category =
+      getStudentCategory(st);
+
+    if (category === "Graduated") {
+      return "bg-blue-500";
+    }
+
+    if (category === "On Track") {
+      return "bg-green-500";
+    }
+
+    if (
+      category ===
+      "Slightly Late"
+    ) {
+      return "bg-yellow-500";
+    }
 
     return "bg-red-500";
   }
 
-  /* =========================
-     STATUS TEXT COLOUR
-  ========================= */
-
   function statusTextColor(st) {
-    const category = getStudentCategory(st);
 
-    if (category === "Graduated") return "text-blue-700";
-    if (category === "On Track") return "text-green-700";
-    if (category === "Slightly Late") return "text-yellow-700";
+    const category =
+      getStudentCategory(st);
+
+    if (category === "Graduated") {
+      return "text-blue-700";
+    }
+
+    if (category === "On Track") {
+      return "text-green-700";
+    }
+
+    if (
+      category ===
+      "Slightly Late"
+    ) {
+      return "text-yellow-700";
+    }
 
     return "text-red-700";
   }
 
-  /* =========================
-     CARD BACKGROUND
-  ========================= */
+  function statusBadge(st) {
 
-  function cardBackground(st) {
-    const category = getStudentCategory(st);
+    const category =
+      getStudentCategory(st);
 
     if (category === "Graduated") {
-      return "bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100";
+      return "bg-blue-100 text-blue-700";
     }
 
     if (category === "On Track") {
-      return "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100";
+      return "bg-green-100 text-green-700";
     }
 
-    if (category === "Slightly Late") {
-      return "bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-100";
+    if (
+      category ===
+      "Slightly Late"
+    ) {
+      return "bg-yellow-100 text-yellow-700";
     }
 
-    return "bg-gradient-to-br from-red-50 to-rose-50 border border-red-100";
+    return "bg-red-100 text-red-700";
+  }
+
+  function cardBackground(st) {
+
+    const category =
+      getStudentCategory(st);
+
+    if (category === "Graduated") {
+      return `
+        bg-gradient-to-br
+        from-blue-50
+        to-cyan-50
+        border
+        border-blue-100
+      `;
+    }
+
+    if (category === "On Track") {
+      return `
+        bg-gradient-to-br
+        from-green-50
+        to-emerald-50
+        border
+        border-green-100
+      `;
+    }
+
+    if (
+      category ===
+      "Slightly Late"
+    ) {
+      return `
+        bg-gradient-to-br
+        from-yellow-50
+        to-amber-50
+        border
+        border-yellow-100
+      `;
+    }
+
+    return `
+      bg-gradient-to-br
+      from-red-50
+      to-rose-50
+      border
+      border-red-100
+    `;
   }
 
   /* =========================
@@ -220,6 +341,7 @@ export default function SupervisorDashboard() {
 
         {/* HEADER */}
         <div className="rounded-3xl bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 shadow-xl">
+
           <h1 className="text-2xl font-semibold tracking-tight">
             Supervisor Monitoring Dashboard
           </h1>
@@ -227,42 +349,70 @@ export default function SupervisorDashboard() {
           <p className="text-sm text-purple-100">
             Overview of postgraduate research progress under your supervision
           </p>
+
         </div>
 
         {/* KPI */}
         <div className="grid md:grid-cols-5 gap-6">
 
           <div className="bg-white rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">Total Students</p>
-            <h2 className="text-2xl font-bold">{total}</h2>
+
+            <p className="text-sm text-gray-500">
+              Total Students
+            </p>
+
+            <h2 className="text-2xl font-bold">
+              {total}
+            </h2>
+
           </div>
 
           <div className="bg-green-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">On Track</p>
+
+            <p className="text-sm text-gray-500">
+              On Track
+            </p>
+
             <h2 className="text-2xl font-bold text-green-700">
               {onTrack}
             </h2>
+
           </div>
 
           <div className="bg-yellow-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">Slightly Delayed</p>
+
+            <p className="text-sm text-gray-500">
+              Slightly Delayed
+            </p>
+
             <h2 className="text-2xl font-bold text-yellow-700">
               {slightlyLate}
             </h2>
+
           </div>
 
           <div className="bg-red-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">At Risk</p>
+
+            <p className="text-sm text-gray-500">
+              At Risk
+            </p>
+
             <h2 className="text-2xl font-bold text-red-700">
               {atRisk}
             </h2>
+
           </div>
 
-          <div className="bg-blue-50 rounded-2xl p-5 shadow">
-            <p className="text-sm text-gray-500">Graduated</p>
+          <div className="bg-blue-50 rounded-2xl p-5 shadow border border-blue-100">
+
+            <p className="text-sm text-blue-600 font-medium">
+              Graduated
+            </p>
+
             <h2 className="text-2xl font-bold text-blue-700">
               {graduated}
             </h2>
+
           </div>
 
         </div>
@@ -273,11 +423,14 @@ export default function SupervisorDashboard() {
           placeholder="Search by name, email, or programme..."
           className="w-full p-3 rounded-xl border bg-white"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
         />
 
         {/* FILTERS */}
         <div className="flex gap-2 flex-wrap">
+
           {[
             "All",
             "On Track",
@@ -287,16 +440,21 @@ export default function SupervisorDashboard() {
           ].map((s) => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                statusFilter === s
-                  ? "bg-purple-600 text-white"
-                  : "bg-white border hover:bg-gray-50"
-              }`}
+              onClick={() =>
+                setStatusFilter(s)
+              }
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition
+                ${
+                  statusFilter === s
+                    ? "bg-purple-600 text-white"
+                    : "bg-white border hover:bg-gray-50"
+                }
+              `}
             >
               {s}
             </button>
           ))}
+
         </div>
 
         {/* LOADING */}
@@ -306,107 +464,157 @@ export default function SupervisorDashboard() {
           </div>
         )}
 
-        {/* STUDENT LIST */}
+        {/* STUDENTS */}
         <div className="grid md:grid-cols-2 gap-6">
 
-          {!loading && filtered.length === 0 && (
-            <div className="bg-white rounded-2xl p-6 shadow">
-              No students found.
-            </div>
-          )}
-
-          {filtered.map((st) => (
-            <div
-              key={st.email}
-              className={`rounded-2xl p-6 shadow hover:shadow-xl transition ${cardBackground(
-                st
-              )}`}
-            >
-              {/* TOP */}
-              <div className="flex justify-between mb-4">
-
-                <div>
-                  <h2 className="font-bold uppercase text-lg">
-                    {st.name}
-                  </h2>
-
-                  <p className="text-sm text-gray-600">
-                    {st.programme}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">
-                    {st.status || "-"}
-                  </p>
-
-                  <p
-                    className={`font-bold ${statusTextColor(st)}`}
-                  >
-                    {getStudentCategory(st)}
-                  </p>
-                </div>
-
+          {!loading &&
+            filtered.length === 0 && (
+              <div className="bg-white rounded-2xl p-6 shadow">
+                No students found.
               </div>
+            )}
 
-              {/* INFO */}
-              <div className="space-y-1 text-sm">
-                <p>
-                  <strong>Email:</strong> {st.email}
-                </p>
+          {filtered.map((st) => {
 
-                <p>
-                  <strong>Matric:</strong> {st.id || "-"}
-                </p>
-              </div>
+            const category =
+              getStudentCategory(st);
 
-              {/* PROGRESS */}
-              <div className="mt-5">
-
-                <div className="flex justify-between text-sm font-semibold">
-                  <span>Overall Progress</span>
-                  <span>{st.progressPercent || 0}%</span>
-                </div>
-
-                <div className="w-full h-3 bg-white/70 rounded-full mt-2 overflow-hidden">
-                  <div
-                    className={`h-3 rounded-full transition-all duration-500 ${progressColor(
-                      st
-                    )}`}
-                    style={{
-                      width: `${st.progressPercent || 0}%`,
-                    }}
-                  />
-                </div>
-
-              </div>
-
-              {/* BUTTON */}
-              <button
-                onClick={() =>
-                  router.push({
-                    pathname: "/supervisor/[email]",
-                    query: { email: st.email },
-                  })
-                }
-                className="mt-5 text-purple-700 font-semibold hover:underline"
+            return (
+              <div
+                key={st.email}
+                className={`rounded-2xl p-6 shadow hover:shadow-xl transition ${cardBackground(
+                  st
+                )}`}
               >
-                View Detailed Progress →
-              </button>
-            </div>
-          ))}
+
+                {/* TOP */}
+                <div className="flex justify-between mb-4">
+
+                  <div>
+
+                    <h2 className="font-bold uppercase text-lg">
+                      {st.name}
+                    </h2>
+
+                    <p className="text-sm text-gray-600">
+                      {st.programme}
+                    </p>
+
+                  </div>
+
+                  <div className="text-right">
+
+                    <p className="text-sm text-gray-600">
+                      {st.status || "-"}
+                    </p>
+
+                    <span
+                      className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${statusBadge(
+                        st
+                      )}`}
+                    >
+                      {category}
+                    </span>
+
+                  </div>
+
+                </div>
+
+                {/* INFO */}
+                <div className="space-y-1 text-sm">
+
+                  <p>
+                    <strong>Email:</strong>{" "}
+                    {st.email}
+                  </p>
+
+                  <p>
+                    <strong>Matric:</strong>{" "}
+                    {st.id || "-"}
+                  </p>
+
+                </div>
+
+                {/* GRADUATED MESSAGE */}
+                {category === "Graduated" && (
+                  <div className="mt-5 bg-blue-100 border border-blue-200 rounded-xl p-4">
+
+                    <p className="text-blue-700 font-semibold">
+                      🎓 Student has successfully graduated
+                    </p>
+
+                  </div>
+                )}
+
+                {/* PROGRESS */}
+                {category !== "Graduated" && (
+                  <div className="mt-5">
+
+                    <div className="flex justify-between text-sm font-semibold">
+
+                      <span>
+                        Overall Progress
+                      </span>
+
+                      <span>
+                        {st.progressPercent || 0}%
+                      </span>
+
+                    </div>
+
+                    <div className="w-full h-3 bg-white/70 rounded-full mt-2 overflow-hidden">
+
+                      <div
+                        className={`h-3 rounded-full transition-all duration-500 ${progressColor(
+                          st
+                        )}`}
+                        style={{
+                          width: `${
+                            st.progressPercent || 0
+                          }%`,
+                        }}
+                      />
+
+                    </div>
+
+                  </div>
+                )}
+
+                {/* BUTTON */}
+                <button
+                  onClick={() =>
+                    router.push({
+                      pathname:
+                        "/supervisor/[email]",
+                      query: {
+                        email: st.email,
+                      },
+                    })
+                  }
+                  className="mt-5 text-purple-700 font-semibold hover:underline"
+                >
+                  View Detailed Progress →
+                </button>
+
+              </div>
+            );
+          })}
 
         </div>
 
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
+
           © 2026 PPBMS · Universiti Sains Malaysia
+
           <br />
+
           Developed by{" "}
           <span className="font-medium text-gray-600">
             Hazwani Ahmad Yusof
           </span>{" "}
           (2025)
+
         </footer>
 
       </div>
