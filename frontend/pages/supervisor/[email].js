@@ -253,10 +253,24 @@ export default function SupervisorStudentPage() {
 
   /* ================= CURRENT REMARK ================= */
 
-  const currentRemark =
-    student?.remarksByAssessment?.[
-      selectedAssessment
-    ] || "";
+  const currentRemark = (() => {
+
+  const remarks =
+    student?.remarksByAssessment || [];
+
+  const found =
+    remarks.find(r =>
+
+      selectedAssessment.startsWith("PROGRESS")
+
+        ? r.assessmentInstance === selectedAssessment
+
+        : r.assessmentType === selectedAssessment
+    );
+
+  return found?.remark || "";
+
+})();
 
   /* ================= PDF ================= */
 
