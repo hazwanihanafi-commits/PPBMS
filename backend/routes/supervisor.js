@@ -11,7 +11,7 @@ import {
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
-import { sendEmail } from "../services/email.js";
+import sendEmail from "../services/sendEmail.js";
 
 const router = express.Router();
 
@@ -686,28 +686,20 @@ router.post(
   subject:
     `Document Review Update - ${document_key}`,
 
-  html: `
-    <h2>Document Review Update</h2>
+  text: `
+Your document has been reviewed.
 
-    <p>
-      Document:
-      ${document_key}
-    </p>
+Document:
+${document_key}
 
-    <p>
-      Status:
-      ${status}
-    </p>
+Status:
+${status}
 
-    <p>
-      Feedback:
-      ${feedback || "No feedback"}
-    </p>
+Feedback:
+${feedback || "No feedback"}
 
-    <p>
-      Please log into PPBMS.
-    </p>
-  `
+Please log into PPBMS.
+`
 });
 
       res.json({
