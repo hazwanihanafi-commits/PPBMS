@@ -563,68 +563,56 @@ export default function SupervisorStudentPage() {
 
            <textarea
   rows={8}
-  defaultValue={
-    item.remark || ""
-  }
+  value={item.remark || ""}
+
+  onChange={(e) => {
+
+    const updated =
+      student.remarksByAssessment.map(
+        (r, i) =>
+          i === idx
+            ? {
+                ...r,
+                remark: e.target.value
+              }
+            : r
+      );
+
+    setStudent({
+      ...student,
+      remarksByAssessment: updated
+    });
+  }}
 
   onBlur={async (e) => {
 
     try {
 
       const token =
-        localStorage.getItem(
-          "ppbms_token"
-        );
+        localStorage.getItem("ppbms_token");
 
-      const res = await fetch(
+      await fetch(
         `${API_BASE}/api/supervisorRemark/remark`,
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-
           body: JSON.stringify({
-
-            studentMatric:
-              student.student_id,
-
-            studentEmail:
-              student.email,
-
-            assessmentType:
-              item.assessmentType,
-
-            assessmentInstance:
-              item.assessmentInstance,
-
-            remark:
-              e.target.value
+            studentMatric: student.student_id,
+            studentEmail: student.email,
+            assessmentType: item.assessmentType,
+            assessmentInstance: item.assessmentInstance,
+            remark: e.target.value
           })
         }
       );
 
-      const data =
-        await res.json();
-
-      console.log(
-        "SAVE RESULT:",
-        data
-      );
-
-      await loadStudent();
+      await loadStudent(); // reload from sheet
 
     } catch (err) {
-
-      console.error(
-        "SAVE ERROR:",
-        err
-      );
+      console.error(err);
     }
   }}
 
@@ -637,7 +625,6 @@ export default function SupervisorStudentPage() {
     min-h-[220px]
   "
 />
-
           </div>
         )
       )
