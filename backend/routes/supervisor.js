@@ -11,6 +11,7 @@ import {
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
+import { sendEmail } from "../services/email.js";
 
 const router = express.Router();
 
@@ -677,6 +678,37 @@ router.post(
         rowNumber,
         new Date().toISOString()
       );
+
+      await sendEmail({
+
+  to: studentEmail,
+
+  subject:
+    `Document Review Update - ${document_key}`,
+
+  html: `
+    <h2>Document Review Update</h2>
+
+    <p>
+      Document:
+      ${document_key}
+    </p>
+
+    <p>
+      Status:
+      ${status}
+    </p>
+
+    <p>
+      Feedback:
+      ${feedback || "No feedback"}
+    </p>
+
+    <p>
+      Please log into PPBMS.
+    </p>
+  `
+});
 
       res.json({
         success: true
