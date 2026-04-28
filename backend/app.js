@@ -11,6 +11,8 @@ import supervisorRoutes from "./routes/supervisor.js";
 import adminRoutes from "./routes/admin.js";
 import alertsRoutes from "./routes/alerts.js";
 import systemRoutes from "./routes/system.js";
+import supervisorRemarkRoutes
+  from "./routes/supervisorRemark.js";
 
 const app = express();
 
@@ -61,6 +63,10 @@ app.use("/admin-auth", adminAuthRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use(
+  "/api/supervisorRemark",
+  supervisorRemarkRoutes
+);
 
 // Alerts / system
 app.use("/alerts", alertsRoutes);
