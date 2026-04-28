@@ -355,74 +355,123 @@ export async function upsertSUPERVISOR_REMARK({
     );
   }
 
-  const rowIndex = rows.findIndex(
+  let rowIndex = rows.findIndex(
     (r, i) =>
       i > 0 &&
 
       (
-        String(r[matricIdx] || "").trim() ===
-          String(studentMatric || "").trim()
+        String(r[matricIdx] || "")
+          .trim()
+          .toUpperCase() ===
+
+        String(studentMatric || "")
+          .trim()
+          .toUpperCase()
 
         ||
 
         String(r[emailIdx] || "")
           .trim()
           .toLowerCase() ===
+
         String(studentEmail || "")
           .trim()
           .toLowerCase()
-      ) &&
+      )
+
+      &&
 
       String(r[typeIdx] || "")
         .trim()
         .toUpperCase() ===
+
       String(assessmentType || "")
         .trim()
         .toUpperCase()
 
       &&
 
-      String(r[instanceIdx] || "")
-        .trim()
-        .toUpperCase() ===
-      String(assessmentInstance || "")
-        .trim()
-        .toUpperCase()
+      (
+        String(r[instanceIdx] || "")
+          .trim()
+          .toUpperCase() ===
+
+        String(assessmentInstance || "")
+          .trim()
+          .toUpperCase()
+
+        ||
+
+        String(r[instanceIdx] || "")
+          .trim()
+          .toUpperCase()
+          .includes(
+            String(assessmentInstance || "")
+              .trim()
+              .toUpperCase()
+          )
+
+        ||
+
+        String(assessmentInstance || "")
+          .trim()
+          .toUpperCase()
+          .includes(
+            String(r[instanceIdx] || "")
+              .trim()
+              .toUpperCase()
+          )
+      )
   );
+
+  /* ================= FALLBACK ================= */
 
   if (rowIndex === -1) {
 
-  console.log(
-    "⚠️ Exact match not found. Trying fallback..."
-  );
+    console.log(
+      "⚠️ Exact match failed. Trying fallback..."
+    );
 
-  rowIndex = rows.findIndex(r =>
+    rowIndex = rows.findIndex(
+      (r, i) =>
+        i > 0 &&
 
-    String(r["Student Email"] || "")
-      .trim()
-      .toLowerCase() ===
-    String(studentEmail || "")
-      .trim()
-      .toLowerCase()
+        String(r[emailIdx] || "")
+          .trim()
+          .toLowerCase() ===
 
-    &&
+        String(studentEmail || "")
+          .trim()
+          .toLowerCase()
 
-    String(r["Assessment_Type"] || "")
-      .trim()
-      .toUpperCase() ===
-    String(assessmentType || "")
-      .trim()
-      .toUpperCase()
-  );
-}
+        &&
+
+        String(r[typeIdx] || "")
+          .trim()
+          .toUpperCase() ===
+
+        String(assessmentType || "")
+          .trim()
+          .toUpperCase()
+    );
+  }
 
   if (rowIndex === -1) {
 
-  throw new Error(
-    "Matching ASSESSMENT_PLO row not found"
-  );
+    console.log("❌ MATCH FAILED");
 
-}
+    console.log({
+      studentMatric,
+      studentEmail,
+      assessmentType,
+      assessmentInstance
+    });
+
+    throw new Error(
+      "Matching ASSESSMENT_PLO row not found"
+    );
+  }
+
   function toColLetter(idx) {
 
     let s = "";
@@ -470,7 +519,6 @@ export async function upsertSUPERVISOR_REMARK({
 
   return true;
 }
-
 /* =========================================================
    READ SUPERVISOR REMARKS
 ========================================================= */
