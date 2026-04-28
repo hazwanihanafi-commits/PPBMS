@@ -291,9 +291,6 @@ export async function readFINALPROGRAMPLO(sheetId) {
 /* =========================================================
    SUPERVISOR REMARK UPSERT
 ========================================================= */
-/* =========================================================
-   SUPERVISOR REMARK UPSERT
-========================================================= */
 export async function upsertSUPERVISOR_REMARK({
   studentMatric,
   studentEmail,
@@ -416,7 +413,38 @@ export async function upsertSUPERVISOR_REMARK({
     }
 
     return s;
- 
+  }
+
+  const remarkCell =
+    `ASSESSMENT_PLO!${toColLetter(remarkIdx)}${rowIndex + 1}`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: process.env.SHEET_ID,
+    range: remarkCell,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[remark]],
+    },
+  });
+
+  if (assessedByIdx !== -1) {
+
+    const assessedCell =
+      `ASSESSMENT_PLO!${toColLetter(assessedByIdx)}${rowIndex + 1}`;
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.SHEET_ID,
+      range: assessedCell,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[supervisorEmail]],
+      },
+    });
+  }
+
+  return true;
+}
+
 /* =========================================================
    READ SUPERVISOR REMARKS
 ========================================================= */
