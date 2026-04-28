@@ -494,22 +494,32 @@ router.get(
 
     rows.forEach(r => {
 
-      remarksByAssessment.push({
+  if (
+    !r ||
+    (
+      !r.assessment_type &&
+      !r.assessment_instance
+    )
+  ) {
+    return;
+  }
 
-        assessmentType:
-          r.assessment_type || "",
+  remarksByAssessment.push({
 
-        assessmentInstance:
-          r.assessment_instance ||
-          r.assessment_type || "",
+    assessmentType:
+      r.assessment_type || "UNKNOWN",
 
-        remark:
-          r.remarks || ""
+    assessmentInstance:
+      r.assessment_instance ||
+      r.assessment_type ||
+      "UNKNOWN",
 
-      });
+    remark:
+      r.remarks || ""
 
-    });
+  });
 
+});
   });
       /* =========================================================
          FINAL PLO
