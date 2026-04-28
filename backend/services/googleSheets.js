@@ -409,6 +409,9 @@ export async function upsertSUPERVISOR_REMARK({
 /* =========================================================
    READ SUPERVISOR REMARKS
 ========================================================= */
+/* =========================================================
+   READ SUPERVISOR REMARKS
+========================================================= */
 export async function readSUPERVISOR_REMARKS(
   studentEmail
 ) {
@@ -458,6 +461,11 @@ export async function readSUPERVISOR_REMARKS(
       "assessment_type"
     );
 
+  const instanceIdx =
+    headers.indexOf(
+      "assessment_instance"
+    );
+
   const remarkIdx =
     headers.indexOf(
       "remarks"
@@ -488,7 +496,7 @@ export async function readSUPERVISOR_REMARKS(
         r[typeIdx] || "",
 
       assessmentInstance:
-        r[typeIdx] || "",
+        r[instanceIdx] || "",
 
       remark:
         r[remarkIdx] || "",
