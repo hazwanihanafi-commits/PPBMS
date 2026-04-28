@@ -577,4 +577,122 @@ router.get(
   }
 );
 
+router.post(
+  "/document-status",
+  auth,
+  async (req, res) => {
+
+    try {
+
+      const {
+        studentEmail,
+        document_key,
+        status,
+        feedback = ""
+      } = req.body;
+
+      console.log(
+        "DOCUMENT STATUS UPDATE:",
+        {
+          studentEmail,
+          document_key,
+          status,
+          feedback
+        }
+      );
+
+      if (
+        !studentEmail ||
+        !document_key ||
+        !status
+      ) {
+        return res.status(400).json({
+          error: "Missing data"
+        });
+      }
+
+      const baseColumn =
+        DOC_COLUMN_MAP[document_key];
+
+      if (!baseColumn) {
+        return res.status(400).json({
+          error: "Invalid document key"
+        });
+      }
+
+      const rows =
+        await readMasterTracking(
+          process.env.SHEET_ID
+        );
+
+      const idx =
+        rows.findIndex(
+          r =>
+            (
+              r["Student's Email"] || ""
+            )
+              .toLowerCase()
+              .trim() ===
+            studentEmail
+              .toLowerCase()
+              .trim()
+        );
+
+      if (idx === -1) {
+        return res.status(404).json({
+          error: "Student not found"
+        });
+      }
+
+      const rowNumber = idx + 2;
+
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${baseColumn}_STATUS`,
+        rowNumber,
+        status
+      );
+
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${baseColumn}_FEEDBACK`,
+        rowNumber,
+        feedback
+      );
+
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${baseColumn}_REVIEWED_BY`,
+        rowNumber,
+        req.user.email
+      );
+
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${baseColumn}_REVIEWED_AT`,
+        rowNumber,
+        new Date().toISOString()
+      );
+
+      res.json({
+        success: true
+      });
+
+    } catch (e) {
+
+      console.error(
+        "document-status error:",
+        e
+      );
+
+      res.status(500).json({
+        error: e.message
+      });
+    }
+  }
+);
 export default router;
