@@ -392,11 +392,37 @@ export async function upsertSUPERVISOR_REMARK({
 
   if (rowIndex === -1) {
 
-    throw new Error(
-      `Matching ASSESSMENT_PLO row not found`
-    );
-  }
+  console.log(
+    "⚠️ Exact match not found. Trying fallback..."
+  );
 
+  rowIndex = rows.findIndex(r =>
+
+    String(r["Student Email"] || "")
+      .trim()
+      .toLowerCase() ===
+    String(studentEmail || "")
+      .trim()
+      .toLowerCase()
+
+    &&
+
+    String(r["Assessment_Type"] || "")
+      .trim()
+      .toUpperCase() ===
+    String(assessmentType || "")
+      .trim()
+      .toUpperCase()
+  );
+}
+
+  if (rowIndex === -1) {
+
+  throw new Error(
+    "Matching ASSESSMENT_PLO row not found"
+  );
+
+}
   function toColLetter(idx) {
 
     let s = "";
