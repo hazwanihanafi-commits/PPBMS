@@ -525,6 +525,7 @@ router.post(
         studentEmail,
         document_key,
         status,
+        feedback = ""
       } = req.body;
 
       if (
@@ -533,20 +534,16 @@ router.post(
         !status
       ) {
         return res.status(400).json({
-          error:
-            "Missing data"
+          error: "Missing data"
         });
       }
 
-      const statusColumn =
-        DOC_STATUS_MAP[
-          document_key
-        ];
+      const baseColumn =
+        DOC_COLUMN_MAP[document_key];
 
-      if (!statusColumn) {
+      if (!baseColumn) {
         return res.status(400).json({
-          error:
-            "Invalid document key"
+          error: "Invalid document key"
         });
       }
 
@@ -559,9 +556,7 @@ router.post(
         rows.findIndex(
           r =>
             (
-              r[
-                "Student's Email"
-              ] || ""
+              r["Student's Email"] || ""
             )
               .toLowerCase()
               .trim() ===
@@ -572,17 +567,46 @@ router.post(
 
       if (idx === -1) {
         return res.status(404).json({
-          error:
-            "Student not found"
+          error: "Student not found"
         });
       }
 
+      const rowNumber = idx + 2;
+
+      /* STATUS */
       await writeSheetCell(
         process.env.SHEET_ID,
         "MasterTracking",
-        statusColumn,
-        idx + 2,
+        `${baseColumn}_STATUS`,
+        rowNumber,
         status
+      );
+
+      /* FEEDBACK */
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${baseColumn}_FEEDBACK`,
+        rowNumber,
+        feedback
+      );
+
+      /* REVIEWED BY */
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${baseColumn}_REVIEWED_BY`,
+        rowNumber,
+        req.user.email
+      );
+
+      /* REVIEWED AT */
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MasterTracking",
+        `${baseColumn}_REVIEWED_AT`,
+        rowNumber,
+        new Date().toISOString()
       );
 
       res.json({
@@ -602,7 +626,6 @@ router.post(
     }
   }
 );
-
 /* =========================================================
    SAVE REMARK
 ========================================================= */
