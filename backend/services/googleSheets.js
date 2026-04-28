@@ -355,6 +355,10 @@ export async function upsertSUPERVISOR_REMARK({
     );
   }
 
+  /* =========================
+     PRIMARY MATCH
+  ========================= */
+
   let rowIndex = rows.findIndex(
     (r, i) =>
       i > 0 &&
@@ -424,12 +428,14 @@ export async function upsertSUPERVISOR_REMARK({
       )
   );
 
-  /* ================= FALLBACK ================= */
+  /* =========================
+     FALLBACK MATCH
+  ========================= */
 
   if (rowIndex === -1) {
 
     console.log(
-      "⚠️ Exact match failed. Trying fallback..."
+      "⚠️ Exact match not found. Trying fallback..."
     );
 
     rowIndex = rows.findIndex(
@@ -456,6 +462,10 @@ export async function upsertSUPERVISOR_REMARK({
     );
   }
 
+  /* =========================
+     FAIL SAFE
+  ========================= */
+
   if (rowIndex === -1) {
 
     console.log("❌ MATCH FAILED");
@@ -471,6 +481,10 @@ export async function upsertSUPERVISOR_REMARK({
       "Matching ASSESSMENT_PLO row not found"
     );
   }
+
+  /* =========================
+     COLUMN LETTER HELPER
+  ========================= */
 
   function toColLetter(idx) {
 
@@ -490,6 +504,10 @@ export async function upsertSUPERVISOR_REMARK({
     return s;
   }
 
+  /* =========================
+     UPDATE REMARK
+  ========================= */
+
   const remarkCell =
     `ASSESSMENT_PLO!${toColLetter(remarkIdx)}${rowIndex + 1}`;
 
@@ -501,6 +519,10 @@ export async function upsertSUPERVISOR_REMARK({
       values: [[remark]],
     },
   });
+
+  /* =========================
+     UPDATE ASSESSED BY
+  ========================= */
 
   if (assessedByIdx !== -1) {
 
@@ -516,6 +538,16 @@ export async function upsertSUPERVISOR_REMARK({
       },
     });
   }
+
+  console.log(
+    "✅ REMARK SAVED:",
+    {
+      rowIndex,
+      studentEmail,
+      assessmentType,
+      assessmentInstance
+    }
+  );
 
   return true;
 }
