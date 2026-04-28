@@ -49,6 +49,8 @@ export default function SupervisorChecklist({
   studentEmail,
   document_key: documentName,
   status,
+  feedback:
+    feedbacks[documentName] || ""
 }),
         }
       );
