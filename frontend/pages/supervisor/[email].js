@@ -575,22 +575,25 @@ setCqi(
 
   onChange={(e) => {
 
-    const updated =
-      student.remarksByAssessment.map(
-        (r, i) =>
-          i === idx
-            ? {
-                ...r,
-                remark: e.target.value
-              }
-            : r
-      );
+  if (!student) return;
 
-    setStudent({
-      ...student,
-      remarksByAssessment: updated
-    });
-  }}
+  const updated =
+    (student.remarksByAssessment || []).map(
+      (r, i) =>
+        i === idx
+          ? {
+              ...r,
+              remark: e.target.value
+            }
+          : r
+    );
+
+  setStudent(prev => ({
+    ...prev,
+    remarksByAssessment: updated
+  }));
+
+}}
 
   onBlur={async (e) => {
 
