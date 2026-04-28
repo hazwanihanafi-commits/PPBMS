@@ -449,59 +449,68 @@ router.get(
       const cqiByAssessment = {};
       const remarksByAssessment = [];
 
-      Object.entries(grouped)
-        .forEach(([instance, rows]) => {
+     Object.entries(grouped)
+  .forEach(([instance, rows]) => {
 
-          const ploScores =
-            rows.map(r => {
+    const ploScores =
+      rows.map(r => {
 
-              const o = {};
+        const o = {};
 
-              for (
-                let i = 1;
-                i <= 11;
-                i++
-              ) {
+        for (
+          let i = 1;
+          i <= 11;
+          i++
+        ) {
 
-                const v =
-                  parseFloat(
-                    r[`plo${i}`]
-                  );
+          const rawValue =
+            r[`plo${i}`];
 
-                o[`PLO${i}`] =
-                  isNaN(v)
-                    ? null
-                    : v;
-              }
+          const v =
+            rawValue === undefined ||
+            rawValue === null ||
+            rawValue === ""
+              ? null
+              : parseFloat(rawValue);
 
-              return o;
-            });
+          o[`PLO${i}`] =
+            isNaN(v)
+              ? null
+              : v;
+        }
 
-          cqiByAssessment[instance] =
-            deriveCQIByAssessment(
-              ploScores
-            );
+        return o;
+      });
 
-          rows.forEach(r => {
+    console.log(
+      "PLO SCORES:",
+      ploScores
+    );
 
-            remarksByAssessment.push({
+    cqiByAssessment[instance] =
+      deriveCQIByAssessment(
+        ploScores
+      );
 
-              assessmentType:
-                r.assessment_type || "",
+    rows.forEach(r => {
 
-              assessmentInstance:
-                r.assessment_instance ||
-                r.assessment_type || "",
+      remarksByAssessment.push({
 
-              remark:
-                r.remarks || ""
+        assessmentType:
+          r.assessment_type || "",
 
-            });
+        assessmentInstance:
+          r.assessment_instance ||
+          r.assessment_type || "",
 
-          });
+        remark:
+          r.remarks || ""
 
-        });
+      });
 
+    });
+
+  });
       /* =========================================================
          FINAL PLO
       ========================================================= */
