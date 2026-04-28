@@ -7,6 +7,7 @@ import {
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { ACTUAL_COLUMN_MAP } from "../utils/timelineColumnMap.js";
 import { TIMELINE_MAP } from "../utils/timelineMap.js";
+import { sendEmail } from "../services/email.js";
 
 function normalizeActivity(activity) {
   if (ACTUAL_COLUMN_MAP[activity]) return activity;
@@ -296,6 +297,35 @@ const file_url = link;
       idx + 2,
       file_url || ""
     );
+
+    await sendEmail({
+
+  to:
+    rows[idx][
+      "Main Supervisor's Email"
+    ],
+
+  subject:
+    `New Document Submitted - ${document_key}`,
+
+  html: `
+    <h2>New Student Submission</h2>
+
+    <p>
+      Student:
+      ${rows[idx]["Student Name"]}
+    </p>
+
+    <p>
+      Document:
+      ${document_key}
+    </p>
+
+    <p>
+      Please log into PPBMS to review.
+    </p>
+  `
+});
 
     res.json({ success: true });
 
