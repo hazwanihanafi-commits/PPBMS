@@ -561,69 +561,82 @@ export default function SupervisorStudentPage() {
 
             </div>
 
-            <textarea
-              rows={8}
-              defaultValue={
-                item.remark || ""
-              }
-              onBlur={async (e) => {
+           <textarea
+  rows={8}
+  defaultValue={
+    item.remark || ""
+  }
 
-                try {
+  onBlur={async (e) => {
 
-                  const token =
-                    localStorage.getItem(
-                      "ppbms_token"
-                    );
+    try {
 
-                  await fetch(
-                    `${API_BASE}/api/supervisorRemark/remark`,
-                    {
-                      method: "POST",
+      const token =
+        localStorage.getItem(
+          "ppbms_token"
+        );
 
-                      headers: {
-                        "Content-Type":
-                          "application/json",
+      const res = await fetch(
+        `${API_BASE}/api/supervisorRemark/remark`,
+        {
+          method: "POST",
 
-                        Authorization:
-                          `Bearer ${token}`,
-                      },
+          headers: {
+            "Content-Type":
+              "application/json",
 
-                      body: JSON.stringify({
+            Authorization:
+              `Bearer ${token}`,
+          },
 
-                        studentMatric:
-                          student.student_id,
+          body: JSON.stringify({
 
-                        studentEmail:
-                          student.email,
+            studentMatric:
+              student.student_id,
 
-                        assessmentType:
-                          item.assessmentType,
+            studentEmail:
+              student.email,
 
-                        assessmentInstance:
-                          item.assessmentInstance,
+            assessmentType:
+              item.assessmentType,
 
-                        remark:
-                          e.target.value
-                      })
-                    }
-                  );
+            assessmentInstance:
+              item.assessmentInstance,
 
-                  loadStudent();
+            remark:
+              e.target.value
+          })
+        }
+      );
 
-                } catch (err) {
+      const data =
+        await res.json();
 
-                  console.error(err);
-                }
-              }}
-              className="
-                w-full
-                border
-                rounded-2xl
-                p-4
-                text-sm
-                min-h-[220px]
-              "
-            />
+      console.log(
+        "SAVE RESULT:",
+        data
+      );
+
+      await loadStudent();
+
+    } catch (err) {
+
+      console.error(
+        "SAVE ERROR:",
+        err
+      );
+    }
+  }}
+
+  className="
+    w-full
+    border
+    rounded-2xl
+    p-4
+    text-sm
+    min-h-[220px]
+  "
+/>
 
           </div>
         )
