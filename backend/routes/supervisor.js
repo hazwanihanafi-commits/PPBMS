@@ -478,18 +478,19 @@ router.get(
 
     remarksByAssessment.push({
 
-      assessmentType:
-        r.assessment_type || "",
+  assessmentType:
+    r.assessment_type || "",
 
-      assessmentInstance:
-        r.assessment_instance || "",
+  assessmentInstance:
+    r.assessment_instance ||
+    r.assessment_type || "",
 
-      remark:
-        r.remarks || ""
+  remark:
+    r.remarks || ""
 
-    });
-  }
 });
+    }
+            });
 
           });
 
