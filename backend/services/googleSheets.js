@@ -291,10 +291,14 @@ export async function readFINALPROGRAMPLO(sheetId) {
 /* =========================================================
    SUPERVISOR REMARK UPSERT
 ========================================================= */
+/* =========================================================
+   SUPERVISOR REMARK UPSERT
+========================================================= */
 export async function upsertSUPERVISOR_REMARK({
   studentMatric,
   studentEmail,
   assessmentType,
+  assessmentInstance,
   supervisorEmail,
   remark,
 }) {
@@ -316,26 +320,37 @@ export async function upsertSUPERVISOR_REMARK({
   const rows = res.data.values || [];
 
   if (rows.length < 2) {
-    throw new Error("ASSESSMENT_PLO sheet is empty");
+    throw new Error(
+      "ASSESSMENT_PLO sheet is empty"
+    );
   }
 
   const headers = rows[0].map(h =>
     h.toString().trim().toLowerCase()
   );
 
-  const matricIdx = headers.indexOf("matric");
+  const matricIdx =
+    headers.indexOf("matric");
 
-  const emailIdx = headers.indexOf("student's email");
+  const emailIdx =
+    headers.indexOf("student's email");
 
-  const typeIdx = headers.indexOf("assessment_type");
+  const typeIdx =
+    headers.indexOf("assessment_type");
 
-  const remarkIdx = headers.indexOf("remarks");
+  const instanceIdx =
+    headers.indexOf("assessment_instance");
 
-  const assessedByIdx = headers.indexOf("assessed_by");
+  const remarkIdx =
+    headers.indexOf("remarks");
+
+  const assessedByIdx =
+    headers.indexOf("assessed_by");
 
   if (
     matricIdx === -1 ||
     typeIdx === -1 ||
+    instanceIdx === -1 ||
     remarkIdx === -1
   ) {
     throw new Error(
@@ -346,69 +361,62 @@ export async function upsertSUPERVISOR_REMARK({
   const rowIndex = rows.findIndex(
     (r, i) =>
       i > 0 &&
+
       (
         String(r[matricIdx] || "").trim() ===
           String(studentMatric || "").trim()
+
         ||
-        String(r[emailIdx] || "").trim().toLowerCase() ===
-          String(studentEmail || "").trim().toLowerCase()
+
+        String(r[emailIdx] || "")
+          .trim()
+          .toLowerCase() ===
+        String(studentEmail || "")
+          .trim()
+          .toLowerCase()
       ) &&
-      String(r[typeIdx] || "").trim().toUpperCase() ===
-        String(assessmentType || "").trim().toUpperCase()
+
+      String(r[typeIdx] || "")
+        .trim()
+        .toUpperCase() ===
+      String(assessmentType || "")
+        .trim()
+        .toUpperCase()
+
+      &&
+
+      String(r[instanceIdx] || "")
+        .trim()
+        .toUpperCase() ===
+      String(assessmentInstance || "")
+        .trim()
+        .toUpperCase()
   );
 
   if (rowIndex === -1) {
+
     throw new Error(
       `Matching ASSESSMENT_PLO row not found`
     );
   }
 
   function toColLetter(idx) {
+
     let s = "";
 
     while (idx >= 0) {
-      s =
-        String.fromCharCode((idx % 26) + 65) + s;
 
-      idx = Math.floor(idx / 26) - 1;
+      s =
+        String.fromCharCode(
+          (idx % 26) + 65
+        ) + s;
+
+      idx =
+        Math.floor(idx / 26) - 1;
     }
 
     return s;
-  }
-
-  const remarkCell =
-    `ASSESSMENT_PLO!${toColLetter(remarkIdx)}${rowIndex + 1}`;
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: process.env.SHEET_ID,
-    range: remarkCell,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[remark]],
-    },
-  });
-
-  if (assessedByIdx !== -1) {
-
-    const assessedCell =
-      `ASSESSMENT_PLO!${toColLetter(assessedByIdx)}${rowIndex + 1}`;
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: process.env.SHEET_ID,
-      range: assessedCell,
-      valueInputOption: "USER_ENTERED",
-      requestBody: {
-        values: [[supervisorEmail]],
-      },
-    });
-  }
-
-  return true;
-}
-
-/* =========================================================
-   READ SUPERVISOR REMARKS
-========================================================= */
+ 
 /* =========================================================
    READ SUPERVISOR REMARKS
 ========================================================= */
