@@ -333,21 +333,36 @@ router.get(
 
           documents[label] = {
 
-            url:
-              raw[column] || "",
+  url:
+    raw[column] || "",
 
-            status:
-              raw[
-                statusColumn
-              ] ||
-              (
-                raw[column]
-                  ? "PENDING REVIEW"
-                  : "NOT SUBMITTED"
-              )
-          };
-        }
-      );
+  status:
+    raw[
+      statusColumn
+    ] ||
+    (
+      raw[column]
+        ? "Pending Review"
+        : "Not Submitted"
+    ),
+
+  feedback:
+    raw[
+      `${column}_FEEDBACK`
+    ] || "",
+
+  reviewed_by:
+    raw[
+      `${column}_REVIEWED_BY`
+    ] || "",
+
+  reviewed_at:
+    raw[
+      `${column}_REVIEWED_AT`
+    ] || ""
+};
+          }
+);
 
       const timeline =
         buildTimelineForRow(raw);
