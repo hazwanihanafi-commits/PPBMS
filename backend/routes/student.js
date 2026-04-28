@@ -7,7 +7,8 @@ import {
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { ACTUAL_COLUMN_MAP } from "../utils/timelineColumnMap.js";
 import { TIMELINE_MAP } from "../utils/timelineMap.js";
-import { sendEmail } from "../services/email.js";
+import sendEmail
+from "../services/sendEmail.js";
 
 function normalizeActivity(activity) {
   if (ACTUAL_COLUMN_MAP[activity]) return activity;
@@ -308,25 +309,18 @@ const file_url = link;
   subject:
     `New Document Submitted - ${document_key}`,
 
-  html: `
-    <h2>New Student Submission</h2>
+  text: `
+A student has submitted a document.
 
-    <p>
-      Student:
-      ${rows[idx]["Student Name"]}
-    </p>
+Student:
+${rows[idx]["Student Name"]}
 
-    <p>
-      Document:
-      ${document_key}
-    </p>
+Document:
+${document_key}
 
-    <p>
-      Please log into PPBMS to review.
-    </p>
-  `
+Please log into PPBMS to review.
+`
 });
-
     res.json({ success: true });
 
   } catch (e) {
