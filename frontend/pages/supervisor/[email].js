@@ -143,17 +143,24 @@ export default function SupervisorStudentPage() {
       );
 
       const data =
-        await res.json();
+  await res.json();
 
-      setStudent(data.row || null);
+console.log("API DATA:", data);
 
-      setTimeline(
-        data.row?.timeline || []
-      );
+const studentData =
+  data.row ||
+  data.student ||
+  data;
 
-      setCqi(
-        data.row?.cqiByAssessment || {}
-      );
+setStudent(studentData || null);
+
+setTimeline(
+  studentData?.timeline || []
+);
+
+setCqi(
+  studentData?.cqiByAssessment || {}
+);
 
     } catch (e) {
 
