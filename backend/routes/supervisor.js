@@ -513,6 +513,9 @@ router.get(
 /* =========================================================
    DOCUMENT STATUS UPDATE
 ========================================================= */
+/* =========================================================
+   DOCUMENT STATUS UPDATE
+========================================================= */
 
 router.post(
   "/document-status",
@@ -573,7 +576,8 @@ router.post(
 
       const rowNumber = idx + 2;
 
-      /* STATUS */
+      /* ================= STATUS ================= */
+
       await writeSheetCell(
         process.env.SHEET_ID,
         "MasterTracking",
@@ -582,7 +586,8 @@ router.post(
         status
       );
 
-      /* FEEDBACK */
+      /* ================= FEEDBACK ================= */
+
       await writeSheetCell(
         process.env.SHEET_ID,
         "MasterTracking",
@@ -591,7 +596,8 @@ router.post(
         feedback
       );
 
-      /* REVIEWED BY */
+      /* ================= REVIEWED BY ================= */
+
       await writeSheetCell(
         process.env.SHEET_ID,
         "MasterTracking",
@@ -600,7 +606,8 @@ router.post(
         req.user.email
       );
 
-      /* REVIEWED AT */
+      /* ================= REVIEWED AT ================= */
+
       await writeSheetCell(
         process.env.SHEET_ID,
         "MasterTracking",
@@ -626,6 +633,7 @@ router.post(
     }
   }
 );
+
 /* =========================================================
    SAVE REMARK
 ========================================================= */
