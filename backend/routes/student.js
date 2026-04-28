@@ -222,8 +222,13 @@ router.post("/reset-actual", auth, async (req, res) => {
 /* ================= SAVE DOCUMENT ================= */
 router.post("/save-document", auth, async (req, res) => {
   try {
-    const { document_key, file_url } = req.body;
+    const {
+  name,
+  link
+} = req.body;
 
+const document_key = name;
+const file_url = link;
     if (!document_key) {
       return res.status(400).json({
         error: "Missing document_key"
