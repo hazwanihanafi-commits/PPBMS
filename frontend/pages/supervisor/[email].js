@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { API_BASE } from "../../utils/api";
 
 import SupervisorChecklist from "../../components/SupervisorChecklist";
-import SupervisorRemark from "../../components/SupervisorRemark";
 import FinalPLOTable from "../../components/FinalPLOTable";
 
 import {
@@ -113,11 +112,7 @@ export default function SupervisorStudentPage() {
   const [loading, setLoading] =
     useState(true);
 
-  const [
-    selectedAssessment,
-    setSelectedAssessment,
-  ] = useState("PROGRESS_1");
-
+ 
   /* ================= LOAD ================= */
 
   useEffect(() => {
@@ -250,27 +245,6 @@ export default function SupervisorStudentPage() {
     student.co_supervisor ||
     student.coSupervisor ||
     "-";
-
-  /* ================= CURRENT REMARK ================= */
-
-  const currentRemark = (() => {
-
-  const remarks =
-    student?.remarksByAssessment || [];
-
-  const found =
-    remarks.find(r =>
-
-      selectedAssessment.startsWith("PROGRESS")
-
-        ? r.assessmentInstance === selectedAssessment
-
-        : r.assessmentType === selectedAssessment
-    );
-
-  return found?.remark || "";
-
-})();
 
   /* ================= PDF ================= */
 
@@ -550,91 +524,82 @@ export default function SupervisorStudentPage() {
 
         )}
 
-        {/* REMARKS */}
+{/* REMARKS */}
 
-        {activeTab === "remarks" && (
+{activeTab === "remarks" && (
 
-          <div className="space-y-4">
+  <div className="space-y-5">
 
-            <div className="bg-white rounded-xl p-4">
+    {Array.isArray(student.remarksByAssessment) &&
+    student.remarksByAssessment.length > 0 ? (
 
-              <label className="block text-sm font-medium mb-2">
-                Assessment Type
-              </label>
+      student.remarksByAssessment.map(
+        (item, idx) => (
 
-              <select
-                value={selectedAssessment}
-                onChange={(e) =>
-                  setSelectedAssessment(
-                    e.target.value
-                  )
-                }
-                className="border rounded-lg px-3 py-2 text-sm"
-              >
+          <div
+            key={idx}
+            className="
+              bg-white
+              rounded-2xl
+              p-6
+              shadow-sm
+              border
+            "
+          >
 
-                <option value="PROGRESS_1">
-                  PROGRESS 1
-                </option>
+            <div className="mb-4">
 
-                <option value="PROGRESS_2">
-                  PROGRESS 2
-                </option>
+              <h3 className="font-bold text-lg text-purple-700">
 
-                <option value="PROGRESS_3">
-                  PROGRESS 3
-                </option>
+                {item.assessmentInstance ||
+                  item.assessmentType}
 
-                <option value="PROGRESS_4">
-                  PROGRESS 4
-                </option>
+              </h3>
 
-                <option value="PROGRESS_5">
-                  PROGRESS 5
-                </option>
+              <p className="text-xs text-gray-500 mt-1">
 
-                <option value="PROGRESS_6">
-                  PROGRESS 6
-                </option>
+                Assessment Type:
+                {" "}
+                {item.assessmentType}
 
-                <option value="PROGRESS_7">
-                  PROGRESS 7
-                </option>
-
-                <option value="VIVA">
-                  VIVA
-                </option>
-
-                <option value="THESIS">
-                  THESIS
-                </option>
-
-                <option value="TURNITIN">
-                  TURNITIN
-                </option>
-
-                <option value="TRX500">
-                  TRX500
-                </option>
-
-              </select>
+              </p>
 
             </div>
 
-            <SupervisorRemark
-              studentMatric={student.student_id}
-              studentEmail={student.email}
-              assessmentType={
-                selectedAssessment.startsWith("PROGRESS")
-                  ? "PROGRESS"
-                  : selectedAssessment
-              }
-              assessmentInstance={selectedAssessment}
-              initialRemark={currentRemark}
-            />
+            <div
+              className="
+                whitespace-pre-wrap
+                text-sm
+                leading-7
+                text-gray-700
+                bg-gray-50
+                rounded-xl
+                p-4
+              "
+            >
+
+              {item.remark}
+
+            </div>
 
           </div>
 
-        )}
+        )
+      )
+
+    ) : (
+
+      <div className="bg-white rounded-2xl p-6 text-gray-500">
+
+        No remarks available
+
+      </div>
+
+    )}
+
+  </div>
+
+)}
 
         {/* FOOTER */}
 
