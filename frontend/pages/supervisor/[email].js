@@ -528,7 +528,7 @@ export default function SupervisorStudentPage() {
 
 {activeTab === "remarks" && (
 
-  <div className="space-y-5">
+  <div className="space-y-6">
 
     {Array.isArray(student.remarksByAssessment) &&
     student.remarksByAssessment.length > 0 ? (
@@ -549,47 +549,89 @@ export default function SupervisorStudentPage() {
 
             <div className="mb-4">
 
-              <h3 className="font-bold text-lg text-purple-700">
-
-                {item.assessmentInstance ||
-                  item.assessmentType}
-
+              <h3 className="text-xl font-bold text-purple-700">
+                {item.assessmentInstance}
               </h3>
 
-              <p className="text-xs text-gray-500 mt-1">
-
+              <p className="text-sm text-gray-500">
                 Assessment Type:
                 {" "}
                 {item.assessmentType}
-
               </p>
 
             </div>
 
-            <div
+            <textarea
+              rows={8}
+              defaultValue={
+                item.remark || ""
+              }
+              onBlur={async (e) => {
+
+                try {
+
+                  const token =
+                    localStorage.getItem(
+                      "ppbms_token"
+                    );
+
+                  await fetch(
+                    `${API_BASE}/api/supervisorRemark/remark`,
+                    {
+                      method: "POST",
+
+                      headers: {
+                        "Content-Type":
+                          "application/json",
+
+                        Authorization:
+                          `Bearer ${token}`,
+                      },
+
+                      body: JSON.stringify({
+
+                        studentMatric:
+                          student.student_id,
+
+                        studentEmail:
+                          student.email,
+
+                        assessmentType:
+                          item.assessmentType,
+
+                        assessmentInstance:
+                          item.assessmentInstance,
+
+                        remark:
+                          e.target.value
+                      })
+                    }
+                  );
+
+                  loadStudent();
+
+                } catch (err) {
+
+                  console.error(err);
+                }
+              }}
               className="
-                whitespace-pre-wrap
-                text-sm
-                leading-7
-                text-gray-700
-                bg-gray-50
-                rounded-xl
+                w-full
+                border
+                rounded-2xl
                 p-4
+                text-sm
+                min-h-[220px]
               "
-            >
-
-              {item.remark}
-
-            </div>
+            />
 
           </div>
-
         )
       )
 
     ) : (
 
-      <div className="bg-white rounded-2xl p-6 text-gray-500">
+      <div className="bg-white rounded-2xl p-6 text-gray-400">
 
         No remarks available
 
@@ -600,7 +642,6 @@ export default function SupervisorStudentPage() {
   </div>
 
 )}
-
         {/* FOOTER */}
 
         <footer className="text-center text-xs text-gray-400 pt-6">
