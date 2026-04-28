@@ -161,6 +161,30 @@ const column = ACTUAL_COLUMN_MAP[normalized];
       date
     );
 
+    await writeSheetCell(
+  process.env.SHEET_ID,
+  "MasterTracking",
+  `${column}_STATUS`,
+  idx + 2,
+  "Pending Review"
+);
+
+await writeSheetCell(
+  process.env.SHEET_ID,
+  "MasterTracking",
+  `${column}_REVIEWED_BY`,
+  idx + 2,
+  ""
+);
+
+await writeSheetCell(
+  process.env.SHEET_ID,
+  "MasterTracking",
+  `${column}_REVIEWED_AT`,
+  idx + 2,
+  ""
+);
+
     res.json({ success: true });
 
   } catch (e) {
