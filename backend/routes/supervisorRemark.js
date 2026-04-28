@@ -1,3 +1,5 @@
+// backend/routes/supervisorRemark.js
+
 import express from "express";
 import jwt from "jsonwebtoken";
 
@@ -158,8 +160,14 @@ router.post(
 
       console.error(e);
 
+      console.error(
+        "STACK:",
+        e.stack
+      );
+
       return res.status(500).json({
-        error: e.message
+        error: e.message,
+        stack: e.stack
       });
     }
   }
