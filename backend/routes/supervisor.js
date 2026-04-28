@@ -317,7 +317,9 @@ router.get(
         coSupervisors
       };
 
-      /* DOCUMENTS */
+      /* =========================================================
+         DOCUMENTS
+      ========================================================= */
 
       const documents = {};
 
@@ -333,39 +335,48 @@ router.get(
 
           documents[label] = {
 
-  url:
-    raw[column] || "",
+            url:
+              raw[column] || "",
 
-  status:
-    raw[
-      statusColumn
-    ] ||
-    (
-      raw[column]
-        ? "Pending Review"
-        : "Not Submitted"
-    ),
+            status:
+              raw[
+                statusColumn
+              ] ||
+              (
+                raw[column]
+                  ? "Pending Review"
+                  : "Not Submitted"
+              ),
 
-  feedback:
-    raw[
-      `${column}_FEEDBACK`
-    ] || "",
+            feedback:
+              raw[
+                `${column}_FEEDBACK`
+              ] || "",
 
-  reviewed_by:
-    raw[
-      `${column}_REVIEWED_BY`
-    ] || "",
+            reviewed_by:
+              raw[
+                `${column}_REVIEWED_BY`
+              ] || "",
 
-  reviewed_at:
-    raw[
-      `${column}_REVIEWED_AT`
-    ] || ""
-};
-          }
-);
+            reviewed_at:
+              raw[
+                `${column}_REVIEWED_AT`
+              ] || ""
+
+          };
+        }
+      );
+
+      /* =========================================================
+         TIMELINE
+      ========================================================= */
 
       const timeline =
         buildTimelineForRow(raw);
+
+      /* =========================================================
+         READ ASSESSMENT_PLO
+      ========================================================= */
 
       const assessmentRows =
         await readASSESSMENT_PLO(
@@ -408,29 +419,37 @@ router.get(
           return m === matric;
         });
 
+      /* =========================================================
+         GROUP BY ASSESSMENT INSTANCE
+      ========================================================= */
+
       const grouped = {};
 
       studentRows.forEach(r => {
 
-        const type =
+        const instance =
           String(
-            r[
-              "assessment_type"
-            ] || ""
+            r["assessment_instance"] ||
+            r["assessment_type"] ||
+            ""
           ).toUpperCase();
 
-        if (!grouped[type]) {
-          grouped[type] = [];
+        if (!grouped[instance]) {
+          grouped[instance] = [];
         }
 
-        grouped[type].push(r);
+        grouped[instance].push(r);
       });
+
+      /* =========================================================
+         CQI + REMARKS
+      ========================================================= */
 
       const cqiByAssessment = {};
       const remarksByAssessment = [];
 
       Object.entries(grouped)
-        .forEach(([type, rows]) => {
+        .forEach(([instance, rows]) => {
 
           const ploScores =
             rows.map(r => {
@@ -457,42 +476,34 @@ router.get(
               return o;
             });
 
-          cqiByAssessment[type] =
+          cqiByAssessment[instance] =
             deriveCQIByAssessment(
               ploScores
             );
 
-          const remarkRow =
-            rows.find(
-              r =>
-                r.remarks &&
-                r.remarks.trim()
-            );
-
           rows.forEach(r => {
 
-  if (
-    r.remarks &&
-    r.remarks.trim()
-  ) {
+            remarksByAssessment.push({
 
-    remarksByAssessment.push({
+              assessmentType:
+                r.assessment_type || "",
 
-  assessmentType:
-    r.assessment_type || "",
+              assessmentInstance:
+                r.assessment_instance ||
+                r.assessment_type || "",
 
-  assessmentInstance:
-    r.assessment_instance ||
-    r.assessment_type || "",
+              remark:
+                r.remarks || ""
 
-  remark:
-    r.remarks || ""
-
-});
-    }
             });
 
           });
+
+        });
+
+      /* =========================================================
+         FINAL PLO
+      ========================================================= */
 
       const finalPLO =
         aggregateFinalPLO(
@@ -517,6 +528,10 @@ router.get(
         }
       }
 
+      /* =========================================================
+         RESPONSE
+      ========================================================= */
+
       res.json({
         row: {
           ...profile,
@@ -532,188 +547,6 @@ router.get(
 
       console.error(
         "student detail error:",
-        e
-      );
-
-      res.status(500).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-
-/* =========================================================
-   DOCUMENT STATUS UPDATE
-========================================================= */
-
-router.post(
-  "/document-status",
-  auth,
-  async (req, res) => {
-
-    try {
-
-      const {
-        studentEmail,
-        document_key,
-        status,
-        feedback = ""
-      } = req.body;
-
-      if (
-        !studentEmail ||
-        !document_key ||
-        !status
-      ) {
-        return res.status(400).json({
-          error: "Missing data"
-        });
-      }
-
-      const baseColumn =
-        DOC_COLUMN_MAP[document_key];
-
-      if (!baseColumn) {
-        return res.status(400).json({
-          error: "Invalid document key"
-        });
-      }
-
-      const rows =
-        await readMasterTracking(
-          process.env.SHEET_ID
-        );
-
-      const idx =
-        rows.findIndex(
-          r =>
-            (
-              r["Student's Email"] || ""
-            )
-              .toLowerCase()
-              .trim() ===
-            studentEmail
-              .toLowerCase()
-              .trim()
-        );
-
-      if (idx === -1) {
-        return res.status(404).json({
-          error: "Student not found"
-        });
-      }
-
-      const rowNumber = idx + 2;
-
-      /* ================= STATUS ================= */
-
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_STATUS`,
-        rowNumber,
-        status
-      );
-
-      /* ================= FEEDBACK ================= */
-
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_FEEDBACK`,
-        rowNumber,
-        feedback
-      );
-
-      /* ================= REVIEWED BY ================= */
-
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_REVIEWED_BY`,
-        rowNumber,
-        req.user.email
-      );
-
-      /* ================= REVIEWED AT ================= */
-
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_REVIEWED_AT`,
-        rowNumber,
-        new Date().toISOString()
-      );
-
-      res.json({
-        success: true
-      });
-
-    } catch (e) {
-
-      console.error(
-        "document-status error:",
-        e
-      );
-
-      res.status(500).json({
-        error: e.message
-      });
-    }
-  }
-);
-
-/* =========================================================
-   SAVE REMARK
-========================================================= */
-
-router.post(
-  "/remark",
-  auth,
-  async (req, res) => {
-
-    try {
-
-      const {
-        studentMatric,
-        assessmentType,
-        remark
-      } = req.body;
-
-      if (
-        !studentMatric ||
-        !assessmentType
-      ) {
-        return res.status(400).json({
-          error:
-            "Missing data"
-        });
-      }
-
-      if (
-        !remark ||
-        !remark.trim()
-      ) {
-        return res.json({
-          success: true
-        });
-      }
-
-      await updateASSESSMENT_PLO_Remark({
-        studentMatric,
-        assessmentType,
-        remark
-      });
-
-      res.json({
-        success: true
-      });
-
-    } catch (e) {
-
-      console.error(
-        "save remark error:",
         e
       );
 
