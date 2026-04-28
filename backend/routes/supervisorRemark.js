@@ -1,5 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+
 import {
   readSUPERVISOR_REMARKS,
   upsertSUPERVISOR_REMARK
@@ -10,23 +11,35 @@ const router = express.Router();
 /* =========================
    AUTH MIDDLEWARE
 ========================= */
+
 function auth(req, res, next) {
+
   try {
-    const token = (req.headers.authorization || "")
-      .replace("Bearer ", "");
+
+    const token =
+      (req.headers.authorization || "")
+        .replace("Bearer ", "");
 
     if (!token) {
+
       return res.status(401).json({
         error: "No token provided"
       });
     }
 
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
 
     next();
 
   } catch (e) {
-    console.error("AUTH ERROR:", e);
+
+    console.error(
+      "AUTH ERROR:",
+      e
+    );
 
     return res.status(401).json({
       error: "Invalid token"
@@ -37,109 +50,162 @@ function auth(req, res, next) {
 /* =========================
    SAVE / AUTOSAVE REMARK
 ========================= */
-router.post("/remark", auth, async (req, res) => {
-  try {
 
-    console.log("========== REMARK API ==========");
+router.post(
+  "/remark",
+  auth,
+  async (req, res) => {
 
-    console.log("REQ BODY:", req.body);
+    try {
 
-    console.log("REQ USER:", req.user);
+      console.log(
+        "========== REMARK API =========="
+      );
 
-    const {
-      studentMatric,
-      studentEmail,
-      assessmentType,
-      remark
-    } = req.body;
+      console.log(
+        "REQ BODY:",
+        req.body
+      );
 
-    /* =========================
-       VALIDATION
-    ========================= */
+      const {
 
-    if (!studentEmail) {
-      return res.status(400).json({
-        error: "studentEmail is required"
+        studentMatric,
+
+        studentEmail,
+
+        assessmentType,
+
+        assessmentInstance,
+
+        remark
+
+      } = req.body;
+
+      /* =========================
+         VALIDATION
+      ========================= */
+
+      if (!studentEmail) {
+
+        return res.status(400).json({
+          error:
+            "studentEmail is required"
+        });
+      }
+
+      if (!assessmentType) {
+
+        return res.status(400).json({
+          error:
+            "assessmentType is required"
+        });
+      }
+
+      if (
+        remark === undefined ||
+        remark === null
+      ) {
+
+        return res.status(400).json({
+          error:
+            "remark is required"
+        });
+      }
+
+      const payload = {
+
+        studentMatric:
+          studentMatric || "",
+
+        studentEmail,
+
+        assessmentType,
+
+        assessmentInstance:
+          assessmentInstance || "",
+
+        supervisorEmail:
+          req.user.email,
+
+        remark
+
+      };
+
+      console.log(
+        "UPSERT PAYLOAD:",
+        payload
+      );
+
+      await upsertSUPERVISOR_REMARK(
+        payload
+      );
+
+      console.log(
+        "========== SUCCESS =========="
+      );
+
+      return res.json({
+        success: true,
+        message:
+          "Remark saved successfully"
+      });
+
+    } catch (e) {
+
+      console.error(
+        "========== SAVE REMARK ERROR =========="
+      );
+
+      console.error(e);
+
+      return res.status(500).json({
+        error: e.message
       });
     }
-
-    if (!assessmentType) {
-      return res.status(400).json({
-        error: "assessmentType is required"
-      });
-    }
-
-    if (remark === undefined || remark === null) {
-      return res.status(400).json({
-        error: "remark is required"
-      });
-    }
-
-    console.log("VALIDATION PASSED");
-
-    const payload = {
-      studentMatric: studentMatric || "",
-      studentEmail,
-      assessmentType,
-      supervisorEmail: req.user.email,
-      remark
-    };
-
-    console.log("UPSERT PAYLOAD:", payload);
-
-    /* =========================
-       SAVE TO GOOGLE SHEETS
-    ========================= */
-
-    const result = await upsertSUPERVISOR_REMARK(payload);
-
-    console.log("UPSERT RESULT:", result);
-
-    console.log("========== SUCCESS ==========");
-
-    return res.json({
-      success: true,
-      message: "Remark saved successfully"
-    });
-
-  } catch (e) {
-
-    console.error("========== SAVE REMARK ERROR ==========");
-    console.error(e);
-    console.error("STACK:", e.stack);
-
-    return res.status(500).json({
-      error: e.message,
-      stack: e.stack
-    });
   }
-});
+);
 
 /* =========================
    GET REMARKS
 ========================= */
-router.get("/remark/:studentEmail", auth, async (req, res) => {
-  try {
 
-    const { studentEmail } = req.params;
+router.get(
+  "/remark/:studentEmail",
+  auth,
+  async (req, res) => {
 
-    console.log("GET REMARKS FOR:", studentEmail);
+    try {
 
-    const remarks = await readSUPERVISOR_REMARKS(studentEmail);
+      const { studentEmail } =
+        req.params;
 
-    return res.json({
-      success: true,
-      remarks
-    });
+      console.log(
+        "GET REMARKS FOR:",
+        studentEmail
+      );
 
-  } catch (e) {
+      const remarks =
+        await readSUPERVISOR_REMARKS(
+          studentEmail
+        );
 
-    console.error("GET REMARKS ERROR:", e);
+      return res.json({
+        success: true,
+        remarks
+      });
 
-    return res.status(500).json({
-      error: e.message
-    });
+    } catch (e) {
+
+      console.error(
+        "GET REMARKS ERROR:",
+        e
+      );
+
+      return res.status(500).json({
+        error: e.message
+      });
+    }
   }
-});
+);
 
 export default router;
