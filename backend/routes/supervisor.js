@@ -412,7 +412,7 @@ router.get(
       });
 
       const cqiByAssessment = {};
-      const remarksByAssessment = {};
+      const remarksByAssessment = [];
 
       Object.entries(grouped)
         .forEach(([type, rows]) => {
@@ -454,13 +454,27 @@ router.get(
                 r.remarks.trim()
             );
 
-          if (remarkRow) {
-            remarksByAssessment[
-              type
-            ] =
-              remarkRow.remarks;
-          }
-        });
+          rows.forEach(r => {
+
+  if (
+    r.remarks &&
+    r.remarks.trim()
+  ) {
+
+    remarksByAssessment.push({
+
+      assessmentType:
+        r.assessment_type || "",
+
+      assessmentInstance:
+        r.assessment_instance || "",
+
+      remark:
+        r.remarks || ""
+
+    });
+  }
+});
 
       const finalPLO =
         aggregateFinalPLO(
