@@ -392,10 +392,11 @@ router.get(
             .forEach(k => {
 
               clean[
-                k
-                  .replace(/\s+/g, "")
-                  .toLowerCase()
-              ] = r[k];
+  k
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+] = r[k];
             });
 
           return clean;
