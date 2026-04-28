@@ -137,6 +137,7 @@ export default function SupervisorStudentPage() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache"
           },
         }
       );
