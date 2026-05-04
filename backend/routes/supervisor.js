@@ -447,10 +447,14 @@ router.get(
          CQI + REMARKS
       ========================================================= */
 
-      const cqiByAssessment = {};
-      const remarksByAssessment = [];
+      /* =========================================================
+   CQI + REMARKS (UPGRADED)
+========================================================= */
 
-     Object.entries(grouped)
+const cqiByAssessment = {};
+const remarksByAssessment = [];
+
+Object.entries(grouped)
   .forEach(([instance, rows]) => {
 
     const ploScores =
@@ -458,14 +462,9 @@ router.get(
 
         const o = {};
 
-        for (
-          let i = 1;
-          i <= 11;
-          i++
-        ) {
+        for (let i = 1; i <= 11; i++) {
 
-          const rawValue =
-            r[`plo${i}`];
+          const rawValue = r[`plo${i}`];
 
           const v =
             rawValue === undefined ||
@@ -475,111 +474,141 @@ router.get(
               : parseFloat(rawValue);
 
           o[`PLO${i}`] =
-            isNaN(v)
-              ? null
-              : v;
+            isNaN(v) ? null : v;
         }
 
         return o;
       });
 
-    console.log(
-      "PLO SCORES:",
-      ploScores
-    );
-
     cqiByAssessment[instance] =
-      deriveCQIByAssessment(
-        ploScores
-      );
+      deriveCQIByAssessment(ploScores);
 
     rows.forEach(r => {
 
-  if (
-    !r ||
-    (
-      !r.assessment_type &&
-      !r.assessment_instance
-    )
-  ) {
-    return;
+      if (
+        !r ||
+        (!r.assessment_type &&
+         !r.assessment_instance)
+      ) return;
+
+      remarksByAssessment.push({
+
+        assessmentType:
+          r.assessment_type || "UNKNOWN",
+
+        assessmentInstance:
+          r.assessment_instance ||
+          r.assessment_type ||
+          "UNKNOWN",
+
+        /* OLD FIELD (KEEP) */
+        remark:
+          r.remarks || "",
+
+        /* NEW CQI LEVEL 2 */
+        supervisorRemark:
+          r.supervisor_remark || "",
+
+        studentResponse:
+          r.student_response || "",
+
+        status:
+          r.cqi_status ||
+          (r.student_response
+            ? "RESPONDED"
+            : "PENDING"),
+
+        updatedAt:
+          r.cqi_updated_at || ""
+
+      });
+
+    });
+
+  });
+
+/* =========================================================
+   FINAL PLO
+========================================================= */
+
+const finalPLO =
+  aggregateFinalPLO(cqiByAssessment);
+
+for (let i = 1; i <= 11; i++) {
+
+  const key = `PLO${i}`;
+
+  if (!finalPLO[key]) {
+    finalPLO[key] = {
+      average: null,
+      status: "Not Assessed"
+    };
   }
+}
 
-  remarksByAssessment.push({
+/* =========================================================
+   CQI AUTO ALERT
+========================================================= */
 
-    assessmentType:
-      r.assessment_type || "UNKNOWN",
+const alerts = [];
 
-    assessmentInstance:
-      r.assessment_instance ||
-      r.assessment_type ||
-      "UNKNOWN",
+remarksByAssessment.forEach(r => {
 
-    remark:
-      r.remarks || ""
+  if (
+    r.supervisorRemark &&
+    !r.studentResponse &&
+    r.updatedAt
+  ) {
 
-  });
+    const days =
+      (Date.now() - new Date(r.updatedAt)) /
+      (1000 * 60 * 60 * 24);
 
-});
-  });
-      /* =========================================================
-         FINAL PLO
-      ========================================================= */
+    if (days > 7) {
 
-      const finalPLO =
-        aggregateFinalPLO(
-          cqiByAssessment
-        );
-
-      for (
-        let i = 1;
-        i <= 11;
-        i++
-      ) {
-
-        const key = `PLO${i}`;
-
-        if (!finalPLO[key]) {
-
-          finalPLO[key] = {
-            average: null,
-            status:
-              "Not Assessed"
-          };
-        }
-      }
-
-      /* =========================================================
-         RESPONSE
-      ========================================================= */
-
-      res.json({
-        row: {
-          ...profile,
-          documents,
-          timeline,
-          cqiByAssessment,
-          finalPLO,
-          remarksByAssessment
-        }
+      alerts.push({
+        type: "CQI_PENDING",
+        assessmentInstance: r.assessmentInstance,
+        message:
+          `${r.assessmentInstance} ignored > 7 days`
       });
 
-    } catch (e) {
-
-      console.error(
-        "student detail error:",
-        e
-      );
-
-      res.status(500).json({
-        error: e.message
-      });
     }
   }
-);
+});
+
+/* =========================================================
+   RESPONSE
+========================================================= */
+
+res.json({
+  row: {
+    ...profile,
+    documents,
+    timeline,
+    cqiByAssessment,
+    finalPLO,
+    remarksByAssessment,
+    alerts
+  }
+});
+
+} catch (e) {
+
+  console.error("student detail error:", e);
+
+  res.status(500).json({
+    error: e.message
+  });
+}
+});
+
+/* =========================================================
+   SUPERVISOR ADD REMARK
+========================================================= */
 
 router.post(
-  "/document-status",
+  "/cqi/supervisor-remark",
   auth,
   async (req, res) => {
 
@@ -587,136 +616,165 @@ router.post(
 
       const {
         studentEmail,
-        document_key,
-        status,
-        feedback = ""
+        assessmentInstance,
+        supervisorRemark
       } = req.body;
 
-      console.log(
-        "DOCUMENT STATUS UPDATE:",
-        {
-          studentEmail,
-          document_key,
-          status,
-          feedback
-        }
-      );
-
-      if (
-        !studentEmail ||
-        !document_key ||
-        !status
-      ) {
-        return res.status(400).json({
-          error: "Missing data"
-        });
-      }
-
-      const baseColumn =
-        DOC_COLUMN_MAP[document_key];
-
-      if (!baseColumn) {
-        return res.status(400).json({
-          error: "Invalid document key"
-        });
-      }
-
       const rows =
-        await readMasterTracking(
+        await readASSESSMENT_PLO(
           process.env.SHEET_ID
         );
 
-      const idx =
-        rows.findIndex(
-          r =>
-            (
-              r["Student's Email"] || ""
-            )
-              .toLowerCase()
-              .trim() ===
-            studentEmail
-              .toLowerCase()
-              .trim()
+      const matched = rows
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) =>
+          (r["Student's Email"] || "")
+            .toLowerCase()
+            .trim() ===
+          studentEmail.toLowerCase().trim() &&
+
+          String(r["assessment_instance"] || "")
+            .toLowerCase()
+            .trim() ===
+          assessmentInstance.toLowerCase().trim()
         );
 
-      if (idx === -1) {
+      if (matched.length === 0) {
         return res.status(404).json({
-          error: "Student not found"
+          error: "Assessment not found"
         });
       }
 
-      const rowNumber = idx + 2;
+      for (const { i } of matched) {
 
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_STATUS`,
-        rowNumber,
-        status
-      );
+        const rowNumber = i + 2;
 
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_FEEDBACK`,
-        rowNumber,
-        feedback
-      );
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "supervisor_remark",
+          rowNumber,
+          supervisorRemark
+        );
 
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_REVIEWED_BY`,
-        rowNumber,
-        req.user.email
-      );
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "cqi_status",
+          rowNumber,
+          "PENDING"
+        );
 
-      await writeSheetCell(
-        process.env.SHEET_ID,
-        "MasterTracking",
-        `${baseColumn}_REVIEWED_AT`,
-        rowNumber,
-        new Date().toISOString()
-      );
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "cqi_updated_at",
+          rowNumber,
+          new Date().toISOString()
+        );
+      }
 
-      await sendEmail({
-
-  to: studentEmail,
-
-  subject:
-    `Document Review Update - ${document_key}`,
-
-  text: `
-Your document has been reviewed.
-
-Document:
-${document_key}
-
-Status:
-${status}
-
-Feedback:
-${feedback || "No feedback"}
-
-Please log into PPBMS.
-`
-});
-
-      res.json({
-        success: true
-      });
+      res.json({ success: true });
 
     } catch (e) {
-
-      console.error(
-        "document-status error:",
-        e
-      );
-
-      res.status(500).json({
-        error: e.message
-      });
+      res.status(500).json({ error: e.message });
     }
   }
 );
+
+/* =========================================================
+   STUDENT RESPONSE + HISTORY
+========================================================= */
+
+router.post(
+  "/cqi/student-response",
+  auth,
+  async (req, res) => {
+
+    try {
+
+      const {
+        studentEmail,
+        assessmentInstance,
+        studentResponse,
+        status
+      } = req.body;
+
+      const rows =
+        await readASSESSMENT_PLO(
+          process.env.SHEET_ID
+        );
+
+      const matched = rows
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) =>
+          (r["Student's Email"] || "")
+            .toLowerCase()
+            .trim() ===
+          studentEmail.toLowerCase().trim() &&
+
+          String(r["assessment_instance"] || "")
+            .toLowerCase()
+            .trim() ===
+          assessmentInstance.toLowerCase().trim()
+        );
+
+      if (matched.length === 0) {
+        return res.status(404).json({
+          error: "Assessment not found"
+        });
+      }
+
+      for (const { r, i } of matched) {
+
+        const rowNumber = i + 2;
+
+        const existing =
+          r["student_response_history"] || "";
+
+        const updated =
+          existing +
+          `\n[${new Date().toISOString()}] ${studentResponse}`;
+
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "student_response",
+          rowNumber,
+          studentResponse
+        );
+
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "student_response_history",
+          rowNumber,
+          updated
+        );
+
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "cqi_status",
+          rowNumber,
+          status || "RESPONDED"
+        );
+
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "cqi_updated_at",
+          rowNumber,
+          new Date().toISOString()
+        );
+      }
+
+      res.json({ success: true });
+
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
+
 export default router;
