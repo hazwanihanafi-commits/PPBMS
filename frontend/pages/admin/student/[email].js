@@ -40,40 +40,38 @@ export default function AdminStudentPage() {
 
   async function loadStudent() {
 
-    try {
-      const token = localStorage.getItem("ppbms_token");
+  try {
+    const token = localStorage.getItem("ppbms_token");
 
-      const res = await fetch(
-        `${API_BASE}/api/admin/student/${encodeURIComponent(email.trim().toLowerCase())}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+    const res = await fetch(
+      `${API_BASE}/api/admin/student/${email}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      );
+      }
+    );
 
-      const data = await res.json();
+    const data = await res.json();
 
-      console.log("ADMIN DATA:", data);
+    console.log("ADMIN DATA:", data);
 
-      const row = data.row || {};
+    const row = data.row || {};
 
-      setStudent(row);
-      setTimeline(row.timeline || []);
-      setDocuments(row.documents || {});              // 🔥
-      setRemarks(data.remarks || row.remarksByAssessment || []); // 🔥
-      setFinalPLO(data.finalPLO || row.finalPLO || {}); // 🔥
+    setStudent(row);
+    setTimeline(row.timeline || []);
+    setDocuments(row.documents || {});
+    setRemarks(row.remarksByAssessment || []);
+    setFinalPLO(row.finalPLO || {});
 
-    } catch (err) {
-      console.error(err);
-      setStudent(null);
-    }
-
-    setLoading(false);
+  } catch (err) {
+    console.error(err);
+    setStudent(null);
   }
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!student) return <div className="p-6 text-red-500">Student not found</div>;
+  setLoading(false);
+}
+ 
 
   /* ================= CALC ================= */
   const completed = timeline.filter(
