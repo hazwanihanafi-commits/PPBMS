@@ -1,5 +1,5 @@
 // ==========================================
-// ADMIN STUDENT PAGE (FULL - MATCH SUPERVISOR)
+// ADMIN STUDENT PAGE (FINAL CLEAN VERSION)
 // ==========================================
 
 import { useEffect, useState } from "react";
@@ -39,39 +39,49 @@ export default function AdminStudentPage() {
   }, [email]);
 
   async function loadStudent() {
+    try {
+      const token = localStorage.getItem("ppbms_token");
 
-  try {
-    const token = localStorage.getItem("ppbms_token");
+      // 🔥 FIX: decode email
+      const cleanEmail = decodeURIComponent(email);
 
-    const res = await fetch(
-      `${API_BASE}/api/admin/student/${email}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+      const res = await fetch(
+        `${API_BASE}/api/admin/student/${cleanEmail}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
-      }
-    );
+      );
 
-    const data = await res.json();
+      const data = await res.json();
 
-    console.log("ADMIN DATA:", data);
+      console.log("ADMIN DATA:", data);
 
-    const row = data.row || {};
+      const row = data.row || {};
 
-    setStudent(row);
-    setTimeline(row.timeline || []);
-    setDocuments(row.documents || {});
-    setRemarks(row.remarksByAssessment || []);
-    setFinalPLO(row.finalPLO || {});
+      setStudent(row);
+      setTimeline(row.timeline || []);
+      setDocuments(row.documents || {});
+      setRemarks(row.remarksByAssessment || []);
+      setFinalPLO(row.finalPLO || {});
 
-  } catch (err) {
-    console.error(err);
-    setStudent(null);
+    } catch (err) {
+      console.error("LOAD ERROR:", err);
+      setStudent(null);
+    }
+
+    setLoading(false);
   }
 
-  setLoading(false);
-}
- 
+  /* ================= LOADING ================= */
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
+
+  if (!student) {
+    return <div className="p-6 text-red-500">Student not found</div>;
+  }
 
   /* ================= CALC ================= */
   const completed = timeline.filter(
@@ -83,7 +93,6 @@ export default function AdminStudentPage() {
     : 0;
 
   let category = "At Risk";
-
   if (progress >= 80) category = "On Track";
   else if (progress >= 50) category = "Slightly Late";
 
@@ -100,7 +109,7 @@ export default function AdminStudentPage() {
 
     pdf.text("PPBMS Student Report", 20, y); y += 10;
 
-    pdf.text(`Name: ${student.name}`, 20, y); y += 6;
+    pdf.text(`Name: ${student.student_name}`, 20, y); y += 6;
     pdf.text(`Programme: ${student.programme}`, 20, y); y += 6;
     pdf.text(`Progress: ${progress}%`, 20, y); y += 6;
     pdf.text(`Status: ${category}`, 20, y); y += 10;
@@ -165,11 +174,21 @@ export default function AdminStudentPage() {
         </div>
 
         {/* HERO */}
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-2xl flex justify-between">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-2xl flex justify-between"
+        >
           <div>
-            <h2 className="text-xl font-bold">{student.name}</h2>
+            <h2 className="text-xl font-bold">
+              {student.student_name}
+            </h2>
+
             <p>{student.programme}</p>
-            <p className="text-3xl mt-2">{progress}%</p>
+
+            <p className="text-3xl mt-2">
+              {progress}%
+            </p>
           </div>
 
           <span className={`px-4 py-2 rounded-full ${
@@ -181,7 +200,7 @@ export default function AdminStudentPage() {
           }`}>
             {category}
           </span>
-        </div>
+        </motion.div>
 
         {/* KPI */}
         <div className="grid grid-cols-3 gap-4">
@@ -195,7 +214,10 @@ export default function AdminStudentPage() {
           <Card>
             <p><b>Email:</b> {student.email}</p>
             <p><b>Matric:</b> {student.student_id}</p>
-            <p><b>Supervisor:</b> {student.mainSupervisor}</p>
+
+            {/* 🔥 FIXED FIELD */}
+            <p><b>Supervisor:</b> {student.supervisor || "-"}</p>
+
             <p><b>Co-Supervisor:</b> {coSupervisor}</p>
           </Card>
         )}
@@ -203,10 +225,14 @@ export default function AdminStudentPage() {
         {/* TIMELINE */}
         {activeTab === "timeline" && (
           <Card>
+            {timeline.length === 0 && <p>No timeline</p>}
+
             {timeline.map((t, i) => (
               <div key={i} className="mb-4 border-l-4 pl-3">
-                <b>{t.activity}</b>
-                <p className="text-xs">{t.expected} → {t.actual || "-"}</p>
+                <b>{t.activity || t.name}</b>
+                <p className="text-xs">
+                  {t.expected || "-"} → {t.actual || "-"}
+                </p>
                 <span className="text-xs">{t.status}</span>
               </div>
             ))}
@@ -216,7 +242,11 @@ export default function AdminStudentPage() {
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
           <Card>
-            <SupervisorChecklist documents={documents} />
+            <SupervisorChecklist
+              documents={documents}
+              studentEmail={student.email}
+              onUpdated={loadStudent}   // 🔥 auto refresh after approve
+            />
           </Card>
         )}
 
@@ -235,11 +265,11 @@ export default function AdminStudentPage() {
             {remarks.map((r, i) => (
               <div key={i} className="mb-4">
                 <h4 className="text-purple-600 font-bold">
-                  {r.assessmentType || r.type}
+                  {r.assessmentInstance || r.assessmentType || "Assessment"}
                 </h4>
 
                 <div className="bg-gray-100 p-3 rounded">
-                  {r.remark || r.comment}
+                  {r.remark || "-"}
                 </div>
               </div>
             ))}
