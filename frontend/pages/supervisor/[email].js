@@ -12,10 +12,6 @@ import {
   XAxis,
   Tooltip,
   ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
 } from "recharts";
 
 import jsPDF from "jspdf";
@@ -26,10 +22,13 @@ const GlassCard = ({ children }) => (
   <motion.div
     whileHover={{ y: -4, scale: 1.02 }}
     className="
-      bg-white/70 backdrop-blur-xl
-      rounded-2xl p-5
-      shadow-md border border-white/40
-      transition-all duration-300
+      bg-white/70
+      backdrop-blur-xl
+      rounded-2xl
+      p-5
+      shadow-sm
+      border
+      border-white/40
     "
   >
     {children}
@@ -39,24 +38,53 @@ const GlassCard = ({ children }) => (
 /* ================= HELPERS ================= */
 
 function getStatusType(t) {
-  const status = t.status?.trim().toLowerCase();
 
-  if (status === "late" || t.status === "AT_RISK") return "late";
-  if (status === "due soon") return "soon";
-  if (status === "completed") return "done";
+  const status =
+    t.status
+      ?.trim()
+      .toLowerCase();
+
+  if (
+    status === "late" ||
+    t.status === "AT_RISK"
+  ) {
+    return "late";
+  }
+
+  if (status === "due soon") {
+    return "soon";
+  }
+
+  if (status === "completed") {
+    return "done";
+  }
 
   return "normal";
 }
 
 function getRiskColor(risk) {
-  if (risk === "HIGH RISK") return "text-red-600";
-  if (risk === "MODERATE RISK") return "text-amber-600";
+
+  if (risk === "HIGH RISK") {
+    return "text-red-600";
+  }
+
+  if (risk === "MODERATE RISK") {
+    return "text-amber-600";
+  }
+
   return "text-green-600";
 }
 
 function getRiskBg(risk) {
-  if (risk === "HIGH RISK") return "bg-red-100";
-  if (risk === "MODERATE RISK") return "bg-amber-100";
+
+  if (risk === "HIGH RISK") {
+    return "bg-red-100";
+  }
+
+  if (risk === "MODERATE RISK") {
+    return "bg-amber-100";
+  }
+
   return "bg-green-100";
 }
 
@@ -65,22 +93,44 @@ function getRiskBg(risk) {
 export default function SupervisorStudentPage() {
 
   const router = useRouter();
-  const { email } = router.query;
 
-  const [student, setStudent] = useState(null);
-  const [timeline, setTimeline] = useState([]);
-  const [cqi, setCqi] = useState({});
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
+  const { email } =
+    router.query;
+
+  const [student, setStudent] =
+    useState(null);
+
+  const [timeline, setTimeline] =
+    useState([]);
+
+  const [cqi, setCqi] =
+    useState({});
+
+  const [activeTab, setActiveTab] =
+    useState("overview");
+
+  const [loading, setLoading] =
+    useState(true);
+
+ 
+  /* ================= LOAD ================= */
 
   useEffect(() => {
+
     if (!email) return;
+
     loadStudent();
+
   }, [email]);
 
   async function loadStudent() {
+
     try {
-      const token = localStorage.getItem("ppbms_token");
+
+      const token =
+        localStorage.getItem(
+          "ppbms_token"
+        );
 
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
@@ -91,42 +141,103 @@ export default function SupervisorStudentPage() {
         }
       );
 
-      const data = await res.json();
+      const data =
+  await res.json();
 
-      const studentData = data.row || data.student || data;
+console.log("API DATA:", data);
 
-      setStudent(studentData || null);
-      setTimeline(studentData?.timeline || []);
-      setCqi(studentData?.cqiByAssessment || {});
+const studentData =
+  data.row ||
+  data.student ||
+  data;
+
+setStudent(studentData || null);
+
+setTimeline(
+  studentData?.timeline || []
+);
+
+setCqi(
+  studentData?.cqiByAssessment || {}
+);
 
     } catch (e) {
+
       console.error(e);
+
     }
 
     setLoading(false);
   }
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!student) return <div className="p-6">Student not found</div>;
+  /* ================= LOADING ================= */
+
+  if (loading) {
+
+    return (
+      <div className="p-6">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!student) {
+
+    return (
+      <div className="p-6">
+        Student not found
+      </div>
+    );
+  }
 
   /* ================= DATA ================= */
 
   const completed = timeline.filter(
-    (t) => t.status?.toLowerCase() === "completed"
+    (t) =>
+      t.status
+        ?.trim()
+        .toLowerCase() ===
+      "completed"
   ).length;
 
   const late = timeline.filter(
     (t) =>
-      t.status?.toLowerCase() === "late" ||
-      t.status?.toUpperCase() === "AT_RISK"
+
+      t.status
+        ?.trim()
+        .toLowerCase() ===
+        "late" ||
+
+      t.status
+        ?.trim()
+        .toUpperCase() ===
+        "AT_RISK" ||
+
+      (
+        !t.actual &&
+        t.remaining_days < 0 &&
+        t.status
+          ?.trim()
+          .toLowerCase() !==
+          "completed"
+      )
   ).length;
 
   const soon = timeline.filter(
-    (t) => t.status?.toLowerCase() === "due soon"
+    (t) =>
+      t.status
+        ?.trim()
+        .toLowerCase() ===
+      "due soon"
   ).length;
 
   const progress = timeline.length
-    ? Math.round((completed / timeline.length) * 100)
+    ? Math.round(
+        (
+          completed /
+          timeline.length
+        ) * 100
+      )
     : 0;
 
   const riskScore =
@@ -136,39 +247,65 @@ export default function SupervisorStudentPage() {
       ? "MODERATE RISK"
       : "LOW RISK";
 
-  /* ================= CQI RADAR ================= */
-
-  const radarData = [];
-
-  Object.entries(cqi || {}).forEach(([assessment, plos]) => {
-    Object.entries(plos).forEach(([plo, val]) => {
-      radarData.push({
-        subject: `${assessment}-${plo}`,
-        score: val.average || 0,
-        fullMark: 5,
-      });
-    });
-  });
+  const coSupervisorDisplay =
+    student.coSupervisors ||
+    student.co_supervisor ||
+    student.coSupervisor ||
+    "-";
 
   /* ================= PDF ================= */
 
   function exportPDF() {
+
     const pdf = new jsPDF();
+
     let y = 20;
 
     pdf.setFontSize(16);
-    pdf.text("PPBMS Progress Report", 105, y, { align: "center" });
+
+    pdf.text(
+      "Postgraduate Progress Report",
+      105,
+      y,
+      {
+        align: "center",
+      }
+    );
 
     y += 10;
-    pdf.text(`Student: ${student.student_name}`, 20, y);
-    y += 6;
-    pdf.text(`Programme: ${student.programme}`, 20, y);
-    y += 6;
-    pdf.text(`Risk: ${riskScore}`, 20, y);
+
+    pdf.text(
+      `Name: ${student.student_name}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+    pdf.text(
+      `Programme: ${student.programme}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+    pdf.text(
+      `Risk: ${riskScore}`,
+      20,
+      y
+    );
+
     y += 10;
 
     timeline.forEach((t, i) => {
-      pdf.text(`${i + 1}. ${t.activity} (${t.status})`, 20, y);
+
+      pdf.text(
+        `${i + 1}. ${t.activity} (${t.status})`,
+        20,
+        y
+      );
+
       y += 5;
     });
 
@@ -178,114 +315,360 @@ export default function SupervisorStudentPage() {
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#e0e7ff] flex">
+
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
 
       {/* SIDEBAR */}
+
       <div className="w-56 p-4">
+
         <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
 
-          <h2 className="font-bold text-purple-700 mb-4">PPBMS</h2>
+          <h2 className="font-bold text-purple-700 mb-4">
+            PPBMS
+          </h2>
 
-          {["overview","documents","timeline","cqi","remarks"].map((tab)=>(
+          <button
+            onClick={() =>
+              router.push("/supervisor")
+            }
+            className="mb-3 text-sm text-purple-600 hover:underline"
+          >
+            ← Back to Dashboard
+          </button>
+
+          {[
+            "overview",
+            "documents",
+            "timeline",
+            "cqi",
+            "remarks",
+          ].map((tab) => (
+
             <button
               key={tab}
-              onClick={()=>setActiveTab(tab)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${
-                activeTab===tab
-                  ? "bg-purple-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
+              onClick={() =>
+                setActiveTab(tab)
+              }
+              className={`
+                w-full
+                text-left
+                px-3
+                py-2
+                rounded-lg
+                text-sm
+                mb-1
+
+                ${
+                  activeTab === tab
+                    ? "bg-purple-100 text-purple-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }
+              `}
             >
               {tab.toUpperCase()}
             </button>
+
           ))}
 
         </div>
+
       </div>
 
       {/* MAIN */}
+
       <div className="flex-1 p-6 space-y-6">
 
-        {/* HERO */}
-        <motion.div className="bg-gradient-to-r from-purple-600 to-indigo-500 text-white rounded-3xl p-6 shadow-xl">
-          <h1 className="text-2xl font-bold">{student.student_name}</h1>
-          <p className="text-sm">{student.programme}</p>
+        {/* HEADER */}
 
-          <div className="mt-4 flex justify-between items-center">
-            <p className="text-4xl font-bold">{progress}%</p>
+        <div className="flex justify-between items-center">
 
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}`}>
-              {riskScore}
-            </span>
-          </div>
-        </motion.div>
+          <h1 className="text-xl font-bold text-gray-800">
+            Student Overview
+          </h1>
 
-        {/* KPI */}
-        <div className="grid grid-cols-3 gap-5">
-          <GlassCard><p>Completed</p><p className="text-green-600 text-2xl">{completed}</p></GlassCard>
-          <GlassCard><p>Soon</p><p className="text-amber-600 text-2xl">{soon}</p></GlassCard>
-          <GlassCard><p>Late</p><p className="text-red-600 text-2xl">{late}</p></GlassCard>
+          <button
+            onClick={exportPDF}
+            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+          >
+            Export PDF
+          </button>
+
         </div>
 
-        {/* CHART */}
+        {/* HERO */}
+
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
+
+          <h1 className="text-xl font-semibold">
+            {student.student_name}
+          </h1>
+
+          <p className="text-sm">
+            {student.programme}
+          </p>
+
+          <div className="mt-4 flex justify-between items-center">
+
+            <span className="text-3xl">
+              {progress}%
+            </span>
+
+            <span
+              className={`
+                px-3
+                py-1
+                rounded-full
+                text-xs
+                font-semibold
+
+                ${getRiskBg(riskScore)}
+                ${getRiskColor(riskScore)}
+              `}
+            >
+              {riskScore}
+            </span>
+
+          </div>
+
+        </div>
+
+        {/* ANALYTICS */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">
+              Completed
+            </p>
+
+            <p className="text-2xl font-bold text-green-600">
+              {completed}
+            </p>
+          </GlassCard>
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">
+              Due Soon
+            </p>
+
+            <p className="text-2xl font-bold text-amber-600">
+              {soon}
+            </p>
+          </GlassCard>
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">
+              Late
+            </p>
+
+            <p className="text-2xl font-bold text-red-600">
+              {late}
+            </p>
+          </GlassCard>
+
+        </div>
+
+        {/* GRAPH */}
+
         <GlassCard>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={[
-              { name: "Done", value: completed },
-              { name: "Soon", value: soon },
-              { name: "Late", value: late }
-            ]}>
-              <XAxis dataKey="name"/>
-              <Tooltip/>
-              <Bar dataKey="value" fill="#6366f1"/>
+
+          <ResponsiveContainer
+            width="100%"
+            height={200}
+          >
+
+            <BarChart
+              data={[
+                {
+                  name: "Done",
+                  value: completed,
+                },
+                {
+                  name: "Soon",
+                  value: soon,
+                },
+                {
+                  name: "Late",
+                  value: late,
+                },
+              ]}
+            >
+
+              <XAxis dataKey="name" />
+
+              <Tooltip />
+
+              <Bar dataKey="value" />
+
             </BarChart>
+
           </ResponsiveContainer>
+
         </GlassCard>
 
-        {/* TIMELINE */}
-        {activeTab==="timeline" && (
-          <GlassCard>
-            <div className="border-l pl-6 space-y-4">
-              {timeline.map((t,i)=>(
-                <div key={i}>
-                  <p className="font-semibold">{t.activity}</p>
-                  <p className="text-xs text-gray-500">
-                    {t.expected_date} → {t.actual || "-"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-        )}
+        {/* DOCUMENTS */}
 
-        {/* CQI RADAR */}
-        {activeTab==="cqi" && (
-          <GlassCard>
-            <ResponsiveContainer width="100%" height={300}>
-              <RadarChart data={radarData}>
-                <PolarGrid/>
-                <PolarAngleAxis dataKey="subject"/>
-                <Radar dataKey="score" fill="#6366f1"/>
-              </RadarChart>
-            </ResponsiveContainer>
-          </GlassCard>
-        )}
+        {activeTab === "documents" && (
 
-        {/* DOCUMENT */}
-        {activeTab==="documents" && (
           <SupervisorChecklist
-            documents={student.documents || {}}
+            documents={
+              student.documents || {}
+            }
             studentEmail={student.email}
             onUpdated={loadStudent}
           />
+
         )}
 
+        {/* CQI */}
+
+        {activeTab === "cqi" && (
+
+          <FinalPLOTable
+            finalPLO={student.finalPLO}
+          />
+
+        )}
+
+{/* REMARKS */}
+
+{activeTab === "remarks" && (
+
+  <div className="space-y-6">
+
+    {Array.isArray(student.remarksByAssessment) &&
+    student.remarksByAssessment.length > 0 ? (
+
+      student.remarksByAssessment.map(
+        (item, idx) => (
+
+          <div
+            key={idx}
+            className="
+              bg-white
+              rounded-2xl
+              p-6
+              shadow-sm
+              border
+            "
+          >
+
+            <div className="mb-4">
+
+              <h3 className="text-xl font-bold text-purple-700">
+                {item.assessmentInstance}
+              </h3>
+
+              <p className="text-sm text-gray-500">
+                Assessment Type:
+                {" "}
+                {item.assessmentType}
+              </p>
+
+            </div>
+
+           <textarea
+  rows={8}
+  value={item.remark || ""}
+
+  onChange={(e) => {
+
+  if (!student) return;
+
+  const updated =
+    (student.remarksByAssessment || []).map(
+      (r, i) =>
+        i === idx
+          ? {
+              ...r,
+              remark: e.target.value
+            }
+          : r
+    );
+
+  setStudent(prev => ({
+    ...prev,
+    remarksByAssessment: updated
+  }));
+
+}}
+
+  onBlur={async (e) => {
+
+    try {
+
+      const token =
+        localStorage.getItem("ppbms_token");
+
+      await fetch(
+        `${API_BASE}/api/supervisorRemark/remark`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            studentMatric: student.student_id,
+            studentEmail: student.email,
+            assessmentType: item.assessmentType,
+            assessmentInstance: item.assessmentInstance,
+            remark: e.target.value
+          })
+        }
+      );
+
+      await loadStudent(); // reload from sheet
+
+    } catch (err) {
+      console.error(err);
+    }
+  }}
+
+  className="
+    w-full
+    border
+    rounded-2xl
+    p-4
+    text-sm
+    min-h-[220px]
+  "
+/>
+          </div>
+        )
+      )
+
+    ) : (
+
+      <div className="bg-white rounded-2xl p-6 text-gray-400">
+
+        No remarks available
+
+      </div>
+
+    )}
+
+  </div>
+
+)}
         {/* FOOTER */}
-        <footer className="text-center text-xs text-gray-400">
-          © 2026 PPBMS
+
+        <footer className="text-center text-xs text-gray-400 pt-6">
+
+          © 2026 PPBMS ·
+          Universiti Sains Malaysia
+
+          <br />
+
+          Developed by
+          Hazwani Ahmad Yusof
+          (2025)
+
         </footer>
 
       </div>
+
     </div>
   );
 }
