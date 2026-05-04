@@ -410,81 +410,94 @@ export default function SupervisorStudentPage() {
 
         <div className="space-y-2">
 
-          <SidebarItem
-            icon={
-              <LayoutDashboard size={18} />
-            }
-            label="Dashboard"
-            active={
-              activeMenu ===
-              "dashboard"
-            }
-            onClick={() =>
-              setActiveMenu(
-                "dashboard"
-              )
-            }
-          />
+  <SidebarItem
+    icon={
+      <LayoutDashboard size={18} />
+    }
+    label="Dashboard"
+    active={
+      activeMenu ===
+      "dashboard"
+    }
+    onClick={() =>
+      setActiveMenu(
+        "dashboard"
+      )
+    }
+  />
 
-          <SidebarItem
-            icon={<BarChart3 size={18} />}
-            label="Progress"
-            active={
-              activeMenu ===
-              "progress"
-            }
-            onClick={() =>
-              setActiveMenu(
-                "progress"
-              )
-            }
-          />
+  <SidebarItem
+    icon={<BarChart3 size={18} />}
+    label="Progress"
+    active={
+      activeMenu ===
+      "progress"
+    }
+    onClick={() =>
+      setActiveMenu(
+        "progress"
+      )
+    }
+  />
 
-          <SidebarItem
-            icon={
-              <ClipboardList size={18} />
-            }
-            label="Milestones"
-            active={
-              activeMenu ===
-              "milestones"
-            }
-            onClick={() =>
-              setActiveMenu(
-                "milestones"
-              )
-            }
-          />
+  <SidebarItem
+    icon={
+      <ClipboardList size={18} />
+    }
+    label="Milestones"
+    active={
+      activeMenu ===
+      "milestones"
+    }
+    onClick={() =>
+      setActiveMenu(
+        "milestones"
+      )
+    }
+  />
 
-          <SidebarItem
-            icon={<FileText size={18} />}
-            label="Documents"
-            active={
-              activeMenu ===
-              "documents"
-            }
-            onClick={() =>
-              setActiveMenu(
-                "documents"
-              )
-            }
-          />
+  <SidebarItem
+    icon={<FileText size={18} />}
+    label="Documents"
+    active={
+      activeMenu ===
+      "documents"
+    }
+    onClick={() =>
+      setActiveMenu(
+        "documents"
+      )
+    }
+  />
 
-          <SidebarItem
-            icon={<Bell size={18} />}
-            label="Remarks"
-            active={
-              activeMenu ===
-              "remarks"
-            }
-            onClick={() =>
-              setActiveMenu(
-                "remarks"
-              )
-            }
-          />
+  <SidebarItem
+    icon={<Bell size={18} />}
+    label="Remarks"
+    active={
+      activeMenu ===
+      "remarks"
+    }
+    onClick={() =>
+      setActiveMenu(
+        "remarks"
+      )
+    }
+  />
 
-        </div>
+  <SidebarItem
+    icon={
+      <AlertTriangle size={18} />
+    }
+    label="CQI"
+    active={
+      activeMenu === "cqi"
+    }
+    onClick={() =>
+      setActiveMenu("cqi")
+    }
+  />
+
+</div>
 
         <div className="mt-auto">
 
@@ -811,14 +824,11 @@ export default function SupervisorStudentPage() {
 
                     : riskStatus
                     ? "bg-red-500"
-
-                    : approved
-? "bg-blue-500"
-
-: pending
-? "bg-orange-500"
-
-: "bg-gray-400"
+                  : approved
+  ? "bg-blue-500"
+  : pending
+  ? "bg-orange-500"
+  : "bg-gray-400"
                 }
               `}
             >
@@ -906,9 +916,9 @@ export default function SupervisorStudentPage() {
 
           {/* TOP */}
           <div className="
-            flex flex-col lg:flex-row
-            lg:items-center
-            lg:justify-between
+            flex flex-col xl:flex-row
+xl:items-center
+xl:justify-between
             gap-4
           ">
 
@@ -1227,6 +1237,55 @@ Enter supervisor remark here...
   </Card>
 )}
 
+  {/* CQI */}
+{activeMenu === "cqi" && (
+
+  <Card>
+
+    <h3 className="
+      text-2xl font-bold
+      mb-6
+    ">
+      CQI & Intervention
+    </h3>
+
+    <div className="
+      border rounded-3xl
+      p-5 bg-slate-50
+    ">
+
+      <textarea
+        placeholder="
+Add CQI intervention notes...
+        "
+       className="
+  w-full border rounded-2xl
+  p-4 min-h-[150px]
+  focus:outline-none
+  focus:ring-2
+  focus:ring-purple-500
+"
+      />
+
+      <div className="
+        flex justify-end mt-4
+      ">
+
+        <button
+          className="
+            px-6 py-3 rounded-2xl
+            bg-purple-600 text-white
+          "
+        >
+          Save CQI
+        </button>
+
+      </div>
+
+    </div>
+
+  </Card>
+)}
       </main>
 
     </div>
