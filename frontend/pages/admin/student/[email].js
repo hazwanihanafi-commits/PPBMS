@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
-import { API_BASE } from "../../utils/api";
 import jsPDF from "jspdf";
 
-import SupervisorChecklist from "../../components/SupervisorChecklist";
-import FinalPLOTable from "../../components/FinalPLOTable";
+import { API_BASE } from "../../../utils/api";
+import SupervisorChecklist from "../../../components/SupervisorChecklist";
+import FinalPLOTable from "../../../components/FinalPLOTable";
 
 /* ================= CARD ================= */
 const Card = ({ children }) => (
