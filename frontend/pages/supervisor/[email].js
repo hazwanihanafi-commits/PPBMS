@@ -8,7 +8,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://ppbms-backend.onrender.com"; // adjust if needed
 
 function Card({ children }) {
   return (
@@ -18,7 +20,7 @@ function Card({ children }) {
   );
 }
 
-export default function SupervisorStudentPage() {
+export default function Page() {
   const router = useRouter();
   const { email } = router.query;
 
@@ -32,25 +34,49 @@ export default function SupervisorStudentPage() {
 
   const [activeTab, setActiveTab] = useState("overview");
 
-  // ================= LOAD DATA =================
+  // ================= LOAD =================
   useEffect(() => {
     if (!email) return;
 
     const load = async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`
-        );
+        const url = `${API_BASE}/supervisor/${encodeURIComponent(email)}`;
 
+        console.log("CALL API:", url);
+
+        const res = await fetch(url);
         const data = await res.json();
 
-        setStudent(data.student || {});
-        setTimeline(Array.isArray(data.timeline) ? data.timeline : []);
-        setDocuments(Array.isArray(data.documents) ? data.documents : []);
-        setRemarks(Array.isArray(data.remarks) ? data.remarks : []);
+        console.log("API RESPONSE:", data);
+
+        // 🔥 SUPER SAFE MAPPING (handles ANY backend shape)
+        setStudent(data.student || data || {});
+
+        setTimeline(
+          Array.isArray(data.timeline)
+            ? data.timeline
+            : Array.isArray(data.milestones)
+            ? data.milestones
+            : []
+        );
+
+        setDocuments(
+          Array.isArray(data.documents)
+            ? data.documents
+            : Array.isArray(data.files)
+            ? data.files
+            : []
+        );
+
+        setRemarks(
+          Array.isArray(data.remarks)
+            ? data.remarks
+            : []
+        );
+
         setCqi(data.cqi || {});
       } catch (err) {
-        console.error("Load error:", err);
+        console.error("LOAD ERROR:", err);
       } finally {
         setLoading(false);
       }
@@ -59,7 +85,18 @@ export default function SupervisorStudentPage() {
     load();
   }, [email]);
 
-  // ================= CQI TRANSFORM =================
+  if (loading) return <p className="p-6">Loading...</p>;
+
+  // ================= SUMMARY =================
+  const completed = timeline.filter(
+    (t) => t.status === "COMPLETED"
+  ).length;
+
+  const delayed = timeline.filter(
+    (t) => t.status === "AT_RISK"
+  ).length;
+
+  // ================= CQI =================
   const cqiChartData = [];
 
   Object.entries(cqi || {}).forEach(([assessment, plos]) => {
@@ -71,20 +108,6 @@ export default function SupervisorStudentPage() {
     });
   });
 
-  // ================= SAVE REMARK =================
-  const saveRemark = async (id, text) => {
-    await fetch(`${API_BASE}/api/remarks/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remark: text }),
-    });
-  };
-
-  if (loading) return <p className="p-6">Loading...</p>;
-
-  const completed = timeline.filter(t => t.status === "COMPLETED").length;
-  const delayed = timeline.filter(t => t.status === "AT_RISK").length;
-
   return (
     <div className="flex min-h-screen">
 
@@ -92,7 +115,7 @@ export default function SupervisorStudentPage() {
       <div className="w-64 bg-[#0f172a] text-white p-6">
         <h2 className="font-bold mb-6">PPBMS</h2>
 
-        {["overview", "timeline", "documents", "remarks", "cqi"].map(tab => (
+        {["overview", "timeline", "documents", "remarks", "cqi"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -110,8 +133,10 @@ export default function SupervisorStudentPage() {
 
         {/* HEADER */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 rounded-2xl mb-6">
-          <h1 className="text-2xl font-bold">Student Monitoring Dashboard</h1>
-          <p>{student.name}</p>
+          <h1 className="text-2xl font-bold">
+            Student Monitoring Dashboard
+          </h1>
+          <p>{student.name || "-"}</p>
         </div>
 
         {/* ================= OVERVIEW ================= */}
@@ -119,25 +144,35 @@ export default function SupervisorStudentPage() {
           <>
             <Card>
               <div className="grid grid-cols-3 gap-4">
+
                 <div>
                   <p>Completed</p>
-                  <h2 className="text-green-600 text-xl">{completed}</h2>
+                  <h2 className="text-green-600 text-xl">
+                    {completed}
+                  </h2>
                 </div>
+
                 <div>
                   <p>Delayed</p>
-                  <h2 className="text-orange-500 text-xl">{delayed}</h2>
+                  <h2 className="text-orange-500 text-xl">
+                    {delayed}
+                  </h2>
                 </div>
+
                 <div>
                   <p>Status</p>
                   <h2 className="text-blue-600 text-xl">
                     {student.status || "-"}
                   </h2>
                 </div>
+
               </div>
             </Card>
 
             <Card>
-              <h3 className="mb-4 font-semibold">Status Analytics</h3>
+              <h3 className="mb-4 font-semibold">
+                Status Analytics
+              </h3>
 
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart
@@ -163,29 +198,33 @@ export default function SupervisorStudentPage() {
             </h3>
 
             <div className="border-l-2 ml-4 space-y-6">
-              {(Array.isArray(timeline) ? timeline : []).map((t, i) => {
-                const done = t.status === "COMPLETED";
+              {(Array.isArray(timeline) ? timeline : []).map((t, i) => (
+                <div key={i} className="ml-6">
 
-                return (
-                  <div key={i} className="ml-6">
-                    <div
-                      className={`w-4 h-4 rounded-full ${
-                        done ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    />
+                  <div
+                    className={`w-4 h-4 rounded-full ${
+                      t.status === "COMPLETED"
+                        ? "bg-green-500"
+                        : "bg-gray-300"
+                    }`}
+                  />
 
-                    <div className="bg-gray-50 p-4 rounded-xl mt-2">
-                      <p className="font-semibold">{t.activity}</p>
-                      <p className="text-sm">
-                        Expected: {t.expected_date || "-"}
-                      </p>
-                      <p className="text-sm">
-                        Completed: {t.completed_date || "-"}
-                      </p>
-                    </div>
+                  <div className="bg-gray-50 p-4 rounded-xl mt-2">
+                    <p className="font-semibold">
+                      {t.activity || "-"}
+                    </p>
+
+                    <p className="text-sm">
+                      Expected: {t.expected_date || "-"}
+                    </p>
+
+                    <p className="text-sm">
+                      Completed: {t.completed_date || "-"}
+                    </p>
                   </div>
-                );
-              })}
+
+                </div>
+              ))}
             </div>
           </Card>
         )}
@@ -193,24 +232,36 @@ export default function SupervisorStudentPage() {
         {/* ================= DOCUMENTS ================= */}
         {activeTab === "documents" && (
           <Card>
-            <h3 className="mb-4 font-semibold">Documents</h3>
+            <h3 className="mb-4 font-semibold">
+              Documents
+            </h3>
 
-            {!documents.length && <p>No documents</p>}
+            {!documents.length && (
+              <p className="text-gray-400">
+                No documents found
+              </p>
+            )}
 
             {(Array.isArray(documents) ? documents : []).map((d, i) => (
               <div key={i} className="border p-4 rounded-xl mb-3">
-                <p className="font-semibold">{d.document_name}</p>
+
+                <p className="font-semibold">
+                  {d.document_name || d.name}
+                </p>
+
                 <p className="text-sm text-gray-500">
                   Status: {d.status}
                 </p>
 
-                <a
-                  href={d.file_url}
-                  target="_blank"
-                  className="text-purple-600"
-                >
-                  View
-                </a>
+                {d.file_url && (
+                  <a
+                    href={d.file_url}
+                    target="_blank"
+                    className="text-purple-600"
+                  >
+                    View
+                  </a>
+                )}
               </div>
             ))}
           </Card>
@@ -219,22 +270,22 @@ export default function SupervisorStudentPage() {
         {/* ================= REMARKS ================= */}
         {activeTab === "remarks" && (
           <Card>
-            <h3 className="mb-4 font-semibold">Remarks</h3>
+            <h3 className="mb-4 font-semibold">
+              Remarks
+            </h3>
 
             {(Array.isArray(remarks) ? remarks : []).map((r, i) => (
               <div key={i} className="mb-4">
-                <p className="font-semibold">{r.assessmentType}</p>
+
+                <p className="font-semibold">
+                  {r.assessmentType}
+                </p>
 
                 <textarea
                   defaultValue={r.remark}
                   className="w-full border p-2 rounded mt-2"
-                  onBlur={(e) => saveRemark(r.id, e.target.value)}
                 />
 
-                <p className="text-xs text-gray-400 mt-1">
-                  CQI:{" "}
-                  {cqi?.[r.assessmentType]?.PLO1?.status || "-"}
-                </p>
               </div>
             ))}
           </Card>
@@ -243,7 +294,15 @@ export default function SupervisorStudentPage() {
         {/* ================= CQI ================= */}
         {activeTab === "cqi" && (
           <Card>
-            <h3 className="mb-4 font-semibold">CQI Analytics</h3>
+            <h3 className="mb-4 font-semibold">
+              CQI Analytics
+            </h3>
+
+            {!cqiChartData.length && (
+              <p className="text-gray-400">
+                No CQI data
+              </p>
+            )}
 
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={cqiChartData}>
@@ -254,6 +313,7 @@ export default function SupervisorStudentPage() {
             </ResponsiveContainer>
           </Card>
         )}
+
       </div>
     </div>
   );
