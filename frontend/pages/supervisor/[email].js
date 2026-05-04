@@ -7,8 +7,6 @@ import jsPDF from "jspdf";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import FinalPLOTable from "../../components/FinalPLOTable";
 
-/* ================= PAGE ================= */
-
 export default function SupervisorStudentPage() {
 
   const router = useRouter();
@@ -18,8 +16,6 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
-
-  /* ================= LOAD ================= */
 
   useEffect(() => {
     if (!email) return;
@@ -38,9 +34,7 @@ export default function SupervisorStudentPage() {
       );
 
       const data = await res.json();
-
-      const studentData =
-        data.row || data.student || data;
+      const studentData = data.row || data.student || data;
 
       setStudent(studentData || null);
       setTimeline(studentData?.timeline || []);
@@ -52,50 +46,56 @@ export default function SupervisorStudentPage() {
     setLoading(false);
   }
 
-  /* ================= LOADING ================= */
-
   if (loading) return <div className="p-6">Loading...</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
-  /* ================= LOGIC (FROM DASHBOARD) ================= */
+  /* ================= LOGIC ================= */
 
   const completed = timeline.filter(
-    (t) =>
-      t.status === "Completed" ||
-      t.status === "COMPLETED"
+    t => t.status === "Completed" || t.status === "COMPLETED"
+  ).length;
+
+  const lateItems = timeline.filter(
+    t =>
+      t.status?.toLowerCase() === "late" ||
+      t.status?.toUpperCase() === "AT_RISK" ||
+      (!t.actual && t.remaining_days < 0)
+  ).length;
+
+  const nearDeadline = timeline.filter(
+    t =>
+      t.remaining_days > 0 &&
+      t.remaining_days <= 30 &&
+      t.status?.toLowerCase() !== "completed"
   ).length;
 
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
 
-  function getCategory() {
+  const isGraduated =
+    student.status?.toLowerCase() === "graduated" ||
+    student.status?.toLowerCase() === "completed";
 
+  function getCategory() {
+    if (isGraduated) return "Graduated";
     if (progress >= 80) return "On Track";
     if (progress >= 50) return "Slightly Late";
-
     return "At Risk";
   }
 
   const category = getCategory();
 
-  /* ================= AI PREDICTION ================= */
-
-  const lateItems = timeline.filter(
-    (t) => t.remaining_days < 0
-  ).length;
-
-  const nearDeadline = timeline.filter(
-    (t) =>
-      t.remaining_days >= 0 &&
-      t.remaining_days <= 30
-  ).length;
+  /* ================= AI ================= */
 
   let aiMessage = "";
 
-  if (lateItems >= 3) {
+  if (isGraduated) {
     aiMessage =
-      "⚠️ High probability of delay escalation. Immediate supervisor intervention recommended.";
+      "🎓 Student has successfully completed the programme. No further monitoring required.";
+  } else if (lateItems >= 3) {
+    aiMessage =
+      "⚠️ High probability of delay escalation. Immediate supervisor intervention required.";
   } else if (nearDeadline >= 2) {
     aiMessage =
       "⏳ Several milestones approaching deadline. Monitor closely.";
@@ -107,7 +107,6 @@ export default function SupervisorStudentPage() {
   /* ================= PDF ================= */
 
   function exportPDF() {
-
     const pdf = new jsPDF();
     let y = 20;
 
@@ -178,64 +177,83 @@ export default function SupervisorStudentPage() {
         </div>
 
         {/* HERO */}
-        <div className="bg-white rounded-3xl p-6 shadow border flex justify-between">
+        <div className="bg-white rounded-3xl p-6 shadow border flex justify-between items-center">
 
           <div>
-            <h2 className="text-lg font-bold">
-              {student.student_name}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {student.programme}
-            </p>
+            <h2 className="text-lg font-bold">{student.student_name}</h2>
+            <p className="text-sm text-gray-500">{student.programme}</p>
           </div>
 
           <div className="text-right">
-            <p className="text-3xl font-bold text-purple-600">
-              {progress}%
-            </p>
+            <p className="text-3xl font-bold text-purple-600">{progress}%</p>
 
             <span className={`px-3 py-1 rounded-full text-xs font-semibold
               ${
-                category === "On Track"
+                category === "Graduated"
+                  ? "bg-blue-100 text-blue-700"
+                  : category === "On Track"
                   ? "bg-green-100 text-green-700"
                   : category === "Slightly Late"
                   ? "bg-yellow-100 text-yellow-700"
                   : "bg-red-100 text-red-700"
-              }
-            `}>
+              }`}>
               {category}
             </span>
           </div>
 
         </div>
 
-        {/* AI INSIGHT */}
+        {/* STUDENT INFO */}
         <div className="bg-white rounded-2xl p-5 shadow border">
-          <p className="text-xs text-gray-400 uppercase">AI Insight</p>
-          <p className="text-sm mt-2 text-gray-700">{aiMessage}</p>
+
+          <h3 className="font-semibold mb-3">Student Information</h3>
+
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <p><b>Email:</b> {student.email}</p>
+            <p><b>Matric:</b> {student.student_id}</p>
+            <p><b>Status:</b> {student.status}</p>
+            <p><b>Supervisor:</b> {student.supervisor}</p>
+          </div>
+
+        </div>
+
+        {/* AI */}
+        <div className="bg-white rounded-2xl p-5 shadow border">
+          <p className="text-xs text-gray-400">AI Insight</p>
+          <p className="text-sm mt-2">{aiMessage}</p>
         </div>
 
         {/* KPI */}
-        <div className="grid grid-cols-3 gap-4">
+        {!isGraduated ? (
 
-          <div className="bg-green-50 rounded-2xl p-5 text-center shadow">
-            <p className="text-sm">Completed</p>
-            <p className="text-2xl font-bold text-green-700">{completed}</p>
+          <div className="grid grid-cols-3 gap-4">
+
+            <div className="bg-green-50 p-5 rounded-2xl text-center">
+              <p>Completed</p>
+              <p className="text-2xl font-bold text-green-700">{completed}</p>
+            </div>
+
+            <div className="bg-yellow-50 p-5 rounded-2xl text-center">
+              <p>In Progress</p>
+              <p className="text-2xl font-bold text-yellow-700">
+                {timeline.length - completed}
+              </p>
+            </div>
+
+            <div className="bg-red-50 p-5 rounded-2xl text-center">
+              <p>Late</p>
+              <p className="text-2xl font-bold text-red-700">{lateItems}</p>
+            </div>
+
           </div>
 
-          <div className="bg-yellow-50 rounded-2xl p-5 text-center shadow">
-            <p className="text-sm">In Progress</p>
-            <p className="text-2xl font-bold text-yellow-700">
-              {timeline.length - completed}
-            </p>
+        ) : (
+
+          <div className="bg-blue-50 rounded-2xl p-5 text-center">
+            🎓 Programme Completed Successfully
           </div>
 
-          <div className="bg-red-50 rounded-2xl p-5 text-center shadow">
-            <p className="text-sm">Late</p>
-            <p className="text-2xl font-bold text-red-700">{lateItems}</p>
-          </div>
-
-        </div>
+        )}
 
         {/* TIMELINE */}
         {activeTab === "timeline" && (
@@ -243,63 +261,33 @@ export default function SupervisorStudentPage() {
 
             {timeline.map((t, i) => {
 
-              const status = t.status?.toLowerCase();
-
-              const isCompleted = status === "completed";
-              const isLate =
-                status === "late" ||
-                status === "at_risk" ||
-                t.remaining_days < 0;
-
-              const isSoon = status === "due soon";
+              const isCompleted = t.status?.toLowerCase() === "completed";
+              const isLate = t.remaining_days < 0;
 
               return (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`
-                    p-5 rounded-2xl shadow border-l-4
+                  className={`p-5 rounded-2xl shadow border-l-4
                     ${
                       isCompleted
                         ? "bg-green-50 border-green-400"
                         : isLate
                         ? "bg-red-50 border-red-400"
-                        : isSoon
-                        ? "bg-yellow-50 border-yellow-400"
                         : "bg-white border-gray-300"
-                    }
-                  `}
+                    }`}
                 >
 
-                  <div className="flex justify-between">
+                  <h3 className="font-semibold">{t.activity}</h3>
 
-                    <div>
-                      <h3 className="font-semibold">{t.activity}</h3>
-                      <p className="text-sm text-gray-500">
-                        Expected: {t.expected} | Actual: {t.actual || "-"}
-                      </p>
-                    </div>
-
-                    {!isCompleted && (
-                      <div className="text-right">
-                        <p className={`font-bold ${
-                          t.remaining_days < 0
-                            ? "text-red-600"
-                            : t.remaining_days <= 30
-                            ? "text-yellow-600"
-                            : "text-purple-600"
-                        }`}>
-                          {t.remaining_days} days
-                        </p>
-                      </div>
-                    )}
-
-                  </div>
-
-                  <p className="text-xs mt-2 font-semibold">
-                    {t.status?.toUpperCase()}
+                  <p className="text-sm text-gray-500">
+                    Expected: {t.expected} | Actual: {t.actual || "-"}
                   </p>
+
+                  {!isCompleted && (
+                    <p className="text-sm mt-1">
+                      {t.remaining_days} days
+                    </p>
+                  )}
 
                 </motion.div>
               );
@@ -310,20 +298,13 @@ export default function SupervisorStudentPage() {
 
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
-          <SupervisorChecklist
-            documents={student.documents || {}}
-          />
+          <SupervisorChecklist documents={student.documents || {}} />
         )}
 
         {/* CQI */}
         {activeTab === "cqi" && (
           <FinalPLOTable finalPLO={student.finalPLO} />
         )}
-
-        {/* FOOTER */}
-        <footer className="text-center text-xs text-gray-400 pt-6">
-          © 2026 PPBMS · Universiti Sains Malaysia
-        </footer>
 
       </div>
     </div>
