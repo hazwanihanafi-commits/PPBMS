@@ -294,27 +294,59 @@ export default function AdminStudentPage() {
         )}
 
         {/* REMARKS */}
-        {activeTab === "remarks" && (
-          <Card>
-            <h3 className="font-semibold mb-4">Supervisor Remarks</h3>
+{activeTab === "remarks" && (
+  <Card>
+    <h3 className="font-semibold mb-4">Supervisor Remarks</h3>
 
-            {student.remarks?.length ? (
-              <div className="space-y-3">
-                {student.remarks.map((r, i) => (
-                  <div key={i} className="bg-gray-50 p-3 rounded-lg border">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>{r.supervisor}</span>
-                      <span>{r.date}</span>
-                    </div>
-                    <p className="mt-1">{r.remark || r.comment}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No remarks</p>
-            )}
-          </Card>
-        )}
+    {!student.remarks?.length && (
+      <p className="text-gray-500 text-sm">No remarks available</p>
+    )}
+
+    <div className="space-y-6">
+      {student.remarks?.map((r, i) => {
+
+        // ✅ HANDLE ALL POSSIBLE BACKEND FIELDS
+        const type =
+          r.assessmentType ||
+          r.assessment_type ||
+          r.type ||
+          "Assessment";
+
+        const remark =
+          r.remark ||
+          r.comment ||
+          r.remark_text ||
+          "-";
+
+        return (
+          <div
+            key={i}
+            className="bg-white border rounded-2xl p-5 shadow-sm"
+          >
+
+            {/* TITLE */}
+            <h4 className="text-purple-600 font-semibold">
+              {type}
+            </h4>
+
+            {/* SUB LABEL */}
+            <p className="text-xs text-gray-500 mb-3">
+              Assessment Type: {type}
+            </p>
+
+            {/* TEXTAREA STYLE DISPLAY */}
+            <div className="bg-gray-50 border rounded-xl p-4 min-h-[100px]">
+              <p className="text-gray-700 whitespace-pre-wrap">
+                {remark}
+              </p>
+            </div>
+
+          </div>
+        );
+      })}
+    </div>
+  </Card>
+)}
 
         {/* FOOTER */}
         <div className="text-center text-xs text-gray-400">
