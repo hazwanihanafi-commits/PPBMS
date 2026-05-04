@@ -20,7 +20,7 @@ function SidebarItem({ icon, label, active, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition ${
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer ${
         active
           ? "bg-purple-600 text-white"
           : "text-gray-300 hover:bg-gray-800"
@@ -55,11 +55,18 @@ function SummaryCard({ title, value, color, icon }) {
 /* ================= PAGE ================= */
 
 export default function Page({ params }) {
-  const [student, setStudent] = useState(null);
-  const [activeMenu, setActiveMenu] = useState("dashboard");
 
+  const email = params?.email;
+
+  /* ===== STATES ===== */
+
+  const [student, setStudent] = useState(null);
+  const [timeline, setTimeline] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [remarks, setRemarks] = useState([]);
+  const [cqi, setCqi] = useState({});
+  const [activeMenu, setActiveMenu] = useState("dashboard");
+  const [loading, setLoading] = useState(true);
 
   const [newRemark, setNewRemark] = useState({
     type: "",
@@ -67,147 +74,103 @@ export default function Page({ params }) {
     text: ""
   });
 
-  const [loading, setLoading] = useState(true);
-
   /* ================= LOAD ================= */
 
- const email = params?.email;
+  async function loadStudent() {
+    try {
+      const token = localStorage.getItem("ppbms_token");
 
-const [student, setStudent] = useState(null);
-const [timeline, setTimeline] = useState([]);
-const [documents, setDocuments] = useState([]);
-const [remarks, setRemarks] = useState([]);
-const [cqi, setCqi] = useState({});
-const [loading, setLoading] = useState(true);
+      const res = await fetch(
+        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-async function loadStudent() {
-  const token = localStorage.getItem("ppbms_token");
+      const data = await res.json();
+      const row = data.row || {};
 
-  const res = await fetch(
-    `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      setStudent(row);
+      setTimeline(row.timeline || []);
+      setRemarks(row.remarks || []);
+      setCqi(row.cqiByAssessment || {});
+
+      setDocuments(
+        Object.entries(row.documents || {}).map(([name, d]) => ({
+          name,
+          status: d.status,
+          url: d.url,
+          feedback: d.feedback || ""
+        }))
+      );
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  );
+  }
 
-  const data = await res.json();
-  const row = data.row || {};
+  useEffect(() => {
+    if (!email) return;
+    loadStudent();
+  }, [email]);
 
-  setStudent(row);
-  setTimeline(row.timeline || []);
-  setRemarks(row.remarks || []);
-  setCqi(row.cqiByAssessment || {});
-
-  setDocuments(
-    Object.entries(row.documents || {}).map(([name, d]) => ({
-      name,
-      status: d.status,
-      url: d.url,
-      feedback: d.feedback || ""
-    }))
-  );
-
-  setLoading(false);
-}
-
-useEffect(() => {
-  if (!email) return;
-  loadStudent();
-}, [email]);
-
-if (loading) {
-  return <div className="p-10">Loading...</div>;
-}
-
-  /* ================= DERIVED ================= */
-
-  const timeline = Array.isArray(student.timeline)
-    ? student.timeline
-    : [];
+  if (loading) return <div className="p-10">Loading...</div>;
 
   const graduated =
-    (student.status || "").toUpperCase() === "GRADUATED";
+    (student?.status || "").toUpperCase() === "GRADUATED";
 
   const completed = timeline.filter(t => t.status === "COMPLETED").length;
   const pending = timeline.filter(t => t.status === "PENDING").length;
   const atRisk = timeline.filter(t => t.status === "AT_RISK").length;
 
-  /* ================= API ================= */
+  /* ================= ACTIONS ================= */
 
   async function updateDocument(doc, status) {
-    try {
-      const token = localStorage.getItem("ppbms_token");
+    const token = localStorage.getItem("ppbms_token");
 
-      const res = await fetch(`${API_BASE}/api/supervisor/document-status`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          studentEmail: params.email,
-          document_key: doc.name,
-          status,
-          feedback: doc.feedback || ""
-        })
-      });
+    await fetch(`${API_BASE}/api/supervisor/document-status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        studentEmail: email,
+        document_key: doc.name,
+        status,
+        feedback: doc.feedback || ""
+      })
+    });
 
-      if (!res.ok) {
-        const err = await res.text();
-        alert("Failed: " + err);
-        return;
-      }
-
-      /* instant UI update */
-      setDocuments(prev =>
-        prev.map(d =>
-          d.name === doc.name ? { ...d, status } : d
-        )
-      );
-
-      alert("Updated");
-
-    } catch (err) {
-      console.error(err);
-    }
+    setDocuments(prev =>
+      prev.map(d =>
+        d.name === doc.name ? { ...d, status } : d
+      )
+    );
   }
 
   async function saveRemark() {
-    if (!newRemark.text) return alert("Enter remark");
+    const token = localStorage.getItem("ppbms_token");
 
-    try {
-      const token = localStorage.getItem("ppbms_token");
+    await fetch(`${API_BASE}/api/supervisor/remark`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        studentEmail: email,
+        assessmentType: newRemark.type || "GENERAL",
+        assessmentInstance: newRemark.instance || "",
+        remark: newRemark.text
+      })
+    });
 
-      const res = await fetch(`${API_BASE}/api/supervisor/remark`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          studentEmail: params.email,
-          assessmentType: newRemark.type || "GENERAL",
-          assessmentInstance: newRemark.instance || "",
-          remark: newRemark.text
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.text();
-        alert("Failed: " + err);
-        return;
-      }
-
-      alert("Remark saved");
-
-      setNewRemark({ type: "", instance: "", text: "" });
-      loadStudent();
-
-    } catch (err) {
-      console.error(err);
-    }
+    alert("Remark saved");
+    setNewRemark({ type: "", instance: "", text: "" });
+    loadStudent();
   }
 
   /* ================= UI ================= */
@@ -220,55 +183,64 @@ if (loading) {
         <h1 className="text-xl font-bold mb-6">PPBMS</h1>
 
         <div className="space-y-2">
-          <SidebarItem label="Dashboard" icon={<LayoutDashboard size={18} />} active={activeMenu==="dashboard"} onClick={()=>setActiveMenu("dashboard")} />
-          <SidebarItem label="Progress" icon={<BarChart3 size={18} />} active={activeMenu==="progress"} onClick={()=>setActiveMenu("progress")} />
-          <SidebarItem label="Milestones" icon={<ClipboardList size={18} />} active={activeMenu==="milestones"} onClick={()=>setActiveMenu("milestones")} />
-          <SidebarItem label="Documents" icon={<FileText size={18} />} active={activeMenu==="documents"} onClick={()=>setActiveMenu("documents")} />
-          <SidebarItem label="Remarks" icon={<Bell size={18} />} active={activeMenu==="remarks"} onClick={()=>setActiveMenu("remarks")} />
-          <SidebarItem label="CQI" icon={<AlertTriangle size={18} />} active={activeMenu==="cqi"} onClick={()=>setActiveMenu("cqi")} />
+          <SidebarItem label="Dashboard" icon={<LayoutDashboard />} active={activeMenu==="dashboard"} onClick={()=>setActiveMenu("dashboard")} />
+          <SidebarItem label="Progress" icon={<BarChart3 />} active={activeMenu==="progress"} onClick={()=>setActiveMenu("progress")} />
+          <SidebarItem label="Milestones" icon={<ClipboardList />} active={activeMenu==="milestones"} onClick={()=>setActiveMenu("milestones")} />
+          <SidebarItem label="Documents" icon={<FileText />} active={activeMenu==="documents"} onClick={()=>setActiveMenu("documents")} />
+          <SidebarItem label="Remarks" icon={<Bell />} active={activeMenu==="remarks"} onClick={()=>setActiveMenu("remarks")} />
+          <SidebarItem label="CQI" icon={<AlertTriangle />} active={activeMenu==="cqi"} onClick={()=>setActiveMenu("cqi")} />
         </div>
       </div>
 
       {/* MAIN */}
       <main className="flex-1 p-8 space-y-6">
 
-        {/* HEADER */}
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-3xl">
-          <h2 className="text-3xl font-bold">Student Monitoring Dashboard</h2>
-        </div>
-
         {/* DASHBOARD */}
         {activeMenu === "dashboard" && (
           <Card>
-            <div className="grid md:grid-cols-2 gap-5">
-              <SummaryCard title="Completed" value={`${completed}/${timeline.length}`} color="bg-green-100" icon={<CheckCircle2 />} />
-              <SummaryCard
-                title="Status"
-                value={student.status}
-                color={graduated ? "bg-green-100" : "bg-red-100"}
-                icon={graduated ? <CheckCircle2 /> : <AlertTriangle />}
-              />
-            </div>
-
-            <div className="mt-6 grid md:grid-cols-2 gap-3 text-sm">
-              <p><b>Name:</b> {student.student_name || "-"}</p>
-              <p><b>Programme:</b> {student.programme || "-"}</p>
-              <p><b>Field:</b> {student.field || "-"}</p>
-              <p><b>Co-Supervisors:</b> {(student.coSupervisors || []).join(", ") || "-"}</p>
-            </div>
-          </Card>
-        )}
-
-        {/* PROGRESS */}
-        {activeMenu === "progress" && (
-          <Card>
-            <h3 className="text-xl font-bold mb-4">Progress</h3>
             <div className="grid md:grid-cols-3 gap-5">
-              <SummaryCard title="Completed" value={completed} color="bg-green-100" icon={<CheckCircle2 />} />
+              <SummaryCard title="Completed" value={`${completed}/${timeline.length}`} color="bg-green-100" icon={<CheckCircle2 />} />
               <SummaryCard title="Pending" value={pending} color="bg-orange-100" icon={<Clock3 />} />
               {!graduated && (
                 <SummaryCard title="At Risk" value={atRisk} color="bg-red-100" icon={<AlertTriangle />} />
               )}
+            </div>
+          </Card>
+        )}
+
+        {/* MILESTONE TIMELINE */}
+        {activeMenu === "milestones" && (
+          <Card>
+            <h3 className="text-xl font-bold mb-6">Milestones</h3>
+
+            <div className="relative border-l-2 pl-6 space-y-6">
+
+              {timeline.map((t, i) => {
+                const color =
+                  t.status === "COMPLETED"
+                    ? "bg-green-500"
+                    : t.status === "AT_RISK"
+                    ? "bg-red-500"
+                    : t.status === "PENDING"
+                    ? "bg-orange-500"
+                    : "bg-gray-400";
+
+                return (
+                  <div key={i} className="relative">
+
+                    <div className={`absolute -left-3 w-5 h-5 rounded-full ${color}`} />
+
+                    <div className="border rounded-xl p-4 bg-white">
+                      <div className="flex justify-between">
+                        <p className="font-semibold">{t.activity}</p>
+                        <span className="text-sm">{t.status}</span>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })}
+
             </div>
           </Card>
         )}
@@ -297,32 +269,24 @@ if (loading) {
                 />
 
                 <div className="flex gap-2 mt-2">
-                  <a href={doc.url} target="_blank">View</a>
                   <button onClick={()=>updateDocument(doc,"Approved")}>Approve</button>
                   <button onClick={()=>updateDocument(doc,"Revision Required")}>Revise</button>
                 </div>
 
               </div>
             ))}
+
           </Card>
         )}
 
         {/* REMARKS */}
         {activeMenu === "remarks" && (
           <Card>
-            <h3 className="text-xl font-bold mb-4">Remarks</h3>
 
             <input
-              placeholder="Assessment Type"
+              placeholder="Type"
               value={newRemark.type}
               onChange={(e)=>setNewRemark({...newRemark,type:e.target.value})}
-              className="border p-2 w-full mb-2"
-            />
-
-            <input
-              placeholder="Assessment Instance"
-              value={newRemark.instance}
-              onChange={(e)=>setNewRemark({...newRemark,instance:e.target.value})}
               className="border p-2 w-full mb-2"
             />
 
@@ -335,38 +299,41 @@ if (loading) {
 
             <button onClick={saveRemark}>Save</button>
 
-            {remarks.map((r,i)=>(
-              <div key={i}>
-                <p>{r.assessmentType}</p>
-                <p>{r.remark}</p>
-              </div>
-            ))}
           </Card>
         )}
 
         {/* CQI */}
         {activeMenu === "cqi" && (
           <Card>
-            <h3 className="text-xl font-bold mb-4">CQI</h3>
+            <h3 className="text-xl font-bold mb-4">CQI Analytics</h3>
 
-            {Object.entries(student.cqiByAssessment || {}).map(([k,v])=>(
+            {Object.entries(cqi || {}).map(([k, v]) => (
               <div key={k} className="mb-4">
-                <p className="font-bold">{k}</p>
 
-                {Object.entries(v).map(([plo,data])=>(
-                  <div key={plo}>
-                    <p>{plo}: {data.average}</p>
-                    <div className="bg-gray-200 h-2">
-                      <div
-                        className="bg-purple-500 h-2"
-                        style={{ width: `${data.average * 25}%` }}
-                      />
+                <p className="font-bold mb-2">{k}</p>
+
+                {Object.entries(v).map(([plo, data]) => (
+                  <div key={plo} className="mb-2">
+
+                    <div className="flex justify-between text-sm">
+                      <span>{plo}</span>
+                      <span>{data.average}</span>
                     </div>
+
+                    <div className="bg-gray-200 h-2 rounded">
+                      <div
+                        className="bg-purple-500 h-2 rounded"
+                        style={{ width: `${(data.average / 4) * 100}%` }}
+                      />
+
+                    </div>
+
                   </div>
                 ))}
 
               </div>
             ))}
+
           </Card>
         )}
 
