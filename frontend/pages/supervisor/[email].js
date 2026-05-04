@@ -45,9 +45,22 @@ export default function Page() {
         console.log("CALL API:", url);
 
         const res = await fetch(url);
-        const data = await res.json();
 
-        console.log("API RESPONSE:", data);
+if (!res.ok) {
+  throw new Error(`HTTP error! status: ${res.status}`);
+}
+
+const text = await res.text();
+
+let data;
+try {
+  data = JSON.parse(text);
+} catch (e) {
+  console.error("❌ NOT JSON RESPONSE:", text);
+  throw new Error("Invalid JSON from backend");
+}
+
+console.log("API RESPONSE:", data);
 
         // 🔥 SUPER SAFE MAPPING (handles ANY backend shape)
         setStudent(data.student || data || {});
