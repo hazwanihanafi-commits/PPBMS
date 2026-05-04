@@ -1,3 +1,4 @@
+console.log("API_BASE:", API_BASE);
 "use client";
 
 import { useEffect, useState } from "react";
