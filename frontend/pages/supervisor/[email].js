@@ -7,6 +7,13 @@ import jsPDF from "jspdf";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import FinalPLOTable from "../../components/FinalPLOTable";
 
+/* ================= PREMIUM CARD ================= */
+const GlassCard = ({ children }) => (
+  <div className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-3xl p-6 shadow-sm">
+    {children}
+  </div>
+);
+
 export default function SupervisorStudentPage() {
 
   const router = useRouter();
@@ -16,6 +23,8 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+
+  /* ================= LOAD ================= */
 
   useEffect(() => {
     if (!email) return;
@@ -34,26 +43,32 @@ export default function SupervisorStudentPage() {
       );
 
       const data = await res.json();
-      const studentData = data.row || data.student || data;
+      const row = data.row || data.student || data;
 
-      setStudent(studentData || null);
-      setTimeline(studentData?.timeline || []);
+      setStudent(row);
+      setTimeline(row?.timeline || []);
 
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
 
     setLoading(false);
   }
 
+  /* ================= LOADING ================= */
+
   if (loading) return <div className="p-6">Loading...</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
-  /* ================= LOGIC ================= */
+  /* ================= LOGIC (MATCH DASHBOARD) ================= */
 
   const completed = timeline.filter(
     t => t.status === "Completed" || t.status === "COMPLETED"
   ).length;
+
+  const progress = timeline.length
+    ? Math.round((completed / timeline.length) * 100)
+    : 0;
 
   const lateItems = timeline.filter(
     t =>
@@ -69,10 +84,6 @@ export default function SupervisorStudentPage() {
       t.status?.toLowerCase() !== "completed"
   ).length;
 
-  const progress = timeline.length
-    ? Math.round((completed / timeline.length) * 100)
-    : 0;
-
   const isGraduated =
     student.status?.toLowerCase() === "graduated" ||
     student.status?.toLowerCase() === "completed";
@@ -86,22 +97,22 @@ export default function SupervisorStudentPage() {
 
   const category = getCategory();
 
-  /* ================= AI ================= */
+  /* ================= AI INSIGHT ================= */
 
   let aiMessage = "";
 
   if (isGraduated) {
     aiMessage =
-      "🎓 Student has successfully completed the programme. No further monitoring required.";
+      "🎓 Student has successfully completed the programme.";
   } else if (lateItems >= 3) {
     aiMessage =
-      "⚠️ High probability of delay escalation. Immediate supervisor intervention required.";
+      "⚠️ High delay risk. Immediate intervention required.";
   } else if (nearDeadline >= 2) {
     aiMessage =
-      "⏳ Several milestones approaching deadline. Monitor closely.";
+      "⏳ Several milestones approaching deadline.";
   } else {
     aiMessage =
-      "✅ Student progress is stable and within expected trajectory.";
+      "✅ Progress is stable and on track.";
   }
 
   /* ================= PDF ================= */
@@ -110,18 +121,12 @@ export default function SupervisorStudentPage() {
     const pdf = new jsPDF();
     let y = 20;
 
-    pdf.setFontSize(16);
-    pdf.text("Postgraduate Progress Report", 105, y, { align: "center" });
-
+    pdf.text("PPBMS Report", 105, y, { align: "center" });
     y += 10;
+
     pdf.text(`Name: ${student.student_name}`, 20, y); y += 7;
     pdf.text(`Programme: ${student.programme}`, 20, y); y += 7;
-    pdf.text(`Category: ${category}`, 20, y); y += 10;
-
-    timeline.forEach((t, i) => {
-      pdf.text(`${i + 1}. ${t.activity} (${t.status})`, 20, y);
-      y += 5;
-    });
+    pdf.text(`Category: ${category}`, 20, y);
 
     pdf.save("report.pdf");
   }
@@ -133,13 +138,13 @@ export default function SupervisorStudentPage() {
 
       {/* SIDEBAR */}
       <div className="w-56 p-4">
-        <div className="bg-white rounded-2xl p-4 shadow">
+        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
 
           <h2 className="font-bold text-purple-700 mb-4">PPBMS</h2>
 
           <button
             onClick={() => router.push("/supervisor")}
-            className="mb-3 text-sm text-purple-600"
+            className="mb-3 text-sm text-purple-600 hover:underline"
           >
             ← Back
           </button>
@@ -148,11 +153,11 @@ export default function SupervisorStudentPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`block w-full text-left px-3 py-2 rounded-lg text-sm mb-1
-                ${activeTab === tab
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${
+                activeTab === tab
                   ? "bg-purple-100 text-purple-700"
-                  : "text-gray-600 hover:bg-gray-100"}
-              `}
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               {tab.toUpperCase()}
             </button>
@@ -165,7 +170,7 @@ export default function SupervisorStudentPage() {
       <div className="flex-1 p-6 space-y-6">
 
         {/* HEADER */}
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold">Student Overview</h1>
 
           <button
@@ -177,17 +182,21 @@ export default function SupervisorStudentPage() {
         </div>
 
         {/* HERO */}
-        <div className="bg-white rounded-3xl p-6 shadow border flex justify-between items-center">
+        <div className="bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 text-white rounded-3xl p-6 shadow-xl flex justify-between">
 
           <div>
-            <h2 className="text-lg font-bold">{student.student_name}</h2>
-            <p className="text-sm text-gray-500">{student.programme}</p>
+            <h1 className="text-2xl font-semibold">
+              {student.student_name}
+            </h1>
+            <p className="text-sm text-purple-100">
+              {student.programme}
+            </p>
           </div>
 
           <div className="text-right">
-            <p className="text-3xl font-bold text-purple-600">{progress}%</p>
+            <p className="text-4xl font-bold">{progress}%</p>
 
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold
+            <span className={`px-4 py-1 rounded-full text-xs font-semibold mt-2 inline-block
               ${
                 category === "Graduated"
                   ? "bg-blue-100 text-blue-700"
@@ -196,7 +205,8 @@ export default function SupervisorStudentPage() {
                   : category === "Slightly Late"
                   ? "bg-yellow-100 text-yellow-700"
                   : "bg-red-100 text-red-700"
-              }`}>
+              }
+            `}>
               {category}
             </span>
           </div>
@@ -204,8 +214,7 @@ export default function SupervisorStudentPage() {
         </div>
 
         {/* STUDENT INFO */}
-        <div className="bg-white rounded-2xl p-5 shadow border">
-
+        <GlassCard>
           <h3 className="font-semibold mb-3">Student Information</h3>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -214,12 +223,13 @@ export default function SupervisorStudentPage() {
             <p><b>Status:</b> {student.status}</p>
             <p><b>Supervisor:</b> {student.supervisor}</p>
           </div>
+        </GlassCard>
 
-        </div>
-
-        {/* AI */}
-        <div className="bg-white rounded-2xl p-5 shadow border">
-          <p className="text-xs text-gray-400">AI Insight</p>
+        {/* AI INSIGHT */}
+        <div className="rounded-2xl p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border">
+          <p className="text-xs text-indigo-500 uppercase font-semibold">
+            AI Insight
+          </p>
           <p className="text-sm mt-2">{aiMessage}</p>
         </div>
 
@@ -228,28 +238,28 @@ export default function SupervisorStudentPage() {
 
           <div className="grid grid-cols-3 gap-4">
 
-            <div className="bg-green-50 p-5 rounded-2xl text-center">
-              <p>Completed</p>
-              <p className="text-2xl font-bold text-green-700">{completed}</p>
-            </div>
+            <GlassCard>
+              <p className="text-xs text-gray-500">Completed</p>
+              <p className="text-3xl font-bold text-green-600">{completed}</p>
+            </GlassCard>
 
-            <div className="bg-yellow-50 p-5 rounded-2xl text-center">
-              <p>In Progress</p>
-              <p className="text-2xl font-bold text-yellow-700">
+            <GlassCard>
+              <p className="text-xs text-gray-500">In Progress</p>
+              <p className="text-3xl font-bold text-yellow-600">
                 {timeline.length - completed}
               </p>
-            </div>
+            </GlassCard>
 
-            <div className="bg-red-50 p-5 rounded-2xl text-center">
-              <p>Late</p>
-              <p className="text-2xl font-bold text-red-700">{lateItems}</p>
-            </div>
+            <GlassCard>
+              <p className="text-xs text-gray-500">Late</p>
+              <p className="text-3xl font-bold text-red-600">{lateItems}</p>
+            </GlassCard>
 
           </div>
 
         ) : (
 
-          <div className="bg-blue-50 rounded-2xl p-5 text-center">
+          <div className="bg-blue-50 rounded-2xl p-5 text-center shadow">
             🎓 Programme Completed Successfully
           </div>
 
@@ -267,6 +277,8 @@ export default function SupervisorStudentPage() {
               return (
                 <motion.div
                   key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className={`p-5 rounded-2xl shadow border-l-4
                     ${
                       isCompleted
@@ -274,17 +286,18 @@ export default function SupervisorStudentPage() {
                         : isLate
                         ? "bg-red-50 border-red-400"
                         : "bg-white border-gray-300"
-                    }`}
+                    }
+                  `}
                 >
 
                   <h3 className="font-semibold">{t.activity}</h3>
 
                   <p className="text-sm text-gray-500">
-                    Expected: {t.expected} | Actual: {t.actual || "-"}
+                    {t.expected} → {t.actual || "-"}
                   </p>
 
                   {!isCompleted && (
-                    <p className="text-sm mt-1">
+                    <p className="text-sm mt-1 font-semibold">
                       {t.remaining_days} days
                     </p>
                   )}
@@ -303,7 +316,55 @@ export default function SupervisorStudentPage() {
 
         {/* CQI */}
         {activeTab === "cqi" && (
-          <FinalPLOTable finalPLO={student.finalPLO} />
+          <div className="space-y-6">
+
+            <FinalPLOTable finalPLO={student.finalPLO} />
+
+            {student.cqiRemarks?.map((item, i) => {
+
+              const showAlert =
+                item.supervisorRemark &&
+                !item.studentResponse;
+
+              return (
+                <GlassCard key={i}>
+
+                  <div className="flex justify-between mb-3">
+
+                    <div>
+                      <h3 className="font-semibold text-purple-700">
+                        {item.assessmentInstance}
+                      </h3>
+                      <p className="text-xs text-gray-400">
+                        {item.assessmentType}
+                      </p>
+                    </div>
+
+                    <span className="text-xs px-3 py-1 rounded bg-gray-100">
+                      {item.status || "PENDING"}
+                    </span>
+
+                  </div>
+
+                  <p className="text-sm">
+                    <b>Supervisor:</b> {item.supervisorRemark}
+                  </p>
+
+                  <p className="text-sm mt-2">
+                    <b>Student:</b> {item.studentResponse || "—"}
+                  </p>
+
+                  {showAlert && (
+                    <div className="mt-3 bg-red-100 text-red-700 text-xs p-2 rounded-xl">
+                      ⚠ No student response yet
+                    </div>
+                  )}
+
+                </GlassCard>
+              );
+            })}
+
+          </div>
         )}
 
       </div>
