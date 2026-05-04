@@ -1,83 +1,53 @@
-// ==========================================
-// FINAL ADMIN DASHBOARD (RESPONSIVE + FIXED)
-// ==========================================
-
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { apiGet } from "@/utils/api";
 
-/* =========================
-   PROGRESS LOGIC (SYNC WITH SUPERVISOR)
-========================= */
-function calculateProgress(st) {
-  const timeline = Array.isArray(st.timeline) ? st.timeline : [];
-
-  if (timeline.length === 0) {
-    return st.progressPercent || 0;
-  }
-
-  const completed = timeline.filter(
-    (t) =>
-      t.status === "Completed" ||
-      t.status === "COMPLETED"
-  ).length;
-
-  return Math.round((completed / timeline.length) * 100);
-}
-
-function getStudentCategory(st) {
-  if (
-    st.status?.toLowerCase() === "graduated" ||
-    st.status?.toLowerCase() === "completed"
-  ) {
-    return "Graduated";
-  }
-
-  const p = calculateProgress(st);
-
-  if (p >= 80) return "On Track";
-  if (p >= 50) return "Slightly Late";
-  return "At Risk";
-}
-
-/* =========================
+/* ==========================================
    STATUS BADGE
-========================= */
-function StatusBadge({ student }) {
-  const category = getStudentCategory(student);
-
+========================================== */
+function StatusBadge({ status }) {
   const map = {
-    "Graduated": "bg-blue-100 text-blue-700",
     "On Track": "bg-green-100 text-green-700",
     "Slightly Late": "bg-yellow-100 text-yellow-700",
     "At Risk": "bg-red-100 text-red-700",
+    "Graduated": "bg-blue-100 text-blue-700",
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${map[category]}`}>
-      {category}
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${map[status]}`}>
+      {status}
     </span>
   );
 }
 
-/* =========================
+/* ==========================================
    PAGE
-========================= */
+========================================== */
 export default function AdminDashboard() {
+
   const router = useRouter();
 
+  /* ================= STATE ================= */
   const [checked, setChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
 
-  const [activeStudents, setActiveStudents] = useState([]);
   const [graduates, setGraduates] = useState([]);
+  const [activeStudents, setActiveStudents] = useState([]);
+
+  const [summary, setSummary] = useState({
+    onTrack: 0,
+    slightlyDelayed: 0,
+    atRisk: 0,
+    graduated: 0,
+  });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [loading, setLoading] = useState(false);
 
   /* ================= AUTH ================= */
   useEffect(() => {
@@ -87,6 +57,7 @@ export default function AdminDashboard() {
     const role = localStorage.getItem("ppbms_role");
 
     if (!token || role !== "admin") {
+      localStorage.clear();
       router.replace("/login");
       return;
     }
@@ -99,7 +70,7 @@ export default function AdminDashboard() {
     if (!checked) return;
 
     apiGet("/api/admin/programmes/students")
-      .then((d) => setProgrammes(d.programmes || []))
+      .then(d => setProgrammes(d.programmes || []))
       .catch(() => setProgrammes([]));
   }, [checked]);
 
@@ -107,50 +78,100 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!programme) return;
 
+    setLoading(true);
+
     Promise.all([
       apiGet(`/api/admin/programme-active-students?programme=${programme}`),
       apiGet(`/api/admin/programme-graduates?programme=${programme}`),
-    ]).then(([active, grad]) => {
-      setActiveStudents(active.students || []);
-      setGraduates(grad.students || []);
-    });
+      apiGet(`/api/admin/programme-summary?programme=${programme}`),
+    ])
+      .then(([active, grad, sum]) => {
+        setActiveStudents(active.students || []);
+        setGraduates(grad.students || []);
+        setSummary(sum || {});
+      })
+      .finally(() => setLoading(false));
+
   }, [programme]);
+
+  /* ================= CATEGORY (FIXED) ================= */
+  function getStudentCategory(st) {
+
+    // graduated
+    if (
+      st.status?.toLowerCase() === "graduated" ||
+      st.status?.toLowerCase() === "completed"
+    ) {
+      return "Graduated";
+    }
+
+    // if timeline exists (future safe)
+    if (Array.isArray(st.timeline) && st.timeline.length > 0) {
+
+      const completed = st.timeline.filter(
+        t => t.status === "Completed" || t.status === "COMPLETED"
+      ).length;
+
+      const progress = Math.round(
+        (completed / st.timeline.length) * 100
+      );
+
+      if (progress >= 80) return "On Track";
+      if (progress >= 50) return "Slightly Late";
+      return "At Risk";
+    }
+
+    // fallback → backend status
+    const s = String(st.status || "").toUpperCase();
+
+    if (s === "ON_TRACK") return "On Track";
+    if (s === "SLIGHTLY_DELAYED") return "Slightly Late";
+    if (s === "AT_RISK") return "At Risk";
+
+    return "On Track";
+  }
 
   /* ================= FILTER ================= */
   const students = useMemo(() => {
-    let all = [...activeStudents, ...graduates];
 
-    if (search) {
-      const s = search.toLowerCase();
+    const all = [...activeStudents, ...graduates];
 
-      all = all.filter(
-        (st) =>
-          st.name?.toLowerCase().includes(s) ||
-          st.email?.toLowerCase().includes(s)
-      );
-    }
+    return all.filter(st => {
 
-    if (statusFilter !== "All") {
-      all = all.filter(
-        (st) => getStudentCategory(st) === statusFilter
-      );
-    }
+      const q = search.toLowerCase();
 
-    return all;
-  }, [activeStudents, graduates, search, statusFilter]);
+      const matchSearch =
+        st.name?.toLowerCase().includes(q) ||
+        st.matric?.toLowerCase().includes(q) ||
+        st.email?.toLowerCase().includes(q);
 
-  /* ================= KPI ================= */
-  const onTrack = students.filter(s => getStudentCategory(s) === "On Track").length;
-  const slightlyLate = students.filter(s => getStudentCategory(s) === "Slightly Late").length;
-  const atRisk = students.filter(s => getStudentCategory(s) === "At Risk").length;
-  const graduated = students.filter(s => getStudentCategory(s) === "Graduated").length;
+      const category = getStudentCategory(st);
 
-  if (!checked) return <div className="p-6">Checking...</div>;
+      const matchStatus =
+        statusFilter === "All" ||
+        category === statusFilter;
 
+      return matchSearch && matchStatus;
+    });
+
+  }, [search, statusFilter, activeStudents, graduates]);
+
+  /* ================= LOGOUT ================= */
+  function logout() {
+    localStorage.clear();
+    router.push("/login");
+  }
+
+  /* ================= LOADING ================= */
+  if (!checked) {
+    return <div className="p-6">Checking access...</div>;
+  }
+
+  /* ================= UI ================= */
   return (
     <div className="flex min-h-screen bg-gray-100">
 
-      {/* MOBILE OVERLAY */}
+      {/* OVERLAY */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden"
@@ -161,27 +182,15 @@ export default function AdminDashboard() {
       {/* SIDEBAR */}
       <aside className={`
         fixed lg:static z-50
-        w-64 h-full bg-purple-900 text-white p-6
+        w-64 h-full bg-gradient-to-b from-indigo-900 to-purple-800
+        text-white p-6 space-y-6
         transform transition
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0
       `}>
-        <h2 className="text-xl font-bold mb-6">PPBMS Admin</h2>
+        <h2 className="text-xl font-bold">PPBMS</h2>
 
-        <button
-          onClick={() => router.push("/")}
-          className="block mb-4"
-        >
-          Dashboard
-        </button>
-
-        <button
-          onClick={() => {
-            localStorage.clear();
-            router.push("/login");
-          }}
-          className="mt-10 text-red-300"
-        >
+        <button onClick={logout} className="text-red-300 text-sm">
           Logout
         </button>
       </aside>
@@ -192,13 +201,13 @@ export default function AdminDashboard() {
         {/* HEADER */}
         <div className="flex justify-between items-center">
           <button
-            className="lg:hidden bg-white p-2 rounded"
+            className="lg:hidden bg-white p-3 rounded"
             onClick={() => setSidebarOpen(true)}
           >
             ☰
           </button>
 
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-purple-700">
             Admin Dashboard
           </h1>
         </div>
@@ -207,61 +216,105 @@ export default function AdminDashboard() {
         <select
           value={programme}
           onChange={(e) => setProgramme(e.target.value)}
-          className="p-3 border rounded w-full"
+          className="w-full p-3 border rounded-xl"
         >
-          <option>Select Programme</option>
-          {programmes.map((p) => (
+          <option value="">Select Programme</option>
+          {programmes.map(p => (
             <option key={p}>{p}</option>
           ))}
         </select>
 
-        {/* KPI */}
+        {/* SUMMARY */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-green-100 p-4 rounded">On Track: {onTrack}</div>
-          <div className="bg-yellow-100 p-4 rounded">Delayed: {slightlyLate}</div>
-          <div className="bg-red-100 p-4 rounded">At Risk: {atRisk}</div>
-          <div className="bg-blue-100 p-4 rounded">Graduated: {graduated}</div>
+
+          <div className="bg-green-100 p-4 rounded-xl">
+            <p>On Track</p>
+            <h2 className="text-2xl font-bold">{summary.onTrack}</h2>
+          </div>
+
+          <div className="bg-yellow-100 p-4 rounded-xl">
+            <p>Slightly Late</p>
+            <h2 className="text-2xl font-bold">{summary.slightlyDelayed}</h2>
+          </div>
+
+          <div className="bg-red-100 p-4 rounded-xl">
+            <p>At Risk</p>
+            <h2 className="text-2xl font-bold">{summary.atRisk}</h2>
+          </div>
+
+          <div className="bg-blue-100 p-4 rounded-xl">
+            <p>Graduated</p>
+            <h2 className="text-2xl font-bold">{summary.graduated}</h2>
+          </div>
+
         </div>
 
         {/* SEARCH */}
         <input
+          type="text"
           placeholder="Search..."
+          className="w-full p-3 border rounded-xl"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="p-3 border w-full"
         />
 
         {/* FILTER */}
-        <div className="flex gap-2 flex-wrap">
-          {["All","On Track","Slightly Late","At Risk","Graduated"].map(f => (
+        <div className="flex flex-wrap gap-2">
+          {["All","On Track","Slightly Late","At Risk","Graduated"].map(s => (
             <button
-              key={f}
-              onClick={() => setStatusFilter(f)}
-              className={`px-3 py-2 rounded ${
-                statusFilter === f ? "bg-purple-600 text-white" : "bg-white border"
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-4 py-2 rounded-full text-sm ${
+                statusFilter === s
+                  ? "bg-purple-600 text-white"
+                  : "bg-white border"
               }`}
             >
-              {f}
+              {s}
             </button>
           ))}
         </div>
 
         {/* LIST */}
-        <div className="bg-white rounded p-4">
-          {students.map((s, i) => (
-            <div key={i} className="flex justify-between border-b py-3">
-              <div>
-                <div className="font-semibold">{s.name}</div>
-                <div className="text-xs text-gray-500">{s.email}</div>
+        <div className="bg-white rounded-xl shadow divide-y">
+
+          {loading && (
+            <div className="p-6 text-center">Loading...</div>
+          )}
+
+          {!loading && students.map((s, i) => {
+
+            const category = getStudentCategory(s);
+
+            return (
+              <div key={i} className="p-4 flex justify-between items-center">
+
+                <div>
+                  <p className="font-semibold">{s.name}</p>
+                  <p className="text-xs text-gray-500">{s.email}</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={category} />
+
+                  <Link
+                    href={`/admin/student/${encodeURIComponent(s.email)}`}
+                    className="text-purple-600 text-sm font-semibold"
+                  >
+                    View →
+                  </Link>
+                </div>
+
               </div>
+            );
+          })}
 
-              <StatusBadge student={s} />
-
-              <Link href={`/admin/student/${encodeURIComponent(s.email)}`}>
-                View
-              </Link>
+          {!loading && students.length === 0 && (
+            <div className="p-6 text-center text-gray-400">
+              No students found
             </div>
-          ))}
+          )}
+
         </div>
 
       </main>
