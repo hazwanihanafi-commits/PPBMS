@@ -2,169 +2,51 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import { API_BASE } from "../../utils/api";
+import jsPDF from "jspdf";
 
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import FinalPLOTable from "../../components/FinalPLOTable";
-
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
-import jsPDF from "jspdf";
-
-/* ================= GLASS CARD ================= */
-
-const GlassCard = ({ children }) => (
-  <motion.div
-    whileHover={{ y: -4, scale: 1.02 }}
-    className="
-      bg-white/70
-      backdrop-blur-xl
-      rounded-2xl
-      p-5
-      shadow-sm
-      border
-      border-white/40
-    "
-  >
-    {children}
-  </motion.div>
-);
-
-/* ================= HELPERS ================= */
-
-function getStatusType(t) {
-
-  const status =
-    t.status
-      ?.trim()
-      .toLowerCase();
-
-  if (
-    status === "late" ||
-    t.status === "AT_RISK"
-  ) {
-    return "late";
-  }
-
-  if (status === "due soon") {
-    return "soon";
-  }
-
-  if (status === "completed") {
-    return "done";
-  }
-
-  return "normal";
-}
-
-function getRiskColor(risk) {
-
-  if (risk === "HIGH RISK") {
-    return "text-red-600";
-  }
-
-  if (risk === "MODERATE RISK") {
-    return "text-amber-600";
-  }
-
-  return "text-green-600";
-}
-
-function getRiskBg(risk) {
-
-  if (risk === "HIGH RISK") {
-    return "bg-red-100";
-  }
-
-  if (risk === "MODERATE RISK") {
-    return "bg-amber-100";
-  }
-
-  return "bg-green-100";
-}
 
 /* ================= PAGE ================= */
 
 export default function SupervisorStudentPage() {
 
   const router = useRouter();
+  const { email } = router.query;
 
-  const { email } =
-    router.query;
+  const [student, setStudent] = useState(null);
+  const [timeline, setTimeline] = useState([]);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
 
-  const [student, setStudent] =
-    useState(null);
-
-  const [timeline, setTimeline] =
-    useState([]);
-
-  const [cqi, setCqi] =
-    useState({});
-
-  const [activeTab, setActiveTab] =
-    useState("overview");
-
-  const [loading, setLoading] =
-    useState(true);
-
- 
   /* ================= LOAD ================= */
 
   useEffect(() => {
-
     if (!email) return;
-
     loadStudent();
-
   }, [email]);
 
   async function loadStudent() {
-
     try {
-
-      const token =
-        localStorage.getItem(
-          "ppbms_token"
-        );
+      const token = localStorage.getItem("ppbms_token");
 
       const res = await fetch(
         `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` }
         }
       );
 
-      const data =
-  await res.json();
+      const data = await res.json();
 
-console.log("API DATA:", data);
+      const studentData =
+        data.row || data.student || data;
 
-const studentData =
-  data.row ||
-  data.student ||
-  data;
-
-setStudent(studentData || null);
-
-setTimeline(
-  studentData?.timeline || []
-);
-
-setCqi(
-  studentData?.cqiByAssessment || {}
-);
+      setStudent(studentData || null);
+      setTimeline(studentData?.timeline || []);
 
     } catch (e) {
-
       console.error(e);
-
     }
 
     setLoading(false);
@@ -172,140 +54,73 @@ setCqi(
 
   /* ================= LOADING ================= */
 
-  if (loading) {
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (!student) return <div className="p-6">Student not found</div>;
 
-    return (
-      <div className="p-6">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!student) {
-
-    return (
-      <div className="p-6">
-        Student not found
-      </div>
-    );
-  }
-
-  /* ================= DATA ================= */
+  /* ================= LOGIC (FROM DASHBOARD) ================= */
 
   const completed = timeline.filter(
     (t) =>
-      t.status
-        ?.trim()
-        .toLowerCase() ===
-      "completed"
-  ).length;
-
-  const late = timeline.filter(
-    (t) =>
-
-      t.status
-        ?.trim()
-        .toLowerCase() ===
-        "late" ||
-
-      t.status
-        ?.trim()
-        .toUpperCase() ===
-        "AT_RISK" ||
-
-      (
-        !t.actual &&
-        t.remaining_days < 0 &&
-        t.status
-          ?.trim()
-          .toLowerCase() !==
-          "completed"
-      )
-  ).length;
-
-  const soon = timeline.filter(
-    (t) =>
-      t.status
-        ?.trim()
-        .toLowerCase() ===
-      "due soon"
+      t.status === "Completed" ||
+      t.status === "COMPLETED"
   ).length;
 
   const progress = timeline.length
-    ? Math.round(
-        (
-          completed /
-          timeline.length
-        ) * 100
-      )
+    ? Math.round((completed / timeline.length) * 100)
     : 0;
 
-  const riskScore =
-    late > 2
-      ? "HIGH RISK"
-      : late > 0 || soon > 2
-      ? "MODERATE RISK"
-      : "LOW RISK";
+  function getCategory() {
 
-  const coSupervisorDisplay =
-    student.coSupervisors ||
-    student.co_supervisor ||
-    student.coSupervisor ||
-    "-";
+    if (progress >= 80) return "On Track";
+    if (progress >= 50) return "Slightly Late";
+
+    return "At Risk";
+  }
+
+  const category = getCategory();
+
+  /* ================= AI PREDICTION ================= */
+
+  const lateItems = timeline.filter(
+    (t) => t.remaining_days < 0
+  ).length;
+
+  const nearDeadline = timeline.filter(
+    (t) =>
+      t.remaining_days >= 0 &&
+      t.remaining_days <= 30
+  ).length;
+
+  let aiMessage = "";
+
+  if (lateItems >= 3) {
+    aiMessage =
+      "⚠️ High probability of delay escalation. Immediate supervisor intervention recommended.";
+  } else if (nearDeadline >= 2) {
+    aiMessage =
+      "⏳ Several milestones approaching deadline. Monitor closely.";
+  } else {
+    aiMessage =
+      "✅ Student progress is stable and within expected trajectory.";
+  }
 
   /* ================= PDF ================= */
 
   function exportPDF() {
 
     const pdf = new jsPDF();
-
     let y = 20;
 
     pdf.setFontSize(16);
-
-    pdf.text(
-      "Postgraduate Progress Report",
-      105,
-      y,
-      {
-        align: "center",
-      }
-    );
+    pdf.text("Postgraduate Progress Report", 105, y, { align: "center" });
 
     y += 10;
-
-    pdf.text(
-      `Name: ${student.student_name}`,
-      20,
-      y
-    );
-
-    y += 7;
-
-    pdf.text(
-      `Programme: ${student.programme}`,
-      20,
-      y
-    );
-
-    y += 7;
-
-    pdf.text(
-      `Risk: ${riskScore}`,
-      20,
-      y
-    );
-
-    y += 10;
+    pdf.text(`Name: ${student.student_name}`, 20, y); y += 7;
+    pdf.text(`Programme: ${student.programme}`, 20, y); y += 7;
+    pdf.text(`Category: ${category}`, 20, y); y += 10;
 
     timeline.forEach((t, i) => {
-
-      pdf.text(
-        `${i + 1}. ${t.activity} (${t.status})`,
-        20,
-        y
-      );
-
+      pdf.text(`${i + 1}. ${t.activity} (${t.status})`, 20, y);
       y += 5;
     });
 
@@ -315,484 +130,202 @@ setCqi(
   /* ================= UI ================= */
 
   return (
-
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] flex">
 
       {/* SIDEBAR */}
-
       <div className="w-56 p-4">
+        <div className="bg-white rounded-2xl p-4 shadow">
 
-        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
-
-          <h2 className="font-bold text-purple-700 mb-4">
-            PPBMS
-          </h2>
+          <h2 className="font-bold text-purple-700 mb-4">PPBMS</h2>
 
           <button
-            onClick={() =>
-              router.push("/supervisor")
-            }
-            className="mb-3 text-sm text-purple-600 hover:underline"
+            onClick={() => router.push("/supervisor")}
+            className="mb-3 text-sm text-purple-600"
           >
-            ← Back to Dashboard
+            ← Back
           </button>
 
-          {[
-            "overview",
-            "documents",
-            "timeline",
-            "cqi",
-            "remarks",
-          ].map((tab) => (
-
+          {["overview","timeline","documents","cqi"].map(tab => (
             <button
               key={tab}
-              onClick={() =>
-                setActiveTab(tab)
-              }
-              className={`
-                w-full
-                text-left
-                px-3
-                py-2
-                rounded-lg
-                text-sm
-                mb-1
-
-                ${
-                  activeTab === tab
-                    ? "bg-purple-100 text-purple-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }
+              onClick={() => setActiveTab(tab)}
+              className={`block w-full text-left px-3 py-2 rounded-lg text-sm mb-1
+                ${activeTab === tab
+                  ? "bg-purple-100 text-purple-700"
+                  : "text-gray-600 hover:bg-gray-100"}
               `}
             >
               {tab.toUpperCase()}
             </button>
-
           ))}
 
         </div>
-
       </div>
 
       {/* MAIN */}
-
       <div className="flex-1 p-6 space-y-6">
 
         {/* HEADER */}
-
-        <div className="flex justify-between items-center">
-
-          <h1 className="text-xl font-bold text-gray-800">
-            Student Overview
-          </h1>
+        <div className="flex justify-between">
+          <h1 className="text-xl font-bold">Student Overview</h1>
 
           <button
             onClick={exportPDF}
-            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+            className="bg-purple-600 text-white px-4 py-2 rounded-xl"
           >
             Export PDF
           </button>
-
         </div>
 
         {/* HERO */}
+        <div className="bg-white rounded-3xl p-6 shadow border flex justify-between">
 
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
+          <div>
+            <h2 className="text-lg font-bold">
+              {student.student_name}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {student.programme}
+            </p>
+          </div>
 
-          <h1 className="text-xl font-semibold">
-            {student.student_name}
-          </h1>
-
-          <p className="text-sm">
-            {student.programme}
-          </p>
-
-          <div className="mt-4 flex justify-between items-center">
-
-            <span className="text-3xl">
+          <div className="text-right">
+            <p className="text-3xl font-bold text-purple-600">
               {progress}%
+            </p>
+
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold
+              ${
+                category === "On Track"
+                  ? "bg-green-100 text-green-700"
+                  : category === "Slightly Late"
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-red-100 text-red-700"
+              }
+            `}>
+              {category}
             </span>
-
-            <span
-              className={`
-                px-3
-                py-1
-                rounded-full
-                text-xs
-                font-semibold
-
-                ${getRiskBg(riskScore)}
-                ${getRiskColor(riskScore)}
-              `}
-            >
-              {riskScore}
-            </span>
-
           </div>
 
         </div>
 
-        {/* ANALYTICS */}
+        {/* AI INSIGHT */}
+        <div className="bg-white rounded-2xl p-5 shadow border">
+          <p className="text-xs text-gray-400 uppercase">AI Insight</p>
+          <p className="text-sm mt-2 text-gray-700">{aiMessage}</p>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* KPI */}
+        <div className="grid grid-cols-3 gap-4">
 
-          <GlassCard>
-            <p className="text-xs text-gray-500">
-              Completed
+          <div className="bg-green-50 rounded-2xl p-5 text-center shadow">
+            <p className="text-sm">Completed</p>
+            <p className="text-2xl font-bold text-green-700">{completed}</p>
+          </div>
+
+          <div className="bg-yellow-50 rounded-2xl p-5 text-center shadow">
+            <p className="text-sm">In Progress</p>
+            <p className="text-2xl font-bold text-yellow-700">
+              {timeline.length - completed}
             </p>
+          </div>
 
-            <p className="text-2xl font-bold text-green-600">
-              {completed}
-            </p>
-          </GlassCard>
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">
-              Due Soon
-            </p>
-
-            <p className="text-2xl font-bold text-amber-600">
-              {soon}
-            </p>
-          </GlassCard>
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">
-              Late
-            </p>
-
-            <p className="text-2xl font-bold text-red-600">
-              {late}
-            </p>
-          </GlassCard>
+          <div className="bg-red-50 rounded-2xl p-5 text-center shadow">
+            <p className="text-sm">Late</p>
+            <p className="text-2xl font-bold text-red-700">{lateItems}</p>
+          </div>
 
         </div>
 
-        {/* GRAPH */}
+        {/* TIMELINE */}
+        {activeTab === "timeline" && (
+          <div className="space-y-4">
 
-        <GlassCard>
+            {timeline.map((t, i) => {
 
-          <ResponsiveContainer
-            width="100%"
-            height={200}
-          >
+              const status = t.status?.toLowerCase();
 
-            <BarChart
-              data={[
-                {
-                  name: "Done",
-                  value: completed,
-                },
-                {
-                  name: "Soon",
-                  value: soon,
-                },
-                {
-                  name: "Late",
-                  value: late,
-                },
-              ]}
-            >
+              const isCompleted = status === "completed";
+              const isLate =
+                status === "late" ||
+                status === "at_risk" ||
+                t.remaining_days < 0;
 
-              <XAxis dataKey="name" />
+              const isSoon = status === "due soon";
 
-              <Tooltip />
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`
+                    p-5 rounded-2xl shadow border-l-4
+                    ${
+                      isCompleted
+                        ? "bg-green-50 border-green-400"
+                        : isLate
+                        ? "bg-red-50 border-red-400"
+                        : isSoon
+                        ? "bg-yellow-50 border-yellow-400"
+                        : "bg-white border-gray-300"
+                    }
+                  `}
+                >
 
-              <Bar dataKey="value" />
+                  <div className="flex justify-between">
 
-            </BarChart>
+                    <div>
+                      <h3 className="font-semibold">{t.activity}</h3>
+                      <p className="text-sm text-gray-500">
+                        Expected: {t.expected} | Actual: {t.actual || "-"}
+                      </p>
+                    </div>
 
-          </ResponsiveContainer>
+                    {!isCompleted && (
+                      <div className="text-right">
+                        <p className={`font-bold ${
+                          t.remaining_days < 0
+                            ? "text-red-600"
+                            : t.remaining_days <= 30
+                            ? "text-yellow-600"
+                            : "text-purple-600"
+                        }`}>
+                          {t.remaining_days} days
+                        </p>
+                      </div>
+                    )}
 
-        </GlassCard>
+                  </div>
+
+                  <p className="text-xs mt-2 font-semibold">
+                    {t.status?.toUpperCase()}
+                  </p>
+
+                </motion.div>
+              );
+            })}
+
+          </div>
+        )}
 
         {/* DOCUMENTS */}
-
         {activeTab === "documents" && (
-
           <SupervisorChecklist
-            documents={
-              student.documents || {}
-            }
-            studentEmail={student.email}
-            onUpdated={loadStudent}
+            documents={student.documents || {}}
           />
-
         )}
 
         {/* CQI */}
-
         {activeTab === "cqi" && (
-
-          <FinalPLOTable
-            finalPLO={student.finalPLO}
-          />
-
+          <FinalPLOTable finalPLO={student.finalPLO} />
         )}
 
-{/* TIMELINE */}
-
-{activeTab === "timeline" && (
-
-  <div className="space-y-4">
-
-    {timeline.map((t, i) => {
-
-      const status = t.status?.toLowerCase();
-
-      const isCompleted = status === "completed";
-      const isLate =
-        status === "late" ||
-        status === "at_risk" ||
-        t.remaining_days < 0;
-
-      const isSoon = status === "due soon";
-
-      const borderColor =
-        isCompleted
-          ? "border-green-400"
-          : isLate
-          ? "border-red-400"
-          : isSoon
-          ? "border-yellow-400"
-          : "border-gray-300";
-
-      const bgColor =
-        isCompleted
-          ? "bg-green-50"
-          : isLate
-          ? "bg-red-50"
-          : isSoon
-          ? "bg-yellow-50"
-          : "bg-white";
-
-      return (
-
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`
-            rounded-2xl
-            p-5
-            shadow-md
-            border-l-4
-            ${borderColor}
-            ${bgColor}
-          `}
-        >
-
-          {/* TOP */}
-          <div className="flex justify-between items-start">
-
-            <div>
-
-              <h3 className="font-semibold text-gray-800">
-                {t.activity}
-              </h3>
-
-              <p className="text-sm text-gray-500 mt-1">
-                Expected: {t.expected || "-"} | Actual: {t.actual || "-"}
-              </p>
-
-            </div>
-
-            {/* DAYS */}
-            {!isCompleted && (
-              <div className="text-right">
-
-                <p className={`font-bold ${
-                  t.remaining_days < 0
-                    ? "text-red-600"
-                    : t.remaining_days <= 30
-                    ? "text-orange-500"
-                    : "text-purple-600"
-                }`}>
-                  {t.remaining_days ?? "-"} days
-                </p>
-
-              </div>
-            )}
-
-          </div>
-
-          {/* BOTTOM */}
-          <div className="flex justify-between items-center mt-3">
-
-            <span className={`text-xs font-semibold tracking-wide ${
-              isCompleted
-                ? "text-green-700"
-                : isLate
-                ? "text-red-600"
-                : isSoon
-                ? "text-yellow-600"
-                : "text-gray-500"
-            }`}>
-              {t.status?.toUpperCase()}
-            </span>
-
-            {/* OPTIONAL RESET */}
-            {isCompleted && (
-              <button
-                className="text-xs text-red-500 hover:underline"
-                onClick={() => {
-                  console.log("Reset status", t);
-                  // 👉 connect API later if needed
-                }}
-              >
-                Reset Status
-              </button>
-            )}
-
-          </div>
-
-        </motion.div>
-      );
-    })}
-
-  </div>
-
-)}
-
-{/* REMARKS */}
-
-{activeTab === "remarks" && (
-
-  <div className="space-y-6">
-
-    {Array.isArray(student.remarksByAssessment) &&
-    student.remarksByAssessment.length > 0 ? (
-
-      student.remarksByAssessment.map(
-        (item, idx) => (
-
-          <div
-            key={idx}
-            className="
-              bg-white
-              rounded-2xl
-              p-6
-              shadow-sm
-              border
-            "
-          >
-
-            <div className="mb-4">
-
-              <h3 className="text-xl font-bold text-purple-700">
-                {item.assessmentInstance}
-              </h3>
-
-              <p className="text-sm text-gray-500">
-                Assessment Type:
-                {" "}
-                {item.assessmentType}
-              </p>
-
-            </div>
-
-           <textarea
-  rows={8}
-  value={item.remark || ""}
-
-  onChange={(e) => {
-
-  if (!student) return;
-
-  const updated =
-    (student.remarksByAssessment || []).map(
-      (r, i) =>
-        i === idx
-          ? {
-              ...r,
-              remark: e.target.value
-            }
-          : r
-    );
-
-  setStudent(prev => ({
-    ...prev,
-    remarksByAssessment: updated
-  }));
-
-}}
-
-  onBlur={async (e) => {
-
-    try {
-
-      const token =
-        localStorage.getItem("ppbms_token");
-
-      await fetch(
-        `${API_BASE}/api/supervisorRemark/remark`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            studentMatric: student.student_id,
-            studentEmail: student.email,
-            assessmentType: item.assessmentType,
-            assessmentInstance: item.assessmentInstance,
-            remark: e.target.value
-          })
-        }
-      );
-
-      await loadStudent(); // reload from sheet
-
-    } catch (err) {
-      console.error(err);
-    }
-  }}
-
-  className="
-    w-full
-    border
-    rounded-2xl
-    p-4
-    text-sm
-    min-h-[220px]
-  "
-/>
-          </div>
-        )
-      )
-
-    ) : (
-
-      <div className="bg-white rounded-2xl p-6 text-gray-400">
-
-        No remarks available
-
-      </div>
-
-    )}
-
-  </div>
-
-)}
         {/* FOOTER */}
-
         <footer className="text-center text-xs text-gray-400 pt-6">
-
-          © 2026 PPBMS ·
-          Universiti Sains Malaysia
-
-          <br />
-
-          Developed by
-          Hazwani Ahmad Yusof
-          (2025)
-
+          © 2026 PPBMS · Universiti Sains Malaysia
         </footer>
 
       </div>
-
     </div>
   );
 }
