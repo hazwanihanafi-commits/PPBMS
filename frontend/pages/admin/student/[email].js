@@ -31,23 +31,38 @@ export default function AdminStudentPage() {
   }, [email]);
 
   async function loadStudent() {
+  try {
     const token = localStorage.getItem("ppbms_token");
 
     const res = await fetch(
-  `${API_BASE}/api/admin/student/${encodeURIComponent(email)}`,
-  {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
+      `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("API ERROR:", text);
+      setStudent(null);
+      setLoading(false);
+      return;
+    }
 
     const data = await res.json();
 
     setStudent(data.row || null);
     setTimeline(data.row?.timeline || []);
-    setLoading(false);
+
+  } catch (err) {
+    console.error("LOAD ERROR:", err);
+    setStudent(null);
   }
+
+  setLoading(false);
+}
 
   if (loading) return <div className="p-6">Loading…</div>;
   if (!student) return <div className="p-6">Student not found</div>;
