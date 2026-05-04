@@ -250,11 +250,70 @@ export default function AdminStudentPage() {
 
       {/* REMARKS */}
       {activeTab === "remarks" && (
-        <SupervisorRemark
-          studentMatric={student.student_id}
-          studentEmail={student.email}
-        />
-      )}
+
+  <Card>
+
+    <h2 className="text-lg font-bold mb-4">
+      Supervisor Remarks
+    </h2>
+
+    {student.remarks?.length ? (
+
+      <div className="space-y-4">
+
+        {student.remarks.map(
+          (r, i) => (
+
+            <div
+              key={i}
+              className="
+                border rounded-xl
+                p-4 bg-gray-50
+              "
+            >
+
+              <div className="
+                flex justify-between
+                mb-2
+              ">
+
+                <p className="font-semibold">
+                  {r.supervisor ||
+                    "Supervisor"}
+                </p>
+
+                <span className="
+                  text-xs text-gray-500
+                ">
+                  {r.date || "-"}
+                </span>
+
+              </div>
+
+              <p className="text-gray-700">
+                {r.remark ||
+                  r.comment ||
+                  "-"}
+              </p>
+
+            </div>
+          )
+        )}
+
+      </div>
+
+    ) : (
+
+      <div className="
+        text-gray-500 text-sm
+      ">
+        No remarks available
+      </div>
+
+    )}
+
+  </Card>
+)}
 
       {/* EXPORT */}
       <button
