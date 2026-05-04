@@ -118,8 +118,11 @@ export default function Page({ params }) {
   }
 
   useEffect(() => {
-    if (params?.email) loadStudent();
-  }, [params?.email]);
+  if (!params?.email) return;
+
+  loadStudent();
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   if (loading) return <p className="p-6">Loading...</p>;
   if (!student) return <p className="p-6">No data</p>;
