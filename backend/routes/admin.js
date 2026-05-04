@@ -286,6 +286,9 @@ router.get(
 /* ==========================================
    SINGLE STUDENT
 ========================================== */
+/* ==========================================
+   SINGLE STUDENT (FINAL FIX - ROBUST)
+========================================== */
 router.get(
   "/student/:email",
   adminAuth,
@@ -293,8 +296,8 @@ router.get(
 
     try {
 
-      const email =
-        req.params.email
+      const paramEmail =
+        String(req.params.email || "")
           .toLowerCase()
           .trim();
 
@@ -303,19 +306,31 @@ router.get(
           process.env.SHEET_ID
         );
 
-      const raw = rows.find(
-        r =>
-          (r["Student's Email"] || "")
+      const raw = rows.find(r => {
+
+        const sheetEmail =
+          String(r["Student's Email"] || "")
             .toLowerCase()
-            .trim() === email
-      );
+            .trim()
+            .replace(/\s+/g, ""); // 🔥 REMOVE HIDDEN SPACES
+
+        const cleanParam =
+          paramEmail.replace(/\s+/g, "");
+
+        return sheetEmail === cleanParam;
+      });
 
       if (!raw) {
+        console.log("❌ NOT FOUND:", paramEmail);
+
         return res.status(404).json({
           error: "Student not found"
         });
       }
 
+      /* =========================
+         TIMELINE + PROGRESS
+      ========================= */
       const timeline =
         buildTimelineForRow(raw);
 
@@ -342,19 +357,25 @@ router.get(
         category = "Slightly Late";
       }
 
+      /* =========================
+         RESPONSE
+      ========================= */
       res.json({
         row: {
           student_id:
             raw["Matric"] || "",
           name:
             raw["Student Name"] || "",
-          email,
+          email:
+            String(raw["Student's Email"] || "").trim(),
+
           programme:
             raw["Programme"] || "",
           field:
             raw["Field"] || "",
           department:
             raw["Department"] || "",
+
           status: category,
           progressPercent,
           timeline
@@ -362,14 +383,15 @@ router.get(
       });
 
     } catch (err) {
-      console.error(err);
+
+      console.error("❌ STUDENT ERROR:", err);
+
       res.status(500).json({
         error: "Failed to load student"
       });
     }
   }
 );
-
 /* ==========================================
    ALL PROGRAMMES
 ========================================== */
