@@ -9,6 +9,9 @@ import { ACTUAL_COLUMN_MAP } from "../utils/timelineColumnMap.js";
 import { TIMELINE_MAP } from "../utils/timelineMap.js";
 import sendEmail
 from "../services/sendEmail.js";
+import { readASSESSMENT_PLO } from "../services/googleSheets.js";
+import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
+import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
 
 function normalizeActivity(activity) {
   if (ACTUAL_COLUMN_MAP[activity]) return activity;
@@ -112,8 +115,179 @@ Object.entries(DOC_COLUMN_MAP).forEach(
 );
 
     const timeline = buildTimelineForRow(raw);
+    /* ================= CQI (SHARED WITH SUPERVISOR) ================= */
 
-    res.json({ row: { ...profile, documents, timeline } });
+const assessmentRows =
+  await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+const normalized =
+  assessmentRows.map(r => {
+
+    const clean = {};
+
+    Object.keys(r).forEach(k => {
+      clean[
+        k.toLowerCase()
+         .trim()
+         .replace(/[^a-z0-9]+/g, "_")
+      ] = r[k];
+    });
+
+    return clean;
+  });
+
+const matric =
+  String(raw["Matric"] || "").trim();
+
+const studentRows =
+  normalized.filter(r => {
+
+    const m =
+      String(
+        r["matric"] ||
+        r["matricno"] ||
+        ""
+      ).trim();
+
+    return m === matric;
+  });
+
+/* GROUP */
+const grouped = {};
+
+studentRows.forEach(r => {
+
+  const instance =
+    String(
+      r["assessment_instance"] ||
+      r["assessment_type"] ||
+      ""
+    ).toUpperCase();
+
+  if (!grouped[instance]) {
+    grouped[instance] = [];
+  }
+
+  grouped[instance].push(r);
+});
+
+/* CQI + REMARKS */
+const cqiByAssessment = {};
+const remarks = [];
+
+Object.entries(grouped).forEach(([instance, rows]) => {
+
+  const ploScores = rows.map(r => {
+
+    const o = {};
+
+    for (let i = 1; i <= 11; i++) {
+
+      const rawValue = r[`plo${i}`];
+
+      const v =
+        rawValue === undefined ||
+        rawValue === null ||
+        rawValue === ""
+          ? null
+          : parseFloat(rawValue);
+
+      o[`PLO${i}`] =
+        isNaN(v) ? null : v;
+    }
+
+    return o;
+  });
+
+  cqiByAssessment[instance] =
+    deriveCQIByAssessment(ploScores);
+
+  rows.forEach(r => {
+
+    const supervisorRemark =
+      r.supervisor_remark || "";
+
+    const studentResponse =
+      r.student_response || "";
+
+    let status = r.cqi_status;
+
+    if (!status) {
+      if (studentResponse) status = "RESPONDED";
+      else if (supervisorRemark) status = "PENDING";
+      else status = "NO_REMARK";
+    }
+
+    remarks.push({
+
+      assessmentType:
+        r.assessment_type || "UNKNOWN",
+
+      assessmentInstance:
+        r.assessment_instance ||
+        r.assessment_type ||
+        "UNKNOWN",
+
+      supervisorRemark,
+      studentResponse,
+      status,
+
+      updatedAt:
+        r.cqi_updated_at || "",
+
+      history:
+        (r.student_response_history || "")
+          .split("\n")
+          .filter(Boolean)
+
+    });
+
+  });
+
+});
+
+/* FINAL PLO */
+const finalPLO =
+  aggregateFinalPLO(cqiByAssessment);
+
+/* ALERT */
+const alerts = [];
+
+remarks.forEach(r => {
+
+  if (
+    r.status === "PENDING" &&
+    r.updatedAt
+  ) {
+
+    const days =
+      (Date.now() - new Date(r.updatedAt)) /
+      (1000 * 60 * 60 * 24);
+
+    if (days > 7) {
+
+      alerts.push({
+        type: "CQI_PENDING",
+        assessmentInstance: r.assessmentInstance,
+        message:
+          `${r.assessmentInstance} ignored > 7 days`
+      });
+
+    }
+  }
+});
+
+    res.json({
+  row: {
+    ...profile,
+    documents,
+    timeline,
+    cqiByAssessment,
+    finalPLO,
+    remarks,
+    alerts
+  }
+});
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
