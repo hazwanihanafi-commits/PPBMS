@@ -1,6 +1,6 @@
 // ==========================================
 // frontend/pages/admin/index.jsx
-// MODERN PPBMS ADMIN DASHBOARD
+// FINAL MODERN PPBMS ADMIN DASHBOARD
 // ==========================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -221,11 +221,8 @@ function TimelineSection() {
                 ${
                   step.status === "done"
                     ? "bg-emerald-500"
-
-                    : step.status ===
-                      "progress"
+                    : step.status === "progress"
                     ? "bg-amber-500"
-
                     : "bg-gray-300"
                 }
               `}
@@ -245,6 +242,36 @@ function TimelineSection() {
         ))}
       </div>
     </div>
+  );
+}
+
+/* ==========================================
+   SIDEBAR ITEM
+========================================== */
+function SidebarItem({
+  icon,
+  label,
+  active = false,
+  onClick,
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        w-full flex items-center
+        gap-3 px-4 py-3 rounded-2xl
+        transition font-medium
+
+        ${
+          active
+            ? "bg-purple-600 text-white shadow-lg"
+            : "text-slate-300 hover:bg-slate-700"
+        }
+      `}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 
@@ -288,6 +315,9 @@ export default function AdminDashboard() {
   const [search, setSearch] =
     useState("");
 
+  const [activeMenu, setActiveMenu] =
+    useState("dashboard");
+
   const [
     statusFilter,
     setStatusFilter,
@@ -311,9 +341,7 @@ export default function AdminDashboard() {
 
     if (!token || role !== "admin") {
       localStorage.clear();
-
       router.replace("/login");
-
       return;
     }
 
@@ -362,7 +390,6 @@ export default function AdminDashboard() {
         `/api/admin/programme-summary?programme=${programme}`
       ),
     ])
-
       .then(
         ([
           plo,
@@ -394,7 +421,6 @@ export default function AdminDashboard() {
           );
         }
       )
-
       .finally(() =>
         setLoading(false)
       );
@@ -443,12 +469,11 @@ export default function AdminDashboard() {
   ========================================== */
   function handleLogout() {
     localStorage.clear();
-
     router.push("/login");
   }
 
   /* ==========================================
-     CHART DATA
+     CHARTS
   ========================================== */
   const pieData = [
     {
@@ -512,92 +537,75 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div
-      className="
-        min-h-screen flex
-        bg-slate-100
-      "
-    >
-      {/* ==========================================
-          SIDEBAR
-      ========================================== */}
+    <div className="min-h-screen flex bg-slate-100">
+
+      {/* SIDEBAR */}
       <aside
         className="
           w-72 bg-gradient-to-b
           from-slate-900 to-slate-800
           text-white p-6
-          hidden lg:flex
-          flex-col
+          hidden lg:flex flex-col
         "
       >
         <div className="mb-10">
-          <h1
-            className="
-              text-3xl font-bold
-              tracking-wide
-            "
-          >
+          <h1 className="text-3xl font-bold tracking-wide">
             PPBMS
           </h1>
 
-          <p
-            className="
-              text-slate-300 text-sm
-              mt-1
-            "
-          >
+          <p className="text-slate-300 text-sm mt-1">
             Admin Portal
           </p>
         </div>
 
         <nav className="space-y-2">
 
-  <SidebarItem
-    icon={<LayoutDashboard size={18} />}
-    label="Dashboard"
-    active={activeMenu === "dashboard"}
-    onClick={() =>
-      setActiveMenu("dashboard")
-    }
-  />
+          <SidebarItem
+            icon={<LayoutDashboard size={18} />}
+            label="Dashboard"
+            active={activeMenu === "dashboard"}
+            onClick={() =>
+              setActiveMenu("dashboard")
+            }
+          />
 
-  <SidebarItem
-    icon={<Users size={18} />}
-    label="Students"
-    active={activeMenu === "students"}
-    onClick={() =>
-      setActiveMenu("students")
-    }
-  />
+          <SidebarItem
+            icon={<Users size={18} />}
+            label="Students"
+            active={activeMenu === "students"}
+            onClick={() =>
+              setActiveMenu("students")
+            }
+          />
 
-  <SidebarItem
-    icon={<GraduationCap size={18} />}
-    label="Graduates"
-    active={activeMenu === "graduates"}
-    onClick={() =>
-      setActiveMenu("graduates")
-    }
-  />
+          <SidebarItem
+            icon={<GraduationCap size={18} />}
+            label="Graduates"
+            active={activeMenu === "graduates"}
+            onClick={() =>
+              setActiveMenu("graduates")
+            }
+          />
 
-  <SidebarItem
-    icon={<BookOpen size={18} />}
-    label="Milestones"
-    active={activeMenu === "milestones"}
-    onClick={() =>
-      setActiveMenu("milestones")
-    }
-  />
+          <SidebarItem
+            icon={<BookOpen size={18} />}
+            label="Milestones"
+            active={activeMenu === "milestones"}
+            onClick={() =>
+              setActiveMenu("milestones")
+            }
+          />
 
-  <SidebarItem
-    icon={<FileBarChart2 size={18} />}
-    label="Reports"
-    active={activeMenu === "reports"}
-    onClick={() =>
-      setActiveMenu("reports")
-    }
-  />
+          <SidebarItem
+            icon={<FileBarChart2 size={18} />}
+            label="Reports"
+            active={activeMenu === "reports"}
+            onClick={() =>
+              setActiveMenu("reports")
+            }
+          />
 
-</nav>
+        </nav>
 
         <div className="mt-auto">
           <button
@@ -616,15 +624,14 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* ==========================================
-          MAIN
-      ========================================== */}
+      {/* MAIN */}
       <main
         className="
           flex-1 p-6 lg:p-8
           space-y-6 overflow-auto
         "
       >
+
         {/* HEADER */}
         <div
           className="
@@ -650,11 +657,7 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          <div
-            className="
-              flex items-center gap-4
-            "
-          >
+          <div className="flex items-center gap-4">
             <button
               className="
                 bg-white p-3 rounded-2xl
@@ -663,23 +666,10 @@ export default function AdminDashboard() {
             >
               <Bell size={20} />
             </button>
-
-            <button
-              onClick={() =>
-                router.push("/")
-              }
-              className="
-                bg-purple-600 text-white
-                px-5 py-3 rounded-2xl
-                font-semibold shadow
-              "
-            >
-              Landing Page
-            </button>
           </div>
         </div>
 
-        {/* PROGRAMME SELECT */}
+        {/* PROGRAMME */}
         <div
           className="
             bg-white rounded-3xl
@@ -705,9 +695,6 @@ export default function AdminDashboard() {
             className="
               w-full p-4 rounded-2xl
               border border-gray-200
-              focus:outline-none
-              focus:ring-2
-              focus:ring-purple-500
             "
           >
             <option value="">
@@ -725,493 +712,522 @@ export default function AdminDashboard() {
           </select>
         </div>
 
-        {/* SUMMARY CARDS */}
-        <div
-          className="
-            grid grid-cols-1
-            md:grid-cols-2
-            xl:grid-cols-4 gap-5
-          "
-        >
-          <SummaryCard
-            title="On Track"
-            value={summary.onTrack}
-            color="bg-emerald-100"
-            icon={
-              <CheckCircle2
-                className="
-                  text-emerald-600
-                "
-              />
-            }
-          />
-
-          <SummaryCard
-            title="Slightly Delayed"
-            value={
-              summary.slightlyDelayed
-            }
-            color="bg-amber-100"
-            icon={
-              <Clock3
-                className="
-                  text-amber-600
-                "
-              />
-            }
-          />
-
-          <SummaryCard
-            title="At Risk"
-            value={summary.atRisk}
-            color="bg-red-100"
-            icon={
-              <AlertTriangle
-                className="
-                  text-red-600
-                "
-              />
-            }
-          />
-
-          <SummaryCard
-            title="Graduated"
-            value={summary.graduated}
-            color="bg-blue-100"
-            icon={
-              <GraduationCap
-                className="
-                  text-blue-600
-                "
-              />
-            }
-          />
-        </div>
-
-        {/* CHARTS */}
-        <div
-          className="
-            grid grid-cols-1
-            xl:grid-cols-2 gap-6
-          "
-        >
-          {/* PIE */}
-          <div
-            className="
-              bg-white rounded-3xl
-              shadow-sm border
-              p-6
-            "
-          >
-            <h2
+        {/* DASHBOARD */}
+        {activeMenu === "dashboard" && (
+          <>
+            {/* SUMMARY */}
+            <div
               className="
-                font-bold text-lg
-                mb-6
+                grid grid-cols-1
+                md:grid-cols-2
+                xl:grid-cols-4 gap-5
               "
             >
-              Student Distribution
-            </h2>
+              <SummaryCard
+                title="On Track"
+                value={summary.onTrack}
+                color="bg-emerald-100"
+                icon={
+                  <CheckCircle2 className="text-emerald-600" />
+                }
+              />
 
-            <div className="h-80">
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    innerRadius={70}
-                    outerRadius={110}
-                    dataKey="value"
-                  >
-                    {pieData.map(
-                      (entry, index) => (
-                        <Cell
-                          key={index}
-                          fill={
-                            entry.color
-                          }
+              <SummaryCard
+                title="Slightly Delayed"
+                value={summary.slightlyDelayed}
+                color="bg-amber-100"
+                icon={
+                  <Clock3 className="text-amber-600" />
+                }
+              />
+
+              <SummaryCard
+                title="At Risk"
+                value={summary.atRisk}
+                color="bg-red-100"
+                icon={
+                  <AlertTriangle className="text-red-600" />
+                }
+              />
+
+              <SummaryCard
+                title="Graduated"
+                value={summary.graduated}
+                color="bg-blue-100"
+                icon={
+                  <GraduationCap className="text-blue-600" />
+                }
+              />
+            </div>
+
+            {/* CHARTS */}
+            <div
+              className="
+                grid grid-cols-1
+                xl:grid-cols-2 gap-6
+              "
+            >
+              {/* PIE */}
+              <div
+                className="
+                  bg-white rounded-3xl
+                  shadow-sm border p-6
+                "
+              >
+                <h2 className="font-bold text-lg mb-6">
+                  Student Distribution
+                </h2>
+
+                <div className="h-80">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        innerRadius={70}
+                        outerRadius={110}
+                        dataKey="value"
+                      >
+                        {pieData.map(
+                          (entry, index) => (
+                            <Cell
+                              key={index}
+                              fill={entry.color}
+                            />
+                          )
+                        )}
+                      </Pie>
+
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* BAR */}
+              <div
+                className="
+                  bg-white rounded-3xl
+                  shadow-sm border p-6
+                "
+              >
+                <h2 className="font-bold text-lg mb-6">
+                  Status Analytics
+                </h2>
+
+                <div className="h-80">
+                  <ResponsiveContainer>
+                    <BarChart data={barData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+
+                      <XAxis dataKey="status" />
+
+                      <YAxis />
+
+                      <Tooltip />
+
+                      <Bar
+                        dataKey="students"
+                        radius={[10, 10, 0, 0]}
+                        fill="#7C3AED"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* TIMELINE */}
+            <TimelineSection />
+
+            {/* CQI */}
+            {cqi && (
+              <div
+                className="
+                  bg-white rounded-3xl
+                  shadow-sm border p-6
+                "
+              >
+                <h2 className="text-xl font-bold mb-2">
+                  Final Programme PLO Achievement
+                </h2>
+
+                <p
+                  className="
+                    text-sm text-gray-500 mb-6
+                  "
+                >
+                  Based on {cqi.graduates} graduate(s)
+                </p>
+
+                <div className="space-y-5">
+                  {Object.entries(
+                    cqi.plo
+                  ).map(([plo, v]) => (
+                    <div key={plo}>
+                      <div
+                        className="
+                          flex justify-between
+                          mb-2 text-sm
+                        "
+                      >
+                        <span className="font-medium">
+                          {plo}
+                        </span>
+
+                        <span>
+                          {v.percent !== null
+                            ? `${v.percent}%`
+                            : "-"}
+                        </span>
+                      </div>
+
+                      <div
+                        className="
+                          h-3 bg-gray-100
+                          rounded-full overflow-hidden
+                        "
+                      >
+                        <div
+                          className={`
+                            h-full rounded-full
+                            ${
+                              v.status === "Achieved"
+                                ? "bg-emerald-500"
+                                : v.status === "Borderline"
+                                ? "bg-amber-500"
+                                : "bg-red-500"
+                            }
+                          `}
+                          style={{
+                            width: `${v.percent || 0}%`,
+                          }}
                         />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* STUDENTS */}
+        {activeMenu === "students" && (
+          <>
+            {/* SEARCH */}
+            <div
+              className="
+                bg-white rounded-3xl
+                p-5 shadow-sm border
+                flex flex-col lg:flex-row
+                gap-4
+              "
+            >
+              <div className="relative flex-1">
+                <Search
+                  size={18}
+                  className="
+                    absolute left-4 top-4
+                    text-gray-400
+                  "
+                />
+
+                <input
+                  type="text"
+                  placeholder="Search by name or matric..."
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
+                  className="
+                    w-full pl-12 pr-4 py-4
+                    rounded-2xl border
+                  "
+                />
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(
+                    e.target.value
+                  )
+                }
+                className="p-4 rounded-2xl border"
+              >
+                <option value="ALL">
+                  All Status
+                </option>
+
+                <option value="ON_TRACK">
+                  On Track
+                </option>
+
+                <option value="SLIGHTLY_DELAYED">
+                  Slightly Delayed
+                </option>
+
+                <option value="AT_RISK">
+                  At Risk
+                </option>
+
+                <option value="GRADUATED">
+                  Graduated
+                </option>
+              </select>
+            </div>
+
+            {/* TABLE */}
+            <div
+              className="
+                bg-white rounded-3xl
+                shadow-sm border overflow-hidden
+              "
+            >
+              <div
+                className="
+                  px-6 py-5 border-b
+                  flex justify-between items-center
+                "
+              >
+                <div>
+                  <h2 className="font-bold">
+                    Student List
+                  </h2>
+
+                  <p
+                    className="
+                      text-sm text-gray-500
+                    "
+                  >
+                    {students.length} student(s)
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-auto">
+                <table className="w-full">
+                  <thead
+                    className="
+                      bg-slate-50 border-b
+                    "
+                  >
+                    <tr>
+                      <th
+                        className="
+                          text-left px-6 py-4
+                          text-xs font-bold uppercase
+                          text-gray-500
+                        "
+                      >
+                        Student
+                      </th>
+
+                      <th
+                        className="
+                          text-left px-6 py-4
+                          text-xs font-bold uppercase
+                          text-gray-500
+                        "
+                      >
+                        Matric
+                      </th>
+
+                      <th
+                        className="
+                          text-left px-6 py-4
+                          text-xs font-bold uppercase
+                          text-gray-500
+                        "
+                      >
+                        Status
+                      </th>
+
+                      <th
+                        className="
+                          text-center px-6 py-4
+                          text-xs font-bold uppercase
+                          text-gray-500
+                        "
+                      >
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {students.map(
+                      (s, index) => (
+                        <tr
+                          key={index}
+                          className="
+                            border-b hover:bg-slate-50
+                            transition
+                          "
+                        >
+                          <td className="px-6 py-5">
+                            <div
+                              className="
+                                flex items-center gap-4
+                              "
+                            >
+                              <div
+                                className="
+                                  w-11 h-11 rounded-full
+                                  bg-purple-100
+                                  flex items-center
+                                  justify-center
+                                  font-bold text-purple-700
+                                "
+                              >
+                                {s.name
+                                  ?.charAt(0)
+                                  ?.toUpperCase()}
+                              </div>
+
+                              <div className="font-semibold">
+                                {s.name}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-5">
+                            {s.matric}
+                          </td>
+
+                          <td className="px-6 py-5">
+                            <StatusBadge
+                              status={s.status}
+                            />
+                          </td>
+
+                          <td
+                            className="
+                              px-6 py-5 text-center
+                            "
+                          >
+                            <Link
+                              href={`/admin/student/${encodeURIComponent(
+                                s.email
+                                  .trim()
+                                  .toLowerCase()
+                              )}`}
+                              className="
+                                inline-flex items-center
+                                justify-center
+                                px-4 py-2 rounded-xl
+                                bg-purple-100
+                                text-purple-700
+                                hover:bg-purple-200
+                              "
+                            >
+                              View
+                            </Link>
+                          </td>
+                        </tr>
                       )
                     )}
-                  </Pie>
-
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          </>
+        )}
 
-          {/* BAR */}
+        {/* GRADUATES */}
+        {activeMenu === "graduates" && (
           <div
             className="
               bg-white rounded-3xl
-              shadow-sm border
-              p-6
+              p-6 shadow-sm border
             "
           >
-            <h2
-              className="
-                font-bold text-lg
-                mb-6
-              "
-            >
-              Status Analytics
+            <h2 className="text-2xl font-bold mb-6">
+              Graduated Students
             </h2>
 
-            <div className="h-80">
-              <ResponsiveContainer>
-                <BarChart
-                  data={barData}
+            <div className="space-y-4">
+              {graduates.map((g, i) => (
+                <div
+                  key={i}
+                  className="
+                    border rounded-2xl p-4
+                    flex items-center justify-between
+                  "
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                  />
+                  <div>
+                    <p className="font-semibold">
+                      {g.name}
+                    </p>
 
-                  <XAxis dataKey="status" />
-
-                  <YAxis />
-
-                  <Tooltip />
-
-                  <Bar
-                    dataKey="students"
-                    radius={[
-                      10, 10, 0, 0,
-                    ]}
-                    fill="#7C3AED"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* TIMELINE */}
-        <TimelineSection />
-
-        {/* CQI */}
-        {cqi && (
-          <div
-            className="
-              bg-white rounded-3xl
-              shadow-sm border p-6
-            "
-          >
-            <h2
-              className="
-                text-xl font-bold
-                mb-2
-              "
-            >
-              Final Programme PLO
-              Achievement
-            </h2>
-
-            <p
-              className="
-                text-sm text-gray-500
-                mb-6
-              "
-            >
-              Based on{" "}
-              {cqi.graduates} graduate(s)
-            </p>
-
-            <div className="space-y-5">
-              {Object.entries(
-                cqi.plo
-              ).map(([plo, v]) => (
-                <div key={plo}>
-                  <div
-                    className="
-                      flex justify-between
-                      mb-2 text-sm
-                    "
-                  >
-                    <span className="font-medium">
-                      {plo}
-                    </span>
-
-                    <span>
-                      {v.percent !== null
-                        ? `${v.percent}%`
-                        : "-"}
-                    </span>
+                    <p
+                      className="
+                        text-sm text-gray-500
+                      "
+                    >
+                      {g.matric}
+                    </p>
                   </div>
 
-                  <div
-                    className="
-                      h-3 bg-gray-100
-                      rounded-full overflow-hidden
-                    "
-                  >
-                    <div
-                      className={`
-                        h-full rounded-full
-                        ${
-                          v.status ===
-                          "Achieved"
-                            ? "bg-emerald-500"
-                            : v.status ===
-                              "Borderline"
-                            ? "bg-amber-500"
-                            : "bg-red-500"
-                        }
-                      `}
-                      style={{
-                        width: `${
-                          v.percent || 0
-                        }%`,
-                      }}
-                    />
-                  </div>
+                  <StatusBadge status="GRADUATED" />
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* SEARCH */}
-        <div
-          className="
-            bg-white rounded-3xl
-            p-5 shadow-sm border
-            flex flex-col lg:flex-row
-            gap-4
-          "
-        >
-          <div className="relative flex-1">
-            <Search
-              size={18}
-              className="
-                absolute left-4 top-4
-                text-gray-400
-              "
-            />
+        {/* MILESTONES */}
+        {activeMenu === "milestones" && (
+          <TimelineSection />
+        )}
 
-            <input
-              type="text"
-              placeholder="Search by name or matric..."
-              value={search}
-              onChange={(e) =>
-                setSearch(
-                  e.target.value
-                )
-              }
-              className="
-                w-full pl-12 pr-4 py-4
-                rounded-2xl border
-                focus:outline-none
-                focus:ring-2
-                focus:ring-purple-500
-              "
-            />
-          </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(
-                e.target.value
-              )
-            }
-            className="
-              p-4 rounded-2xl border
-              focus:outline-none
-              focus:ring-2
-              focus:ring-purple-500
-            "
-          >
-            <option value="ALL">
-              All Status
-            </option>
-
-            <option value="ON_TRACK">
-              On Track
-            </option>
-
-            <option value="SLIGHTLY_DELAYED">
-              Slightly Delayed
-            </option>
-
-            <option value="AT_RISK">
-              At Risk
-            </option>
-
-            <option value="GRADUATED">
-              Graduated
-            </option>
-          </select>
-        </div>
-
-        {/* TABLE */}
-        <div
-          className="
-            bg-white rounded-3xl
-            shadow-sm border
-            overflow-hidden
-          "
-        >
+        {/* REPORTS */}
+        {activeMenu === "reports" && (
           <div
             className="
-              px-6 py-5 border-b
-              flex justify-between
-              items-center
+              bg-white rounded-3xl
+              p-6 shadow-sm border
             "
           >
-            <div>
-              <h2 className="font-bold">
-                Student List
-              </h2>
+            <h2 className="text-2xl font-bold mb-6">
+              Reports & Analytics
+            </h2>
 
-              <p
-                className="
-                  text-sm text-gray-500
-                "
-              >
-                {students.length} student(s)
-              </p>
+            <div
+              className="
+                grid grid-cols-1
+                md:grid-cols-3 gap-5
+              "
+            >
+              <SummaryCard
+                title="Total Students"
+                value={students.length}
+                color="bg-blue-100"
+                icon={
+                  <Users className="text-blue-600" />
+                }
+              />
+
+              <SummaryCard
+                title="Graduates"
+                value={graduates.length}
+                color="bg-green-100"
+                icon={
+                  <GraduationCap className="text-green-600" />
+                }
+              />
+
+              <SummaryCard
+                title="At Risk"
+                value={summary.atRisk}
+                color="bg-red-100"
+                icon={
+                  <AlertTriangle className="text-red-600" />
+                }
+              />
             </div>
           </div>
-
-          <div className="overflow-auto">
-            <table className="w-full">
-              <thead
-                className="
-                  bg-slate-50 border-b
-                "
-              >
-                <tr>
-                  <th
-                    className="
-                      text-left px-6 py-4
-                      text-xs font-bold
-                      uppercase text-gray-500
-                    "
-                  >
-                    Student
-                  </th>
-
-                  <th
-                    className="
-                      text-left px-6 py-4
-                      text-xs font-bold
-                      uppercase text-gray-500
-                    "
-                  >
-                    Matric
-                  </th>
-
-                  <th
-                    className="
-                      text-left px-6 py-4
-                      text-xs font-bold
-                      uppercase text-gray-500
-                    "
-                  >
-                    Status
-                  </th>
-
-                  <th
-                    className="
-                      text-center px-6 py-4
-                      text-xs font-bold
-                      uppercase text-gray-500
-                    "
-                  >
-                    Action
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {students.map(
-                  (s, index) => (
-                    <tr
-                      key={index}
-                      className="
-                        border-b hover:bg-slate-50
-                        transition
-                      "
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div
-                            className="
-                              w-11 h-11 rounded-full
-                              bg-purple-100
-                              flex items-center
-                              justify-center
-                              font-bold
-                              text-purple-700
-                            "
-                          >
-                            {s.name
-                              ?.charAt(0)
-                              ?.toUpperCase()}
-                          </div>
-
-                          <div>
-                            <div className="font-semibold">
-                              {s.name}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-5">
-                        {s.matric}
-                      </td>
-
-                      <td className="px-6 py-5">
-                        <StatusBadge
-                          status={s.status}
-                        />
-                      </td>
-
-                      <td
-                        className="
-                          px-6 py-5 text-center
-                        "
-                      >
-                        <Link
-                          href={`/admin/student/${encodeURIComponent(
-                            s.email
-                              .trim()
-                              .toLowerCase()
-                          )}`}
-                          className="
-                            inline-flex items-center
-                            justify-center
-                            px-4 py-2 rounded-xl
-                            bg-purple-100
-                            text-purple-700
-                            hover:bg-purple-200
-                            transition font-medium
-                          "
-                        >
-                          View
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                )}
-
-                {!students.length && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="
-                        text-center py-10
-                        text-gray-500
-                      "
-                    >
-                      No students found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        )}
 
         {loading && (
           <div className="text-center">
@@ -1220,37 +1236,5 @@ export default function AdminDashboard() {
         )}
       </main>
     </div>
-  );
-}
-
-/* ==========================================
-   SIDEBAR ITEM
-========================================== */
-function SidebarItem({
-  icon,
-  label,
-  active = false,
-  onClick,
-}) {
-  return (
-    <button
-      onClick={onClick}
-
-      className={`
-        w-full flex items-center
-        gap-3 px-4 py-3 rounded-2xl
-        transition font-medium
-
-        ${
-          active
-            ? "bg-purple-600 text-white shadow-lg"
-
-            : "text-slate-300 hover:bg-slate-700"
-        }
-      `}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
