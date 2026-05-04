@@ -146,189 +146,167 @@ export default function AdminStudentPage() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-gray-50 p-4 space-y-6">
+  <div className="min-h-screen bg-gray-50 flex">
 
-      {/* BACK */}
-      <button
-        onClick={() => {
-          if (window.history.length > 1) router.back();
-          else router.push("/admin");
-        }}
-        className="text-red-600 text-sm"
-      >
-        ← Back
-      </button>
+    {/* SIDEBAR */}
+    <div className="w-60 bg-white border-r p-5 space-y-6">
+      <h2 className="font-bold text-lg text-purple-600">PPBMS</h2>
 
-      {/* HERO */}
-      <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-6 rounded-2xl">
-        <h1 className="text-xl font-bold">{student.student_name}</h1>
-        <p>{student.programme}</p>
-
-        <div className="mt-3 flex justify-between">
-          <span className="text-2xl font-bold">{progress}%</span>
-          <span className="bg-white/20 px-3 py-1 rounded-full text-xs">
-            {risk}
-          </span>
-        </div>
-      </div>
-
-      {/* TABS */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="space-y-2">
         {["overview","documents","timeline","cqi","remarks"].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-full text-sm ${
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
               activeTab === tab
-                ? "bg-red-600 text-white"
-                : "bg-red-100 text-red-700"
+                ? "bg-purple-600 text-white"
+                : "text-gray-600 hover:bg-gray-100"
             }`}
           >
-            {tab}
+            {tab.toUpperCase()}
           </button>
         ))}
       </div>
+    </div>
 
-      {/* CONTENT */}
+    {/* MAIN */}
+    <div className="flex-1 p-6 space-y-6">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">Student Overview</h1>
+
+        <button
+          onClick={exportPDF}
+          className="bg-purple-600 text-white px-4 py-2 rounded-lg"
+        >
+          Export PDF
+        </button>
+      </div>
+
+      {/* HERO */}
+      <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-2xl flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold">{student.student_name}</h2>
+          <p className="text-sm">{student.programme}</p>
+          <p className="text-3xl font-bold mt-2">{progress}%</p>
+        </div>
+
+        <span className="bg-white/20 px-4 py-2 rounded-full text-sm">
+          {risk}
+        </span>
+      </div>
+
+      {/* KPI CARDS */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <p className="text-gray-500 text-sm">Completed</p>
+          <p className="text-2xl font-bold text-green-600">{completed}</p>
+        </Card>
+
+        <Card>
+          <p className="text-gray-500 text-sm">Due Soon</p>
+          <p className="text-2xl font-bold text-orange-500">{soon}</p>
+        </Card>
+
+        <Card>
+          <p className="text-gray-500 text-sm">Late</p>
+          <p className="text-2xl font-bold text-red-600">{late}</p>
+        </Card>
+      </div>
+
+      {/* OVERVIEW */}
       {activeTab === "overview" && (
-        <div className="space-y-4">
-          <Card>
+        <Card>
+          <div className="grid md:grid-cols-2 gap-4 text-sm">
             <p><b>Email:</b> {student.email}</p>
             <p><b>Matric:</b> {student.student_id}</p>
             <p><b>Supervisor:</b> {student.supervisor}</p>
             <p><b>Co-Supervisor:</b> {coSupervisor}</p>
-          </Card>
-
-          <div className="grid grid-cols-3 gap-2">
-            <Card><p>Completed<br/><b>{completed}</b></p></Card>
-            <Card><p>Due Soon<br/><b>{soon}</b></p></Card>
-            <Card><p>Late<br/><b className="text-red-600">{late}</b></p></Card>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* TIMELINE */}
       {activeTab === "timeline" && (
-        <div className="space-y-3">
-          {timeline.map((t, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className={`p-4 rounded-xl border ${
-                t.status === "Late"
-                  ? "bg-red-50 border-red-300"
-                  : t.status === "Due Soon"
-                  ? "bg-orange-50 border-orange-300"
-                  : t.status === "Completed"
-                  ? "bg-green-50 border-green-300"
-                  : "bg-white"
-              }`}
-            >
-              <p className="font-semibold">{t.activity}</p>
+        <Card>
+          <h3 className="font-semibold mb-4">Milestone Timeline</h3>
 
-              <div className="flex justify-between mt-1">
+          <div className="space-y-3">
+            {timeline.map((t, i) => (
+              <div
+                key={i}
+                className={`p-4 rounded-xl border ${
+                  t.status === "Late"
+                    ? "bg-red-50 border-red-300"
+                    : t.status === "Due Soon"
+                    ? "bg-orange-50 border-orange-300"
+                    : t.status === "Completed"
+                    ? "bg-green-50 border-green-300"
+                    : "bg-white"
+                }`}
+              >
+                <div className="flex justify-between">
+                  <p className="font-semibold">{t.activity}</p>
 
-                <span className="text-xs text-gray-500">
-                  {t.expected} → {t.actual || "-"}
-                </span>
-
-                {t.status !== "Completed" && (
-                  <span
-                    className={`text-xs font-semibold ${
-                      t.remaining_days < 0
-                        ? "text-red-600"
-                        : t.remaining_days <= 30
-                        ? "text-orange-500"
-                        : "text-blue-600"
-                    }`}
-                  >
-                    {t.remaining_days} days
+                  <span className="text-xs">
+                    {t.remaining_days !== undefined &&
+                      `${t.remaining_days} days`}
                   </span>
-                )}
+                </div>
 
+                <p className="text-xs text-gray-500 mt-1">
+                  {t.expected} → {t.actual || "-"}
+                </p>
               </div>
-            </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* DOCUMENTS */}
       {activeTab === "documents" && (
-        <SupervisorChecklist documents={student.documents || {}} />
+        <Card>
+          <h3 className="font-semibold mb-4">Submitted Documents</h3>
+          <SupervisorChecklist documents={student.documents || {}} />
+        </Card>
       )}
 
       {/* CQI */}
       {activeTab === "cqi" && (
-        <FinalPLOTable finalPLO={student.finalPLO} />
+        <Card>
+          <h3 className="font-semibold mb-4">CQI Analysis</h3>
+          <FinalPLOTable finalPLO={student.finalPLO} />
+        </Card>
       )}
 
       {/* REMARKS */}
       {activeTab === "remarks" && (
+        <Card>
+          <h3 className="font-semibold mb-4">Supervisor Remarks</h3>
 
-  <Card>
+          {student.remarks?.length ? (
+            <div className="space-y-3">
+              {student.remarks.map((r, i) => (
+                <div key={i} className="bg-gray-50 p-3 rounded-lg border">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{r.supervisor}</span>
+                    <span>{r.date}</span>
+                  </div>
 
-    <h2 className="text-lg font-bold mb-4">
-      Supervisor Remarks
-    </h2>
-
-    {student.remarks?.length ? (
-
-      <div className="space-y-4">
-
-        {student.remarks.map(
-          (r, i) => (
-
-            <div
-              key={i}
-              className="
-                border rounded-xl
-                p-4 bg-gray-50
-              "
-            >
-
-              <div className="
-                flex justify-between
-                mb-2
-              ">
-
-                <p className="font-semibold">
-                  {r.supervisor ||
-                    "Supervisor"}
-                </p>
-
-                <span className="
-                  text-xs text-gray-500
-                ">
-                  {r.date || "-"}
-                </span>
-
-              </div>
-
-              <p className="text-gray-700">
-                {r.remark ||
-                  r.comment ||
-                  "-"}
-              </p>
-
+                  <p className="mt-1">{r.remark || r.comment}</p>
+                </div>
+              ))}
             </div>
-          )
-        )}
+          ) : (
+            <p className="text-gray-500 text-sm">No remarks</p>
+          )}
+        </Card>
+      )}
 
-      </div>
-
-    ) : (
-
-      <div className="
-        text-gray-500 text-sm
-      ">
-        No remarks available
-      </div>
-
-    )}
-
-  </Card>
-)}
+    </div>
+  </div>
+);
 
       {/* EXPORT */}
       <button
