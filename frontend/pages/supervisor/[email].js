@@ -21,10 +21,12 @@ export default function SupervisorStudentPage() {
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [remarks, setRemarks] = useState([]); // ✅ FIX
-  const [finalPLO, setFinalPLO] = useState({}); // ✅ FIX
-  const [activeTab, setActiveTab] = useState("overview");
+  const [remarks, setRemarks] = useState([]);
+  const [finalPLO, setFinalPLO] = useState({});
+  const [activeTab, setActiveTab] = useState("timeline"); // ✅ better default
   const [loading, setLoading] = useState(true);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ mobile fix
 
   useEffect(() => {
     if (!email) return;
@@ -48,8 +50,10 @@ export default function SupervisorStudentPage() {
 
       setStudent(row);
       setTimeline(row.timeline || []);
-      setRemarks(row.remarksByAssessment || []); // ✅ IMPORTANT
+      setRemarks(row.remarksByAssessment || []);
       setFinalPLO(row.finalPLO || {});
+
+      console.log("TIMELINE:", row.timeline); // 🔍 debug
     } catch (err) {
       console.error("LOAD ERROR:", err);
       setStudent(null);
@@ -61,10 +65,18 @@ export default function SupervisorStudentPage() {
   if (loading) return <div className="p-6">Loading...</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
-  /* ================= CALCULATIONS ================= */
-  const completed = timeline.filter(t => t.status === "Completed").length;
-  const late = timeline.filter(t => t.status === "Late").length;
-  const soon = timeline.filter(t => t.status === "Due Soon").length;
+  /* ================= CALCULATIONS (FIXED) ================= */
+  const completed = timeline.filter(
+    t => t.status?.toLowerCase() === "completed"
+  ).length;
+
+  const late = timeline.filter(
+    t => t.status?.toLowerCase() === "late"
+  ).length;
+
+  const soon = timeline.filter(
+    t => t.status?.toLowerCase().includes("soon")
+  ).length;
 
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
@@ -104,14 +116,35 @@ export default function SupervisorStudentPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
 
+      {/* MOBILE OVERLAY */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
-      <div className="hidden md:block w-60 bg-gradient-to-b from-indigo-900 to-purple-800 text-white p-6 space-y-6">
+      <div
+        className={`
+          fixed md:static z-50
+          w-60 h-full
+          bg-gradient-to-b from-indigo-900 to-purple-800
+          text-white p-6 space-y-6
+          transform transition
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0
+        `}
+      >
         <h2 className="font-bold text-xl">PPBMS</h2>
 
         {["overview","timeline","documents","cqi","remarks"].map(tab => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => {
+              setActiveTab(tab);
+              setSidebarOpen(false); // close on mobile
+            }}
             className={`block w-full text-left px-3 py-2 rounded-lg ${
               activeTab === tab
                 ? "bg-white text-purple-700"
@@ -128,9 +161,19 @@ export default function SupervisorStudentPage() {
 
         {/* HEADER */}
         <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">
-            Student Monitoring Dashboard
-          </h1>
+          <div className="flex items-center gap-3">
+            {/* MOBILE MENU BUTTON */}
+            <button
+              className="md:hidden bg-white p-2 rounded shadow"
+              onClick={() => setSidebarOpen(true)}
+            >
+              ☰
+            </button>
+
+            <h1 className="text-xl font-bold">
+              Student Monitoring Dashboard
+            </h1>
+          </div>
 
           <button
             onClick={exportPDF}
@@ -156,13 +199,7 @@ export default function SupervisorStudentPage() {
             </div>
           </div>
 
-          <span className={`px-4 py-2 rounded-full text-xs font-bold ${
-            risk === "HIGH RISK"
-              ? "bg-red-500"
-              : risk === "MODERATE RISK"
-              ? "bg-orange-400"
-              : "bg-green-500"
-          }`}>
+          <span className="px-4 py-2 rounded-full text-xs font-bold bg-white/20">
             {risk}
           </span>
         </div>
@@ -190,6 +227,8 @@ export default function SupervisorStudentPage() {
           <Card>
             <p><b>Email:</b> {student.email}</p>
             <p><b>Matric:</b> {student.student_id}</p>
+            <p><b>Programme:</b> {student.programme}</p>
+            <p><b>Field:</b> {student.field || "-"}</p> {/* ✅ FIX */}
             <p><b>Supervisor:</b> {student.supervisor}</p>
             <p><b>Co-Supervisor:</b> {coSupervisor}</p>
           </Card>
@@ -199,6 +238,12 @@ export default function SupervisorStudentPage() {
         {activeTab === "timeline" && (
           <Card>
             <h3 className="font-bold mb-4">Milestone Timeline</h3>
+
+            {!timeline.length && (
+              <div className="text-gray-400 text-center">
+                No timeline data
+              </div>
+            )}
 
             <div className="space-y-4">
               {timeline.map((t, i) => (
@@ -215,9 +260,9 @@ export default function SupervisorStudentPage() {
                   </p>
 
                   <span className={`text-xs font-bold ${
-                    t.status === "Late"
+                    t.status?.toLowerCase() === "late"
                       ? "text-red-600"
-                      : t.status === "Due Soon"
+                      : t.status?.toLowerCase().includes("soon")
                       ? "text-orange-500"
                       : "text-green-600"
                   }`}>
@@ -257,36 +302,25 @@ export default function SupervisorStudentPage() {
             )}
 
             <div className="space-y-5">
-              {remarks.map((r, i) => {
+              {remarks.map((r, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-white border rounded-2xl p-5 shadow-sm"
+                >
+                  <h4 className="text-purple-600 font-semibold">
+                    {r.assessmentType || r.assessmentInstance || "Assessment"}
+                  </h4>
 
-                const type =
-                  r.assessmentType ||
-                  r.assessmentInstance ||
-                  "Assessment";
-
-                const remark =
-                  r.remark || "-";
-
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white border rounded-2xl p-5 shadow-sm"
-                  >
-                    <h4 className="text-purple-600 font-semibold">
-                      {type}
-                    </h4>
-
-                    <div className="bg-gray-50 border rounded-xl p-4 mt-3">
-                      <p className="text-gray-700 whitespace-pre-wrap">
-                        {remark}
-                      </p>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                  <div className="bg-gray-50 border rounded-xl p-4 mt-3">
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {r.remark || "-"}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </Card>
         )}
