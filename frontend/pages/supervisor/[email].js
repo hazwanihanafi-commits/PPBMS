@@ -137,7 +137,7 @@ export default function Page({ params }) {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          studentEmail: params.email,
+          studentEmail: student.email,
           document_key: doc.name,
           status,
           feedback: doc.feedback || ""
@@ -163,7 +163,7 @@ export default function Page({ params }) {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          studentEmail: params.email,
+          studentEmail: student.email,
           assessmentType: newRemark.type || "GENERAL",
           assessmentInstance: newRemark.instance || "",
           remark: newRemark.text
