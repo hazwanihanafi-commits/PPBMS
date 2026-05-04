@@ -40,7 +40,7 @@ export default function Page() {
 
     const load = async () => {
       try {
-        const url = `${API_BASE}/supervisor/${encodeURIComponent(email)}`;
+        const url = `${API_BASE}/api/supervisor/${encodeURIComponent(email)}`;
 
         console.log("CALL API:", url);
 
