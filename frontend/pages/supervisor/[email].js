@@ -1,6 +1,6 @@
 // ==========================================
 // frontend/pages/supervisor/[email].jsx
-// FINAL MODERN SUPERVISOR STUDENT DASHBOARD
+// FINAL WORKING VERSION
 // ==========================================
 
 import { useEffect, useState } from "react";
@@ -38,13 +38,7 @@ import {
 ========================================== */
 function Card({ children }) {
   return (
-    <div
-      className="
-        bg-white rounded-3xl
-        border border-gray-100
-        shadow-sm p-6
-      "
-    >
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
       {children}
     </div>
   );
@@ -60,25 +54,14 @@ function SummaryCard({
   color,
 }) {
   return (
-    <div
-      className="
-        bg-white rounded-3xl
-        border border-gray-100
-        shadow-sm p-5
-      "
-    >
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
       <div className="flex justify-between">
         <div>
           <p className="text-sm text-gray-500">
             {title}
           </p>
 
-          <h2
-            className="
-              text-4xl font-bold
-              mt-2
-            "
-          >
+          <h2 className="text-4xl font-bold mt-2">
             {value}
           </h2>
         </div>
@@ -136,18 +119,8 @@ function InfoItem({
   value,
 }) {
   return (
-    <div
-      className="
-        bg-slate-50 rounded-2xl
-        p-4 border
-      "
-    >
-      <p
-        className="
-          text-xs text-gray-500
-          mb-1
-        "
-      >
+    <div className="bg-slate-50 rounded-2xl p-4 border">
+      <p className="text-xs text-gray-500 mb-1">
         {label}
       </p>
 
@@ -219,24 +192,41 @@ export default function SupervisorStudentPage() {
         data.student ||
         data;
 
+      console.log(
+        "studentData",
+        studentData
+      );
+
       setStudent(studentData);
 
       setTimeline(
-        studentData.timeline || []
+        Array.isArray(
+          studentData.timeline
+        )
+          ? studentData.timeline
+          : []
       );
 
       setDocuments(
-        studentData.documents || []
+        Array.isArray(
+          studentData.documents
+        )
+          ? studentData.documents
+          : []
       );
 
       setRemarks(
-        studentData.remarks || []
+        Array.isArray(
+          studentData.remarks
+        )
+          ? studentData.remarks
+          : []
       );
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   /* ==========================================
@@ -262,7 +252,9 @@ export default function SupervisorStudentPage() {
      DATA
   ========================================== */
   const completed = (
-    timeline || []
+    Array.isArray(timeline)
+      ? timeline
+      : []
   ).filter(
     (t) =>
       t.status
@@ -271,7 +263,9 @@ export default function SupervisorStudentPage() {
   ).length;
 
   const delayed = (
-    timeline || []
+    Array.isArray(timeline)
+      ? timeline
+      : []
   ).filter(
     (t) =>
       t.status
@@ -280,7 +274,9 @@ export default function SupervisorStudentPage() {
   ).length;
 
   const atRisk = (
-    timeline || []
+    Array.isArray(timeline)
+      ? timeline
+      : []
   ).filter(
     (t) =>
       t.status
@@ -349,24 +345,14 @@ export default function SupervisorStudentPage() {
   ];
 
   /* ==========================================
-     UI
+     RETURN
   ========================================== */
   return (
-    <div
-      className="
-        min-h-screen flex
-        bg-slate-100
-      "
-    >
+    <div className="min-h-screen flex bg-slate-100">
+
       {/* SIDEBAR */}
-      <aside
-        className="
-          w-72 bg-gradient-to-b
-          from-slate-900 to-slate-800
-          text-white p-6
-          hidden lg:flex flex-col
-        "
-      >
+      <aside className="w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white p-6 hidden lg:flex flex-col">
+
         <div className="mb-10">
           <h1 className="text-3xl font-bold">
             PPBMS
@@ -397,7 +383,7 @@ export default function SupervisorStudentPage() {
 
           <SidebarItem
             icon={<BarChart3 size={18} />}
-            label="My Progress"
+            label="Progress"
             active={
               activeMenu ===
               "progress"
@@ -460,45 +446,30 @@ export default function SupervisorStudentPage() {
             onClick={() =>
               router.back()
             }
-            className="
-              w-full flex items-center
-              gap-3 bg-white/10
-              hover:bg-white/20
-              transition p-3 rounded-2xl
-            "
+            className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition p-3 rounded-2xl"
           >
             <ArrowLeft size={18} />
             Back
           </button>
         </div>
+
       </aside>
 
       {/* MAIN */}
-      <main
-        className="
-          flex-1 p-6 lg:p-8
-          space-y-6 overflow-auto
-        "
-      >
+      <main className="flex-1 p-6 lg:p-8 space-y-6 overflow-auto">
 
         {/* HEADER */}
-        <div
-          className="
-            bg-gradient-to-r
-            from-purple-600 to-indigo-600
-            rounded-3xl
-            px-8 py-8 text-white
-          "
-        >
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl px-8 py-8 text-white">
+
           <h1 className="text-4xl font-bold">
             Student Monitoring Dashboard
           </h1>
 
           <p className="mt-2 text-purple-100">
             Track postgraduate progress,
-            milestones and supervision
-            analytics
+            milestones and supervision analytics
           </p>
+
         </div>
 
         {/* DASHBOARD */}
@@ -506,21 +477,14 @@ export default function SupervisorStudentPage() {
           <>
 
             {/* SUMMARY */}
-            <div
-              className="
-                grid grid-cols-1
-                md:grid-cols-2
-                xl:grid-cols-4 gap-5
-              "
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+
               <SummaryCard
                 title="Completed"
                 value={`${completed}/${timeline.length}`}
                 color="bg-green-100"
                 icon={
-                  <CheckCircle2
-                    className="text-green-600"
-                  />
+                  <CheckCircle2 className="text-green-600" />
                 }
               />
 
@@ -529,9 +493,7 @@ export default function SupervisorStudentPage() {
                 value={`${progress}%`}
                 color="bg-blue-100"
                 icon={
-                  <GraduationCap
-                    className="text-blue-600"
-                  />
+                  <GraduationCap className="text-blue-600" />
                 }
               />
 
@@ -540,9 +502,7 @@ export default function SupervisorStudentPage() {
                 value={delayed}
                 color="bg-orange-100"
                 icon={
-                  <Clock3
-                    className="text-orange-600"
-                  />
+                  <Clock3 className="text-orange-600" />
                 }
               />
 
@@ -551,20 +511,14 @@ export default function SupervisorStudentPage() {
                 value={risk}
                 color="bg-red-100"
                 icon={
-                  <AlertTriangle
-                    className="text-red-600"
-                  />
+                  <AlertTriangle className="text-red-600" />
                 }
               />
+
             </div>
 
             {/* CHARTS */}
-            <div
-              className="
-                grid grid-cols-1
-                xl:grid-cols-2 gap-6
-              "
-            >
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
               {/* PIE */}
               <Card>
@@ -574,7 +528,9 @@ export default function SupervisorStudentPage() {
                 </h3>
 
                 <div className="h-80">
+
                   <ResponsiveContainer>
+
                     <PieChart>
 
                       <Pie
@@ -601,7 +557,9 @@ export default function SupervisorStudentPage() {
                       <Tooltip />
 
                     </PieChart>
+
                   </ResponsiveContainer>
+
                 </div>
 
               </Card>
@@ -614,6 +572,7 @@ export default function SupervisorStudentPage() {
                 </h3>
 
                 <div className="h-80">
+
                   <ResponsiveContainer>
 
                     <BarChart
@@ -641,31 +600,21 @@ export default function SupervisorStudentPage() {
                     </BarChart>
 
                   </ResponsiveContainer>
+
                 </div>
 
               </Card>
 
             </div>
 
-            {/* STUDENT INFO */}
+            {/* INFO */}
             <Card>
 
-              <h3
-                className="
-                  text-2xl font-bold
-                  mb-6
-                "
-              >
+              <h3 className="text-2xl font-bold mb-6">
                 Student Information
               </h3>
 
-              <div
-                className="
-                  grid grid-cols-1
-                  md:grid-cols-2
-                  xl:grid-cols-4 gap-4
-                "
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
                 <InfoItem
                   label="Name"
@@ -704,30 +653,18 @@ export default function SupervisorStudentPage() {
 
           <Card>
 
-            <h3
-              className="
-                text-2xl font-bold
-                mb-6
-              "
-            >
+            <h3 className="text-2xl font-bold mb-6">
               Progress Summary
             </h3>
 
-            <div
-              className="
-                grid grid-cols-1
-                md:grid-cols-3 gap-5
-              "
-            >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
               <SummaryCard
                 title="Completed"
                 value={completed}
                 color="bg-green-100"
                 icon={
-                  <CheckCircle2
-                    className="text-green-600"
-                  />
+                  <CheckCircle2 className="text-green-600" />
                 }
               />
 
@@ -736,9 +673,7 @@ export default function SupervisorStudentPage() {
                 value={delayed}
                 color="bg-orange-100"
                 icon={
-                  <Clock3
-                    className="text-orange-600"
-                  />
+                  <Clock3 className="text-orange-600" />
                 }
               />
 
@@ -747,9 +682,7 @@ export default function SupervisorStudentPage() {
                 value={atRisk}
                 color="bg-red-100"
                 icon={
-                  <AlertTriangle
-                    className="text-red-600"
-                  />
+                  <AlertTriangle className="text-red-600" />
                 }
               />
 
@@ -763,95 +696,73 @@ export default function SupervisorStudentPage() {
 
           <Card>
 
-            <h3
-              className="
-                text-2xl font-bold
-                mb-8
-              "
-            >
+            <h3 className="text-2xl font-bold mb-8">
               Milestone Timeline
             </h3>
 
             <div className="flex justify-between">
 
-              {(timeline || []).map(
-                (t, i) => {
+              {(Array.isArray(timeline)
+                ? timeline
+                : []
+              ).map((t, i) => {
 
-                  const done =
-                    t.status
-                      ?.toLowerCase()
-                      .trim() ===
-                    "completed";
+                const done =
+                  t.status
+                    ?.toLowerCase()
+                    .trim() ===
+                  "completed";
 
-                  const soon =
-                    t.status
-                      ?.toLowerCase()
-                      .trim() ===
-                    "due soon";
+                const soon =
+                  t.status
+                    ?.toLowerCase()
+                    .trim() ===
+                  "due soon";
 
-                  return (
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 flex flex-col items-center relative"
+                  >
+
+                    {i !==
+                      timeline.length -
+                        1 && (
+                      <div className="absolute top-4 left-1/2 w-full h-1 bg-gray-300" />
+                    )}
+
                     <div
-                      key={i}
-                      className="
-                        flex-1 flex flex-col
-                        items-center relative
-                      "
+                      className={`
+                        w-8 h-8 rounded-full
+                        z-10 relative
+                        flex items-center
+                        justify-center text-white
+
+                        ${
+                          done
+                            ? "bg-green-500"
+
+                            : soon
+                            ? "bg-orange-500"
+
+                            : "bg-gray-400"
+                        }
+                      `}
                     >
-
-                      {i !==
-                        timeline.length -
-                          1 && (
-                        <div
-                          className="
-                            absolute top-4 left-1/2
-                            w-full h-1 bg-gray-300
-                          "
-                        />
-                      )}
-
-                      <div
-                        className={`
-                          w-8 h-8 rounded-full
-                          z-10 relative
-                          flex items-center
-                          justify-center text-white
-
-                          ${
-                            done
-                              ? "bg-green-500"
-
-                              : soon
-                              ? "bg-orange-500"
-
-                              : "bg-gray-400"
-                          }
-                        `}
-                      >
-                        ✓
-                      </div>
-
-                      <p
-                        className="
-                          text-xs text-center
-                          mt-3 font-medium
-                        "
-                      >
-                        {t.activity}
-                      </p>
-
-                      <span
-                        className="
-                          text-[10px]
-                          text-gray-500
-                        "
-                      >
-                        {t.status}
-                      </span>
-
+                      ✓
                     </div>
-                  );
-                }
-              )}
+
+                    <p className="text-xs text-center mt-3 font-medium">
+                      {t.activity}
+                    </p>
+
+                    <span className="text-[10px] text-gray-500">
+                      {t.status}
+                    </span>
+
+                  </div>
+                );
+              })}
 
             </div>
 
@@ -863,12 +774,7 @@ export default function SupervisorStudentPage() {
 
           <Card>
 
-            <h3
-              className="
-                text-2xl font-bold
-                mb-6
-              "
-            >
+            <h3 className="text-2xl font-bold mb-6">
               Uploaded Documents
             </h3>
 
@@ -880,54 +786,43 @@ export default function SupervisorStudentPage() {
 
             <div className="space-y-4">
 
-              {documents.map(
-                (doc, i) => (
+              {(Array.isArray(documents)
+                ? documents
+                : []
+              ).map((doc, i) => (
 
-                  <div
-                    key={i}
-                    className="
-                      border rounded-2xl
-                      p-4 flex items-center
-                      justify-between
-                    "
-                  >
+                <div
+                  key={i}
+                  className="border rounded-2xl p-4 flex items-center justify-between"
+                >
 
-                    <div>
+                  <div>
 
-                      <p className="font-semibold">
-                        {doc.name ||
-                          doc.filename ||
-                          "Document"}
-                      </p>
+                    <p className="font-semibold">
+                      {doc.name ||
+                        doc.filename ||
+                        "Document"}
+                    </p>
 
-                      <p
-                        className="
-                          text-sm text-gray-500
-                        "
-                      >
-                        {doc.date || "-"}
-                      </p>
-
-                    </div>
-
-                    {doc.url && (
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="
-                          px-4 py-2 rounded-xl
-                          bg-purple-100
-                          text-purple-700
-                        "
-                      >
-                        View
-                      </a>
-                    )}
+                    <p className="text-sm text-gray-500">
+                      {doc.date || "-"}
+                    </p>
 
                   </div>
-                )
-              )}
+
+                  {doc.url && (
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 rounded-xl bg-purple-100 text-purple-700"
+                    >
+                      View
+                    </a>
+                  )}
+
+                </div>
+              ))}
 
             </div>
 
@@ -939,12 +834,7 @@ export default function SupervisorStudentPage() {
 
           <Card>
 
-            <h3
-              className="
-                text-2xl font-bold
-                mb-6
-              "
-            >
+            <h3 className="text-2xl font-bold mb-6">
               Supervisor Remarks
             </h3>
 
@@ -956,48 +846,37 @@ export default function SupervisorStudentPage() {
 
             <div className="space-y-4">
 
-              {remarks.map(
-                (r, i) => (
+              {(Array.isArray(remarks)
+                ? remarks
+                : []
+              ).map((r, i) => (
 
-                  <div
-                    key={i}
-                    className="
-                      border rounded-2xl
-                      p-5
-                    "
-                  >
+                <div
+                  key={i}
+                  className="border rounded-2xl p-5"
+                >
 
-                    <div
-                      className="
-                        flex justify-between
-                        mb-2
-                      "
-                    >
+                  <div className="flex justify-between mb-2">
 
-                      <p className="font-semibold">
-                        {r.supervisor ||
-                          "Supervisor"}
-                      </p>
-
-                      <span
-                        className="
-                          text-sm text-gray-500
-                        "
-                      >
-                        {r.date || "-"}
-                      </span>
-
-                    </div>
-
-                    <p className="text-gray-700">
-                      {r.remark ||
-                        r.comment ||
-                        "-"}
+                    <p className="font-semibold">
+                      {r.supervisor ||
+                        "Supervisor"}
                     </p>
 
+                    <span className="text-sm text-gray-500">
+                      {r.date || "-"}
+                    </span>
+
                   </div>
-                )
-              )}
+
+                  <p className="text-gray-700">
+                    {r.remark ||
+                      r.comment ||
+                      "-"}
+                  </p>
+
+                </div>
+              ))}
 
             </div>
 
@@ -1005,6 +884,7 @@ export default function SupervisorStudentPage() {
         )}
 
       </main>
+
     </div>
   );
 }
