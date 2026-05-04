@@ -1,44 +1,23 @@
 // ==========================================
-// FINAL PPBMS ADMIN DASHBOARD (FIXED)
+// FINAL PPBMS ADMIN DASHBOARD (FULL CLEAN)
 // ==========================================
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-
-import {
-  LayoutDashboard,
-  Users,
-  GraduationCap,
-  AlertTriangle,
-  Clock3,
-  CheckCircle2,
-  Search,
-  Bell,
-  LogOut,
-  FileBarChart2,
-  ClipboardList,
-  BookOpen,
-} from "lucide-react";
-
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
-
 import { apiGet } from "@/utils/api";
 
-/* ==========================================
-   STATUS BADGE (SYNC WITH SUPERVISOR)
-========================================== */
+/* ================= CARD ================= */
+function Card({ title, value, color }) {
+  return (
+    <div className={`p-5 rounded-2xl shadow-sm ${color}`}>
+      <p className="text-sm text-gray-600">{title}</p>
+      <p className="text-3xl font-bold mt-2">{value}</p>
+    </div>
+  );
+}
+
+/* ================= STATUS BADGE ================= */
 function StatusBadge({ status }) {
   const s = status?.toUpperCase();
 
@@ -56,9 +35,7 @@ function StatusBadge({ status }) {
   );
 }
 
-/* ==========================================
-   PAGE
-========================================== */
+/* ================= PAGE ================= */
 export default function AdminDashboard() {
   const router = useRouter();
 
@@ -76,9 +53,7 @@ export default function AdminDashboard() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  /* ==========================================
-     AUTH
-  ========================================== */
+  /* ================= AUTH ================= */
   useEffect(() => {
     if (!router.isReady) return;
 
@@ -94,9 +69,7 @@ export default function AdminDashboard() {
     setChecked(true);
   }, [router.isReady]);
 
-  /* ==========================================
-     LOAD PROGRAMMES
-  ========================================== */
+  /* ================= LOAD PROGRAMMES ================= */
   useEffect(() => {
     if (!checked) return;
 
@@ -105,9 +78,7 @@ export default function AdminDashboard() {
       .catch(() => setProgrammes([]));
   }, [checked]);
 
-  /* ==========================================
-     LOAD DATA
-  ========================================== */
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
     if (!programme) return;
 
@@ -122,9 +93,7 @@ export default function AdminDashboard() {
     });
   }, [programme]);
 
-  /* ==========================================
-     FILTER (FIXED)
-  ========================================== */
+  /* ================= FILTER ================= */
   const students = useMemo(() => {
     const all = [...activeStudents, ...graduates];
 
@@ -143,9 +112,7 @@ export default function AdminDashboard() {
     });
   }, [search, statusFilter, activeStudents, graduates]);
 
-  /* ==========================================
-     LOGOUT
-  ========================================== */
+  /* ================= LOGOUT ================= */
   function handleLogout() {
     localStorage.clear();
     router.push("/login");
@@ -156,7 +123,7 @@ export default function AdminDashboard() {
   return (
     <div className="flex min-h-screen bg-gray-100">
 
-      {/* MOBILE OVERLAY */}
+      {/* OVERLAY */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden"
@@ -168,49 +135,48 @@ export default function AdminDashboard() {
       <aside
         className={`
           fixed lg:static z-50
-          w-72 h-full bg-slate-900 text-white p-6
-          transform transition
+          w-64 h-full bg-slate-900 text-white p-6
+          transform transition duration-300
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
       >
-        <button
-          className="lg:hidden mb-4"
-          onClick={() => setSidebarOpen(false)}
-        >
-          ✕
-        </button>
-
         <h1 className="text-2xl font-bold mb-6">PPBMS</h1>
 
-        <button onClick={() => setActiveMenu("dashboard")}>Dashboard</button>
-        <button onClick={() => setActiveMenu("students")}>Students</button>
+        <div className="space-y-2">
+          <button onClick={() => setActiveMenu("dashboard")} className="block w-full text-left">Dashboard</button>
+          <button onClick={() => setActiveMenu("students")} className="block w-full text-left">Students</button>
+        </div>
 
-        <div className="mt-auto">
-          <button onClick={handleLogout}>Logout</button>
+        <div className="mt-10">
+          <button onClick={handleLogout} className="text-red-400">
+            Logout
+          </button>
         </div>
       </aside>
 
       {/* MAIN */}
-      <main className="flex-1 p-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-6">
 
         {/* HEADER */}
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <button
-            className="lg:hidden bg-white p-3 rounded"
+            className="lg:hidden bg-white p-3 rounded shadow"
             onClick={() => setSidebarOpen(true)}
           >
             ☰
           </button>
 
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-xl md:text-2xl font-bold">
+            Admin Dashboard
+          </h1>
         </div>
 
         {/* PROGRAMME */}
         <select
           value={programme}
           onChange={(e) => setProgramme(e.target.value)}
-          className="p-3 border rounded"
+          className="p-3 border rounded w-full"
         >
           <option value="">Select Programme</option>
           {programmes.map((p) => (
@@ -218,20 +184,38 @@ export default function AdminDashboard() {
           ))}
         </select>
 
-        {/* STUDENTS */}
+        {/* ================= DASHBOARD ================= */}
+        {activeMenu === "dashboard" && (
+          <>
+            {!programme ? (
+              <div className="text-center text-gray-400 mt-10">
+                Select a programme to view dashboard
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card title="On Track" value={summary.onTrack || 0} color="bg-green-100" />
+                <Card title="Delayed" value={summary.slightlyDelayed || 0} color="bg-orange-100" />
+                <Card title="At Risk" value={summary.atRisk || 0} color="bg-red-100" />
+                <Card title="Graduated" value={summary.graduated || 0} color="bg-blue-100" />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ================= STUDENTS ================= */}
         {activeMenu === "students" && (
           <>
             <input
-              placeholder="Search..."
+              placeholder="Search student..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="p-3 border w-full"
+              className="p-3 border w-full rounded"
             />
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="p-3 border w-full mt-2"
+              className="p-3 border w-full mt-2 rounded"
             >
               <option value="ALL">All</option>
               <option value="ON_TRACK">On Track</option>
@@ -240,17 +224,34 @@ export default function AdminDashboard() {
               <option value="GRADUATED">Graduated</option>
             </select>
 
-            <div className="bg-white mt-4 p-4 rounded">
+            <div className="bg-white mt-4 p-4 rounded shadow-sm">
               {students.map((s, i) => (
-                <div key={i} className="flex justify-between border-b py-3">
-                  <div>{s.name}</div>
+                <div key={i} className="flex justify-between items-center border-b py-3">
+                  <div>
+                    <p className="font-semibold">{s.name}</p>
+                    <p className="text-xs text-gray-500">{s.matric}</p>
+                  </div>
+
                   <StatusBadge status={s.status} />
-                  <Link href={`/admin/student/${s.email}`}>View</Link>
+
+                  <Link
+                    href={`/admin/student/${encodeURIComponent(s.email)}`}
+                    className="text-purple-600"
+                  >
+                    View
+                  </Link>
                 </div>
               ))}
+
+              {!students.length && (
+                <p className="text-center text-gray-400 mt-4">
+                  No students found
+                </p>
+              )}
             </div>
           </>
         )}
+
       </main>
     </div>
   );
