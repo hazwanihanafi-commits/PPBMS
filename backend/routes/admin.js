@@ -1,7 +1,3 @@
-// ==========================================
-// backend/routes/admin.js
-// ==========================================
-
 import express from "express";
 import jwt from "jsonwebtoken";
 
@@ -25,94 +21,36 @@ const router = express.Router();
 ========================================== */
 function adminAuth(req, res, next) {
 
-  const token = (
-    req.headers.authorization || ""
-  ).replace("Bearer ", "");
+  const token =
+    (req.headers.authorization || "")
+      .replace("Bearer ", "");
 
   if (!token) {
-
     return res.status(401).json({
       error: "No token"
     });
   }
 
   try {
-
     const user = jwt.verify(
       token,
       process.env.JWT_SECRET
     );
 
     if (user.role !== "admin") {
-
       return res.status(403).json({
         error: "Forbidden"
       });
     }
 
     req.user = user;
-
     next();
 
   } catch {
-
     return res.status(401).json({
       error: "Invalid token"
     });
   }
-}
-
-/* ==========================================
-   OVERALL STATUS DERIVER
-========================================== */
-function deriveOverallStatus(timeline) {
-
-  if (
-    !Array.isArray(timeline) ||
-    timeline.length === 0
-  ) {
-
-    return "NO_DATA";
-  }
-
-  const statuses = timeline.map(t =>
-
-    String(t.status || "")
-      .toUpperCase()
-      .trim()
-  );
-
-  // highest priority
-  if (
-    statuses.some(
-      s => s === "AT_RISK"
-    )
-  ) {
-
-    return "AT_RISK";
-  }
-
-  // medium priority
-  if (
-    statuses.some(
-      s => s === "SLIGHTLY_DELAYED"
-    )
-  ) {
-
-    return "SLIGHTLY_DELAYED";
-  }
-
-  // all completed
-  if (
-    statuses.every(
-      s => s === "COMPLETED"
-    )
-  ) {
-
-    return "GRADUATED";
-  }
-
-  return "ON_TRACK";
 }
 
 /* ==========================================
@@ -129,17 +67,11 @@ router.get(
       );
 
     const programmes = [
-
       ...new Set(
-
         rows
-
           .map(r =>
-            String(
-              r.Programme || ""
-            ).trim()
+            String(r.Programme || "").trim()
           )
-
           .filter(Boolean)
       )
     ];
@@ -156,22 +88,17 @@ router.get(
   adminAuth,
   async (req, res) => {
 
-    const { programme } =
-      req.query;
+    const { programme } = req.query;
 
     if (!programme) {
-
       return res.status(400).json({
-        error:
-          "Programme required"
+        error: "Programme required"
       });
     }
 
     const data =
       await computeProgrammeCQI(
-
         programme,
-
         process.env.SHEET_ID
       );
 
@@ -187,58 +114,37 @@ router.get(
   adminAuth,
   async (req, res) => {
 
-    const { programme } =
-      req.query;
+    const { programme } = req.query;
 
     const rows =
       await readMasterTracking(
         process.env.SHEET_ID
       );
 
-    const students = rows.filter(r =>
+    const students = rows
+      .filter(r =>
+        String(r.Programme || "").trim() === programme.trim() &&
+        String(r.Status || "").trim() === "Graduated"
+      )
+      .map(r => ({
 
-      String(
-        r.Programme || ""
-      ).trim() ===
-        programme.trim()
+        matric: r.Matric || "",
+        name: r["Student Name"] || "",
+        email: (r["Student's Email"] || "").toLowerCase(),
 
-      &&
-
-      String(
-        r.Status || ""
-      ).trim() ===
-        "Graduated"
-    );
+        status: "Graduated",
+        progressPercent: 100
+      }));
 
     res.json({
-
-      count:
-        students.length,
-
-      students:
-        students.map(r => ({
-
-          matric:
-            r.Matric || "",
-
-          name:
-            r["Student Name"] || "",
-
-          email:
-            (
-              r["Student's Email"] || ""
-            )
-              .toLowerCase(),
-
-          status:
-            "GRADUATED"
-        }))
+      count: students.length,
+      students
     });
   }
 );
 
 /* ==========================================
-   ACTIVE STUDENTS
+   ACTIVE STUDENTS (FINAL FIX)
 ========================================== */
 router.get(
   "/programme-active-students",
@@ -262,9 +168,6 @@ router.get(
         const timeline =
           buildTimelineForRow(r);
 
-        /* =========================
-           PROGRESS CALCULATION
-        ========================= */
         const completed =
           timeline.filter(
             t =>
@@ -280,9 +183,6 @@ router.get(
               )
             : 0;
 
-        /* =========================
-           CATEGORY (MATCH SUPERVISOR)
-        ========================= */
         let category = "At Risk";
 
         if (progressPercent >= 80) {
@@ -296,9 +196,7 @@ router.get(
           name: r["Student Name"] || "",
           email: (r["Student's Email"] || "").toLowerCase(),
 
-          // 🔥 THIS IS THE FIX
           status: category,
-
           progressPercent
         };
       });
@@ -309,22 +207,20 @@ router.get(
     });
   }
 );
+
 /* ==========================================
-   PROGRAMME SUMMARY
+   PROGRAMME SUMMARY (FIXED)
 ========================================== */
 router.get(
   "/programme-summary",
   adminAuth,
   async (req, res) => {
 
-    const { programme } =
-      req.query;
+    const { programme } = req.query;
 
     if (!programme) {
-
       return res.status(400).json({
-        error:
-          "Programme required"
+        error: "Programme required"
       });
     }
 
@@ -334,75 +230,54 @@ router.get(
       );
 
     let onTrack = 0;
-
     let slightlyDelayed = 0;
-
     let atRisk = 0;
-
     let graduated = 0;
 
     rows
-
       .filter(r =>
-
-        String(
-          r.Programme || ""
-        ).trim() ===
-          programme.trim()
+        String(r.Programme || "").trim() === programme.trim()
       )
-
       .forEach(r => {
 
-        // graduated
         if (
-
-          String(
-            r.Status || ""
-          ).trim() ===
-            "Graduated"
+          String(r.Status || "").trim() === "Graduated"
         ) {
-
           graduated++;
-
           return;
         }
 
         const timeline =
           buildTimelineForRow(r);
 
-        const overall =
-          deriveOverallStatus(
-            timeline
-          );
+        const completed =
+          timeline.filter(
+            t =>
+              String(t.status || "")
+                .toUpperCase()
+                .trim() === "COMPLETED"
+          ).length;
 
-        if (
-          overall === "AT_RISK"
-        ) {
+        const progressPercent =
+          timeline.length
+            ? Math.round(
+                (completed / timeline.length) * 100
+              )
+            : 0;
 
-          atRisk++;
-
-        } else if (
-
-          overall ===
-          "SLIGHTLY_DELAYED"
-        ) {
-
-          slightlyDelayed++;
-
-        } else {
-
+        if (progressPercent >= 80) {
           onTrack++;
+        } else if (progressPercent >= 50) {
+          slightlyDelayed++;
+        } else {
+          atRisk++;
         }
       });
 
     res.json({
-
       onTrack,
-
       slightlyDelayed,
-
       atRisk,
-
       graduated
     });
   }
@@ -429,108 +304,67 @@ router.get(
         );
 
       const raw = rows.find(
-
-        r => (
-          r["Student's Email"] || ""
-        )
-
-          .toLowerCase()
-
-          .trim()
-
-          === email
+        r =>
+          (r["Student's Email"] || "")
+            .toLowerCase()
+            .trim() === email
       );
 
       if (!raw) {
-
         return res.status(404).json({
-          error:
-            "Student not found"
+          error: "Student not found"
         });
       }
-
-      const profile = {
-
-        student_id:
-
-          raw["Matric"]
-
-          ||
-
-          raw["Matric No"]
-
-          ||
-
-          "",
-
-        name:
-          raw["Student Name"] || "",
-
-        email:
-          raw["Student's Email"] || "",
-
-        programme:
-          raw["Programme"] || "",
-
-        field:
-          raw["Field"] || "",
-
-        department:
-          raw["Department"] || "",
-
-        status:
-          raw["Status"] || "",
-
-        mainSupervisor:
-          raw["Main Supervisor"] || "",
-
-        coSupervisors:
-
-          raw["Co-Supervisor(s)"]
-
-            ?
-
-            raw["Co-Supervisor(s)"]
-
-              .split(",")
-
-              .map(s => s.trim())
-
-              .filter(Boolean)
-
-            :
-
-            []
-      };
 
       const timeline =
         buildTimelineForRow(raw);
 
+      const completed =
+        timeline.filter(
+          t =>
+            String(t.status || "")
+              .toUpperCase()
+              .trim() === "COMPLETED"
+        ).length;
+
+      const progressPercent =
+        timeline.length
+          ? Math.round(
+              (completed / timeline.length) * 100
+            )
+          : 0;
+
+      let category = "At Risk";
+
+      if (progressPercent >= 80) {
+        category = "On Track";
+      } else if (progressPercent >= 50) {
+        category = "Slightly Late";
+      }
+
       res.json({
-
         row: {
-
-          ...profile,
-
-          overallStatus:
-            deriveOverallStatus(
-              timeline
-            ),
-
+          student_id:
+            raw["Matric"] || "",
+          name:
+            raw["Student Name"] || "",
+          email,
+          programme:
+            raw["Programme"] || "",
+          field:
+            raw["Field"] || "",
+          department:
+            raw["Department"] || "",
+          status: category,
+          progressPercent,
           timeline
         }
       });
 
     } catch (err) {
-
-      console.error(
-        "Admin get student error:",
-        err
-      );
-
+      console.error(err);
       res.status(500).json({
-        error:
-          "Failed to load student"
+        error: "Failed to load student"
       });
     }
   }
@@ -550,18 +384,11 @@ router.get(
       );
 
     const programmes = [
-
       ...new Set(
-
         rows
-
           .map(r =>
-
-            String(
-              r.Programme || ""
-            ).trim()
+            String(r.Programme || "").trim()
           )
-
           .filter(Boolean)
       )
     ];
