@@ -551,36 +551,53 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="space-y-2">
-          <SidebarItem
-            icon={<LayoutDashboard size={18} />}
-            label="Dashboard"
-            active
-          />
 
-          <SidebarItem
-            icon={<Users size={18} />}
-            label="Students"
-          />
+  <SidebarItem
+    icon={<LayoutDashboard size={18} />}
+    label="Dashboard"
+    active={activeMenu === "dashboard"}
+    onClick={() =>
+      setActiveMenu("dashboard")
+    }
+  />
 
-          <SidebarItem
-            icon={
-              <GraduationCap size={18} />
-            }
-            label="Graduates"
-          />
+  <SidebarItem
+    icon={<Users size={18} />}
+    label="Students"
+    active={activeMenu === "students"}
+    onClick={() =>
+      setActiveMenu("students")
+    }
+  />
 
-          <SidebarItem
-            icon={<BookOpen size={18} />}
-            label="Milestones"
-          />
+  <SidebarItem
+    icon={<GraduationCap size={18} />}
+    label="Graduates"
+    active={activeMenu === "graduates"}
+    onClick={() =>
+      setActiveMenu("graduates")
+    }
+  />
 
-          <SidebarItem
-            icon={
-              <FileBarChart2 size={18} />
-            }
-            label="Reports"
-          />
-        </nav>
+  <SidebarItem
+    icon={<BookOpen size={18} />}
+    label="Milestones"
+    active={activeMenu === "milestones"}
+    onClick={() =>
+      setActiveMenu("milestones")
+    }
+  />
+
+  <SidebarItem
+    icon={<FileBarChart2 size={18} />}
+    label="Reports"
+    active={activeMenu === "reports"}
+    onClick={() =>
+      setActiveMenu("reports")
+    }
+  />
+
+</nav>
 
         <div className="mt-auto">
           <button
