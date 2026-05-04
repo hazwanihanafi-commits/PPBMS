@@ -1,14 +1,11 @@
-// ==========================================
-// ADMIN STUDENT PAGE (FINAL CLEAN VERSION)
-// ==========================================
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
+import { API_BASE } from "../../../utils/api";
 import jsPDF from "jspdf";
 
-import { API_BASE } from "../../../utils/api";
 import SupervisorChecklist from "../../../components/SupervisorChecklist";
+import SupervisorRemark from "../../../components/SupervisorRemark";
 import FinalPLOTable from "../../../components/FinalPLOTable";
 
 /* ================= CARD ================= */
@@ -20,81 +17,50 @@ const Card = ({ children }) => (
 
 /* ================= PAGE ================= */
 export default function AdminStudentPage() {
-
   const router = useRouter();
   const { email } = router.query;
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [documents, setDocuments] = useState({});
-  const [remarks, setRemarks] = useState([]);
-  const [finalPLO, setFinalPLO] = useState({});
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
-  /* ================= LOAD ================= */
   useEffect(() => {
     if (!email) return;
     loadStudent();
   }, [email]);
 
   async function loadStudent() {
-    try {
-      const token = localStorage.getItem("ppbms_token");
+    const token = localStorage.getItem("ppbms_token");
 
-      // 🔥 FIX: decode email
-      const cleanEmail = decodeURIComponent(email);
+    const res = await fetch(
+      `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const res = await fetch(
-        `${API_BASE}/api/admin/student/${cleanEmail}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+    const data = await res.json();
 
-      const data = await res.json();
-
-      console.log("ADMIN DATA:", data);
-
-      const row = data.row || {};
-
-      setStudent(row);
-      setTimeline(row.timeline || []);
-      setDocuments(row.documents || {});
-      setRemarks(row.remarksByAssessment || []);
-      setFinalPLO(row.finalPLO || {});
-
-    } catch (err) {
-      console.error("LOAD ERROR:", err);
-      setStudent(null);
-    }
-
+    setStudent(data.row || null);
+    setTimeline(data.row?.timeline || []);
     setLoading(false);
   }
 
-  /* ================= LOADING ================= */
-  if (loading) {
-    return <div className="p-6">Loading...</div>;
-  }
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (!student) return <div className="p-6">Student not found</div>;
 
-  if (!student) {
-    return <div className="p-6 text-red-500">Student not found</div>;
-  }
-
-  /* ================= CALC ================= */
-  const completed = timeline.filter(
-    t => String(t.status).toUpperCase() === "COMPLETED"
-  ).length;
+  /* ================= DATA ================= */
+  const completed = timeline.filter(t => t.status === "Completed").length;
+  const late = timeline.filter(t => t.status === "Late").length;
+  const soon = timeline.filter(t => t.status === "Due Soon").length;
 
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
 
-  let category = "At Risk";
-  if (progress >= 80) category = "On Track";
-  else if (progress >= 50) category = "Slightly Late";
+  const risk =
+    late >= 3 ? "HIGH RISK" :
+    late > 0 || soon > 2 ? "MODERATE RISK" :
+    "LOW RISK";
 
   const coSupervisor =
     Array.isArray(student.coSupervisors)
@@ -103,180 +69,202 @@ export default function AdminStudentPage() {
 
   /* ================= PDF ================= */
   function exportPDF() {
-
     const pdf = new jsPDF();
     let y = 20;
 
-    pdf.text("PPBMS Student Report", 20, y); y += 10;
+    pdf.setFontSize(16);
+    pdf.text("UNIVERSITI SAINS MALAYSIA", 105, y, { align: "center" });
+
+    y += 8;
+    pdf.setFontSize(11);
+    pdf.text("Postgraduate Progress Report", 105, y, { align: "center" });
+
+    y += 12;
 
     pdf.text(`Name: ${student.student_name}`, 20, y); y += 6;
+    pdf.text(`Matric: ${student.student_id}`, 20, y); y += 6;
     pdf.text(`Programme: ${student.programme}`, 20, y); y += 6;
-    pdf.text(`Progress: ${progress}%`, 20, y); y += 6;
-    pdf.text(`Status: ${category}`, 20, y); y += 10;
+    pdf.text(`Supervisor: ${student.supervisor}`, 20, y); y += 6;
+    pdf.text(`Co-Supervisor: ${coSupervisor}`, 20, y); y += 8;
+
+    pdf.text(`Risk Level: ${risk}`, 20, y); y += 10;
+
+    pdf.text("Timeline:", 20, y); y += 6;
 
     timeline.forEach((t, i) => {
-      pdf.text(`${i+1}. ${t.activity || t.name} (${t.status})`, 20, y);
+      if (y > 270) {
+        pdf.addPage();
+        y = 20;
+      }
+
+      pdf.text(
+        `${i + 1}. ${t.activity} (${t.status}) ${
+          t.status !== "Completed" ? `- ${t.remaining_days} days` : ""
+        }`,
+        20,
+        y
+      );
+
       y += 5;
     });
 
-    pdf.save("student-report.pdf");
+    y += 8;
+
+    pdf.text("PLO:", 20, y); y += 6;
+
+    Object.entries(student.finalPLO || {}).forEach(([plo, d]) => {
+      if (y > 270) {
+        pdf.addPage();
+        y = 20;
+      }
+
+      pdf.text(`${plo}: ${d.average ?? "-"} (${d.status})`, 20, y);
+      y += 5;
+    });
+
+    pdf.save(`${student.student_name}.pdf`);
   }
 
   /* ================= UI ================= */
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-4 space-y-6">
 
-      {/* SIDEBAR */}
-      <div className="w-60 bg-white border-r p-5">
+      {/* BACK */}
+      <button
+        onClick={() => {
+          if (window.history.length > 1) router.back();
+          else router.push("/admin");
+        }}
+        className="text-red-600 text-sm"
+      >
+        ← Back
+      </button>
 
-        <h2 className="font-bold text-purple-600 mb-6">
-          PPBMS Admin
-        </h2>
+      {/* HERO */}
+      <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-6 rounded-2xl">
+        <h1 className="text-xl font-bold">{student.student_name}</h1>
+        <p>{student.programme}</p>
 
-        {["overview","timeline","documents","cqi","remarks"].map(tab => (
+        <div className="mt-3 flex justify-between">
+          <span className="text-2xl font-bold">{progress}%</span>
+          <span className="bg-white/20 px-3 py-1 rounded-full text-xs">
+            {risk}
+          </span>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div className="flex gap-2 flex-wrap">
+        {["overview","documents","timeline","cqi","remarks"].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`block w-full text-left px-3 py-2 mb-2 rounded-lg ${
+            className={`px-4 py-2 rounded-full text-sm ${
               activeTab === tab
-                ? "bg-purple-600 text-white"
-                : "hover:bg-gray-100"
+                ? "bg-red-600 text-white"
+                : "bg-red-100 text-red-700"
             }`}
           >
-            {tab.toUpperCase()}
+            {tab}
           </button>
         ))}
-
-        <button
-          onClick={() => router.push("/admin")}
-          className="mt-6 text-sm text-gray-500 hover:underline"
-        >
-          ← Back
-        </button>
-
       </div>
 
-      {/* MAIN */}
-      <div className="flex-1 p-6 space-y-6">
-
-        {/* HEADER */}
-        <div className="flex justify-between">
-          <h1 className="text-xl font-bold">
-            Student Dashboard
-          </h1>
-
-          <button
-            onClick={exportPDF}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg"
-          >
-            Export PDF
-          </button>
-        </div>
-
-        {/* HERO */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-2xl flex justify-between"
-        >
-          <div>
-            <h2 className="text-xl font-bold">
-              {student.student_name}
-            </h2>
-
-            <p>{student.programme}</p>
-
-            <p className="text-3xl mt-2">
-              {progress}%
-            </p>
-          </div>
-
-          <span className={`px-4 py-2 rounded-full ${
-            category === "At Risk"
-              ? "bg-red-500"
-              : category === "Slightly Late"
-              ? "bg-yellow-400 text-black"
-              : "bg-green-500"
-          }`}>
-            {category}
-          </span>
-        </motion.div>
-
-        {/* KPI */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>Completed: {completed}</Card>
-          <Card>Total: {timeline.length}</Card>
-          <Card>Remaining: {timeline.length - completed}</Card>
-        </div>
-
-        {/* OVERVIEW */}
-        {activeTab === "overview" && (
+      {/* CONTENT */}
+      {activeTab === "overview" && (
+        <div className="space-y-4">
           <Card>
             <p><b>Email:</b> {student.email}</p>
             <p><b>Matric:</b> {student.student_id}</p>
-
-            {/* 🔥 FIXED FIELD */}
-            <p><b>Supervisor:</b> {student.supervisor || "-"}</p>
-
+            <p><b>Supervisor:</b> {student.supervisor}</p>
             <p><b>Co-Supervisor:</b> {coSupervisor}</p>
           </Card>
-        )}
 
-        {/* TIMELINE */}
-        {activeTab === "timeline" && (
-          <Card>
-            {timeline.length === 0 && <p>No timeline</p>}
+          <div className="grid grid-cols-3 gap-2">
+            <Card><p>Completed<br/><b>{completed}</b></p></Card>
+            <Card><p>Due Soon<br/><b>{soon}</b></p></Card>
+            <Card><p>Late<br/><b className="text-red-600">{late}</b></p></Card>
+          </div>
+        </div>
+      )}
 
-            {timeline.map((t, i) => (
-              <div key={i} className="mb-4 border-l-4 pl-3">
-                <b>{t.activity || t.name}</b>
-                <p className="text-xs">
-                  {t.expected || "-"} → {t.actual || "-"}
-                </p>
-                <span className="text-xs">{t.status}</span>
+      {/* TIMELINE */}
+      {activeTab === "timeline" && (
+        <div className="space-y-3">
+          {timeline.map((t, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className={`p-4 rounded-xl border ${
+                t.status === "Late"
+                  ? "bg-red-50 border-red-300"
+                  : t.status === "Due Soon"
+                  ? "bg-orange-50 border-orange-300"
+                  : t.status === "Completed"
+                  ? "bg-green-50 border-green-300"
+                  : "bg-white"
+              }`}
+            >
+              <p className="font-semibold">{t.activity}</p>
+
+              <div className="flex justify-between mt-1">
+
+                <span className="text-xs text-gray-500">
+                  {t.expected} → {t.actual || "-"}
+                </span>
+
+                {t.status !== "Completed" && (
+                  <span
+                    className={`text-xs font-semibold ${
+                      t.remaining_days < 0
+                        ? "text-red-600"
+                        : t.remaining_days <= 30
+                        ? "text-orange-500"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {t.remaining_days} days
+                  </span>
+                )}
+
               </div>
-            ))}
-          </Card>
-        )}
+            </motion.div>
+          ))}
+        </div>
+      )}
 
-        {/* DOCUMENTS */}
-        {activeTab === "documents" && (
-          <Card>
-            <SupervisorChecklist
-              documents={documents}
-              studentEmail={student.email}
-              onUpdated={loadStudent}   // 🔥 auto refresh after approve
-            />
-          </Card>
-        )}
+      {/* DOCUMENTS */}
+      {activeTab === "documents" && (
+        <SupervisorChecklist documents={student.documents || {}} />
+      )}
 
-        {/* CQI */}
-        {activeTab === "cqi" && (
-          <Card>
-            <FinalPLOTable finalPLO={finalPLO} />
-          </Card>
-        )}
+      {/* CQI */}
+      {activeTab === "cqi" && (
+        <FinalPLOTable finalPLO={student.finalPLO} />
+      )}
 
-        {/* REMARKS */}
-        {activeTab === "remarks" && (
-          <Card>
-            {!remarks.length && <p>No remarks</p>}
+      {/* REMARKS */}
+      {activeTab === "remarks" && (
+        <SupervisorRemark
+          studentMatric={student.student_id}
+          studentEmail={student.email}
+        />
+      )}
 
-            {remarks.map((r, i) => (
-              <div key={i} className="mb-4">
-                <h4 className="text-purple-600 font-bold">
-                  {r.assessmentInstance || r.assessmentType || "Assessment"}
-                </h4>
+      {/* EXPORT */}
+      <button
+        onClick={exportPDF}
+        className="w-full bg-red-600 text-white py-3 rounded-xl"
+      >
+        Export Report (PDF)
+      </button>
 
-                <div className="bg-gray-100 p-3 rounded">
-                  {r.remark || "-"}
-                </div>
-              </div>
-            ))}
-          </Card>
-        )}
+      {/* FOOTER */}
+      <footer className="text-center text-xs text-gray-400">
+        © 2026 PPBMS · Universiti Sains Malaysia
+      </footer>
 
-      </div>
     </div>
   );
 }
