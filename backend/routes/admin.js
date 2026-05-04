@@ -156,54 +156,47 @@ router.get("/programme-summary", adminAuth, async (req, res) => {
 });
 
 /* ================= SINGLE STUDENT ================= */
-router.get("/student/:email", adminAuth, async (req, res) => {
+/* ==========================================
+   ADMIN GET STUDENT (USE SUPERVISOR LOGIC)
+========================================== */
+router.get(
+  "/student/:email",
+  adminAuth,
+  async (req, res) => {
 
-  const email =
-    String(req.params.email || "")
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "");
+    try {
 
-  const rows = await readMasterTracking(process.env.SHEET_ID);
+      const email =
+        req.params.email
+          .toLowerCase()
+          .trim();
 
-  const raw = rows.find(r =>
-    String(r["Student's Email"] || "")
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "") === email
-  );
+      /* 🔥 FAKE SUPERVISOR CONTEXT */
+      const fakeReq = {
+        ...req,
+        params: { email },
+        user: {
+          role: "admin", // allow access
+          email: req.user.email
+        }
+      };
 
-  if (!raw) {
-    return res.status(404).json({ error: "Student not found" });
-  }
+      /* 🔥 REUSE SUPERVISOR CONTROLLER */
+      return router.handle(
+        fakeReq,
+        res,
+        () => {}
+      );
 
-  const timeline = buildTimelineForRow(raw);
+    } catch (err) {
 
-  const completed =
-    timeline.filter(t =>
-      String(t.status || "").toUpperCase() === "COMPLETED"
-    ).length;
+      console.error("ADMIN STUDENT ERROR:", err);
 
-  const progressPercent =
-    timeline.length
-      ? Math.round((completed / timeline.length) * 100)
-      : 0;
-
-  let status = "At Risk";
-  if (progressPercent >= 80) status = "On Track";
-  else if (progressPercent >= 50) status = "Slightly Late";
-
-  res.json({
-    row: {
-      student_id: raw.Matric || "",
-      name: raw["Student Name"] || "",
-      email,
-      programme: raw.Programme || "",
-      status,
-      progressPercent,
-      timeline
+      res.status(500).json({
+        error: "Failed to load student"
+      });
     }
-  });
-});
+  }
+);
 
 export default router;
