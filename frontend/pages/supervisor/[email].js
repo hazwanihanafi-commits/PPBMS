@@ -1,4 +1,3 @@
-console.log("API_BASE:", API_BASE);
 "use client";
 
 import { useEffect, useState } from "react";
@@ -72,61 +71,55 @@ export default function Page({ params }) {
 
   /* ================= LOAD ================= */
 
-  async function loadStudent() {
-    try {
-      const token = localStorage.getItem("ppbms_token");
+ const email = params?.email;
 
-      const res = await fetch(
-        `${API_BASE}/api/supervisor/student/${params.email}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+const [student, setStudent] = useState(null);
+const [timeline, setTimeline] = useState([]);
+const [documents, setDocuments] = useState([]);
+const [remarks, setRemarks] = useState([]);
+const [cqi, setCqi] = useState({});
+const [loading, setLoading] = useState(true);
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch student");
-      }
+async function loadStudent() {
+  const token = localStorage.getItem("ppbms_token");
 
-      const data = await res.json();
-
-      if (!data?.row) {
-        console.error("No student data");
-        return;
-      }
-
-      const row = data.row;
-
-      setStudent(row);
-
-      /* documents */
-      const docs = Object.entries(row.documents || {}).map(
-        ([name, d]) => ({
-          name,
-          url: d?.url || "#",
-          status: d?.status || "Pending",
-          feedback: d?.feedback || ""
-        })
-      );
-
-      setDocuments(docs);
-      setRemarks(row.remarksByAssessment || []);
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const res = await fetch(
+    `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
-  }
+  );
 
-  useEffect(() => {
-  if (!params?.email) return;
+  const data = await res.json();
+  const row = data.row || {};
 
+  setStudent(row);
+  setTimeline(row.timeline || []);
+  setRemarks(row.remarks || []);
+  setCqi(row.cqiByAssessment || {});
+
+  setDocuments(
+    Object.entries(row.documents || {}).map(([name, d]) => ({
+      name,
+      status: d.status,
+      url: d.url,
+      feedback: d.feedback || ""
+    }))
+  );
+
+  setLoading(false);
+}
+
+useEffect(() => {
+  if (!email) return;
   loadStudent();
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+}, [email]);
 
-  if (loading) return <p className="p-6">Loading...</p>;
-  if (!student) return <p className="p-6">No data</p>;
+if (loading) {
+  return <div className="p-10">Loading...</div>;
+}
 
   /* ================= DERIVED ================= */
 
