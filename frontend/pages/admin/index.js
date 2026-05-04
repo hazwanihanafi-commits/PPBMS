@@ -95,41 +95,35 @@ export default function AdminDashboard() {
   }, [programme]);
 
   /* ================= CATEGORY (FIXED) ================= */
-  function getStudentCategory(st) {
+function getStudentCategory(st) {
 
-    // graduated
-    if (
-      st.status?.toLowerCase() === "graduated" ||
-      st.status?.toLowerCase() === "completed"
-    ) {
-      return "Graduated";
-    }
+  /* =========================
+     1. HANDLE GRADUATED
+  ========================= */
+  const rawStatus = String(st.status || "").toLowerCase().trim();
 
-    // if timeline exists (future safe)
-    if (Array.isArray(st.timeline) && st.timeline.length > 0) {
+  if (
+    rawStatus === "graduated" ||
+    rawStatus === "completed"
+  ) {
+    return "Graduated";
+  }
 
-      const completed = st.timeline.filter(
-        t => t.status === "Completed" || t.status === "COMPLETED"
-      ).length;
+  /* =========================
+     2. USE PROGRESS (MAIN LOGIC)
+  ========================= */
+  const progress = Number(st.progressPercent || 0);
 
-      const progress = Math.round(
-        (completed / st.timeline.length) * 100
-      );
-
-      if (progress >= 80) return "On Track";
-      if (progress >= 50) return "Slightly Late";
-      return "At Risk";
-    }
-
-    // fallback → backend status
-    const s = String(st.status || "").toUpperCase();
-
-    if (s === "ON_TRACK") return "On Track";
-    if (s === "SLIGHTLY_DELAYED") return "Slightly Late";
-    if (s === "AT_RISK") return "At Risk";
-
+  if (progress >= 80) {
     return "On Track";
   }
+
+  if (progress >= 50) {
+    return "Slightly Late";
+  }
+
+  return "At Risk";
+}
 
   /* ================= FILTER ================= */
   const students = useMemo(() => {
