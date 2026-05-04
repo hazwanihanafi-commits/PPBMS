@@ -3,9 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { apiGet } from "@/utils/api";
 
-/* ==========================================
-   STATUS BADGE
-========================================== */
+/* ================= BADGE ================= */
 function StatusBadge({ status }) {
   const map = {
     "On Track": "bg-green-100 text-green-700",
@@ -21,14 +19,11 @@ function StatusBadge({ status }) {
   );
 }
 
-/* ==========================================
-   PAGE
-========================================== */
+/* ================= PAGE ================= */
 export default function AdminDashboard() {
 
   const router = useRouter();
 
-  /* ================= STATE ================= */
   const [checked, setChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -38,13 +33,7 @@ export default function AdminDashboard() {
   const [graduates, setGraduates] = useState([]);
   const [activeStudents, setActiveStudents] = useState([]);
 
-  const [summary, setSummary] = useState({
-    onTrack: 0,
-    slightlyDelayed: 0,
-    atRisk: 0,
-    graduated: 0,
-  });
-
+  const [summary, setSummary] = useState({});
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [loading, setLoading] = useState(false);
@@ -83,51 +72,25 @@ export default function AdminDashboard() {
     Promise.all([
       apiGet(`/api/admin/programme-active-students?programme=${programme}`),
       apiGet(`/api/admin/programme-graduates?programme=${programme}`),
-      apiGet(`/api/admin/programme-summary?programme=${programme}`),
+      apiGet(`/api/admin/programme-summary?programme=${programme}`)
     ])
-      .then(([active, grad, sum]) => {
-        setActiveStudents(active.students || []);
-        setGraduates(grad.students || []);
-        setSummary(sum || {});
-      })
-      .finally(() => setLoading(false));
+    .then(([active, grad, sum]) => {
+      setActiveStudents(active.students || []);
+      setGraduates(grad.students || []);
+      setSummary(sum || {});
+    })
+    .finally(() => setLoading(false));
 
   }, [programme]);
 
-  /* ================= CATEGORY (FIXED) ================= */
-function getStudentCategory(st) {
-
-  /* =========================
-     1. HANDLE GRADUATED
-  ========================= */
-  const rawStatus = String(st.status || "").toLowerCase().trim();
-
-  if (
-    rawStatus === "graduated" ||
-    rawStatus === "completed"
-  ) {
-    return "Graduated";
+  /* ================= CATEGORY ================= */
+  function getCategory(st) {
+    if (st.status === "GRADUATED") return "Graduated";
+    return st.status || "At Risk";
   }
-
-  /* =========================
-     2. USE PROGRESS (MAIN LOGIC)
-  ========================= */
-  const progress = Number(st.progressPercent || 0);
-
-  if (progress >= 80) {
-    return "On Track";
-  }
-
-  if (progress >= 50) {
-    return "Slightly Late";
-  }
-
-  return "At Risk";
-}
 
   /* ================= FILTER ================= */
   const students = useMemo(() => {
-
     const all = [...activeStudents, ...graduates];
 
     return all.filter(st => {
@@ -136,14 +99,12 @@ function getStudentCategory(st) {
 
       const matchSearch =
         st.name?.toLowerCase().includes(q) ||
-        st.matric?.toLowerCase().includes(q) ||
-        st.email?.toLowerCase().includes(q);
-
-      const category = getStudentCategory(st);
+        st.email?.toLowerCase().includes(q) ||
+        st.matric?.toLowerCase().includes(q);
 
       const matchStatus =
         statusFilter === "All" ||
-        category === statusFilter;
+        getCategory(st) === statusFilter;
 
       return matchSearch && matchStatus;
     });
@@ -156,10 +117,7 @@ function getStudentCategory(st) {
     router.push("/login");
   }
 
-  /* ================= LOADING ================= */
-  if (!checked) {
-    return <div className="p-6">Checking access...</div>;
-  }
+  if (!checked) return <div className="p-6">Checking...</div>;
 
   /* ================= UI ================= */
   return (
@@ -182,11 +140,23 @@ function getStudentCategory(st) {
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0
       `}>
+
         <h2 className="text-xl font-bold">PPBMS</h2>
 
-        <button onClick={logout} className="text-red-300 text-sm">
+        <button
+          onClick={() => router.push("/admin")}
+          className="block w-full text-left px-3 py-2 rounded hover:bg-white/20"
+        >
+          Dashboard
+        </button>
+
+        <button
+          onClick={logout}
+          className="text-red-300 text-sm mt-10"
+        >
           Logout
         </button>
+
       </aside>
 
       {/* MAIN */}
@@ -245,7 +215,6 @@ function getStudentCategory(st) {
 
         {/* SEARCH */}
         <input
-          type="text"
           placeholder="Search..."
           className="w-full p-3 border rounded-xl"
           value={search}
@@ -258,7 +227,7 @@ function getStudentCategory(st) {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-4 py-2 rounded-full text-sm ${
+              className={`px-4 py-2 rounded-full ${
                 statusFilter === s
                   ? "bg-purple-600 text-white"
                   : "bg-white border"
@@ -276,38 +245,27 @@ function getStudentCategory(st) {
             <div className="p-6 text-center">Loading...</div>
           )}
 
-          {!loading && students.map((s, i) => {
+          {!loading && students.map((s, i) => (
+            <div key={i} className="p-4 flex justify-between items-center">
 
-            const category = getStudentCategory(s);
-
-            return (
-              <div key={i} className="p-4 flex justify-between items-center">
-
-                <div>
-                  <p className="font-semibold">{s.name}</p>
-                  <p className="text-xs text-gray-500">{s.email}</p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={category} />
-
-                  <Link
-                    href={`/admin/student/${encodeURIComponent(s.email)}`}
-                    className="text-purple-600 text-sm font-semibold"
-                  >
-                    View →
-                  </Link>
-                </div>
-
+              <div>
+                <p className="font-semibold">{s.name}</p>
+                <p className="text-xs text-gray-500">{s.email}</p>
               </div>
-            );
-          })}
 
-          {!loading && students.length === 0 && (
-            <div className="p-6 text-center text-gray-400">
-              No students found
+              <div className="flex items-center gap-3">
+                <StatusBadge status={getCategory(s)} />
+
+                <Link
+                  href={`/admin/student/${encodeURIComponent(s.email)}`}
+                  className="text-purple-600 font-semibold"
+                >
+                  View →
+                </Link>
+              </div>
+
             </div>
-          )}
+          ))}
 
         </div>
 
