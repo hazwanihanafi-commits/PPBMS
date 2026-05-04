@@ -1,6 +1,14 @@
 // ==========================================
 // frontend/pages/supervisor/[email].jsx
-// FINAL WORKING VERSION
+// ULTIMATE FINAL VERSION
+// FIXED:
+// ✅ Graduated logic
+// ✅ Documents display
+// ✅ Remarks display
+// ✅ Timeline colors
+// ✅ Milestone totals
+// ✅ Safe arrays
+// ✅ Backend/frontend tally
 // ==========================================
 
 import { useEffect, useState } from "react";
@@ -100,7 +108,6 @@ function SidebarItem({
         ${
           active
             ? "bg-white/10 text-white"
-
             : "text-slate-300 hover:bg-white/5"
         }
       `}
@@ -192,13 +199,14 @@ export default function SupervisorStudentPage() {
         data.student ||
         data;
 
-     console.log(
-  "FULL STUDENT DATA:",
-  studentData
-);
+      console.log(
+        "FULL STUDENT DATA:",
+        studentData
+      );
 
       setStudent(studentData);
 
+      /* TIMELINE */
       setTimeline(
         Array.isArray(
           studentData.timeline
@@ -207,37 +215,39 @@ export default function SupervisorStudentPage() {
           : []
       );
 
-      setDocuments(
-  Array.isArray(
-    studentData.documents
-  )
-    ? studentData.documents
+      /* DOCUMENTS */
+      const docsObject =
+        studentData.documents || {};
 
-    : Array.isArray(
-        studentData.uploads
-      )
-    ? studentData.uploads
+      const docsArray =
+        Object.entries(
+          docsObject
+        )
+          .map(([name, value]) => ({
+            name,
+            ...value,
+          }))
+          .filter(d => d.url);
 
-    : []
-);
+      setDocuments(docsArray);
+
+      /* REMARKS */
       setRemarks(
-  Array.isArray(
-    studentData.remarks
-  )
-    ? studentData.remarks
-
-    : Array.isArray(
-        studentData.supervisorRemarks
-      )
-    ? studentData.supervisorRemarks
-
-    : []
-);
+        Array.isArray(
+          studentData.remarksByAssessment
+        )
+          ? studentData.remarksByAssessment
+          : []
       );
+
     } catch (err) {
+
       console.error(err);
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -261,66 +271,84 @@ export default function SupervisorStudentPage() {
   }
 
   /* ==========================================
-     DATA
+     GRADUATED
+  ========================================== */
+  const statusText =
+    (
+      student.status || ""
+    ).toUpperCase();
+
+  const graduated =
+    statusText.includes(
+      "GRADUATED"
+    ) ||
+    statusText.includes(
+      "COMPLETED"
+    ) ||
+    statusText.includes(
+      "FINAL"
+    );
+
+  /* ==========================================
+     COUNTS
   ========================================== */
   const completed = (
     Array.isArray(timeline)
       ? timeline
       : []
-  ).filter(
-    (t) =>
-      t.status
-        ?.toLowerCase()
-        .trim() === "completed"
+  ).filter(t =>
+    (
+      t.status || ""
+    )
+      .toUpperCase()
+      .includes("COMPLETED")
   ).length;
 
   const delayed = (
     Array.isArray(timeline)
       ? timeline
       : []
-  ).filter(
-    (t) =>
-      t.status
-        ?.toLowerCase()
-        .trim() === "due soon"
+  ).filter(t =>
+    (
+      t.status || ""
+    )
+      .toUpperCase()
+      .includes("PENDING")
   ).length;
 
   const atRisk = (
     Array.isArray(timeline)
       ? timeline
       : []
-  ).filter(
-    (t) =>
-      t.status
-        ?.toLowerCase()
-        .trim() === "late"
+  ).filter(t =>
+    (
+      t.status || ""
+    )
+      .toUpperCase()
+      .includes("AT_RISK")
   ).length;
 
   const progress = graduated
-  ? 100
-  : timeline.length > 0
-  ? Math.round(
-      (completed /
-        timeline.length) *
-        100
-    )
-  : 0;
-  
- const graduated =
-  student.status
-    ?.toUpperCase()
-    .includes("GRADUATED");
+    ? 100
+    : timeline.length > 0
+    ? Math.round(
+        (
+          completed /
+          timeline.length
+        ) * 100
+      )
+    : 0;
 
-const risk = graduated
-  ? "GRADUATED"
-  : atRisk >= 3
-  ? "HIGH RISK"
-  : atRisk > 0 || delayed > 2
-  ? "MODERATE RISK"
-  : "LOW RISK";
-  
+  const risk = graduated
+    ? "GRADUATED"
+    : atRisk >= 3
+    ? "HIGH RISK"
+    : atRisk > 0 || delayed > 2
+    ? "MODERATE RISK"
+    : "LOW RISK";
+
   /* ==========================================
-     CHART DATA
+     CHARTS
   ========================================== */
   const pieData = [
     {
@@ -330,18 +358,15 @@ const risk = graduated
     },
 
     {
-      name: "Delayed",
+      name: "Pending",
       value: delayed,
       color: "#F59E0B",
     },
 
     {
-      name: "Pending",
-      value:
-        timeline.length -
-        completed -
-        delayed,
-      color: "#CBD5E1",
+      name: "At Risk",
+      value: atRisk,
+      color: "#EF4444",
     },
   ];
 
@@ -352,7 +377,7 @@ const risk = graduated
     },
 
     {
-      name: "Delayed",
+      name: "Pending",
       students: delayed,
     },
 
@@ -372,6 +397,7 @@ const risk = graduated
       <aside className="w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white p-6 hidden lg:flex flex-col">
 
         <div className="mb-10">
+
           <h1 className="text-3xl font-bold">
             PPBMS
           </h1>
@@ -379,6 +405,7 @@ const risk = graduated
           <p className="text-slate-300 text-sm mt-1">
             Supervisor Portal
           </p>
+
         </div>
 
         <div className="space-y-2">
@@ -460,6 +487,7 @@ const risk = graduated
         </div>
 
         <div className="mt-auto">
+
           <button
             onClick={() =>
               router.back()
@@ -469,6 +497,7 @@ const risk = graduated
             <ArrowLeft size={18} />
             Back
           </button>
+
         </div>
 
       </aside>
@@ -492,9 +521,8 @@ const risk = graduated
 
         {/* DASHBOARD */}
         {activeMenu === "dashboard" && (
-          <>
 
-            {/* SUMMARY */}
+          <>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
 
               <SummaryCard
@@ -507,151 +535,132 @@ const risk = graduated
               />
 
               {!graduated && (
-
-  <SummaryCard
-    title="Progress"
-    value={`${progress}%`}
-    color="bg-blue-100"
-    icon={
-      <GraduationCap className="text-blue-600" />
-    }
-  />
-
-)}
-        {!graduated && (
-
-  <SummaryCard
-    title="Delayed"
-    value={delayed}
-    color="bg-orange-100"
-    icon={
-      <Clock3 className="text-orange-600" />
-    }
-  />
-
-)}
+                <SummaryCard
+                  title="Progress"
+                  value={`${progress}%`}
+                  color="bg-blue-100"
+                  icon={
+                    <GraduationCap className="text-blue-600" />
+                  }
+                />
+              )}
 
               {!graduated && (
+                <SummaryCard
+                  title="Pending"
+                  value={delayed}
+                  color="bg-orange-100"
+                  icon={
+                    <Clock3 className="text-orange-600" />
+                  }
+                />
+              )}
 
-  <SummaryCard
-    title="Risk"
-    value={
-  graduated
-    ? "COMPLETED"
-    : risk
-}
-    color="bg-red-100"
-    icon={
-      <AlertTriangle className="text-red-600" />
-    }
-  />
-
-)}
-
-{graduated && (
-
-  <SummaryCard
-    title="Status"
-    value="GRADUATED"
-    color="bg-green-100"
-    icon={
-      <GraduationCap className="text-green-600" />
-    }
-  />
-
-)}
+              <SummaryCard
+                title="Status"
+                value={
+                  graduated
+                    ? "GRADUATED"
+                    : risk
+                }
+                color="bg-red-100"
+                icon={
+                  <AlertTriangle className="text-red-600" />
+                }
+              />
 
             </div>
 
             {/* CHARTS */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {!graduated && (
 
-              {/* PIE */}
-              <Card>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-                <h3 className="font-bold mb-4">
-                  Milestone Progress
-                </h3>
+                <Card>
 
-                <div className="h-80">
+                  <h3 className="font-bold mb-4">
+                    Milestone Progress
+                  </h3>
 
-                  <ResponsiveContainer>
+                  <div className="h-80">
 
-                    <PieChart>
+                    <ResponsiveContainer>
 
-                      <Pie
-                        data={pieData}
-                        innerRadius={70}
-                        outerRadius={110}
-                        dataKey="value"
+                      <PieChart>
+
+                        <Pie
+                          data={pieData}
+                          innerRadius={70}
+                          outerRadius={110}
+                          dataKey="value"
+                        >
+                          {pieData.map(
+                            (
+                              entry,
+                              index
+                            ) => (
+                              <Cell
+                                key={index}
+                                fill={
+                                  entry.color
+                                }
+                              />
+                            )
+                          )}
+                        </Pie>
+
+                        <Tooltip />
+
+                      </PieChart>
+
+                    </ResponsiveContainer>
+
+                  </div>
+
+                </Card>
+
+                <Card>
+
+                  <h3 className="font-bold mb-4">
+                    Risk Analytics
+                  </h3>
+
+                  <div className="h-80">
+
+                    <ResponsiveContainer>
+
+                      <BarChart
+                        data={barData}
                       >
-                        {pieData.map(
-                          (
-                            entry,
-                            index
-                          ) => (
-                            <Cell
-                              key={index}
-                              fill={
-                                entry.color
-                              }
-                            />
-                          )
-                        )}
-                      </Pie>
 
-                      <Tooltip />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                        />
 
-                    </PieChart>
+                        <XAxis dataKey="name" />
 
-                  </ResponsiveContainer>
+                        <YAxis />
 
-                </div>
+                        <Tooltip />
 
-              </Card>
+                        <Bar
+                          dataKey="students"
+                          fill="#7C3AED"
+                          radius={[
+                            10, 10, 0, 0,
+                          ]}
+                        />
 
-              {/* BAR */}
-              <Card>
+                      </BarChart>
 
-                <h3 className="font-bold mb-4">
-                  Risk Analytics
-                </h3>
+                    </ResponsiveContainer>
 
-                <div className="h-80">
+                  </div>
 
-                  <ResponsiveContainer>
+                </Card>
 
-                    <BarChart
-                      data={barData}
-                    >
-
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                      />
-
-                      <XAxis dataKey="name" />
-
-                      <YAxis />
-
-                      <Tooltip />
-
-                      <Bar
-                        dataKey="students"
-                        fill="#7C3AED"
-                        radius={[
-                          10, 10, 0, 0,
-                        ]}
-                      />
-
-                    </BarChart>
-
-                  </ResponsiveContainer>
-
-                </div>
-
-              </Card>
-
-            </div>
+              </div>
+            )}
 
             {/* INFO */}
             <Card>
@@ -665,7 +674,6 @@ const risk = graduated
                 <InfoItem
                   label="Name"
                   value={
-                    student.name ||
                     student.student_name
                   }
                 />
@@ -679,12 +687,16 @@ const risk = graduated
 
                 <InfoItem
                   label="Email"
-                  value={student.email}
+                  value={
+                    student.email
+                  }
                 />
 
                 <InfoItem
-                  label="Risk Level"
-                  value={risk}
+                  label="Status"
+                  value={
+                    student.status
+                  }
                 />
 
               </div>
@@ -715,7 +727,7 @@ const risk = graduated
               />
 
               <SummaryCard
-                title="Delayed"
+                title="Pending"
                 value={delayed}
                 color="bg-orange-100"
                 icon={
@@ -743,40 +755,42 @@ const risk = graduated
           <Card>
 
             <h3 className="text-2xl font-bold mb-8">
-             Milestone Timeline
-({timeline.length})
+              Milestone Timeline
+              ({timeline.length} Total)
             </h3>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between overflow-x-auto gap-6">
 
               {(Array.isArray(timeline)
                 ? timeline
                 : []
               ).map((t, i) => {
 
+                const s =
+                  (
+                    t.status || ""
+                  ).toUpperCase();
+
                 const done =
-                  t.status
-                    ?.toLowerCase()
-                    .trim() ===
-                  "completed";
+                  s.includes(
+                    "COMPLETED"
+                  );
 
                 const soon =
-                  t.status
-                    ?.toLowerCase()
-                    .trim() ===
-                  "due soon";
+                  s.includes(
+                    "PENDING"
+                  );
+
+                const riskStatus =
+                  s.includes(
+                    "AT_RISK"
+                  );
 
                 return (
                   <div
                     key={i}
-                    className="flex-1 flex flex-col items-center relative"
+                    className="min-w-[120px] flex flex-col items-center relative"
                   >
-
-                    {i !==
-                      timeline.length -
-                        1 && (
-                      <div className="absolute top-4 left-1/2 w-full h-1 bg-gray-300" />
-                    )}
 
                     <div
                       className={`
@@ -788,6 +802,9 @@ const risk = graduated
                         ${
                           done
                             ? "bg-green-500"
+
+                            : riskStatus
+                            ? "bg-red-500"
 
                             : soon
                             ? "bg-orange-500"
@@ -803,7 +820,7 @@ const risk = graduated
                       {t.activity}
                     </p>
 
-                    <span className="text-[10px] text-gray-500">
+                    <span className="text-[10px] text-gray-500 uppercase">
                       {t.status}
                     </span>
 
@@ -833,31 +850,26 @@ const risk = graduated
 
             <div className="space-y-4">
 
-              {(Array.isArray(documents)
-                ? documents
-                : []
-              ).map((doc, i) => (
+              {documents.map(
+                (doc, i) => (
 
-                <div
-                  key={i}
-                  className="border rounded-2xl p-4 flex items-center justify-between"
-                >
+                  <div
+                    key={i}
+                    className="border rounded-2xl p-4 flex items-center justify-between"
+                  >
 
-                  <div>
+                    <div>
 
-                    <p className="font-semibold">
-                      {doc.name ||
-                        doc.filename ||
-                        "Document"}
-                    </p>
+                      <p className="font-semibold">
+                        {doc.name}
+                      </p>
 
-                    <p className="text-sm text-gray-500">
-                      {doc.date || "-"}
-                    </p>
+                      <p className="text-sm text-gray-500">
+                        {doc.status}
+                      </p>
 
-                  </div>
+                    </div>
 
-                  {doc.url && (
                     <a
                       href={doc.url}
                       target="_blank"
@@ -866,10 +878,10 @@ const risk = graduated
                     >
                       View
                     </a>
-                  )}
 
-                </div>
-              ))}
+                  </div>
+                )
+              )}
 
             </div>
 
@@ -893,37 +905,35 @@ const risk = graduated
 
             <div className="space-y-4">
 
-              {(Array.isArray(remarks)
-                ? remarks
-                : []
-              ).map((r, i) => (
+              {remarks.map(
+                (r, i) => (
 
-                <div
-                  key={i}
-                  className="border rounded-2xl p-5"
-                >
+                  <div
+                    key={i}
+                    className="border rounded-2xl p-5"
+                  >
 
-                  <div className="flex justify-between mb-2">
+                    <div className="flex justify-between mb-2">
 
-                    <p className="font-semibold">
-                      {r.supervisor ||
-                        "Supervisor"}
+                      <p className="font-semibold">
+                        {r.assessmentType ||
+                          "Assessment"}
+                      </p>
+
+                      <span className="text-sm text-gray-500">
+                        {r.assessmentInstance ||
+                          "-"}
+                      </span>
+
+                    </div>
+
+                    <p className="text-gray-700 mt-2">
+                      {r.remark || "-"}
                     </p>
 
-                    <span className="text-sm text-gray-500">
-                      {r.date || "-"}
-                    </span>
-
                   </div>
-
-                  <p className="text-gray-700">
-                    {r.remark ||
-                      r.comment ||
-                      "-"}
-                  </p>
-
-                </div>
-              ))}
+                )
+              )}
 
             </div>
 
