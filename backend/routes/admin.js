@@ -245,8 +245,7 @@ router.get(
   adminAuth,
   async (req, res) => {
 
-    const { programme } =
-      req.query;
+    const { programme } = req.query;
 
     const rows =
       await readMasterTracking(
@@ -254,58 +253,62 @@ router.get(
       );
 
     const students = rows
-
       .filter(r =>
-
-        String(
-          r.Programme || ""
-        ).trim() ===
-          programme.trim()
-
-        &&
-
-        String(
-          r.Status || ""
-        ).trim() ===
-          "Active"
+        String(r.Programme || "").trim() === programme.trim() &&
+        String(r.Status || "").trim() === "Active"
       )
-
       .map(r => {
 
         const timeline =
           buildTimelineForRow(r);
 
+        /* =========================
+           PROGRESS CALCULATION
+        ========================= */
+        const completed =
+          timeline.filter(
+            t =>
+              String(t.status || "")
+                .toUpperCase()
+                .trim() === "COMPLETED"
+          ).length;
+
+        const progressPercent =
+          timeline.length
+            ? Math.round(
+                (completed / timeline.length) * 100
+              )
+            : 0;
+
+        /* =========================
+           CATEGORY (MATCH SUPERVISOR)
+        ========================= */
+        let category = "At Risk";
+
+        if (progressPercent >= 80) {
+          category = "On Track";
+        } else if (progressPercent >= 50) {
+          category = "Slightly Late";
+        }
+
         return {
+          matric: r.Matric || "",
+          name: r["Student Name"] || "",
+          email: (r["Student's Email"] || "").toLowerCase(),
 
-          matric:
-            r.Matric || "",
+          // 🔥 THIS IS THE FIX
+          status: category,
 
-          name:
-            r["Student Name"] || "",
-
-          email:
-            (
-              r["Student's Email"] || ""
-            )
-              .toLowerCase(),
-
-          status:
-            deriveOverallStatus(
-              timeline
-            )
+          progressPercent
         };
       });
 
     res.json({
-
-      count:
-        students.length,
-
+      count: students.length,
       students
     });
   }
 );
-
 /* ==========================================
    PROGRAMME SUMMARY
 ========================================== */
