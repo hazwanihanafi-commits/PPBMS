@@ -1,5 +1,11 @@
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { motion } from "framer-motion";
+import { API_BASE } from "../../utils/api";
+
+import SupervisorChecklist from "../../components/SupervisorChecklist";
+import FinalPLOTable from "../../components/FinalPLOTable";
+
 import {
   BarChart,
   Bar,
@@ -8,326 +14,661 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://ppbms-backend.onrender.com"; // adjust if needed
+import jsPDF from "jspdf";
 
-function Card({ children }) {
-  return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm mb-6">
-      {children}
-    </div>
-  );
+/* ================= GLASS CARD ================= */
+
+const GlassCard = ({ children }) => (
+  <motion.div
+    whileHover={{ y: -4, scale: 1.02 }}
+    className="
+      bg-white/70
+      backdrop-blur-xl
+      rounded-2xl
+      p-5
+      shadow-sm
+      border
+      border-white/40
+    "
+  >
+    {children}
+  </motion.div>
+);
+
+/* ================= HELPERS ================= */
+
+function getStatusType(t) {
+
+  const status =
+    t.status
+      ?.trim()
+      .toLowerCase();
+
+  if (
+    status === "late" ||
+    t.status === "AT_RISK"
+  ) {
+    return "late";
+  }
+
+  if (status === "due soon") {
+    return "soon";
+  }
+
+  if (status === "completed") {
+    return "done";
+  }
+
+  return "normal";
 }
 
-export default function Page() {
+function getRiskColor(risk) {
+
+  if (risk === "HIGH RISK") {
+    return "text-red-600";
+  }
+
+  if (risk === "MODERATE RISK") {
+    return "text-amber-600";
+  }
+
+  return "text-green-600";
+}
+
+function getRiskBg(risk) {
+
+  if (risk === "HIGH RISK") {
+    return "bg-red-100";
+  }
+
+  if (risk === "MODERATE RISK") {
+    return "bg-amber-100";
+  }
+
+  return "bg-green-100";
+}
+
+/* ================= PAGE ================= */
+
+export default function SupervisorStudentPage() {
+
   const router = useRouter();
-  const { email } = router.query;
 
-  const [loading, setLoading] = useState(true);
+  const { email } =
+    router.query;
 
-  const [student, setStudent] = useState({});
-  const [timeline, setTimeline] = useState([]);
-  const [documents, setDocuments] = useState([]);
-  const [remarks, setRemarks] = useState([]);
-  const [cqi, setCqi] = useState({});
+  const [student, setStudent] =
+    useState(null);
 
-  const [activeTab, setActiveTab] = useState("overview");
+  const [timeline, setTimeline] =
+    useState([]);
 
-  // ================= LOAD =================
+  const [cqi, setCqi] =
+    useState({});
+
+  const [activeTab, setActiveTab] =
+    useState("overview");
+
+  const [loading, setLoading] =
+    useState(true);
+
+ 
+  /* ================= LOAD ================= */
+
   useEffect(() => {
+
     if (!email) return;
 
-    const load = async () => {
-      try {
-        const url = `${API_BASE}/api/supervisor/${encodeURIComponent(email)}`;
+    loadStudent();
 
-        console.log("CALL API:", url);
-
-        const res = await fetch(url);
-
-if (!res.ok) {
-  throw new Error(`HTTP error! status: ${res.status}`);
-}
-
-const text = await res.text();
-
-let data;
-try {
-  data = JSON.parse(text);
-} catch (e) {
-  console.error("❌ NOT JSON RESPONSE:", text);
-  throw new Error("Invalid JSON from backend");
-}
-
-console.log("API RESPONSE:", data);
-
-        // 🔥 SUPER SAFE MAPPING (handles ANY backend shape)
-        setStudent(data.student || data || {});
-
-        setTimeline(
-          Array.isArray(data.timeline)
-            ? data.timeline
-            : Array.isArray(data.milestones)
-            ? data.milestones
-            : []
-        );
-
-        setDocuments(
-          Array.isArray(data.documents)
-            ? data.documents
-            : Array.isArray(data.files)
-            ? data.files
-            : []
-        );
-
-        setRemarks(
-          Array.isArray(data.remarks)
-            ? data.remarks
-            : []
-        );
-
-        setCqi(data.cqi || {});
-      } catch (err) {
-        console.error("LOAD ERROR:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
   }, [email]);
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  async function loadStudent() {
 
-  // ================= SUMMARY =================
+    try {
+
+      const token =
+        localStorage.getItem(
+          "ppbms_token"
+        );
+
+      const res = await fetch(
+        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data =
+  await res.json();
+
+console.log("API DATA:", data);
+
+const studentData =
+  data.row ||
+  data.student ||
+  data;
+
+setStudent(studentData || null);
+
+setTimeline(
+  studentData?.timeline || []
+);
+
+setCqi(
+  studentData?.cqiByAssessment || {}
+);
+
+    } catch (e) {
+
+      console.error(e);
+
+    }
+
+    setLoading(false);
+  }
+
+  /* ================= LOADING ================= */
+
+  if (loading) {
+
+    return (
+      <div className="p-6">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!student) {
+
+    return (
+      <div className="p-6">
+        Student not found
+      </div>
+    );
+  }
+
+  /* ================= DATA ================= */
+
   const completed = timeline.filter(
-    (t) => t.status === "COMPLETED"
+    (t) =>
+      t.status
+        ?.trim()
+        .toLowerCase() ===
+      "completed"
   ).length;
 
-  const delayed = timeline.filter(
-    (t) => t.status === "AT_RISK"
+  const late = timeline.filter(
+    (t) =>
+
+      t.status
+        ?.trim()
+        .toLowerCase() ===
+        "late" ||
+
+      t.status
+        ?.trim()
+        .toUpperCase() ===
+        "AT_RISK" ||
+
+      (
+        !t.actual &&
+        t.remaining_days < 0 &&
+        t.status
+          ?.trim()
+          .toLowerCase() !==
+          "completed"
+      )
   ).length;
 
-  // ================= CQI =================
-  const cqiChartData = [];
+  const soon = timeline.filter(
+    (t) =>
+      t.status
+        ?.trim()
+        .toLowerCase() ===
+      "due soon"
+  ).length;
 
-  Object.entries(cqi || {}).forEach(([assessment, plos]) => {
-    Object.entries(plos).forEach(([plo, val]) => {
-      cqiChartData.push({
-        name: `${assessment}-${plo}`,
-        value: val.average || 0,
-      });
+  const progress = timeline.length
+    ? Math.round(
+        (
+          completed /
+          timeline.length
+        ) * 100
+      )
+    : 0;
+
+  const riskScore =
+    late > 2
+      ? "HIGH RISK"
+      : late > 0 || soon > 2
+      ? "MODERATE RISK"
+      : "LOW RISK";
+
+  const coSupervisorDisplay =
+    student.coSupervisors ||
+    student.co_supervisor ||
+    student.coSupervisor ||
+    "-";
+
+  /* ================= PDF ================= */
+
+  function exportPDF() {
+
+    const pdf = new jsPDF();
+
+    let y = 20;
+
+    pdf.setFontSize(16);
+
+    pdf.text(
+      "Postgraduate Progress Report",
+      105,
+      y,
+      {
+        align: "center",
+      }
+    );
+
+    y += 10;
+
+    pdf.text(
+      `Name: ${student.student_name}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+    pdf.text(
+      `Programme: ${student.programme}`,
+      20,
+      y
+    );
+
+    y += 7;
+
+    pdf.text(
+      `Risk: ${riskScore}`,
+      20,
+      y
+    );
+
+    y += 10;
+
+    timeline.forEach((t, i) => {
+
+      pdf.text(
+        `${i + 1}. ${t.activity} (${t.status})`,
+        20,
+        y
+      );
+
+      y += 5;
     });
-  });
+
+    pdf.save("report.pdf");
+  }
+
+  /* ================= UI ================= */
 
   return (
-    <div className="flex min-h-screen">
+
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
 
       {/* SIDEBAR */}
-      <div className="w-64 bg-[#0f172a] text-white p-6">
-        <h2 className="font-bold mb-6">PPBMS</h2>
 
-        {["overview", "timeline", "documents", "remarks", "cqi"].map((tab) => (
+      <div className="w-56 p-4">
+
+        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
+
+          <h2 className="font-bold text-purple-700 mb-4">
+            PPBMS
+          </h2>
+
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`block w-full text-left px-4 py-2 rounded-lg mb-2 ${
-              activeTab === tab ? "bg-purple-600" : ""
-            }`}
+            onClick={() =>
+              router.push("/supervisor")
+            }
+            className="mb-3 text-sm text-purple-600 hover:underline"
           >
-            {tab.toUpperCase()}
+            ← Back to Dashboard
           </button>
-        ))}
+
+          {[
+            "overview",
+            "documents",
+            "timeline",
+            "cqi",
+            "remarks",
+          ].map((tab) => (
+
+            <button
+              key={tab}
+              onClick={() =>
+                setActiveTab(tab)
+              }
+              className={`
+                w-full
+                text-left
+                px-3
+                py-2
+                rounded-lg
+                text-sm
+                mb-1
+
+                ${
+                  activeTab === tab
+                    ? "bg-purple-100 text-purple-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }
+              `}
+            >
+              {tab.toUpperCase()}
+            </button>
+
+          ))}
+
+        </div>
+
       </div>
 
       {/* MAIN */}
-      <div className="flex-1 p-6 bg-gray-100">
+
+      <div className="flex-1 p-6 space-y-6">
 
         {/* HEADER */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 rounded-2xl mb-6">
-          <h1 className="text-2xl font-bold">
-            Student Monitoring Dashboard
+
+        <div className="flex justify-between items-center">
+
+          <h1 className="text-xl font-bold text-gray-800">
+            Student Overview
           </h1>
-          <p>{student.name || "-"}</p>
+
+          <button
+            onClick={exportPDF}
+            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+          >
+            Export PDF
+          </button>
+
         </div>
 
-        {/* ================= OVERVIEW ================= */}
-        {activeTab === "overview" && (
-          <>
-            <Card>
-              <div className="grid grid-cols-3 gap-4">
+        {/* HERO */}
 
-                <div>
-                  <p>Completed</p>
-                  <h2 className="text-green-600 text-xl">
-                    {completed}
-                  </h2>
-                </div>
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
 
-                <div>
-                  <p>Delayed</p>
-                  <h2 className="text-orange-500 text-xl">
-                    {delayed}
-                  </h2>
-                </div>
+          <h1 className="text-xl font-semibold">
+            {student.student_name}
+          </h1>
 
-                <div>
-                  <p>Status</p>
-                  <h2 className="text-blue-600 text-xl">
-                    {student.status || "-"}
-                  </h2>
-                </div>
+          <p className="text-sm">
+            {student.programme}
+          </p>
 
-              </div>
-            </Card>
+          <div className="mt-4 flex justify-between items-center">
 
-            <Card>
-              <h3 className="mb-4 font-semibold">
-                Status Analytics
+            <span className="text-3xl">
+              {progress}%
+            </span>
+
+            <span
+              className={`
+                px-3
+                py-1
+                rounded-full
+                text-xs
+                font-semibold
+
+                ${getRiskBg(riskScore)}
+                ${getRiskColor(riskScore)}
+              `}
+            >
+              {riskScore}
+            </span>
+
+          </div>
+
+        </div>
+
+        {/* ANALYTICS */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">
+              Completed
+            </p>
+
+            <p className="text-2xl font-bold text-green-600">
+              {completed}
+            </p>
+          </GlassCard>
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">
+              Due Soon
+            </p>
+
+            <p className="text-2xl font-bold text-amber-600">
+              {soon}
+            </p>
+          </GlassCard>
+
+          <GlassCard>
+            <p className="text-xs text-gray-500">
+              Late
+            </p>
+
+            <p className="text-2xl font-bold text-red-600">
+              {late}
+            </p>
+          </GlassCard>
+
+        </div>
+
+        {/* GRAPH */}
+
+        <GlassCard>
+
+          <ResponsiveContainer
+            width="100%"
+            height={200}
+          >
+
+            <BarChart
+              data={[
+                {
+                  name: "Done",
+                  value: completed,
+                },
+                {
+                  name: "Soon",
+                  value: soon,
+                },
+                {
+                  name: "Late",
+                  value: late,
+                },
+              ]}
+            >
+
+              <XAxis dataKey="name" />
+
+              <Tooltip />
+
+              <Bar dataKey="value" />
+
+            </BarChart>
+
+          </ResponsiveContainer>
+
+        </GlassCard>
+
+        {/* DOCUMENTS */}
+
+        {activeTab === "documents" && (
+
+          <SupervisorChecklist
+            documents={
+              student.documents || {}
+            }
+            studentEmail={student.email}
+            onUpdated={loadStudent}
+          />
+
+        )}
+
+        {/* CQI */}
+
+        {activeTab === "cqi" && (
+
+          <FinalPLOTable
+            finalPLO={student.finalPLO}
+          />
+
+        )}
+
+{/* REMARKS */}
+
+{activeTab === "remarks" && (
+
+  <div className="space-y-6">
+
+    {Array.isArray(student.remarksByAssessment) &&
+    student.remarksByAssessment.length > 0 ? (
+
+      student.remarksByAssessment.map(
+        (item, idx) => (
+
+          <div
+            key={idx}
+            className="
+              bg-white
+              rounded-2xl
+              p-6
+              shadow-sm
+              border
+            "
+          >
+
+            <div className="mb-4">
+
+              <h3 className="text-xl font-bold text-purple-700">
+                {item.assessmentInstance}
               </h3>
 
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart
-                  data={[
-                    { name: "Completed", value: completed },
-                    { name: "Delayed", value: delayed },
-                  ]}
-                >
-                  <XAxis dataKey="name" />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#7c3aed" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-          </>
-        )}
+              <p className="text-sm text-gray-500">
+                Assessment Type:
+                {" "}
+                {item.assessmentType}
+              </p>
 
-        {/* ================= TIMELINE ================= */}
-        {activeTab === "timeline" && (
-          <Card>
-            <h3 className="mb-6 font-semibold">
-              Milestone Timeline ({timeline.length})
-            </h3>
-
-            <div className="border-l-2 ml-4 space-y-6">
-              {(Array.isArray(timeline) ? timeline : []).map((t, i) => (
-                <div key={i} className="ml-6">
-
-                  <div
-                    className={`w-4 h-4 rounded-full ${
-                      t.status === "COMPLETED"
-                        ? "bg-green-500"
-                        : "bg-gray-300"
-                    }`}
-                  />
-
-                  <div className="bg-gray-50 p-4 rounded-xl mt-2">
-                    <p className="font-semibold">
-                      {t.activity || "-"}
-                    </p>
-
-                    <p className="text-sm">
-                      Expected: {t.expected_date || "-"}
-                    </p>
-
-                    <p className="text-sm">
-                      Completed: {t.completed_date || "-"}
-                    </p>
-                  </div>
-
-                </div>
-              ))}
             </div>
-          </Card>
-        )}
 
-        {/* ================= DOCUMENTS ================= */}
-        {activeTab === "documents" && (
-          <Card>
-            <h3 className="mb-4 font-semibold">
-              Documents
-            </h3>
+           <textarea
+  rows={8}
+  value={item.remark || ""}
 
-            {!documents.length && (
-              <p className="text-gray-400">
-                No documents found
-              </p>
-            )}
+  onChange={(e) => {
 
-            {(Array.isArray(documents) ? documents : []).map((d, i) => (
-              <div key={i} className="border p-4 rounded-xl mb-3">
+  if (!student) return;
 
-                <p className="font-semibold">
-                  {d.document_name || d.name}
-                </p>
+  const updated =
+    (student.remarksByAssessment || []).map(
+      (r, i) =>
+        i === idx
+          ? {
+              ...r,
+              remark: e.target.value
+            }
+          : r
+    );
 
-                <p className="text-sm text-gray-500">
-                  Status: {d.status}
-                </p>
+  setStudent(prev => ({
+    ...prev,
+    remarksByAssessment: updated
+  }));
 
-                {d.file_url && (
-                  <a
-                    href={d.file_url}
-                    target="_blank"
-                    className="text-purple-600"
-                  >
-                    View
-                  </a>
-                )}
-              </div>
-            ))}
-          </Card>
-        )}
+}}
 
-        {/* ================= REMARKS ================= */}
-        {activeTab === "remarks" && (
-          <Card>
-            <h3 className="mb-4 font-semibold">
-              Remarks
-            </h3>
+  onBlur={async (e) => {
 
-            {(Array.isArray(remarks) ? remarks : []).map((r, i) => (
-              <div key={i} className="mb-4">
+    try {
 
-                <p className="font-semibold">
-                  {r.assessmentType}
-                </p>
+      const token =
+        localStorage.getItem("ppbms_token");
 
-                <textarea
-                  defaultValue={r.remark}
-                  className="w-full border p-2 rounded mt-2"
-                />
+      await fetch(
+        `${API_BASE}/api/supervisorRemark/remark`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            studentMatric: student.student_id,
+            studentEmail: student.email,
+            assessmentType: item.assessmentType,
+            assessmentInstance: item.assessmentInstance,
+            remark: e.target.value
+          })
+        }
+      );
 
-              </div>
-            ))}
-          </Card>
-        )}
+      await loadStudent(); // reload from sheet
 
-        {/* ================= CQI ================= */}
-        {activeTab === "cqi" && (
-          <Card>
-            <h3 className="mb-4 font-semibold">
-              CQI Analytics
-            </h3>
+    } catch (err) {
+      console.error(err);
+    }
+  }}
 
-            {!cqiChartData.length && (
-              <p className="text-gray-400">
-                No CQI data
-              </p>
-            )}
+  className="
+    w-full
+    border
+    rounded-2xl
+    p-4
+    text-sm
+    min-h-[220px]
+  "
+/>
+          </div>
+        )
+      )
 
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cqiChartData}>
-                <XAxis dataKey="name" />
-                <Tooltip />
-                <Bar dataKey="value" fill="#7c3aed" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        )}
+    ) : (
+
+      <div className="bg-white rounded-2xl p-6 text-gray-400">
+
+        No remarks available
 
       </div>
+
+    )}
+
+  </div>
+
+)}
+        {/* FOOTER */}
+
+        <footer className="text-center text-xs text-gray-400 pt-6">
+
+          © 2026 PPBMS ·
+          Universiti Sains Malaysia
+
+          <br />
+
+          Developed by
+          Hazwani Ahmad Yusof
+          (2025)
+
+        </footer>
+
+      </div>
+
     </div>
   );
 }
