@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { API_BASE } from "../../utils/api";
 
 import SupervisorChecklist from "../../components/SupervisorChecklist";
-import SupervisorRemark from "../../components/SupervisorRemark";
 import FinalPLOTable from "../../components/FinalPLOTable";
 
 import {
@@ -113,11 +112,7 @@ export default function SupervisorStudentPage() {
   const [loading, setLoading] =
     useState(true);
 
-  const [
-    selectedAssessment,
-    setSelectedAssessment,
-  ] = useState("PROGRESS_1");
-
+ 
   /* ================= LOAD ================= */
 
   useEffect(() => {
@@ -147,17 +142,24 @@ export default function SupervisorStudentPage() {
       );
 
       const data =
-        await res.json();
+  await res.json();
 
-      setStudent(data.row || null);
+console.log("API DATA:", data);
 
-      setTimeline(
-        data.row?.timeline || []
-      );
+const studentData =
+  data.row ||
+  data.student ||
+  data;
 
-      setCqi(
-        data.row?.cqiByAssessment || {}
-      );
+setStudent(studentData || null);
+
+setTimeline(
+  studentData?.timeline || []
+);
+
+setCqi(
+  studentData?.cqiByAssessment || {}
+);
 
     } catch (e) {
 
@@ -250,27 +252,6 @@ export default function SupervisorStudentPage() {
     student.co_supervisor ||
     student.coSupervisor ||
     "-";
-
-  /* ================= CURRENT REMARK ================= */
-
-  const currentRemark = (() => {
-
-  const remarks =
-    student?.remarksByAssessment || [];
-
-  const found =
-    remarks.find(r =>
-
-      selectedAssessment.startsWith("PROGRESS")
-
-        ? r.assessmentInstance === selectedAssessment
-
-        : r.assessmentType === selectedAssessment
-    );
-
-  return found?.remark || "";
-
-})();
 
   /* ================= PDF ================= */
 
@@ -550,92 +531,127 @@ export default function SupervisorStudentPage() {
 
         )}
 
-        {/* REMARKS */}
+{/* REMARKS */}
 
-        {activeTab === "remarks" && (
+{activeTab === "remarks" && (
 
-          <div className="space-y-4">
+  <div className="space-y-6">
 
-            <div className="bg-white rounded-xl p-4">
+    {Array.isArray(student.remarksByAssessment) &&
+    student.remarksByAssessment.length > 0 ? (
 
-              <label className="block text-sm font-medium mb-2">
-                Assessment Type
-              </label>
+      student.remarksByAssessment.map(
+        (item, idx) => (
 
-              <select
-                value={selectedAssessment}
-                onChange={(e) =>
-                  setSelectedAssessment(
-                    e.target.value
-                  )
-                }
-                className="border rounded-lg px-3 py-2 text-sm"
-              >
+          <div
+            key={idx}
+            className="
+              bg-white
+              rounded-2xl
+              p-6
+              shadow-sm
+              border
+            "
+          >
 
-                <option value="PROGRESS_1">
-                  PROGRESS 1
-                </option>
+            <div className="mb-4">
 
-                <option value="PROGRESS_2">
-                  PROGRESS 2
-                </option>
+              <h3 className="text-xl font-bold text-purple-700">
+                {item.assessmentInstance}
+              </h3>
 
-                <option value="PROGRESS_3">
-                  PROGRESS 3
-                </option>
-
-                <option value="PROGRESS_4">
-                  PROGRESS 4
-                </option>
-
-                <option value="PROGRESS_5">
-                  PROGRESS 5
-                </option>
-
-                <option value="PROGRESS_6">
-                  PROGRESS 6
-                </option>
-
-                <option value="PROGRESS_7">
-                  PROGRESS 7
-                </option>
-
-                <option value="VIVA">
-                  VIVA
-                </option>
-
-                <option value="THESIS">
-                  THESIS
-                </option>
-
-                <option value="TURNITIN">
-                  TURNITIN
-                </option>
-
-                <option value="TRX500">
-                  TRX500
-                </option>
-
-              </select>
+              <p className="text-sm text-gray-500">
+                Assessment Type:
+                {" "}
+                {item.assessmentType}
+              </p>
 
             </div>
 
-            <SupervisorRemark
-              studentMatric={student.student_id}
-              studentEmail={student.email}
-              assessmentType={
-                selectedAssessment.startsWith("PROGRESS")
-                  ? "PROGRESS"
-                  : selectedAssessment
-              }
-              assessmentInstance={selectedAssessment}
-              initialRemark={currentRemark}
-            />
+           <textarea
+  rows={8}
+  value={item.remark || ""}
 
+  onChange={(e) => {
+
+  if (!student) return;
+
+  const updated =
+    (student.remarksByAssessment || []).map(
+      (r, i) =>
+        i === idx
+          ? {
+              ...r,
+              remark: e.target.value
+            }
+          : r
+    );
+
+  setStudent(prev => ({
+    ...prev,
+    remarksByAssessment: updated
+  }));
+
+}}
+
+  onBlur={async (e) => {
+
+    try {
+
+      const token =
+        localStorage.getItem("ppbms_token");
+
+      await fetch(
+        `${API_BASE}/api/supervisorRemark/remark`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            studentMatric: student.student_id,
+            studentEmail: student.email,
+            assessmentType: item.assessmentType,
+            assessmentInstance: item.assessmentInstance,
+            remark: e.target.value
+          })
+        }
+      );
+
+      await loadStudent(); // reload from sheet
+
+    } catch (err) {
+      console.error(err);
+    }
+  }}
+
+  className="
+    w-full
+    border
+    rounded-2xl
+    p-4
+    text-sm
+    min-h-[220px]
+  "
+/>
           </div>
+        )
+      )
 
-        )}
+    ) : (
 
+      <div className="bg-white rounded-2xl p-6 text-gray-400">
+
+        No remarks available
+
+      </div>
+
+    )}
+
+  </div>
+
+)}
         {/* FOOTER */}
 
         <footer className="text-center text-xs text-gray-400 pt-6">
