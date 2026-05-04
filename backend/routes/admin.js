@@ -409,7 +409,7 @@ router.get(
    SINGLE STUDENT
 ========================================== */
 router.get(
-  "/admin/student/:email",
+  "/student/:email",
   adminAuth,
   async (req, res) => {
 
