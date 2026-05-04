@@ -70,8 +70,8 @@ export default function StudentPage() {
       );
 
       setRemarks(
-        data.row.remarks || []
-      );
+  data.row.remarksByAssessment || []
+);
 
     } catch (e) {
 
@@ -596,7 +596,11 @@ export default function StudentPage() {
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap">
-                    {r.remark}
+  <b>Supervisor:</b>
+  <p>{r.supervisorRemark || "-"}</p>
+
+  <b className="mt-2 block">Your Response:</b>
+  <p>{r.studentResponse || "-"}</p>
                   </div>
 
                 </div>
