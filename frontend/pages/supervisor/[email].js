@@ -531,6 +531,130 @@ setCqi(
 
         )}
 
+{/* TIMELINE */}
+
+{activeTab === "timeline" && (
+
+  <div className="space-y-4">
+
+    {timeline.map((t, i) => {
+
+      const status = t.status?.toLowerCase();
+
+      const isCompleted = status === "completed";
+      const isLate =
+        status === "late" ||
+        status === "at_risk" ||
+        t.remaining_days < 0;
+
+      const isSoon = status === "due soon";
+
+      const borderColor =
+        isCompleted
+          ? "border-green-400"
+          : isLate
+          ? "border-red-400"
+          : isSoon
+          ? "border-yellow-400"
+          : "border-gray-300";
+
+      const bgColor =
+        isCompleted
+          ? "bg-green-50"
+          : isLate
+          ? "bg-red-50"
+          : isSoon
+          ? "bg-yellow-50"
+          : "bg-white";
+
+      return (
+
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`
+            rounded-2xl
+            p-5
+            shadow-md
+            border-l-4
+            ${borderColor}
+            ${bgColor}
+          `}
+        >
+
+          {/* TOP */}
+          <div className="flex justify-between items-start">
+
+            <div>
+
+              <h3 className="font-semibold text-gray-800">
+                {t.activity}
+              </h3>
+
+              <p className="text-sm text-gray-500 mt-1">
+                Expected: {t.expected || "-"} | Actual: {t.actual || "-"}
+              </p>
+
+            </div>
+
+            {/* DAYS */}
+            {!isCompleted && (
+              <div className="text-right">
+
+                <p className={`font-bold ${
+                  t.remaining_days < 0
+                    ? "text-red-600"
+                    : t.remaining_days <= 30
+                    ? "text-orange-500"
+                    : "text-purple-600"
+                }`}>
+                  {t.remaining_days ?? "-"} days
+                </p>
+
+              </div>
+            )}
+
+          </div>
+
+          {/* BOTTOM */}
+          <div className="flex justify-between items-center mt-3">
+
+            <span className={`text-xs font-semibold tracking-wide ${
+              isCompleted
+                ? "text-green-700"
+                : isLate
+                ? "text-red-600"
+                : isSoon
+                ? "text-yellow-600"
+                : "text-gray-500"
+            }`}>
+              {t.status?.toUpperCase()}
+            </span>
+
+            {/* OPTIONAL RESET */}
+            {isCompleted && (
+              <button
+                className="text-xs text-red-500 hover:underline"
+                onClick={() => {
+                  console.log("Reset status", t);
+                  // 👉 connect API later if needed
+                }}
+              >
+                Reset Status
+              </button>
+            )}
+
+          </div>
+
+        </motion.div>
+      );
+    })}
+
+  </div>
+
+)}
+
 {/* REMARKS */}
 
 {activeTab === "remarks" && (
