@@ -14,7 +14,7 @@ import {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
-/* ================= UI COMPONENTS ================= */
+/* ================= UI ================= */
 
 function SidebarItem({ icon, label, active, onClick }) {
   return (
@@ -52,10 +52,9 @@ function SummaryCard({ title, value, color, icon }) {
   );
 }
 
-/* ================= MAIN PAGE ================= */
+/* ================= PAGE ================= */
 
 export default function Page({ params }) {
-
   const [student, setStudent] = useState(null);
   const [activeMenu, setActiveMenu] = useState("dashboard");
 
@@ -68,7 +67,9 @@ export default function Page({ params }) {
     text: ""
   });
 
-  /* ================= LOAD DATA ================= */
+  const [loading, setLoading] = useState(true);
+
+  /* ================= LOAD ================= */
 
   async function loadStudent() {
     try {
@@ -81,35 +82,47 @@ export default function Page({ params }) {
         }
       );
 
+      if (!res.ok) {
+        throw new Error("Failed to fetch student");
+      }
+
       const data = await res.json();
 
-      const row = data?.row || {};
+      if (!data?.row) {
+        console.error("No student data");
+        return;
+      }
+
+      const row = data.row;
 
       setStudent(row);
 
-      /* SAFE DOCUMENT PARSE */
-      const docsObj = row?.documents || {};
-      const docs = Object.entries(docsObj).map(([name, d]) => ({
-        name,
-        url: d?.url || "#",
-        status: d?.status || "Pending",
-        feedback: d?.feedback || ""
-      }));
+      /* documents */
+      const docs = Object.entries(row.documents || {}).map(
+        ([name, d]) => ({
+          name,
+          url: d?.url || "#",
+          status: d?.status || "Pending",
+          feedback: d?.feedback || ""
+        })
+      );
 
       setDocuments(docs);
-
-      setRemarks(row?.remarksByAssessment || []);
+      setRemarks(row.remarksByAssessment || []);
 
     } catch (err) {
-      console.error("Load error:", err);
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadStudent();
-  }, []);
+    if (params?.email) loadStudent();
+  }, [params?.email]);
 
-  if (!student) return <p className="p-6">Loading...</p>;
+  if (loading) return <p className="p-6">Loading...</p>;
+  if (!student) return <p className="p-6">No data</p>;
 
   /* ================= DERIVED ================= */
 
@@ -118,19 +131,19 @@ export default function Page({ params }) {
     : [];
 
   const graduated =
-    student?.status?.toLowerCase() === "graduated";
+    (student.status || "").toUpperCase() === "GRADUATED";
 
-  const completed = timeline.filter(t => t?.status === "COMPLETED").length;
-  const pending = timeline.filter(t => t?.status === "PENDING").length;
-  const atRisk = timeline.filter(t => t?.status === "AT_RISK").length;
+  const completed = timeline.filter(t => t.status === "COMPLETED").length;
+  const pending = timeline.filter(t => t.status === "PENDING").length;
+  const atRisk = timeline.filter(t => t.status === "AT_RISK").length;
 
-  /* ================= API ACTIONS ================= */
+  /* ================= API ================= */
 
   async function updateDocument(doc, status) {
     try {
       const token = localStorage.getItem("ppbms_token");
 
-      await fetch(`${API_BASE}/api/supervisor/document-status`, {
+      const res = await fetch(`${API_BASE}/api/supervisor/document-status`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,9 +157,23 @@ export default function Page({ params }) {
         })
       });
 
-      loadStudent();
+      if (!res.ok) {
+        const err = await res.text();
+        alert("Failed: " + err);
+        return;
+      }
+
+      /* instant UI update */
+      setDocuments(prev =>
+        prev.map(d =>
+          d.name === doc.name ? { ...d, status } : d
+        )
+      );
+
+      alert("Updated");
+
     } catch (err) {
-      console.error("Document update error:", err);
+      console.error(err);
     }
   }
 
@@ -156,7 +183,7 @@ export default function Page({ params }) {
     try {
       const token = localStorage.getItem("ppbms_token");
 
-      await fetch(`${API_BASE}/api/supervisor/remark`, {
+      const res = await fetch(`${API_BASE}/api/supervisor/remark`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -170,12 +197,19 @@ export default function Page({ params }) {
         })
       });
 
-      setNewRemark({ type: "", instance: "", text: "" });
+      if (!res.ok) {
+        const err = await res.text();
+        alert("Failed: " + err);
+        return;
+      }
 
+      alert("Remark saved");
+
+      setNewRemark({ type: "", instance: "", text: "" });
       loadStudent();
 
     } catch (err) {
-      console.error("Remark save error:", err);
+      console.error(err);
     }
   }
 
@@ -204,222 +238,138 @@ export default function Page({ params }) {
         {/* HEADER */}
         <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-3xl">
           <h2 className="text-3xl font-bold">Student Monitoring Dashboard</h2>
-          <p className="text-sm mt-1">Track postgraduate progress</p>
         </div>
 
         {/* DASHBOARD */}
         {activeMenu === "dashboard" && (
           <Card>
-
             <div className="grid md:grid-cols-2 gap-5">
-
-              <SummaryCard
-                title="Completed"
-                value={`${completed}/${timeline.length}`}
-                color="bg-green-100"
-                icon={<CheckCircle2 className="text-green-600" />}
-              />
-
+              <SummaryCard title="Completed" value={`${completed}/${timeline.length}`} color="bg-green-100" icon={<CheckCircle2 />} />
               <SummaryCard
                 title="Status"
-                value={student.status || "-"}
+                value={student.status}
                 color={graduated ? "bg-green-100" : "bg-red-100"}
-                icon={
-                  graduated
-                    ? <CheckCircle2 className="text-green-600" />
-                    : <AlertTriangle className="text-red-600" />
-                }
+                icon={graduated ? <CheckCircle2 /> : <AlertTriangle />}
               />
-
             </div>
 
             <div className="mt-6 grid md:grid-cols-2 gap-3 text-sm">
-              <p><b>Name:</b> {student.student_name}</p>
-              <p><b>Programme:</b> {student.programme}</p>
-              <p><b>Field:</b> {student.field}</p>
-              <p><b>Co-Supervisors:</b> {(student.coSupervisors || []).join(", ")}</p>
+              <p><b>Name:</b> {student.student_name || "-"}</p>
+              <p><b>Programme:</b> {student.programme || "-"}</p>
+              <p><b>Field:</b> {student.field || "-"}</p>
+              <p><b>Co-Supervisors:</b> {(student.coSupervisors || []).join(", ") || "-"}</p>
             </div>
-
           </Card>
         )}
 
         {/* PROGRESS */}
         {activeMenu === "progress" && (
           <Card>
-
-            <h3 className="text-xl font-bold mb-4">Progress Summary</h3>
-
+            <h3 className="text-xl font-bold mb-4">Progress</h3>
             <div className="grid md:grid-cols-3 gap-5">
-
               <SummaryCard title="Completed" value={completed} color="bg-green-100" icon={<CheckCircle2 />} />
               <SummaryCard title="Pending" value={pending} color="bg-orange-100" icon={<Clock3 />} />
-
               {!graduated && (
                 <SummaryCard title="At Risk" value={atRisk} color="bg-red-100" icon={<AlertTriangle />} />
               )}
-
             </div>
-
-          </Card>
-        )}
-
-        {/* MILESTONES */}
-        {activeMenu === "milestones" && (
-          <Card>
-
-            <h3 className="text-xl font-bold mb-4">
-              Milestones ({timeline.length})
-            </h3>
-
-            <div className="space-y-3">
-
-              {timeline.map((t, i) => {
-
-                const s = t?.status;
-
-                const color =
-                  s === "COMPLETED"
-                    ? "bg-green-500"
-                    : s === "AT_RISK"
-                    ? "bg-red-500"
-                    : "bg-gray-400";
-
-                return (
-                  <div key={i} className="flex items-center gap-3">
-
-                    <div className={`w-4 h-4 rounded-full ${color}`} />
-
-                    <div className="flex-1 flex justify-between border rounded-xl p-3">
-                      <span>{t?.activity}</span>
-                      <span className="text-sm">{t?.status}</span>
-                    </div>
-
-                  </div>
-                );
-              })}
-
-            </div>
-
           </Card>
         )}
 
         {/* DOCUMENTS */}
         {activeMenu === "documents" && (
           <Card>
-
             <h3 className="text-xl font-bold mb-4">Documents</h3>
-
-            {documents.length === 0 && (
-              <p className="text-gray-500">No documents</p>
-            )}
 
             {documents.map((doc, i) => (
               <div key={i} className="border p-4 rounded-xl mb-3">
 
                 <div className="flex justify-between">
-                  <p className="font-semibold">{doc.name}</p>
+                  <p>{doc.name}</p>
                   <p>{doc.status}</p>
                 </div>
 
                 <textarea
-                  className="w-full border mt-3 p-2 rounded"
                   value={doc.feedback}
                   onChange={(e) => {
                     const copy = [...documents];
                     copy[i].feedback = e.target.value;
                     setDocuments(copy);
                   }}
+                  className="w-full border mt-2 p-2 rounded"
                 />
 
-                <div className="flex gap-2 mt-3">
-
-                  <a href={doc.url} target="_blank" className="px-3 py-1 bg-purple-100 rounded">
-                    View
-                  </a>
-
-                  <button onClick={()=>updateDocument(doc,"Approved")} className="px-3 py-1 bg-green-100 rounded">
-                    Approve
-                  </button>
-
-                  <button onClick={()=>updateDocument(doc,"Revision Required")} className="px-3 py-1 bg-orange-100 rounded">
-                    Revise
-                  </button>
-
+                <div className="flex gap-2 mt-2">
+                  <a href={doc.url} target="_blank">View</a>
+                  <button onClick={()=>updateDocument(doc,"Approved")}>Approve</button>
+                  <button onClick={()=>updateDocument(doc,"Revision Required")}>Revise</button>
                 </div>
 
               </div>
             ))}
-
           </Card>
         )}
 
         {/* REMARKS */}
         {activeMenu === "remarks" && (
           <Card>
-
             <h3 className="text-xl font-bold mb-4">Remarks</h3>
 
             <input
               placeholder="Assessment Type"
               value={newRemark.type}
               onChange={(e)=>setNewRemark({...newRemark,type:e.target.value})}
-              className="border p-2 rounded w-full mb-2"
+              className="border p-2 w-full mb-2"
+            />
+
+            <input
+              placeholder="Assessment Instance"
+              value={newRemark.instance}
+              onChange={(e)=>setNewRemark({...newRemark,instance:e.target.value})}
+              className="border p-2 w-full mb-2"
             />
 
             <textarea
-              placeholder="Enter remark"
+              placeholder="Remark"
               value={newRemark.text}
               onChange={(e)=>setNewRemark({...newRemark,text:e.target.value})}
-              className="border p-2 rounded w-full mb-2"
+              className="border p-2 w-full mb-2"
             />
 
-            <button onClick={saveRemark} className="bg-purple-600 text-white px-4 py-2 rounded">
-              Save Remark
-            </button>
+            <button onClick={saveRemark}>Save</button>
 
-            <div className="mt-4 space-y-2">
-
-              {remarks.map((r,i)=>(
-                <div key={i} className="border p-3 rounded">
-
-                  <p className="font-semibold">
-                    {r?.assessmentType}
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    {r?.assessmentInstance}
-                  </p>
-
-                  <p>{r?.remark}</p>
-
-                </div>
-              ))}
-
-            </div>
-
+            {remarks.map((r,i)=>(
+              <div key={i}>
+                <p>{r.assessmentType}</p>
+                <p>{r.remark}</p>
+              </div>
+            ))}
           </Card>
         )}
 
         {/* CQI */}
         {activeMenu === "cqi" && (
           <Card>
-
-            <h3 className="text-xl font-bold mb-4">CQI Analytics</h3>
+            <h3 className="text-xl font-bold mb-4">CQI</h3>
 
             {Object.entries(student.cqiByAssessment || {}).map(([k,v])=>(
-              <div key={k} className="border p-3 mb-3 rounded">
-
+              <div key={k} className="mb-4">
                 <p className="font-bold">{k}</p>
 
                 {Object.entries(v).map(([plo,data])=>(
-                  <p key={plo}>
-                    {plo}: {data.average} ({data.status})
-                  </p>
+                  <div key={plo}>
+                    <p>{plo}: {data.average}</p>
+                    <div className="bg-gray-200 h-2">
+                      <div
+                        className="bg-purple-500 h-2"
+                        style={{ width: `${data.average * 25}%` }}
+                      />
+                    </div>
+                  </div>
                 ))}
 
               </div>
             ))}
-
           </Card>
         )}
 
