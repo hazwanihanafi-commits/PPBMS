@@ -706,239 +706,526 @@ export default function SupervisorStudentPage() {
           </>
         )}
 
-        {/* PROGRESS */}
-        {activeMenu === "progress" && (
+     {/* PROGRESS */}
+{activeMenu === "progress" && (
 
-          <Card>
+  <Card>
 
-            <h3 className="text-2xl font-bold mb-6">
-              Progress Summary
-            </h3>
+    <h3 className="text-2xl font-bold mb-6">
+      Progress Summary
+    </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
-              <SummaryCard
-                title="Completed"
-                value={completed}
-                color="bg-green-100"
-                icon={
-                  <CheckCircle2 className="text-green-600" />
-                }
-              />
+      <SummaryCard
+        title="Completed"
+        value={completed}
+        color="bg-green-100"
+        icon={
+          <CheckCircle2 className="text-green-600" />
+        }
+      />
 
-              <SummaryCard
-                title="Pending"
-                value={delayed}
-                color="bg-orange-100"
-                icon={
-                  <Clock3 className="text-orange-600" />
-                }
-              />
+      <SummaryCard
+        title="Pending"
+        value={delayed}
+        color="bg-orange-100"
+        icon={
+          <Clock3 className="text-orange-600" />
+        }
+      />
 
-              <SummaryCard
-                title="At Risk"
-                value={atRisk}
-                color="bg-red-100"
-                icon={
-                  <AlertTriangle className="text-red-600" />
-                }
-              />
+      {!graduated && (
 
-            </div>
+        <SummaryCard
+          title="At Risk"
+          value={atRisk}
+          color="bg-red-100"
+          icon={
+            <AlertTriangle className="text-red-600" />
+          }
+        />
 
-          </Card>
-        )}
+      )}
+
+    </div>
+
+  </Card>
+
+)}
 
         {/* MILESTONES */}
         {activeMenu === "milestones" && (
 
-          <Card>
+  <Card>
 
-            <h3 className="text-2xl font-bold mb-8">
-              Milestone Timeline
-              ({timeline.length} Total)
-            </h3>
+    <h3 className="text-2xl font-bold mb-8">
+      Milestone Timeline
+      ({timeline.length} Total)
+    </h3>
 
-            <div className="flex justify-between overflow-x-auto gap-6">
+    <div className="space-y-6">
 
-              {(Array.isArray(timeline)
-                ? timeline
-                : []
-              ).map((t, i) => {
+      {(Array.isArray(timeline)
+        ? timeline
+        : []
+      ).map((t, i) => {
 
-                const s =
-                  (
-                    t.status || ""
-                  ).toUpperCase();
+        const s =
+          (
+            t.status || ""
+          ).toUpperCase();
 
-                const done =
-                  s.includes(
-                    "COMPLETED"
-                  );
+        const done =
+          s.includes("COMPLETED");
 
-                const soon =
-                  s.includes(
-                    "PENDING"
-                  );
+        const riskStatus =
+          s.includes("AT_RISK");
 
-                const riskStatus =
-                  s.includes(
-                    "AT_RISK"
-                  );
+        const pending =
+          s.includes("PENDING");
+        const approved =
+  s.includes("APPROVED");
 
-                return (
-                  <div
-                    key={i}
-                    className="min-w-[120px] flex flex-col items-center relative"
-                  >
+        return (
 
-                    <div
-                      className={`
-                        w-8 h-8 rounded-full
-                        z-10 relative
-                        flex items-center
-                        justify-center text-white
+          <div
+            key={i}
+            className="
+              flex gap-4
+              items-start
+            "
+          >
 
-                        ${
-                          done
-                            ? "bg-green-500"
+            {/* ICON */}
+            <div
+              className={`
+                w-10 h-10 rounded-full
+                flex items-center
+                justify-center text-white
+                shrink-0
 
-                            : riskStatus
-                            ? "bg-red-500"
+                ${
+                  done
+                    ? "bg-green-500"
 
-                            : soon
-                            ? "bg-orange-500"
+                    : riskStatus
+                    ? "bg-red-500"
 
-                            : "bg-gray-400"
-                        }
-                      `}
-                    >
-                      ✓
-                    </div>
+                    : approved
+? "bg-blue-500"
 
-                    <p className="text-xs text-center mt-3 font-medium">
-                      {t.activity}
-                    </p>
+: pending
+? "bg-orange-500"
 
-                    <span className="text-[10px] text-gray-500 uppercase">
-                      {t.status}
-                    </span>
+: "bg-gray-400"
+                }
+              `}
+            >
+              ✓
+            </div>
 
-                  </div>
-                );
-              })}
+            {/* CONTENT */}
+            <div
+              className="
+                flex-1 border rounded-2xl
+                p-4 bg-slate-50
+              "
+            >
+
+              <div className="
+                flex justify-between
+                items-center
+              ">
+
+                <h4 className="font-bold">
+                  {t.activity}
+                </h4>
+
+                <span
+                  className="
+                    text-xs uppercase
+                    px-3 py-1 rounded-full
+                    bg-white border
+                  "
+                >
+                  {t.status}
+                </span>
+
+              </div>
 
             </div>
 
-          </Card>
-        )}
+          </div>
+        );
+      })}
 
-        {/* DOCUMENTS */}
-        {activeMenu === "documents" && (
+    </div>
 
-          <Card>
+  </Card>
+)}
 
-            <h3 className="text-2xl font-bold mb-6">
-              Uploaded Documents
-            </h3>
+{/* DOCUMENTS */}
+{activeMenu === "documents" && (
 
-            {!documents.length && (
-              <p className="text-gray-500">
-                No documents uploaded yet.
+  <Card>
+
+    <div className="flex items-center justify-between mb-6">
+
+      <h3 className="text-2xl font-bold">
+        Uploaded Documents
+      </h3>
+
+      <div className="
+        px-4 py-2 rounded-xl
+        bg-purple-100 text-purple-700
+        text-sm font-semibold
+      ">
+        {documents.length} Documents
+      </div>
+
+    </div>
+
+    {!documents.length && (
+      <p className="text-gray-500">
+        No documents uploaded yet.
+      </p>
+    )}
+
+    <div className="space-y-5">
+
+      {documents.map((doc, i) => (
+
+        <div
+          key={i}
+          className="
+            border rounded-3xl p-5
+            bg-white shadow-sm
+          "
+        >
+
+          {/* TOP */}
+          <div className="
+            flex flex-col lg:flex-row
+            lg:items-center
+            lg:justify-between
+            gap-4
+          ">
+
+            {/* LEFT */}
+            <div>
+
+              <p className="
+                font-bold text-lg
+              ">
+                {doc.name}
               </p>
-            )}
 
-            <div className="space-y-4">
-
-              {documents.map(
-                (doc, i) => (
-
-                  <div
-                    key={i}
-                    className="border rounded-2xl p-4 flex items-center justify-between"
-                  >
-
-                    <div>
-
-                      <p className="font-semibold">
-                        {doc.name}
-                      </p>
-
-                      <p className="text-sm text-gray-500">
-                        {doc.status}
-                      </p>
-
-                    </div>
-
-                    <a
-                      href={doc.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-4 py-2 rounded-xl bg-purple-100 text-purple-700"
-                    >
-                      View
-                    </a>
-
-                  </div>
-                )
-              )}
-
-            </div>
-
-          </Card>
-        )}
-
-        {/* REMARKS */}
-        {activeMenu === "remarks" && (
-
-          <Card>
-
-            <h3 className="text-2xl font-bold mb-6">
-              Supervisor Remarks
-            </h3>
-
-            {!remarks.length && (
-              <p className="text-gray-500">
-                No remarks available.
+              <p className="
+                text-sm text-gray-500 mt-1
+              ">
+                Status:
+                <span className="
+                  ml-2 font-medium
+                ">
+                  {doc.status}
+                </span>
               </p>
-            )}
-
-            <div className="space-y-4">
-
-              {remarks.map(
-                (r, i) => (
-
-                  <div
-                    key={i}
-                    className="border rounded-2xl p-5"
-                  >
-
-                    <div className="flex justify-between mb-2">
-
-                      <p className="font-semibold">
-                        {r.assessmentType ||
-                          "Assessment"}
-                      </p>
-
-                      <span className="text-sm text-gray-500">
-                        {r.assessmentInstance ||
-                          "-"}
-                      </span>
-
-                    </div>
-
-                    <p className="text-gray-700 mt-2">
-                      {r.remark || "-"}
-                    </p>
-
-                  </div>
-                )
-              )}
 
             </div>
 
-          </Card>
-        )}
+            {/* ACTIONS */}
+            <div className="
+              flex flex-wrap gap-2
+              overflow-x-auto
+            ">
+
+              <a
+                href={doc.url}
+                target="_blank"
+                rel="noreferrer"
+                className="
+                  px-4 py-2 rounded-xl
+                  bg-purple-100
+                  text-purple-700
+                  font-medium
+                "
+              >
+                View
+              </a>
+
+              <button
+                className="
+                  px-4 py-2 rounded-xl
+                  bg-green-100
+                  text-green-700
+                  font-medium
+                "
+              >
+                Approve
+              </button>
+
+              <button
+                className="
+                  px-4 py-2 rounded-xl
+                  bg-orange-100
+                  text-orange-700
+                  font-medium
+                "
+              >
+                Revise
+              </button>
+
+            </div>
+
+          </div>
+
+          {/* FEEDBACK */}
+          <div className="mt-5">
+
+            <label className="
+              text-sm font-semibold
+              text-gray-700
+            ">
+              Supervisor Feedback
+            </label>
+
+            <textarea
+              placeholder="
+Add feedback or revision comments...
+              "
+              className="
+                mt-2 w-full border
+                rounded-2xl p-4
+                min-h-[120px]
+                focus:outline-none
+                focus:ring-2
+                focus:ring-purple-500
+              "
+              defaultValue={
+                doc.feedback || ""
+              }
+            />
+
+            <div className="
+              flex justify-end mt-4
+            ">
+
+              <button
+                className="
+                  px-5 py-3 rounded-2xl
+                  bg-purple-600
+                  hover:bg-purple-700
+                  text-white font-semibold
+                  transition
+                "
+              >
+                Save Feedback
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      ))}
+
+    </div>
+
+  </Card>
+)}
+
+
+{/* REMARKS */}
+{activeMenu === "remarks" && (
+
+  <Card>
+
+    <div className="
+      flex items-center justify-between
+      mb-6
+    ">
+
+      <h3 className="text-2xl font-bold">
+        Supervisor Remarks
+      </h3>
+
+      <div className="
+        px-4 py-2 rounded-xl
+        bg-purple-100 text-purple-700
+        text-sm font-semibold
+      ">
+        {remarks.length} Remarks
+      </div>
+
+    </div>
+
+    {/* ADD REMARK */}
+    <div className="
+      border rounded-3xl
+      p-5 mb-8 bg-slate-50
+    ">
+
+      <h4 className="
+        text-lg font-bold mb-4
+      ">
+        Add New Remark
+      </h4>
+
+      <div className="
+        grid grid-cols-1 md:grid-cols-2
+        gap-4 mb-4
+      ">
+
+        <input
+          type="text"
+          placeholder="Assessment Type"
+          className="
+            border rounded-2xl
+            p-3
+          "
+        />
+
+        <input
+          type="text"
+          placeholder="Assessment Instance"
+          className="
+            border rounded-2xl
+            p-3
+          "
+        />
+
+      </div>
+
+      <textarea
+        placeholder="
+Enter supervisor remark here...
+        "
+        className="
+          w-full border rounded-2xl
+          p-4 min-h-[140px]
+          focus:outline-none
+          focus:ring-2
+          focus:ring-purple-500
+        "
+      />
+
+      <div className="
+        flex justify-end mt-4
+      ">
+
+        <button
+          className="
+            px-6 py-3 rounded-2xl
+            bg-purple-600
+            hover:bg-purple-700
+            text-white font-semibold
+            transition
+          "
+        >
+          Save Remark
+        </button>
+
+      </div>
+
+    </div>
+
+    {/* REMARK LIST */}
+    {!remarks.length && (
+      <p className="text-gray-500">
+        No remarks available.
+      </p>
+    )}
+
+    <div className="space-y-5">
+
+      {remarks.map((r, i) => (
+
+        <div
+          key={i}
+          className="
+            border rounded-3xl
+            p-5 bg-white
+            shadow-sm
+          "
+        >
+
+          <div className="
+            flex flex-col lg:flex-row
+            lg:items-center
+            lg:justify-between
+            gap-3 mb-3
+          ">
+
+            <div>
+
+              <p className="
+                font-bold text-lg
+              ">
+                {r.assessmentType ||
+                  "Assessment"}
+              </p>
+
+              <p className="
+                text-sm text-gray-500
+              ">
+                {r.assessmentInstance ||
+                  "-"}
+              </p>
+
+            </div>
+
+            <div className="
+              flex gap-2
+            ">
+
+              <button
+                className="
+                  px-4 py-2 rounded-xl
+                  bg-blue-100
+                  text-blue-700
+                  font-medium
+                "
+              >
+                Edit
+              </button>
+
+              <button
+                className="
+                  px-4 py-2 rounded-xl
+                  bg-red-100
+                  text-red-700
+                  font-medium
+                "
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </div>
+
+          <div className="
+            bg-slate-50 rounded-2xl
+            p-4
+          ">
+
+            <p className="
+              text-gray-700
+              whitespace-pre-wrap
+            ">
+              {r.remark || "-"}
+            </p>
+
+          </div>
+
+        </div>
+      ))}
+
+    </div>
+
+  </Card>
+)}
 
       </main>
 
