@@ -192,10 +192,10 @@ export default function SupervisorStudentPage() {
         data.student ||
         data;
 
-      console.log(
-        "studentData",
-        studentData
-      );
+     console.log(
+  "FULL STUDENT DATA:",
+  studentData
+);
 
       setStudent(studentData);
 
@@ -208,19 +208,31 @@ export default function SupervisorStudentPage() {
       );
 
       setDocuments(
-        Array.isArray(
-          studentData.documents
-        )
-          ? studentData.documents
-          : []
-      );
+  Array.isArray(
+    studentData.documents
+  )
+    ? studentData.documents
 
+    : Array.isArray(
+        studentData.uploads
+      )
+    ? studentData.uploads
+
+    : []
+);
       setRemarks(
-        Array.isArray(
-          studentData.remarks
-        )
-          ? studentData.remarks
-          : []
+  Array.isArray(
+    studentData.remarks
+  )
+    ? studentData.remarks
+
+    : Array.isArray(
+        studentData.supervisorRemarks
+      )
+    ? studentData.supervisorRemarks
+
+    : []
+);
       );
     } catch (err) {
       console.error(err);
@@ -284,23 +296,29 @@ export default function SupervisorStudentPage() {
         .trim() === "late"
   ).length;
 
-  const progress =
-    timeline.length > 0
-      ? Math.round(
-          (completed /
-            timeline.length) *
-            100
-        )
-      : 0;
+  const progress = graduated
+  ? 100
+  : timeline.length > 0
+  ? Math.round(
+      (completed /
+        timeline.length) *
+        100
+    )
+  : 0;
+  
+ const graduated =
+  student.status
+    ?.toUpperCase()
+    .includes("GRADUATED");
 
-  const risk =
-    atRisk >= 3
-      ? "HIGH RISK"
-      : atRisk > 0 ||
-        delayed > 2
-      ? "MODERATE RISK"
-      : "LOW RISK";
-
+const risk = graduated
+  ? "GRADUATED"
+  : atRisk >= 3
+  ? "HIGH RISK"
+  : atRisk > 0 || delayed > 2
+  ? "MODERATE RISK"
+  : "LOW RISK";
+  
   /* ==========================================
      CHART DATA
   ========================================== */
@@ -488,32 +506,60 @@ export default function SupervisorStudentPage() {
                 }
               />
 
-              <SummaryCard
-                title="Progress"
-                value={`${progress}%`}
-                color="bg-blue-100"
-                icon={
-                  <GraduationCap className="text-blue-600" />
-                }
-              />
+              {!graduated && (
 
-              <SummaryCard
-                title="Delayed"
-                value={delayed}
-                color="bg-orange-100"
-                icon={
-                  <Clock3 className="text-orange-600" />
-                }
-              />
+  <SummaryCard
+    title="Progress"
+    value={`${progress}%`}
+    color="bg-blue-100"
+    icon={
+      <GraduationCap className="text-blue-600" />
+    }
+  />
 
-              <SummaryCard
-                title="Risk"
-                value={risk}
-                color="bg-red-100"
-                icon={
-                  <AlertTriangle className="text-red-600" />
-                }
-              />
+)}
+        {!graduated && (
+
+  <SummaryCard
+    title="Delayed"
+    value={delayed}
+    color="bg-orange-100"
+    icon={
+      <Clock3 className="text-orange-600" />
+    }
+  />
+
+)}
+
+              {!graduated && (
+
+  <SummaryCard
+    title="Risk"
+    value={
+  graduated
+    ? "COMPLETED"
+    : risk
+}
+    color="bg-red-100"
+    icon={
+      <AlertTriangle className="text-red-600" />
+    }
+  />
+
+)}
+
+{graduated && (
+
+  <SummaryCard
+    title="Status"
+    value="GRADUATED"
+    color="bg-green-100"
+    icon={
+      <GraduationCap className="text-green-600" />
+    }
+  />
+
+)}
 
             </div>
 
@@ -697,7 +743,8 @@ export default function SupervisorStudentPage() {
           <Card>
 
             <h3 className="text-2xl font-bold mb-8">
-              Milestone Timeline
+             Milestone Timeline
+({timeline.length})
             </h3>
 
             <div className="flex justify-between">
