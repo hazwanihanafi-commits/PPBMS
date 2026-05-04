@@ -1,101 +1,123 @@
+// ==========================================
+// frontend/pages/supervisor/[email].jsx
+// MODERN STUDENT DASHBOARD UI
+// ==========================================
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { motion } from "framer-motion";
 import { API_BASE } from "../../utils/api";
 
-import SupervisorChecklist from "../../components/SupervisorChecklist";
-import FinalPLOTable from "../../components/FinalPLOTable";
+import {
+  LayoutDashboard,
+  FileText,
+  ClipboardList,
+  Bell,
+  BarChart3,
+  CheckCircle2,
+  Clock3,
+  AlertTriangle,
+  GraduationCap,
+} from "lucide-react";
 
 import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
   BarChart,
   Bar,
   XAxis,
-  Tooltip,
-  ResponsiveContainer,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 
-import jsPDF from "jspdf";
-
-/* ================= GLASS CARD ================= */
-
-const GlassCard = ({ children }) => (
-  <motion.div
-    whileHover={{ y: -4, scale: 1.02 }}
-    className="
-      bg-white/70
-      backdrop-blur-xl
-      rounded-2xl
-      p-5
-      shadow-sm
-      border
-      border-white/40
-    "
-  >
-    {children}
-  </motion.div>
-);
-
-/* ================= HELPERS ================= */
-
-function getStatusType(t) {
-
-  const status =
-    t.status
-      ?.trim()
-      .toLowerCase();
-
-  if (
-    status === "late" ||
-    t.status === "AT_RISK"
-  ) {
-    return "late";
-  }
-
-  if (status === "due soon") {
-    return "soon";
-  }
-
-  if (status === "completed") {
-    return "done";
-  }
-
-  return "normal";
-}
-
+/* ==========================================
+   STATUS COLOR
+========================================== */
 function getRiskColor(risk) {
-
   if (risk === "HIGH RISK") {
-    return "text-red-600";
+    return "bg-red-500";
   }
 
   if (risk === "MODERATE RISK") {
-    return "text-amber-600";
+    return "bg-orange-500";
   }
 
-  return "text-green-600";
+  return "bg-green-500";
 }
 
-function getRiskBg(risk) {
-
-  if (risk === "HIGH RISK") {
-    return "bg-red-100";
-  }
-
-  if (risk === "MODERATE RISK") {
-    return "bg-amber-100";
-  }
-
-  return "bg-green-100";
+/* ==========================================
+   CARD
+========================================== */
+function Card({ children }) {
+  return (
+    <div
+      className="
+        bg-white rounded-3xl
+        border border-gray-100
+        shadow-sm p-6
+      "
+    >
+      {children}
+    </div>
+  );
 }
 
-/* ================= PAGE ================= */
+/* ==========================================
+   SUMMARY CARD
+========================================== */
+function SummaryCard({
+  title,
+  value,
+  icon,
+  color,
+}) {
+  return (
+    <div
+      className="
+        bg-white rounded-3xl
+        border border-gray-100
+        shadow-sm p-5
+      "
+    >
+      <div className="flex justify-between">
+        <div>
+          <p className="text-sm text-gray-500">
+            {title}
+          </p>
 
+          <h2
+            className="
+              text-4xl font-bold
+              mt-2
+            "
+          >
+            {value}
+          </h2>
+        </div>
+
+        <div
+          className={`
+            w-14 h-14 rounded-2xl
+            flex items-center justify-center
+            ${color}
+          `}
+        >
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================
+   PAGE
+========================================== */
 export default function SupervisorStudentPage() {
-
   const router = useRouter();
 
-  const { email } =
-    router.query;
+  const { email } = router.query;
 
   const [student, setStudent] =
     useState(null);
@@ -103,37 +125,29 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] =
     useState([]);
 
-  const [cqi, setCqi] =
-    useState({});
-
-  const [activeTab, setActiveTab] =
-    useState("overview");
-
   const [loading, setLoading] =
     useState(true);
 
- 
-  /* ================= LOAD ================= */
-
+  /* ==========================================
+     LOAD
+  ========================================== */
   useEffect(() => {
-
     if (!email) return;
 
     loadStudent();
-
   }, [email]);
 
   async function loadStudent() {
-
     try {
-
       const token =
         localStorage.getItem(
           "ppbms_token"
         );
 
       const res = await fetch(
-        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+        `${API_BASE}/api/supervisor/student/${encodeURIComponent(
+          email
+        )}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -142,38 +156,29 @@ export default function SupervisorStudentPage() {
       );
 
       const data =
-  await res.json();
+        await res.json();
 
-console.log("API DATA:", data);
+      const studentData =
+        data.row ||
+        data.student ||
+        data;
 
-const studentData =
-  data.row ||
-  data.student ||
-  data;
+      setStudent(studentData);
 
-setStudent(studentData || null);
-
-setTimeline(
-  studentData?.timeline || []
-);
-
-setCqi(
-  studentData?.cqiByAssessment || {}
-);
-
-    } catch (e) {
-
-      console.error(e);
-
+      setTimeline(
+        studentData.timeline || []
+      );
+    } catch (err) {
+      console.error(err);
     }
 
     setLoading(false);
   }
 
-  /* ================= LOADING ================= */
-
+  /* ==========================================
+     LOADING
+  ========================================== */
   if (loading) {
-
     return (
       <div className="p-6">
         Loading...
@@ -182,7 +187,6 @@ setCqi(
   }
 
   if (!student) {
-
     return (
       <div className="p-6">
         Student not found
@@ -190,485 +194,540 @@ setCqi(
     );
   }
 
-  /* ================= DATA ================= */
-
+  /* ==========================================
+     DATA
+  ========================================== */
   const completed = timeline.filter(
     (t) =>
       t.status
-        ?.trim()
-        .toLowerCase() ===
-      "completed"
+        ?.toLowerCase()
+        .trim() === "completed"
   ).length;
 
-  const late = timeline.filter(
-    (t) =>
+  const progress =
+    timeline.length > 0
+      ? Math.round(
+          (completed /
+            timeline.length) *
+            100
+        )
+      : 0;
 
-      t.status
-        ?.trim()
-        .toLowerCase() ===
-        "late" ||
-
-      t.status
-        ?.trim()
-        .toUpperCase() ===
-        "AT_RISK" ||
-
-      (
-        !t.actual &&
-        t.remaining_days < 0 &&
-        t.status
-          ?.trim()
-          .toLowerCase() !==
-          "completed"
-      )
-  ).length;
-
-  const soon = timeline.filter(
+  const delayed = timeline.filter(
     (t) =>
       t.status
-        ?.trim()
-        .toLowerCase() ===
-      "due soon"
+        ?.toLowerCase()
+        .trim() === "due soon"
   ).length;
 
-  const progress = timeline.length
-    ? Math.round(
-        (
-          completed /
-          timeline.length
-        ) * 100
-      )
-    : 0;
+  const atRisk = timeline.filter(
+    (t) =>
+      t.status
+        ?.toLowerCase()
+        .trim() === "late"
+  ).length;
 
-  const riskScore =
-    late > 2
+  const risk =
+    atRisk >= 3
       ? "HIGH RISK"
-      : late > 0 || soon > 2
+      : atRisk > 0 ||
+        delayed > 2
       ? "MODERATE RISK"
       : "LOW RISK";
 
-  const coSupervisorDisplay =
-    student.coSupervisors ||
-    student.co_supervisor ||
-    student.coSupervisor ||
-    "-";
+  /* ==========================================
+     CHARTS
+  ========================================== */
+  const pieData = [
+    {
+      name: "Completed",
+      value: completed,
+      color: "#10B981",
+    },
 
-  /* ================= PDF ================= */
+    {
+      name: "In Progress",
+      value: delayed,
+      color: "#F59E0B",
+    },
 
-  function exportPDF() {
+    {
+      name: "Not Started",
+      value:
+        timeline.length -
+        completed -
+        delayed,
+      color: "#CBD5E1",
+    },
+  ];
 
-    const pdf = new jsPDF();
+  const barData = [
+    {
+      name: "On Track",
+      students: completed,
+    },
 
-    let y = 20;
+    {
+      name: "Delayed",
+      students: delayed,
+    },
 
-    pdf.setFontSize(16);
+    {
+      name: "At Risk",
+      students: atRisk,
+    },
+  ];
 
-    pdf.text(
-      "Postgraduate Progress Report",
-      105,
-      y,
-      {
-        align: "center",
-      }
-    );
-
-    y += 10;
-
-    pdf.text(
-      `Name: ${student.student_name}`,
-      20,
-      y
-    );
-
-    y += 7;
-
-    pdf.text(
-      `Programme: ${student.programme}`,
-      20,
-      y
-    );
-
-    y += 7;
-
-    pdf.text(
-      `Risk: ${riskScore}`,
-      20,
-      y
-    );
-
-    y += 10;
-
-    timeline.forEach((t, i) => {
-
-      pdf.text(
-        `${i + 1}. ${t.activity} (${t.status})`,
-        20,
-        y
-      );
-
-      y += 5;
-    });
-
-    pdf.save("report.pdf");
-  }
-
-  /* ================= UI ================= */
-
+  /* ==========================================
+     UI
+  ========================================== */
   return (
-
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
-
+    <div
+      className="
+        min-h-screen
+        bg-slate-100
+        flex
+      "
+    >
       {/* SIDEBAR */}
+      <aside
+        className="
+          w-64 bg-gradient-to-b
+          from-slate-900 to-slate-800
+          text-white p-5
+          hidden lg:block
+        "
+      >
+        <h1
+          className="
+            text-3xl font-bold mb-8
+          "
+        >
+          PPBMS
+        </h1>
 
-      <div className="w-56 p-4">
-
-        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
-
-          <h2 className="font-bold text-purple-700 mb-4">
-            PPBMS
-          </h2>
-
-          <button
-            onClick={() =>
-              router.push("/supervisor")
+        <div className="space-y-2">
+          <SidebarItem
+            icon={
+              <LayoutDashboard
+                size={18}
+              />
             }
-            className="mb-3 text-sm text-purple-600 hover:underline"
-          >
-            ← Back to Dashboard
-          </button>
+            label="Dashboard"
+            active
+          />
 
-          {[
-            "overview",
-            "documents",
-            "timeline",
-            "cqi",
-            "remarks",
-          ].map((tab) => (
+          <SidebarItem
+            icon={<BarChart3 size={18} />}
+            label="My Progress"
+          />
 
-            <button
-              key={tab}
-              onClick={() =>
-                setActiveTab(tab)
-              }
-              className={`
-                w-full
-                text-left
-                px-3
-                py-2
-                rounded-lg
-                text-sm
-                mb-1
+          <SidebarItem
+            icon={
+              <ClipboardList
+                size={18}
+              />
+            }
+            label="Milestones"
+          />
 
-                ${
-                  activeTab === tab
-                    ? "bg-purple-100 text-purple-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }
-              `}
-            >
-              {tab.toUpperCase()}
-            </button>
+          <SidebarItem
+            icon={<FileText size={18} />}
+            label="Documents"
+          />
 
-          ))}
-
+          <SidebarItem
+            icon={<Bell size={18} />}
+            label="Notifications"
+          />
         </div>
-
-      </div>
+      </aside>
 
       {/* MAIN */}
-
-      <div className="flex-1 p-6 space-y-6">
-
+      <main
+        className="
+          flex-1 p-6 space-y-6
+        "
+      >
         {/* HEADER */}
-
-        <div className="flex justify-between items-center">
-
-          <h1 className="text-xl font-bold text-gray-800">
-            Student Overview
-          </h1>
-
-          <button
-            onClick={exportPDF}
-            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
-          >
-            Export PDF
-          </button>
-
-        </div>
-
-        {/* HERO */}
-
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
-
-          <h1 className="text-xl font-semibold">
-            {student.student_name}
-          </h1>
-
-          <p className="text-sm">
-            {student.programme}
-          </p>
-
-          <div className="mt-4 flex justify-between items-center">
-
-            <span className="text-3xl">
-              {progress}%
-            </span>
-
-            <span
-              className={`
-                px-3
-                py-1
-                rounded-full
-                text-xs
-                font-semibold
-
-                ${getRiskBg(riskScore)}
-                ${getRiskColor(riskScore)}
-              `}
-            >
-              {riskScore}
-            </span>
-
-          </div>
-
-        </div>
-
-        {/* ANALYTICS */}
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">
-              Completed
-            </p>
-
-            <p className="text-2xl font-bold text-green-600">
-              {completed}
-            </p>
-          </GlassCard>
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">
-              Due Soon
-            </p>
-
-            <p className="text-2xl font-bold text-amber-600">
-              {soon}
-            </p>
-          </GlassCard>
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">
-              Late
-            </p>
-
-            <p className="text-2xl font-bold text-red-600">
-              {late}
-            </p>
-          </GlassCard>
-
-        </div>
-
-        {/* GRAPH */}
-
-        <GlassCard>
-
-          <ResponsiveContainer
-            width="100%"
-            height={200}
-          >
-
-            <BarChart
-              data={[
-                {
-                  name: "Done",
-                  value: completed,
-                },
-                {
-                  name: "Soon",
-                  value: soon,
-                },
-                {
-                  name: "Late",
-                  value: late,
-                },
-              ]}
-            >
-
-              <XAxis dataKey="name" />
-
-              <Tooltip />
-
-              <Bar dataKey="value" />
-
-            </BarChart>
-
-          </ResponsiveContainer>
-
-        </GlassCard>
-
-        {/* DOCUMENTS */}
-
-        {activeTab === "documents" && (
-
-          <SupervisorChecklist
-            documents={
-              student.documents || {}
-            }
-            studentEmail={student.email}
-            onUpdated={loadStudent}
-          />
-
-        )}
-
-        {/* CQI */}
-
-        {activeTab === "cqi" && (
-
-          <FinalPLOTable
-            finalPLO={student.finalPLO}
-          />
-
-        )}
-
-{/* REMARKS */}
-
-{activeTab === "remarks" && (
-
-  <div className="space-y-6">
-
-    {Array.isArray(student.remarksByAssessment) &&
-    student.remarksByAssessment.length > 0 ? (
-
-      student.remarksByAssessment.map(
-        (item, idx) => (
-
-          <div
-            key={idx}
+        <div
+          className="
+            bg-[#b48a85]
+            rounded-3xl
+            px-6 py-4
+            text-white
+          "
+        >
+          <h1
             className="
-              bg-white
-              rounded-2xl
-              p-6
-              shadow-sm
-              border
+              text-4xl font-bold
             "
           >
+            SYSTEM HIGHLIGHTS
+          </h1>
+        </div>
 
-            <div className="mb-4">
+        {/* DASHBOARD */}
+        <div
+          className="
+            bg-white rounded-3xl
+            p-6 border shadow-sm
+          "
+        >
+          <h2
+            className="
+              text-2xl font-bold
+              mb-6
+            "
+          >
+            My Progress Overview
+          </h2>
 
-              <h3 className="text-xl font-bold text-purple-700">
-                {item.assessmentInstance}
+          {/* SUMMARY */}
+          <div
+            className="
+              grid grid-cols-1
+              md:grid-cols-4 gap-4
+              mb-6
+            "
+          >
+            <SummaryCard
+              title="Milestones Completed"
+              value={`${completed}/${timeline.length}`}
+              color="bg-blue-100"
+              icon={
+                <CheckCircle2
+                  className="
+                    text-blue-600
+                  "
+                />
+              }
+            />
+
+            <SummaryCard
+              title="On Track"
+              value={completed}
+              color="bg-green-100"
+              icon={
+                <GraduationCap
+                  className="
+                    text-green-600
+                  "
+                />
+              }
+            />
+
+            <SummaryCard
+              title="Slightly Delayed"
+              value={delayed}
+              color="bg-orange-100"
+              icon={
+                <Clock3
+                  className="
+                    text-orange-600
+                  "
+                />
+              }
+            />
+
+            <SummaryCard
+              title="At Risk"
+              value={atRisk}
+              color="bg-red-100"
+              icon={
+                <AlertTriangle
+                  className="
+                    text-red-600
+                  "
+                />
+              }
+            />
+          </div>
+
+          {/* CHARTS */}
+          <div
+            className="
+              grid grid-cols-1
+              xl:grid-cols-2 gap-6
+            "
+          >
+            {/* PIE */}
+            <Card>
+              <h3
+                className="
+                  font-bold mb-4
+                "
+              >
+                Milestone Progress
               </h3>
 
-              <p className="text-sm text-gray-500">
-                Assessment Type:
-                {" "}
-                {item.assessmentType}
-              </p>
+              <div className="h-72">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      innerRadius={70}
+                      outerRadius={110}
+                      dataKey="value"
+                    >
+                      {pieData.map(
+                        (
+                          entry,
+                          index
+                        ) => (
+                          <Cell
+                            key={index}
+                            fill={
+                              entry.color
+                            }
+                          />
+                        )
+                      )}
+                    </Pie>
 
-            </div>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-           <textarea
-  rows={8}
-  value={item.remark || ""}
+              <div className="text-center mt-2">
+                <span
+                  className="
+                    text-3xl font-bold
+                  "
+                >
+                  {progress}%
+                </span>
+              </div>
+            </Card>
 
-  onChange={(e) => {
+            {/* BAR */}
+            <Card>
+              <h3
+                className="
+                  font-bold mb-4
+                "
+              >
+                Students by Status
+              </h3>
 
-  if (!student) return;
+              <div className="h-72">
+                <ResponsiveContainer>
+                  <BarChart
+                    data={barData}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                    />
 
-  const updated =
-    (student.remarksByAssessment || []).map(
-      (r, i) =>
-        i === idx
-          ? {
-              ...r,
-              remark: e.target.value
-            }
-          : r
-    );
+                    <XAxis dataKey="name" />
 
-  setStudent(prev => ({
-    ...prev,
-    remarksByAssessment: updated
-  }));
+                    <YAxis />
 
-}}
+                    <Tooltip />
 
-  onBlur={async (e) => {
-
-    try {
-
-      const token =
-        localStorage.getItem("ppbms_token");
-
-      await fetch(
-        `${API_BASE}/api/supervisorRemark/remark`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            studentMatric: student.student_id,
-            studentEmail: student.email,
-            assessmentType: item.assessmentType,
-            assessmentInstance: item.assessmentInstance,
-            remark: e.target.value
-          })
-        }
-      );
-
-      await loadStudent(); // reload from sheet
-
-    } catch (err) {
-      console.error(err);
-    }
-  }}
-
-  className="
-    w-full
-    border
-    rounded-2xl
-    p-4
-    text-sm
-    min-h-[220px]
-  "
-/>
+                    <Bar
+                      dataKey="students"
+                      fill="#7C3AED"
+                      radius={[
+                        10, 10, 0, 0,
+                      ]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
           </div>
-        )
-      )
+        </div>
 
-    ) : (
+        {/* TIMELINE */}
+        <Card>
+          <h3
+            className="
+              text-xl font-bold
+              mb-8
+            "
+          >
+            Milestone Timeline
+          </h3>
 
-      <div className="bg-white rounded-2xl p-6 text-gray-400">
+          <div className="flex justify-between">
+            {timeline.map((t, i) => {
+              const done =
+                t.status
+                  ?.toLowerCase()
+                  .trim() ===
+                "completed";
 
-        No remarks available
+              const soon =
+                t.status
+                  ?.toLowerCase()
+                  .trim() ===
+                "due soon";
 
-      </div>
+              return (
+                <div
+                  key={i}
+                  className="
+                    flex-1 flex flex-col
+                    items-center relative
+                  "
+                >
+                  {i !==
+                    timeline.length -
+                      1 && (
+                    <div
+                      className="
+                        absolute top-4 left-1/2
+                        w-full h-1 bg-gray-300
+                      "
+                    />
+                  )}
 
-    )}
+                  <div
+                    className={`
+                      w-8 h-8 rounded-full
+                      z-10 relative
+                      flex items-center
+                      justify-center text-white
 
-  </div>
+                      ${
+                        done
+                          ? "bg-green-500"
 
-)}
-        {/* FOOTER */}
+                          : soon
+                          ? "bg-orange-500"
 
-        <footer className="text-center text-xs text-gray-400 pt-6">
+                          : "bg-gray-400"
+                      }
+                    `}
+                  >
+                    ✓
+                  </div>
 
-          © 2026 PPBMS ·
-          Universiti Sains Malaysia
+                  <p
+                    className="
+                      text-xs text-center
+                      mt-3 font-medium
+                    "
+                  >
+                    {t.activity}
+                  </p>
 
-          <br />
+                  <span
+                    className="
+                      text-[10px]
+                      text-gray-500
+                    "
+                  >
+                    {t.status}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
 
-          Developed by
-          Hazwani Ahmad Yusof
-          (2025)
+        {/* STUDENT INFO */}
+        <Card>
+          <h3
+            className="
+              text-xl font-bold
+              mb-4
+            "
+          >
+            Student Information
+          </h3>
 
-        </footer>
+          <div
+            className="
+              grid grid-cols-1
+              md:grid-cols-2 gap-4
+            "
+          >
+            <InfoItem
+              label="Name"
+              value={
+                student.student_name
+              }
+            />
 
-      </div>
+            <InfoItem
+              label="Programme"
+              value={student.programme}
+            />
 
+            <InfoItem
+              label="Email"
+              value={student.email}
+            />
+
+            <InfoItem
+              label="Risk Level"
+              value={risk}
+            />
+          </div>
+        </Card>
+      </main>
+    </div>
+  );
+}
+
+/* ==========================================
+   SIDEBAR ITEM
+========================================== */
+function SidebarItem({
+  icon,
+  label,
+  active = false,
+}) {
+  return (
+    <button
+      className={`
+        w-full flex items-center
+        gap-3 px-4 py-3 rounded-2xl
+        transition font-medium
+
+        ${
+          active
+            ? "bg-white/10 text-white"
+
+            : "text-slate-300 hover:bg-white/5"
+        }
+      `}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+/* ==========================================
+   INFO ITEM
+========================================== */
+function InfoItem({
+  label,
+  value,
+}) {
+  return (
+    <div
+      className="
+        bg-slate-50 rounded-2xl
+        p-4 border
+      "
+    >
+      <p
+        className="
+          text-xs text-gray-500
+          mb-1
+        "
+      >
+        {label}
+      </p>
+
+      <p className="font-semibold">
+        {value || "-"}
+      </p>
     </div>
   );
 }
