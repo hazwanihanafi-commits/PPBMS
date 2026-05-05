@@ -247,8 +247,44 @@ Object.entries(grouped).forEach(([instance, rows]) => {
 });
 
 /* FINAL PLO */
-const finalPLO =
-  aggregateFinalPLO(cqiByAssessment);
+let finalPLO = {};
+
+try {
+
+  const finalRow = normalized.find(r =>
+    String(r["matric"]).trim() === String(matric).trim() &&
+    String(
+      r["assessment_instance"] ||
+      r["assessment_type"] ||
+      ""
+    ).toUpperCase().trim() === "FINAL"
+  );
+
+  console.log("🎯 FINAL ROW (STUDENT):", finalRow);
+
+  if (finalRow) {
+
+    for (let i = 1; i <= 11; i++) {
+
+      const v = parseFloat(finalRow[`plo${i}`]);
+
+      finalPLO[`PLO${i}`] = {
+        value: isNaN(v) ? null : v,
+        status:
+          v >= 4 ? "Achieved"
+          : v >= 3 ? "Moderate"
+          : "CQI Required"
+      };
+    }
+
+  }
+
+} catch (err) {
+
+  console.error("❌ FINAL PLO ERROR:", err);
+  finalPLO = {};
+
+}
 
 /* ALERT */
 const alerts = [];
