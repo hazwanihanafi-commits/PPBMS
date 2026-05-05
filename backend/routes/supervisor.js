@@ -506,7 +506,9 @@ Object.entries(grouped)
         : "PENDING"),
 
     updatedAt:
-      r["cqi_updated_at"] || ""
+  r["cqi_updated_at"]
+    ? new Date(r["cqi_updated_at"]).toISOString()
+    : null
 
    });
 
@@ -542,26 +544,24 @@ const alerts = [];
 remarksByAssessment.forEach(r => {
 
   if (
-    r.supervisorRemark &&
-    !r.studentResponse &&
-    r.updatedAt
-  ) {
+  r.supervisorRemark &&
+  !r.studentResponse &&
+  r.updatedAt &&
+  !isNaN(new Date(r.updatedAt))
+) {
 
-    const days =
-      (Date.now() - new Date(r.updatedAt)) /
-      (1000 * 60 * 60 * 24);
+  const days =
+    (Date.now() - new Date(r.updatedAt).getTime()) /
+    (1000 * 60 * 60 * 24);
 
-    if (days > 7) {
-
-      alerts.push({
-        type: "CQI_PENDING",
-        assessmentInstance: r.assessmentInstance,
-        message:
-          `${r.assessmentInstance} ignored > 7 days`
-      });
-
-    }
+  if (days > 7) {
+    alerts.push({
+      type: "CQI_PENDING",
+      assessmentInstance: r.assessmentInstance,
+      message: `${r.assessmentInstance} ignored > 7 days`
+    });
   }
+}
 });
 
 /* =========================================================
