@@ -525,14 +525,14 @@ Object.entries(grouped)
     .toLowerCase()
     .trim();
 
-      const instanceKey =
-        (
-          r.assessment_instance ||
-          r.assessment_type ||
-          ""
-        )
-          .toUpperCase()
-          .trim();
+      const instance =
+  (
+    r["Assessment Type"] ||
+    r["assessment_instance"] ||
+    ""
+  )
+    .toUpperCase()
+    .trim();
 
       const savedRemark =
         remarkMap[email]?.[instanceKey] || {};
