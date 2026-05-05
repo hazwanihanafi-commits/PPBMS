@@ -71,8 +71,7 @@ export default function StudentPage() {
         data.row.timeline || []
       );
 
-      setRemarks(
-        data.row.remarks || []
+      setRemarks(data.row.remarksByAssessment || [])
       );
 
     } catch (e) {
@@ -146,11 +145,10 @@ export default function StudentPage() {
     await authFetch("/api/supervisor/cqi/student-response", {
       method: "POST",
       body: JSON.stringify({
-        studentEmail: profile.email,   // backend still using email here
-        assessmentInstance: instance,
-        studentResponse: responseText,
-        status: "RESPONDED"
-      })
+  matric: profile.student_id,   // 🔥 IMPORTANT FIX
+  assessmentInstance: instance,
+  studentResponse: responseText
+})
     });
 
     loadStudent(); // refresh
