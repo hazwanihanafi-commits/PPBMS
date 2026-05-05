@@ -611,6 +611,14 @@ router.post("/document-status", auth, async (req, res) => {
   try {
     const { studentEmail, documentName, status, feedback } = req.body;
 
+    // ✅ ADD THIS SAFETY CHECK
+    if (!studentEmail || !documentName || !status) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        body: req.body
+      });
+    }
+
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const index = rows.findIndex(
