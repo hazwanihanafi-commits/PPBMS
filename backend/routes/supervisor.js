@@ -319,86 +319,38 @@ router.get(
         coSupervisors
       };
 
+
+
       /* =========================================================
-         DOCUMENTS
-      ========================================================= */
+   DOCUMENTS
+========================================================= */
 
-      const documents = {};
-      const supervisorRemarkRows =
-  await readSUPERVISOR_REMARKS(process.env.SHEET_ID);
-      const remarkMap = {};
+const documents = {};
 
-supervisorRemarkRows.forEach(r => {
+Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
 
-  const email =
-    (r["Student Email"] || "")
-      .toLowerCase()
-      .trim();
+  const statusColumn = DOC_STATUS_MAP[label];
 
-  const instance =
-  (
-    r["Assessment Type"] ||
-    r["assessment_type"] ||
-    ""
-  )
-    .toString()
-    .toUpperCase()
-    .trim();
+  documents[label] = {
+    url: raw[column] || "",
 
-  if (!remarkMap[email]) {
-    remarkMap[email] = {};
-  }
+    status:
+      raw[statusColumn] ||
+      (raw[column] ? "Pending Review" : "Not Submitted"),
 
-  remarkMap[email][instance] = {
-  remark: r["Supervisor_Remark"] || "",
-  studentResponse: r["student_response"] || "",
-  status: r["cqi_status"] || "PENDING"
-};
+    feedback:
+      raw[`${column}_FEEDBACK`] || "",
+
+    reviewed_by:
+      raw[`${column}_REVIEWED_BY`] || "",
+
+    reviewed_at:
+      raw[`${column}_REVIEWED_AT`] || ""
+  };
+
 });
 
-      Object.entries(
-        DOC_COLUMN_MAP
-      ).forEach(
-        ([label, column]) => {
 
-          const statusColumn =
-            DOC_STATUS_MAP[
-              label
-            ];
-
-          documents[label] = {
-
-            url:
-              raw[column] || "",
-
-            status:
-              raw[
-                statusColumn
-              ] ||
-              (
-                raw[column]
-                  ? "Pending Review"
-                  : "Not Submitted"
-              ),
-
-            feedback:
-              raw[
-                `${column}_FEEDBACK`
-              ] || "",
-
-            reviewed_by:
-              raw[
-                `${column}_REVIEWED_BY`
-              ] || "",
-
-            reviewed_at:
-              raw[
-                `${column}_REVIEWED_AT`
-              ] || ""
-
-          };
-        }
-      );
 
       /* =========================================================
          TIMELINE
@@ -516,63 +468,47 @@ Object.entries(grouped)
 
     rows.forEach(r => {
 
-      if (
-        !r ||
-        (!r.assessment_type && !r.assessment_instance)
-      ) return;
+  if (
+    !r ||
+    (!r.assessment_type && !r.assessment_instance)
+  ) return;
 
-     const email =
-  (
-    r["Student Email"] ||
-    r["Student's Email"] ||
-    ""
-  )
-    .toLowerCase()
-    .trim();
+  const instanceKey =
+    (
+      r["assessment_instance"] ||
+      r["assessment_type"] ||
+      ""
+    )
+      .toUpperCase()
+      .trim();
 
-      const instanceKey =
-  (
-    r["assessment_instance"] ||
-    r["assessment_type"] ||
-    ""
-  )
-    .toUpperCase()
-    .trim();
+  remarksByAssessment.push({
 
-const savedRemark =
-  remarkMap[email]?.[instanceKey] || {};
+    assessmentType:
+      r["assessment_type"] || "UNKNOWN",
 
-remarksByAssessment.push({
+    assessmentInstance:
+      instanceKey,
 
-  assessmentType:
-    r["assessment_type"] || "UNKNOWN",
+    remark:
+      r["remarks"] || "",
 
-  assessmentInstance:
-    instanceKey,
+    supervisorRemark:
+      r["supervisor_remark"] || "",
 
-  remark:
-    r["remarks"] || "",
+    studentResponse:
+      r["student_response"] || "",
 
-  // 🔥 PRIORITY: SUPERVISOR_REMARKS → fallback to sheet
-  supervisorRemark:
-    savedRemark.remark ||
-    r["Supervisor_Remark"] ||
-    "",
+    status:
+      r["cqi_status"] ||
+      (r["student_response"]
+        ? "RESPONDED"
+        : "PENDING"),
 
-  studentResponse:
-    savedRemark.studentResponse ||
-    r["student_response"] ||
-    "",
+    updatedAt:
+      r["cqi_updated_at"] || ""
 
-  status:
-    savedRemark.status ||
-    r["cqi_status"] ||
-    (r["student_response"]
-      ? "RESPONDED"
-      : "PENDING"),
-
-  updatedAt:
-    r["cqi_updated_at"] || ""
+  });
 
 });
 
@@ -788,28 +724,28 @@ router.post(
         const rowNumber = i + 2;
 
         await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "Supervisor_Remark",
-          rowNumber,
-          supervisorRemark
-        );
+  process.env.SHEET_ID,
+  "ASSESSMENT_PLO",
+  "supervisor_remark",   // ✅ lowercase
+  rowNumber,
+  supervisorRemark
+);
 
         await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "CQI_STATUS",
-          rowNumber,
-          "PENDING"
-        );
+  process.env.SHEET_ID,
+  "ASSESSMENT_PLO",
+  "cqi_status",        // ✅ lowercase
+  rowNumber,
+  "PENDING"
+);
 
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "CQI_UPDATED_AT",
-          rowNumber,
-          new Date().toISOString()
-        );
+await writeSheetCell(
+  process.env.SHEET_ID,
+  "ASSESSMENT_PLO",
+  "cqi_updated_at",    // ✅ lowercase
+  rowNumber,
+  new Date().toISOString()
+);
       }
 
       res.json({ success: true });
