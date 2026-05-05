@@ -341,7 +341,11 @@ const coSupervisorDisplay =
 
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
-          <SupervisorChecklist documents={student.documents || {}} />
+          <SupervisorChecklist
+  documents={student.documents || {}}
+  studentEmail={student.email}   // 🔥 REQUIRED
+  onUpdated={loadStudent}
+/>
         )}
 
   
