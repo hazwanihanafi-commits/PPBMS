@@ -619,12 +619,12 @@ router.post("/cqi/student-response", auth, async (req, res) => {
         `\n[${new Date().toISOString()}] ${studentResponse}`;
 
       await writeSheetCell(
-        process.env.SHEET_ID,
-        "ASSESSMENT_PLO",
-        "student_response_history",
-        rowNumber,
-        updated
-      );
+  process.env.SHEET_ID,
+  "ASSESSMENT_PLO",
+  "cqi_history",   // 🔥 FIX HERE
+  rowNumber,
+  updated
+);
 
       /* 🔥 UPDATE STATUS */
       await writeSheetCell(
