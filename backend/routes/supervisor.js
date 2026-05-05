@@ -533,33 +533,39 @@ Object.entries(grouped)
 const savedRemark =
   remarkMap[email]?.[instanceKey] || {};
 
-      remarksByAssessment.push({
+remarksByAssessment.push({
 
-        assessmentType:
-          r.assessment_type || "UNKNOWN",
+  assessmentType:
+    r["assessment_type"] || "UNKNOWN",
 
-        assessmentInstance:
-          instanceKey,
+  assessmentInstance:
+    instanceKey,
 
-        remark:
-          r.remarks || "",
+  remark:
+    r["remarks"] || "",
 
-        supervisorRemark:
-          savedRemark.remark || "",
+  // 🔥 PRIORITY: SUPERVISOR_REMARKS → fallback to sheet
+  supervisorRemark:
+    savedRemark.remark ||
+    r["Supervisor_Remark"] ||
+    "",
 
-        studentResponse:
-          savedRemark.studentResponse || "",
+  studentResponse:
+    savedRemark.studentResponse ||
+    r["student_response"] ||
+    "",
 
-        status:
-          savedRemark.status ||
-          (savedRemark.studentResponse
-            ? "RESPONDED"
-            : "PENDING"),
+  status:
+    savedRemark.status ||
+    r["cqi_status"] ||
+    (r["student_response"]
+      ? "RESPONDED"
+      : "PENDING"),
 
-        updatedAt:
-          r.cqi_updated_at || ""
+  updatedAt:
+    r["cqi_updated_at"] || ""
 
-      });
+});
 
     });
 
