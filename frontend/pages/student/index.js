@@ -313,10 +313,17 @@ export default function StudentPage() {
               <strong>
                 Co-Supervisor(s):
               </strong>{" "}
-              {profile.cosupervisor ||
-                profile.cosupervisors ||
-                profile.co_supervisor ||
-                "-"}
+              {(
+  profile.cosupervisor ||
+  profile.cosupervisors ||
+  profile.co_supervisor ||
+  "-"
+)
+  .split(/[,;]/)   // split by comma or ;
+  .map(s => s.trim())
+  .filter(Boolean)
+  .join(", ")
+}
             </p>
 
           </div>
