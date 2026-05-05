@@ -54,7 +54,7 @@ function auth(req, res, next) {
 ========================= */
 
 router.post(
-  "/remark",
+  "/cqi/supervisor-remark",
   auth,
   async (req, res) => {
 
@@ -178,7 +178,7 @@ router.post(
 ========================= */
 
 router.get(
-  "/remark/:studentEmail",
+  "/cqi/supervisor-remark/:studentEmail",
   auth,
   async (req, res) => {
 
