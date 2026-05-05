@@ -475,11 +475,15 @@ Object.entries(grouped || {})
     ) return;
 
     const instanceKey = String(
-      r["assessment_instance"] ||
-      r["assessment_type"] ||
-      ""
-    ).toUpperCase().trim();
+  r["assessment_instance"] ||
+  r["assessment_type"] ||
+  ""
+)
+  .toUpperCase()
+  .trim();
 
+if (!instanceKey) return; // ✅ skip bad row
+    
     const safeDate =
       r["cqi_updated_at"] &&
       !isNaN(new Date(r["cqi_updated_at"]).getTime())
@@ -717,10 +721,9 @@ router.post(
             .trim() ===
           studentEmail.toLowerCase().trim() &&
 
-          String(
+        String(
   r["assessment_instance"] ||
   r["assessment_type"] ||
-  r["assessment_instance "] ||  // extra safety
   ""
 )
             .toLowerCase()
