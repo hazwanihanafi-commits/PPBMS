@@ -119,7 +119,13 @@ export default function SupervisorStudentPage() {
   }
 
   const category = getCategory();
-
+const coSupervisorDisplay =
+  student.coSupervisors ||
+  student.co_supervisor ||
+  student.coSupervisor ||
+  student.cosupervisor ||
+  student.cosupervisors ||
+  "-";
   /* ================= AI INSIGHT ================= */
 
   let aiMessage = "";
@@ -245,6 +251,7 @@ export default function SupervisorStudentPage() {
             <p><b>Matric:</b> {student.student_id}</p>
             <p><b>Status:</b> {student.status}</p>
             <p><b>Supervisor:</b> {student.supervisor}</p>
+          <p><b>Co-Supervisor:</b> {coSupervisorDisplay}</p>
           </div>
         </GlassCard>
 
