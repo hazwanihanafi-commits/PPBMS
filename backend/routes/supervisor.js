@@ -740,7 +740,7 @@ router.post("/document-status", auth, async (req, res) => {
 });
 
 /* =========================================================
-   SUPERVISOR ADD REMARK
+   SUPERVISOR ADD REMARK (FINAL FIXED)
 ========================================================= */
 
 router.post(
@@ -751,46 +751,90 @@ router.post(
     try {
 
       const {
-        matric,   // ✅ use matric now
+        matric,
         assessmentInstance,
         supervisorRemark
       } = req.body;
 
-      const rows =
+      /* =========================
+         READ RAW SHEET
+      ========================= */
+      const rawRows =
         await readASSESSMENT_PLO(
           process.env.SHEET_ID
         );
 
-      const matched = rows
-        .map((r, i) => ({ r, i }))
-        .filter(({ r }) => {
+      /* =========================
+         NORMALIZE + KEEP INDEX
+      ========================= */
+      const rows = rawRows.map((r, i) => {
 
-          const m = String(r["Matric"] || "").trim();
+        const clean = {};
 
-          const instance = String(
-            r["assessment_instance"] ||
-            r["assessment_type"] ||
-            ""
-          )
-            .toUpperCase()
-            .trim();
-
-          return (
-            m === String(matric).trim() &&
-            instance === assessmentInstance.toUpperCase().trim()
-          );
+        Object.keys(r).forEach(k => {
+          clean[
+            k.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_")
+          ] = r[k];
         });
 
+        return {
+          ...clean,
+          __index: i   // 🔥 VERY IMPORTANT
+        };
+
+      });
+
+      /* =========================
+         MATCH
+      ========================= */
+      const matched = rows.filter(r => {
+
+        const m = String(r.matric || "").trim();
+
+        const instance = String(
+          r.assessment_instance ||
+          r.assessment_type ||
+          ""
+        )
+          .toUpperCase()
+          .replace(/\s+/g, "_")
+          .trim();
+
+        const inputInstance =
+          String(assessmentInstance)
+            .toUpperCase()
+            .replace(/\s+/g, "_")
+            .trim();
+
+        return (
+          m === String(matric).trim() &&
+          instance === inputInstance
+        );
+
+      });
+
+      /* =========================
+         DEBUG
+      ========================= */
+      console.log("REQ:", { matric, assessmentInstance });
+      console.log("MATCHED COUNT:", matched.length);
+
       if (matched.length === 0) {
-        console.log("❌ NO MATCH FOUND", { matric, assessmentInstance });
+
+        console.log("❌ NO MATCH FOUND");
+
         return res.status(404).json({
           error: "Assessment not found"
         });
+
       }
 
-      for (const { i } of matched) {
+      /* =========================
+         WRITE BACK TO SHEET
+      ========================= */
+      for (const r of matched) {
 
-        const rowNumber = i + 2;
+        const rowNumber = r.__index + 2; // 🔥 CORRECT ROW
 
         console.log("✅ WRITING TO ROW:", rowNumber);
 
@@ -817,17 +861,23 @@ router.post(
           rowNumber,
           new Date().toISOString()
         );
+
       }
 
       res.json({ success: true });
 
     } catch (e) {
+
       console.error("🔥 SAVE ERROR:", e);
-      res.status(500).json({ error: e.message });
+
+      res.status(500).json({
+        error: e.message
+      });
+
     }
+
   }
 );
-
 
 
 export default router;
