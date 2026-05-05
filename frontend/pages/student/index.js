@@ -6,6 +6,7 @@ import StudentChecklist from "../../components/StudentChecklist";
 import TimelineSummary from "../../components/TimelineSummary";
 import CompletionDonut from "../../components/CompletionDonut";
 import TopBar from "../../components/TopBar";
+import { API_BASE } from "@/utils/api";
 
 export default function StudentPage() {
 
