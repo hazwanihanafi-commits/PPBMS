@@ -440,82 +440,85 @@ const remarksByAssessment = [];
 Object.entries(grouped)
   .forEach(([instance, rows]) => {
 
-    const ploScores =
-      rows.map(r => {
+    const ploScores = rows.map(r => {
 
-        const o = {};
+      const o = {};
 
-        for (let i = 1; i <= 11; i++) {
+      for (let i = 1; i <= 11; i++) {
 
-          const rawValue = r[`plo${i}`];
+        const rawValue = r[`plo${i}`];
 
-          const v =
-            rawValue === undefined ||
-            rawValue === null ||
-            rawValue === ""
-              ? null
-              : parseFloat(rawValue);
+        const v =
+          rawValue === undefined ||
+          rawValue === null ||
+          rawValue === ""
+            ? null
+            : parseFloat(rawValue);
 
-          o[`PLO${i}`] =
-            isNaN(v) ? null : v;
-        }
+        o[`PLO${i}`] =
+          isNaN(v) ? null : v;
+      }
 
-        return o;
-      });
+      return o;
+    });
 
     cqiByAssessment[instance] =
       deriveCQIByAssessment(ploScores);
 
     rows.forEach(r => {
 
-  if (
-    !r ||
-    (!r.assessment_type && !r.assessment_instance)
-  ) return;
+      if (
+        !r ||
+        (!r.assessment_type && !r.assessment_instance)
+      ) return;
 
-  const instanceKey =
-    (
-      r["assessment_instance"] ||
-      r["assessment_type"] ||
-      ""
-    )
-      .toUpperCase()
-      .trim();
+      const instanceKey =
+        String(
+          r["assessment_instance"] ||
+          r["assessment_type"] ||
+          ""
+        )
+          .toUpperCase()
+          .trim();
 
-  remarksByAssessment.push({
+      remarksByAssessment.push({
 
-    assessmentType:
-      r["assessment_type"] || "UNKNOWN",
+        assessmentType:
+          r["assessment_type"] || "UNKNOWN",
 
-    assessmentInstance:
-      instanceKey,
+        assessmentInstance:
+          instanceKey,
 
-    remark:
-      r["remarks"] || "",
+        remark:
+          r["remarks"] || "",
 
-    supervisorRemark:
-      r["supervisor_remark"] || "",
+        supervisorRemark:
+          r["supervisor_remark"] || "",
 
-    studentResponse:
-      r["student_response"] || "",
+        studentResponse:
+          r["student_response"] || "",
 
-    status:
-      r["cqi_status"] ||
-      (r["student_response"]
-        ? "RESPONDED"
-        : "PENDING"),
+        status:
+          r["cqi_status"] ||
+          (r["student_response"]
+            ? "RESPONDED"
+            : "PENDING"),
 
-    updatedAt:
-  r["cqi_updated_at"]
-    ? new Date(r["cqi_updated_at"]).toISOString()
-    : null
+        updatedAt:
+          r["cqi_updated_at"] &&
+          !isNaN(new Date(r["cqi_updated_at"]).getTime())
+            ? new Date(r["cqi_updated_at"]).toISOString()
+            : null
 
-   });
+      });
 
     });
 
-  });
+  });  // ✅ THIS LINE WAS MISSING
 
+/* =========================================================
+   FINAL PLO
+========================================================= */
 /* =========================================================
    FINAL PLO
 ========================================================= */
