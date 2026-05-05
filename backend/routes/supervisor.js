@@ -508,15 +508,11 @@ Object.entries(grouped)
     updatedAt:
       r["cqi_updated_at"] || ""
 
-  });
-
-});
+   });
 
     });
 
-  });   // ✅ OUTER LOOP CLOSED PROPERLY
-
-
+  });
 
 /* =========================================================
    FINAL PLO
