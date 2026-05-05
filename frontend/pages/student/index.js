@@ -123,7 +123,7 @@ async function submitResponse(assessmentInstance) {
   }
 
   try {
- await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
+await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -136,7 +136,7 @@ async function submitResponse(assessmentInstance) {
     status: "RESPONDED"
   }),
 });
-
+    
     setResponseInputs(prev => ({
       ...prev,
       [assessmentInstance]: ""
