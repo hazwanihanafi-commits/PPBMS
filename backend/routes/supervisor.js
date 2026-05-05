@@ -336,19 +336,24 @@ supervisorRemarkRows.forEach(r => {
       .trim();
 
   const instance =
-    (r["Assessment Type"] || "")
-      .toUpperCase()
-      .trim();
+  (
+    r["Assessment Type"] ||
+    r["assessment_type"] ||
+    ""
+  )
+    .toString()
+    .toUpperCase()
+    .trim();
 
   if (!remarkMap[email]) {
     remarkMap[email] = {};
   }
 
   remarkMap[email][instance] = {
-    remark: r["Remark"] || "",
-    studentResponse: r["Student Response"] || "",
-    status: r["Status"] || "PENDING"
-  };
+  remark: r["Supervisor_Remark"] || "",
+  studentResponse: r["student_response"] || "",
+  status: r["cqi_status"] || "PENDING"
+};
 });
 
       Object.entries(
@@ -516,8 +521,12 @@ Object.entries(grouped)
         (!r.assessment_type && !r.assessment_instance)
       ) return;
 
-      const email =
-  (raw["Student's Email"] || "")
+     const email =
+  (
+    r["Student Email"] ||
+    r["Student's Email"] ||
+    ""
+  )
     .toLowerCase()
     .trim();
 
