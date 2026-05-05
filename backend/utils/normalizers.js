@@ -1,13 +1,73 @@
+// ==========================================
+// NORMALIZERS (FINAL - MATCH YOUR SHEET)
+// ==========================================
+
+export function normalizeText(v) {
+  return String(v || "").trim();
+}
+
+export function normalizeProgramme(p) {
+  return String(p || "").toUpperCase().trim();
+}
+
+/* ==========================================
+   STATUS NORMALIZER (CRITICAL)
+========================================== */
 export function normalizeStatus(raw) {
-  const s = String(raw || "").toUpperCase().trim();
 
-  if (["ACTIVE", "IN PROGRESS", "ONGOING"].includes(s)) return "ACTIVE";
+  const s = String(raw || "")
+    .toLowerCase()
+    .trim();
 
-  if (["GRADUATED", "COMPLETED", "COMPLETE"].includes(s)) return "GRADUATED";
+  // ACTIVE
+  if (
+    s === "active" ||
+    s === "in progress" ||
+    s === "ongoing"
+  ) {
+    return "ACTIVE";
+  }
 
-  if (s.includes("TERMINATED")) return "TERMINATED";
+  // GRADUATED
+  if (
+    s === "graduated" ||
+    s === "complete" ||
+    s === "completed"
+  ) {
+    return "GRADUATED";
+  }
 
-  if (s.includes("SUSPENSION") || s.includes("SUSPENDED")) return "SUSPENDED";
+  // SUSPENSION (your exact wording)
+  if (
+    s.includes("suspension")
+  ) {
+    return "SUSPENDED";
+  }
+
+  // TERMINATED (your exact wording)
+  if (
+    s.includes("terminated")
+  ) {
+    return "TERMINATED";
+  }
 
   return "UNKNOWN";
+}
+
+/* ==========================================
+   EMAIL NORMALIZER
+========================================== */
+export function normEmail(v) {
+  return String(v || "")
+    .toLowerCase()
+    .trim();
+}
+
+/* ==========================================
+   MATRIC NORMALIZER
+========================================== */
+export function normMatric(v) {
+  return String(v || "")
+    .toUpperCase()
+    .trim();
 }
