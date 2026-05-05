@@ -557,57 +557,72 @@ export default function StudentPage() {
         )}
 
         {/* REMARKS */}
-        {activeTab === "remarks" && (
+{activeTab === "remarks" && (
 
-          <div className="space-y-4">
+  <div className="space-y-4">
 
-            {remarks.length === 0 ? (
+    {remarks.length === 0 ? (
 
-              <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500">
-                No supervisor remarks yet.
-              </div>
+      <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500">
+        No supervisor remarks yet.
+      </div>
 
-            ) : (
+    ) : (
 
-              remarks.map((r, i) => (
+      Object.entries(
+        remarks.reduce((acc, r) => {
 
-                <div
-                  key={i}
-                  className="bg-white rounded-2xl p-5 shadow"
-                >
+         const key =
+  (
+    r.assessmentInstance ||
+    r.assessment_instance ||   // ✅ ADD THIS
+    ""
+  )
+    .toUpperCase()
+    .trim();
 
-                  <div className="flex justify-between items-center mb-3">
+          if (!key) return acc;
 
-                    <div>
-                      <h4 className="font-semibold text-purple-700">
-                        {r.assessment_instance ||
-                          r.assessmentType}
-                      </h4>
+          if (!acc[key]) acc[key] = [];
 
-                      <p className="text-xs text-gray-400">
-                        {r.supervisorEmail}
-                      </p>
-                    </div>
+          acc[key].push(r);
 
-                    <span className="text-xs text-gray-400">
-                      {r.timestamp}
-                    </span>
+          return acc;
 
-                  </div>
+        }, {})
+      ).map(([instance, items]) => (
 
-                  <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap">
-                    {r.remark}
-                  </div>
+        <div
+          key={instance}
+          className="bg-white rounded-2xl p-5 shadow"
+        >
 
-                </div>
+          {/* TITLE */}
+          <h4 className="font-semibold text-purple-700 mb-3">
+            {instance.replace("_", " ")}
+          </h4>
 
-              ))
+          {/* REMARKS */}
+          {items.map((r, i) => (
 
-            )}
+            <div
+              key={i}
+              className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap mb-2"
+            >
+              {r.supervisorRemark || r.supervisor_remark || "No remark"}
+            </div>
 
-          </div>
+          ))}
 
-        )}
+        </div>
+
+      ))
+
+    )}
+
+  </div>
+
+)}
 
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
