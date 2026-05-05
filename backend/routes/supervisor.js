@@ -636,7 +636,7 @@ router.post("/document-status", auth, async (req, res) => {
     // ✅ update status
     await writeSheetCell(
       process.env.SHEET_ID,
-      "MASTER_TRACKING",
+      "MasterTracking",
       statusColumn,
       rowNumber,
       status
@@ -646,7 +646,7 @@ router.post("/document-status", auth, async (req, res) => {
     if (feedback !== undefined) {
       await writeSheetCell(
         process.env.SHEET_ID,
-        "MASTER_TRACKING",
+        "MasterTracking",
         `${column}_FEEDBACK`,
         rowNumber,
         feedback
@@ -656,7 +656,7 @@ router.post("/document-status", auth, async (req, res) => {
     // ✅ reviewer info
     await writeSheetCell(
       process.env.SHEET_ID,
-      "MASTER_TRACKING",
+      "MasterTracking",
       `${column}_REVIEWED_BY`,
       rowNumber,
       req.user.email
@@ -664,7 +664,7 @@ router.post("/document-status", auth, async (req, res) => {
 
     await writeSheetCell(
       process.env.SHEET_ID,
-      "MASTER_TRACKING",
+      "MasterTracking",
       `${column}_REVIEWED_AT`,
       rowNumber,
       new Date().toISOString()
