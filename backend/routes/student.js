@@ -224,9 +224,11 @@ Object.entries(grouped).forEach(([instance, rows]) => {
         r.assessment_type || "UNKNOWN",
 
       assessmentInstance:
-        r.assessment_instance ||
-        r.assessment_type ||
-        "UNKNOWN",
+  String(
+    r.assessment_instance ||
+    r.assessment_type ||
+    ""
+  ).toUpperCase().trim(),
 
       supervisorRemark,
       studentResponse,
