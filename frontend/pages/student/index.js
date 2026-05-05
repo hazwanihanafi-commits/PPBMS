@@ -142,7 +142,7 @@ export default function StudentPage() {
 
   async function submitResponse(instance, responseText) {
   try {
-    await authFetch("/api/supervisor/cqi/student-response", {
+    await authFetch("/api/student/cqi/student-response", {
       method: "POST",
       body: JSON.stringify({
   matric: profile.student_id,   // 🔥 IMPORTANT FIX
