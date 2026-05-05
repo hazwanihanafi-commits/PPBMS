@@ -628,12 +628,12 @@ router.post("/cqi/student-response", auth, async (req, res) => {
 
       /* 🔥 UPDATE STATUS */
       await writeSheetCell(
-        process.env.SHEET_ID,
-        "ASSESSMENT_PLO",
-        "cqi_status",
-        rowNumber,
-        status || "RESPONDED"
-      );
+  process.env.SHEET_ID,
+  "ASSESSMENT_PLO",
+  "cqi_status",
+  rowNumber,
+  "RESPONDED"   // 🔥 FORCE UPDATE
+);
 
       await writeSheetCell(
         process.env.SHEET_ID,
