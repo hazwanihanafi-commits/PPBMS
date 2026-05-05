@@ -604,6 +604,81 @@ res.json({
 });
 
 /* =========================================================
+   DOCUMENT STATUS UPDATE
+========================================================= */
+
+router.post("/document-status", auth, async (req, res) => {
+  try {
+    const { studentEmail, documentName, status, feedback } = req.body;
+
+    const rows = await readMasterTracking(process.env.SHEET_ID);
+
+    const index = rows.findIndex(
+      r =>
+        (r["Student's Email"] || "")
+          .toLowerCase()
+          .trim() === studentEmail.toLowerCase().trim()
+    );
+
+    if (index === -1) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    const rowNumber = index + 2;
+
+    const statusColumn = DOC_STATUS_MAP[documentName];
+    const column = DOC_COLUMN_MAP[documentName];
+
+    if (!statusColumn || !column) {
+      return res.status(400).json({ error: "Invalid document name" });
+    }
+
+    // ✅ update status
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MASTER_TRACKING",
+      statusColumn,
+      rowNumber,
+      status
+    );
+
+    // ✅ update feedback
+    if (feedback !== undefined) {
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "MASTER_TRACKING",
+        `${column}_FEEDBACK`,
+        rowNumber,
+        feedback
+      );
+    }
+
+    // ✅ reviewer info
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MASTER_TRACKING",
+      `${column}_REVIEWED_BY`,
+      rowNumber,
+      req.user.email
+    );
+
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MASTER_TRACKING",
+      `${column}_REVIEWED_AT`,
+      rowNumber,
+      new Date().toISOString()
+    );
+
+    res.json({ success: true });
+
+  } catch (e) {
+    console.error("document-status error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* =========================================================
    SUPERVISOR ADD REMARK
 ========================================================= */
 
