@@ -185,6 +185,14 @@ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
       "completed"
   ).length;
 
+  const coSupervisorDisplay =
+  profile?.coSupervisors ||
+  profile?.co_supervisor ||
+  profile?.coSupervisor ||
+  profile?.cosupervisor ||
+  profile?.cosupervisors ||
+  "-";
+  
   const late = timeline.filter(
     (t) =>
 
@@ -216,6 +224,8 @@ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
         ) * 100
       )
     : 0;
+
+
 
   /* =========================
      LOADING
@@ -329,10 +339,7 @@ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
               <strong>
                 Co-Supervisor(s):
               </strong>{" "}
-              {profile.cosupervisor ||
-                profile.cosupervisors ||
-                profile.co_supervisor ||
-                "-"}
+              {coSupervisorDisplay}
             </p>
 
           </div>
