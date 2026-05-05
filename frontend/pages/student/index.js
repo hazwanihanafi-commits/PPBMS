@@ -562,10 +562,25 @@ export default function StudentPage() {
           className="bg-white rounded-2xl p-5 shadow"
         >
 
-          <h4 className="font-semibold text-purple-700 mb-3">
-            {instance.replace("_", " ")}
-          </h4>
+          <div className="flex justify-between items-center mb-3">
 
+  <h4 className="font-semibold text-purple-700">
+    {instance.replace("_", " ")}
+  </h4>
+
+  <span
+    className={`text-xs px-3 py-1 rounded font-semibold ${
+      items[0]?.status === "RESPONDED"
+        ? "bg-green-100 text-green-700"
+        : items[0]?.status === "PENDING"
+        ? "bg-red-100 text-red-700"
+        : "bg-gray-100 text-gray-600"
+    }`}
+  >
+    {items[0]?.status || "PENDING"}
+  </span>
+
+</div>
           {items.map((r, i) => {
 
             const instanceKey = instance.toUpperCase();
