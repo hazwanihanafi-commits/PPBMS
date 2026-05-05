@@ -23,6 +23,7 @@ export default function SupervisorStudentPage() {
   const [timeline, setTimeline] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+  const [remarkInputs, setRemarkInputs] = useState({});
 
   /* ================= LOAD ================= */
 
@@ -55,6 +56,28 @@ export default function SupervisorStudentPage() {
     setLoading(false);
   }
 
+  async function saveRemark(instance) {
+  try {
+    const token = localStorage.getItem("ppbms_token");
+
+    await fetch(`${API_BASE}/api/supervisor/cqi/supervisor-remark`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        studentEmail: student.email,
+        assessmentInstance: instance,
+        supervisorRemark: remarkInputs[instance] || ""
+      })
+    });
+
+    loadStudent(); // refresh after save
+  } catch (e) {
+    console.error("save remark error:", e);
+  }
+}
   /* ================= LOADING ================= */
 
   if (loading) return <div className="p-6">Loading...</div>;
@@ -315,7 +338,7 @@ export default function SupervisorStudentPage() {
         )}
 
   
-        {/* CQI */}
+     {/* CQI */}
 {activeTab === "cqi" && (
   <div className="space-y-6">
 
@@ -347,9 +370,33 @@ export default function SupervisorStudentPage() {
 
           </div>
 
-          <p className="text-sm">
-            <b>Supervisor:</b> {item.supervisorRemark || "—"}
-          </p>
+          {/* ✅ FIXED HERE */}
+          <div className="mt-2">
+            <p className="text-sm font-semibold">Supervisor Remark</p>
+
+            <textarea
+              className="w-full mt-1 p-2 border rounded-xl text-sm"
+              rows={3}
+              value={
+                remarkInputs[item.assessmentInstance] ??
+                item.supervisorRemark ??
+                ""
+              }
+              onChange={(e) =>
+                setRemarkInputs(prev => ({
+                  ...prev,
+                  [item.assessmentInstance]: e.target.value
+                }))
+              }
+            />
+
+            <button
+              onClick={() => saveRemark(item.assessmentInstance)}
+              className="mt-2 px-3 py-1 bg-purple-600 text-white text-xs rounded-lg"
+            >
+              Save Remark
+            </button>
+          </div>
 
           <p className="text-sm mt-2">
             <b>Student:</b> {item.studentResponse || "—"}
@@ -367,9 +414,6 @@ export default function SupervisorStudentPage() {
 
   </div>
 )}
-
-         
-
       </div>
     </div>
   );
