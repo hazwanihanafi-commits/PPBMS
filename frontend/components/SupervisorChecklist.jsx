@@ -73,7 +73,7 @@ export default function SupervisorChecklist({
 
             studentEmail,
 
-            document_key:
+            documentName:
               documentName,
 
             status,
