@@ -122,18 +122,19 @@ async function submitResponse(assessmentInstance) {
   }
 
   try {
-    await authFetch(
-      "/api/supervisor/cqi/student-response",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          studentEmail: profile.email,
-          assessmentInstance,
-          studentResponse: text.trim(),
-          status: "RESPONDED"
-        }),
-      }
-    );
+ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`
+  },
+  body: JSON.stringify({
+    studentEmail: profile.email,
+    assessmentInstance,
+    studentResponse: text.trim(),
+    status: "RESPONDED"
+  }),
+});
 
     setResponseInputs(prev => ({
       ...prev,
