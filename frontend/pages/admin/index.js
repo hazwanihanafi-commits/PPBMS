@@ -1,5 +1,5 @@
 // ==========================================
-// frontend/pages/admin/index.jsx
+// ADMIN DASHBOARD (FINAL CLEAN VERSION)
 // ==========================================
 
 import { useEffect, useState, useMemo } from "react";
@@ -8,60 +8,47 @@ import Link from "next/link";
 import { apiGet } from "@/utils/api";
 
 /* ==========================================
+   SIDEBAR
+========================================== */
+function Sidebar({ onLogout }) {
+  return (
+    <div className="w-64 bg-gray-900 text-white min-h-screen p-6">
+      <h2 className="text-xl font-bold mb-6">PPBMS</h2>
+
+      <div className="space-y-3">
+        <Link href="/admin" className="block hover:underline">
+          Dashboard
+        </Link>
+      </div>
+
+      <button
+        onClick={onLogout}
+        className="mt-10 bg-red-500 px-4 py-2 rounded-xl w-full"
+      >
+        Logout
+      </button>
+    </div>
+  );
+}
+
+/* ==========================================
    STATUS BADGE
 ========================================== */
 function StatusBadge({ status }) {
+  const s = status?.toUpperCase();
 
-  const normalized = status
-    ?.toString()
-    .toUpperCase()
-    .trim();
-
-  const config = {
-
-    ON_TRACK: {
-      label: "On Track",
-      className:
-        "bg-blue-100 text-blue-700"
-    },
-
-    SLIGHTLY_DELAYED: {
-      label: "Slightly Delayed",
-      className:
-        "bg-yellow-100 text-yellow-700"
-    },
-
-    AT_RISK: {
-      label: "At Risk",
-      className:
-        "bg-red-100 text-red-700"
-    },
-
-    GRADUATED: {
-      label: "Graduated",
-      className:
-        "bg-green-100 text-green-700"
-    },
+  const map = {
+    ON_TRACK: "bg-blue-100 text-blue-700",
+    SLIGHTLY_DELAYED: "bg-yellow-100 text-yellow-700",
+    AT_RISK: "bg-red-100 text-red-700",
+    GRADUATED: "bg-green-100 text-green-700",
+    TERMINATED: "bg-gray-200 text-gray-700",
+    SUSPENDED: "bg-orange-100 text-orange-700",
   };
 
-  const item =
-    config[normalized] || {
-
-      label: normalized,
-
-      className:
-        "bg-gray-100 text-gray-700"
-    };
-
   return (
-    <span
-      className={`
-        px-3 py-1 rounded-full
-        text-xs font-semibold
-        ${item.className}
-      `}
-    >
-      {item.label}
+    <span className={`px-3 py-1 rounded-full text-xs ${map[s] || "bg-gray-100"}`}>
+      {s}
     </span>
   );
 }
@@ -73,82 +60,29 @@ export default function AdminDashboard() {
 
   const router = useRouter();
 
-  /* ======================
-     STATE
-  ====================== */
-  const [checked, setChecked] =
-    useState(false);
+  const [checked, setChecked] = useState(false);
+  const [programmes, setProgrammes] = useState([]);
+  const [programme, setProgramme] = useState("");
 
-  const [programmes, setProgrammes] =
-    useState([]);
+  const [summary, setSummary] = useState({});
+  const [students, setStudents] = useState([]);
+  const [plo, setPlo] = useState({});
 
-  const [programme, setProgramme] =
-    useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [loading, setLoading] = useState(false);
 
-  const [cqi, setCQI] =
-    useState(null);
-
-  const [graduates, setGraduates] =
-    useState([]);
-
-  const [
-    activeStudents,
-    setActiveStudents
-  ] = useState([]);
-
-  const [summary, setSummary] =
-    useState({
-
-      onTrack: 0,
-      slightlyDelayed: 0,
-      atRisk: 0,
-      graduated: 0,
-    });
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [search, setSearch] =
-    useState("");
-
-  const [
-    statusFilter,
-    setStatusFilter
-  ] = useState("ALL");
-
-  /* ======================
-     LOGOUT
-  ====================== */
-  function handleLogout() {
-
-    localStorage.clear();
-
-    router.push("/login");
-  }
-
-  /* ======================
-     AUTH GUARD
-  ====================== */
+  /* ================= AUTH ================= */
   useEffect(() => {
 
     if (!router.isReady) return;
 
-    const token =
-      localStorage.getItem(
-        "ppbms_token"
-      );
-
-    const role =
-      localStorage.getItem(
-        "ppbms_role"
-      );
+    const token = localStorage.getItem("ppbms_token");
+    const role = localStorage.getItem("ppbms_role");
 
     if (!token || role !== "admin") {
-
       localStorage.clear();
-
       router.replace("/login");
-
       return;
     }
 
@@ -156,30 +90,22 @@ export default function AdminDashboard() {
 
   }, [router.isReady]);
 
-  /* ======================
-     LOAD PROGRAMMES
-  ====================== */
+  /* ================= LOAD PROGRAMMES ================= */
   useEffect(() => {
 
     if (!checked) return;
 
-    apiGet("/api/admin/programmes/students")
-
-      .then(d =>
-        setProgrammes(
-          d.programmes || []
-        )
-      )
-
-      .catch(() =>
-        setProgrammes([])
-      );
+    apiGet("/api/admin/programmes")
+      .then(d => {
+        setProgrammes(d.programmes || []);
+        if (d.programmes?.length) {
+          setProgramme(d.programmes[0]);
+        }
+      });
 
   }, [checked]);
 
-  /* ======================
-     LOAD PROGRAMME DATA
-  ====================== */
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
 
     if (!programme) return;
@@ -187,653 +113,185 @@ export default function AdminDashboard() {
     setLoading(true);
 
     Promise.all([
-
-      apiGet(
-        `/api/admin/programme-plo?programme=${programme}`
-      ),
-
-      apiGet(
-        `/api/admin/programme-graduates?programme=${programme}`
-      ),
-
-      apiGet(
-        `/api/admin/programme-active-students?programme=${programme}`
-      ),
-
-      apiGet(
-        `/api/admin/programme-summary?programme=${programme}`
-      ),
+      apiGet(`/api/admin/programme-summary?programme=${programme}`),
+      apiGet(`/api/admin/programme-students?programme=${programme}`),
+      apiGet(`/api/admin/programme-plo?programme=${programme}`)
     ])
+      .then(([sum, stu, p]) => {
 
-      .then(([plo, grad, active, sum]) => {
+        setSummary(sum || {});
+        setStudents(stu.students || []);
+        setPlo(p || {});
 
-        setCQI({
-
-          plo: plo.plo || {},
-
-          graduates:
-            plo.graduates || 0,
-        });
-
-        setGraduates(
-          grad.students || []
-        );
-
-        setActiveStudents(
-          active.students || []
-        );
-
-        setSummary(
-          sum || {
-
-            onTrack: 0,
-            slightlyDelayed: 0,
-            atRisk: 0,
-            graduated: 0,
-          }
-        );
       })
-
-      .finally(() =>
-        setLoading(false)
-      );
+      .finally(() => setLoading(false));
 
   }, [programme]);
 
-  /* ======================
-     FILTER STUDENTS
-  ====================== */
-  const students = useMemo(() => {
+  /* ================= FILTER ================= */
+  const filtered = useMemo(() => {
 
-    const all = [
-      ...activeStudents,
-      ...graduates
-    ];
+    return students.filter(s => {
 
-    return all.filter(s => {
+      const q = search.toLowerCase();
 
-      const q =
-        search.toLowerCase();
+      const matchSearch =
+        s.name?.toLowerCase().includes(q) ||
+        s.matric?.toLowerCase().includes(q);
 
-      const matchesSearch =
-
-        s.name
-          ?.toLowerCase()
-          .includes(q) ||
-
-        s.matric
-          ?.toLowerCase()
-          .includes(q);
-
-      const matchesStatus =
-
+      const matchStatus =
         statusFilter === "ALL" ||
+        s.overallStatus === statusFilter ||
+        s.status === statusFilter;
 
-        s.status
-          ?.toUpperCase() ===
-            statusFilter;
-
-      return (
-        matchesSearch &&
-        matchesStatus
-      );
+      return matchSearch && matchStatus;
     });
 
-  }, [
-    search,
-    statusFilter,
-    activeStudents,
-    graduates
-  ]);
+  }, [students, search, statusFilter]);
 
-  /* ======================
-     LOADING
-  ====================== */
-  if (!checked) {
-
-    return (
-      <div className="p-6">
-        Checking access…
-      </div>
-    );
+  /* ================= LOGOUT ================= */
+  function handleLogout() {
+    localStorage.clear();
+    router.push("/login");
   }
 
-  /* ======================
-     PAGE
-  ====================== */
+  if (!checked) return <div className="p-6">Checking access...</div>;
+
   return (
+    <div className="flex">
 
-    <div
-      className="
-        max-w-7xl mx-auto
-        p-6 space-y-6
-      "
-    >
+      {/* SIDEBAR */}
+      <Sidebar onLogout={handleLogout} />
 
-      {/* HEADER */}
-      <div
-        className="
-          flex justify-between
-          items-center
-        "
-      >
+      {/* MAIN */}
+      <div className="flex-1 p-6 space-y-6">
 
-        <h1
-          className="
-            text-2xl font-bold
-            text-purple-700
-          "
-        >
+        <h1 className="text-2xl font-bold text-purple-700">
           Admin Dashboard
         </h1>
 
+        {/* PROGRAMME */}
+        <select
+          value={programme}
+          onChange={e => setProgramme(e.target.value)}
+          className="p-3 border rounded-xl w-full"
+        >
+          {programmes.map(p => (
+            <option key={p}>{p}</option>
+          ))}
+        </select>
+
+        {/* SUMMARY */}
+        <div className="grid md:grid-cols-4 gap-4">
+
+          <div className="bg-blue-100 p-4 rounded-xl">
+            <p>On Track</p>
+            <h2>{summary.onTrack || 0}</h2>
+          </div>
+
+          <div className="bg-yellow-100 p-4 rounded-xl">
+            <p>Delayed</p>
+            <h2>{summary.slightlyDelayed || 0}</h2>
+          </div>
+
+          <div className="bg-red-100 p-4 rounded-xl">
+            <p>At Risk</p>
+            <h2>{summary.atRisk || 0}</h2>
+          </div>
+
+          <div className="bg-green-100 p-4 rounded-xl">
+            <p>Graduated</p>
+            <h2>{summary.graduated || 0}</h2>
+          </div>
+
+        </div>
+
+        {/* PLO */}
+        <div className="bg-white p-6 rounded-xl shadow">
+
+          <h3 className="font-semibold mb-2">
+            Programme PLO (Graduated: {plo.count || 0})
+          </h3>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {plo.plos &&
+              Object.entries(plo.plos).map(([k, v]) => (
+                <div key={k} className="bg-gray-100 p-3 rounded">
+                  {k}: {v}
+                </div>
+              ))}
+          </div>
+
+        </div>
+
+        {/* SEARCH + FILTER */}
         <div className="flex gap-3">
 
-          <button
-            onClick={() =>
-              router.push("/")
-            }
+          <input
+            placeholder="Search..."
+            className="p-3 border rounded-xl flex-1"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
 
-            className="
-              text-purple-600
-              underline text-sm
-            "
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="p-3 border rounded-xl"
           >
-            ← Landing Page
-          </button>
+            <option value="ALL">All</option>
+            <option value="ON_TRACK">On Track</option>
+            <option value="SLIGHTLY_DELAYED">Delayed</option>
+            <option value="AT_RISK">At Risk</option>
+            <option value="GRADUATED">Graduated</option>
+            <option value="TERMINATED">Terminated</option>
+            <option value="SUSPENDED">Suspension</option>
+          </select>
 
-          <button
-            onClick={handleLogout}
-
-            className="
-              bg-red-600 text-white
-              px-4 py-2 rounded-xl
-              font-semibold
-            "
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* PROGRAMME */}
-      <select
-
-        className="
-          w-full p-3
-          border rounded-xl
-        "
-
-        value={programme}
-
-        onChange={e =>
-          setProgramme(
-            e.target.value
-          )
-        }
-      >
-
-        <option value="">
-          Select Programme
-        </option>
-
-        {programmes.map(p => (
-
-          <option
-            key={p}
-            value={p}
-          >
-            {p}
-          </option>
-        ))}
-      </select>
-
-      {/* LOADING */}
-      {loading && (
-
-        <div className="text-gray-500">
-          Loading…
-        </div>
-      )}
-
-      {/* SUMMARY */}
-      <div
-        className="
-          grid grid-cols-1
-          md:grid-cols-4 gap-4
-        "
-      >
-
-        {/* ON TRACK */}
-        <div
-          className="
-            bg-blue-100
-            p-4 rounded-2xl
-          "
-        >
-
-          <div
-            className="
-              text-sm font-semibold
-            "
-          >
-            On Track
-          </div>
-
-          <div
-            className="
-              text-3xl font-bold
-            "
-          >
-            {summary.onTrack}
-          </div>
         </div>
 
-        {/* SLIGHTLY DELAYED */}
-        <div
-          className="
-            bg-yellow-100
-            p-4 rounded-2xl
-          "
-        >
+        {/* TABLE */}
+        <div className="bg-white rounded-xl shadow overflow-hidden">
 
-          <div
-            className="
-              text-sm font-semibold
-            "
-          >
-            Slightly Delayed
-          </div>
+          <table className="w-full text-sm">
 
-          <div
-            className="
-              text-3xl font-bold
-            "
-          >
-            {summary.slightlyDelayed}
-          </div>
-        </div>
-
-        {/* AT RISK */}
-        <div
-          className="
-            bg-red-100
-            p-4 rounded-2xl
-          "
-        >
-
-          <div
-            className="
-              text-sm font-semibold
-            "
-          >
-            At Risk
-          </div>
-
-          <div
-            className="
-              text-3xl font-bold
-            "
-          >
-            {summary.atRisk}
-          </div>
-        </div>
-
-        {/* GRADUATED */}
-        <div
-          className="
-            bg-green-100
-            p-4 rounded-2xl
-          "
-        >
-
-          <div
-            className="
-              text-sm font-semibold
-            "
-          >
-            Graduated
-          </div>
-
-          <div
-            className="
-              text-3xl font-bold
-            "
-          >
-            {summary.graduated}
-          </div>
-        </div>
-      </div>
-
-      {/* CQI */}
-      {cqi && (
-
-        <div
-          className="
-            bg-white p-6
-            rounded-2xl shadow
-          "
-        >
-
-          <h3
-            className="
-              font-semibold mb-1
-            "
-          >
-            Final Programme
-            PLO Achievement
-          </h3>
-
-          <p
-            className="
-              text-xs text-gray-500
-              mb-4
-            "
-          >
-            Based on
-            {" "}
-            {cqi.graduates}
-            {" "}
-            graduated student(s)
-          </p>
-
-          {Object.entries(
-            cqi.plo
-          ).map(([plo, v]) => (
-
-            <div
-              key={plo}
-              className="mb-3"
-            >
-
-              <div
-                className="
-                  flex justify-between
-                  text-sm
-                "
-              >
-
-                <span>{plo}</span>
-
-                <span>
-                  {v.percent !== null
-                    ? `${v.percent}%`
-                    : "-"
-                  }
-                </span>
-              </div>
-
-              <div
-                className="
-                  w-full h-2
-                  bg-gray-200 rounded
-                "
-              >
-
-                <div
-
-                  className={`
-                    h-2 rounded
-
-                    ${
-                      v.status ===
-                      "Achieved"
-
-                        ? "bg-green-500"
-
-                        : v.status ===
-                          "Borderline"
-
-                        ? "bg-yellow-400"
-
-                        : "bg-red-500"
-                    }
-                  `}
-
-                  style={{
-                    width:
-                      `${v.percent || 0}%`
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* SEARCH + FILTER */}
-      <div
-        className="
-          flex flex-col
-          md:flex-row gap-4
-        "
-      >
-
-        <input
-
-          type="text"
-
-          placeholder="
-            Search by name or matric…
-          "
-
-          className="
-            flex-1 p-3 border
-            rounded-xl
-          "
-
-          value={search}
-
-          onChange={e =>
-            setSearch(
-              e.target.value
-            )
-          }
-        />
-
-        <select
-
-          className="
-            p-3 border rounded-xl
-            w-full md:w-64
-          "
-
-          value={statusFilter}
-
-          onChange={e =>
-            setStatusFilter(
-              e.target.value
-            )
-          }
-        >
-
-          <option value="ALL">
-            All Status
-          </option>
-
-          <option value="ON_TRACK">
-            On Track
-          </option>
-
-          <option value="SLIGHTLY_DELAYED">
-            Slightly Delayed
-          </option>
-
-          <option value="AT_RISK">
-            At Risk
-          </option>
-
-          <option value="GRADUATED">
-            Graduated
-          </option>
-        </select>
-      </div>
-
-      {/* STUDENT TABLE */}
-      <div
-        className="
-          bg-white rounded-2xl
-          shadow overflow-hidden
-        "
-      >
-
-        <div
-          className="
-            px-6 py-4 border-b
-          "
-        >
-
-          <h3 className="font-semibold">
-            Student List
-          </h3>
-
-          <p
-            className="
-              text-xs text-gray-500
-            "
-          >
-            Showing
-            {" "}
-            {students.length}
-            {" "}
-            student(s)
-          </p>
-        </div>
-
-        <table
-          className="
-            w-full text-sm
-          "
-        >
-
-          <thead
-            className="
-              bg-gray-100 border-b
-            "
-          >
-
-            <tr>
-
-              <th
-                className="
-                  px-6 py-3 text-left
-                  text-xs font-semibold
-                "
-              >
-                Name
-              </th>
-
-              <th
-                className="
-                  px-6 py-3 text-left
-                  text-xs font-semibold
-                "
-              >
-                Matric
-              </th>
-
-              <th
-                className="
-                  px-6 py-3 text-left
-                  text-xs font-semibold
-                "
-              >
-                Status
-              </th>
-
-              <th
-                className="
-                  px-6 py-3 text-center
-                  text-xs font-semibold
-                "
-              >
-                Profile
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y">
-
-            {students.map((s, i) => (
-
-              <tr
-                key={i}
-                className="
-                  hover:bg-gray-50
-                "
-              >
-
-                <td
-                  className="
-                    px-6 py-4
-                  "
-                >
-                  {s.name}
-                </td>
-
-                <td
-                  className="
-                    px-6 py-4
-                  "
-                >
-                  {s.matric}
-                </td>
-
-                <td
-                  className="
-                    px-6 py-4
-                  "
-                >
-                  <StatusBadge
-                    status={s.status}
-                  />
-                </td>
-
-                <td
-                  className="
-                    px-6 py-4 text-center
-                  "
-                >
-
-                  <Link
-
-                    href={`/admin/student/${encodeURIComponent(
-                      s.email
-                        .trim()
-                        .toLowerCase()
-                    )}`}
-
-                    className="
-                      text-purple-600
-                      font-medium
-                      hover:underline
-                    "
-                  >
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-
-            {!students.length && (
-
+            <thead className="bg-gray-100">
               <tr>
-
-                <td
-
-                  colSpan={4}
-
-                  className="
-                    px-6 py-6
-                    text-center text-gray-500
-                  "
-                >
-                  No students found
-                </td>
+                <th className="p-3 text-left">Name</th>
+                <th className="p-3 text-left">Matric</th>
+                <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-center">Profile</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {filtered.map((s, i) => (
+                <tr key={i} className="border-t">
+
+                  <td className="p-3">{s.name}</td>
+                  <td className="p-3">{s.matric}</td>
+
+                  <td className="p-3">
+                    <StatusBadge status={s.overallStatus} />
+                  </td>
+
+                  <td className="p-3 text-center">
+                    <Link
+                      href={`/admin/student/${encodeURIComponent(s.email)}`}
+                      className="text-purple-600 underline"
+                    >
+                      View
+                    </Link>
+                  </td>
+
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
+
+        </div>
+
       </div>
     </div>
   );
