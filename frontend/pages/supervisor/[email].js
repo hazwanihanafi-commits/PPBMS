@@ -60,7 +60,7 @@ export default function SupervisorStudentPage() {
   try {
     const token = localStorage.getItem("ppbms_token");
 
-    await fetch(`${API_BASE}/api/cqi/supervisor-remark`, {
+    await fetch(`${API_BASE}/api/supervisor/cqi/supervisor-remark`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
