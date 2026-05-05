@@ -416,16 +416,15 @@ console.log("SAMPLE:", normalized[0]);
 studentRows.forEach(r => {
 
   const key =
-    (r["assessment_instance"] ||
-     r["assessment_type"] ||
-     "")
-      .toString()
-      .trim()
-      .toUpperCase();
+    String(
+      r["assessment_instance"] ||
+      r["assessment_type"] ||
+      ""
+    )
+      .toUpperCase()
+      .trim();
 
-  if (!grouped[key]) {
-    grouped[key] = [];
-  }
+  if (!grouped[key]) grouped[key] = [];
 
   grouped[key].push(r);
 
@@ -564,30 +563,44 @@ try {
    FINAL PLO
 ========================================================= */
 /* =========================================================
-   FINAL PLO
+   FINAL PLO (FROM FINAL ROW - CORRECT)
 ========================================================= */
 
 let finalPLO = {};
 
 try {
-  finalPLO = aggregateFinalPLO(cqiByAssessment || {});
+
+  const finalRow = normalized.find(r =>
+    String(r["matric"]).trim() === String(matric).trim() &&
+    String(r["assessment_type"] || "").toUpperCase() === "FINAL"
+  );
+
+  if (finalRow) {
+
+    for (let i = 1; i <= 11; i++) {
+
+      const v = parseFloat(finalRow[`plo${i}`]);
+
+      finalPLO[`PLO${i}`] = {
+        value: isNaN(v) ? null : v,
+        status:
+          v >= 4 ? "Achieved"
+          : v >= 3 ? "Moderate"
+          : "CQI Required"
+      };
+
+    }
+
+  } else {
+    console.warn("⚠️ FINAL ROW NOT FOUND for matric:", matric);
+  }
+
 } catch (err) {
+
   console.error("⚠️ FINAL PLO ERROR:", err);
   finalPLO = {};
+
 }
-
-for (let i = 1; i <= 11; i++) {
-
-  const key = `PLO${i}`;
-
-  if (!finalPLO[key]) {
-    finalPLO[key] = {
-      average: null,
-      status: "Not Assessed"
-    };
-  }
-}
-
 /* =========================================================
    CQI AUTO ALERT
 ========================================================= */
