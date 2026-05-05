@@ -30,6 +30,8 @@ export default function StudentPage() {
   const [error, setError] =
     useState("");
 
+  const [responseInputs, setResponseInputs] = useState({});
+
   /* =========================
      LOAD
   ========================= */
@@ -111,7 +113,39 @@ export default function StudentPage() {
 
     loadStudent();
   }
+async function submitResponse(assessmentInstance) {
+  const text = responseInputs[assessmentInstance];
 
+  if (!text || !text.trim()) {
+    alert("Please enter response");
+    return;
+  }
+
+  try {
+    await authFetch(
+      "/api/supervisor/cqi/student-response",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          studentEmail: profile.email,
+          assessmentInstance,
+          studentResponse: text.trim(),
+          status: "RESPONDED"
+        }),
+      }
+    );
+
+    setResponseInputs(prev => ({
+      ...prev,
+      [assessmentInstance]: ""
+    }));
+
+    loadStudent();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to submit response");
+  }
+}
   async function resetCompleted(
     activity
   ) {
@@ -602,11 +636,41 @@ export default function StudentPage() {
       </div>
 
       <div>
-        <span className="font-semibold text-blue-700">
-          Your Response:
-        </span>
-        <p>{r.studentResponse || "-"}</p>
-      </div>
+  <span className="font-semibold text-blue-700">
+    Your Response:
+  </span>
+
+  {/* EXISTING RESPONSE */}
+  {r.studentResponse ? (
+    <p className="mb-2">{r.studentResponse}</p>
+  ) : (
+    <p className="mb-2 text-gray-400 italic">
+      No response yet
+    </p>
+  )}
+
+  {/* INPUT */}
+  <textarea
+    className="w-full p-2 border rounded-xl text-sm"
+    rows={3}
+    placeholder="Write your response..."
+    value={responseInputs[r.assessmentInstance] ?? ""}
+    onChange={(e) =>
+      setResponseInputs(prev => ({
+        ...prev,
+        [r.assessmentInstance]: e.target.value
+      }))
+    }
+  />
+
+  {/* BUTTON */}
+  <button
+    onClick={() => submitResponse(r.assessmentInstance)}
+    className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg"
+  >
+    Submit Response
+  </button>
+</div>
 
       <div className="pt-2">
         <span className="text-xs px-3 py-1 rounded-full bg-gray-200">
