@@ -314,58 +314,61 @@ export default function SupervisorStudentPage() {
           <SupervisorChecklist documents={student.documents || {}} />
         )}
 
+  
         {/* CQI */}
-        {activeTab === "cqi" && (
-          <div className="space-y-6">
+{activeTab === "cqi" && (
+  <div className="space-y-6">
 
-            <FinalPLOTable finalPLO={student.finalPLO} />
+    <FinalPLOTable finalPLO={student.finalPLO} />
 
-            {student.cqiRemarks?.map((item, i) => {
+    {(student.remarksByAssessment || []).map((item, i) => {
 
-              const showAlert =
-                item.supervisorRemark &&
-                !item.studentResponse;
+      const showAlert =
+        item.supervisorRemark &&
+        !item.studentResponse;
 
-              return (
-                <GlassCard key={i}>
+      return (
+        <GlassCard key={i}>
 
-                  <div className="flex justify-between mb-3">
+          <div className="flex justify-between mb-3">
 
-                    <div>
-                      <h3 className="font-semibold text-purple-700">
-                        {item.assessmentInstance}
-                      </h3>
-                      <p className="text-xs text-gray-400">
-                        {item.assessmentType}
-                      </p>
-                    </div>
+            <div>
+              <h3 className="font-semibold text-purple-700">
+                {item.assessmentInstance}
+              </h3>
+              <p className="text-xs text-gray-400">
+                {item.assessmentType}
+              </p>
+            </div>
 
-                    <span className="text-xs px-3 py-1 rounded bg-gray-100">
-                      {item.status || "PENDING"}
-                    </span>
-
-                  </div>
-
-                  <p className="text-sm">
-                    <b>Supervisor:</b> {item.supervisorRemark}
-                  </p>
-
-                  <p className="text-sm mt-2">
-                    <b>Student:</b> {item.studentResponse || "—"}
-                  </p>
-
-                  {showAlert && (
-                    <div className="mt-3 bg-red-100 text-red-700 text-xs p-2 rounded-xl">
-                      ⚠ No student response yet
-                    </div>
-                  )}
-
-                </GlassCard>
-              );
-            })}
+            <span className="text-xs px-3 py-1 rounded bg-gray-100">
+              {item.status || "PENDING"}
+            </span>
 
           </div>
-        )}
+
+          <p className="text-sm">
+            <b>Supervisor:</b> {item.supervisorRemark || "—"}
+          </p>
+
+          <p className="text-sm mt-2">
+            <b>Student:</b> {item.studentResponse || "—"}
+          </p>
+
+          {showAlert && (
+            <div className="mt-3 bg-red-100 text-red-700 text-xs p-2 rounded-xl">
+              ⚠ No student response yet
+            </div>
+          )}
+
+        </GlassCard>
+      );
+    })}
+
+  </div>
+)}
+
+         
 
       </div>
     </div>
