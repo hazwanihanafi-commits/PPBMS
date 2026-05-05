@@ -409,21 +409,23 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
 
       const grouped = {};
 
-      studentRows.forEach(r => {
+studentRows.forEach(r => {
 
-        const instance =
-          String(
-            r["assessment_instance"] ||
-            r["assessment_type"] ||
-            ""
-          ).toUpperCase();
+  const key =
+    (r["assessment_instance"] ||
+     r["assessment_type"] ||
+     "")
+      .toString()
+      .trim()
+      .toUpperCase();
 
-        if (!grouped[instance]) {
-          grouped[instance] = [];
-        }
+  if (!grouped[key]) {
+    grouped[key] = [];
+  }
 
-        grouped[instance].push(r);
-      });
+  grouped[key].push(r);
+
+});
 
       /* =========================================================
          CQI + REMARKS
