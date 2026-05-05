@@ -749,22 +749,24 @@ router.post(
         );
 
       const matched = rows
-        .map((r, i) => ({ r, i }))
-        .filter(({ r }) =>
-          (r["Student's Email"] || "")
-            .toLowerCase()
-            .trim() ===
-          studentEmail.toLowerCase().trim() &&
+  .map((r, i) => ({ r, i }))
+  .filter(({ r }) =>
+    (r["Student's Email"] || "")   // ✅ FIXED
+      .toLowerCase()
+      .trim() ===
+    studentEmail.toLowerCase().trim() &&
 
-        String(
-  r["assessment_instance"] ||
-  r["assessment_type"] ||
-  ""
-)
-            .toLowerCase()
-            .trim() ===
-          assessmentInstance.toLowerCase().trim()
-        );
+    String(
+      r["assessment_instance"] ||
+      r["assessment_type"] ||
+      ""
+    )
+      .toLowerCase()
+      .trim() ===
+    assessmentInstance.toLowerCase().trim()
+  );
+
+      
 
       if (matched.length === 0) {
         return res.status(404).json({
@@ -779,15 +781,15 @@ router.post(
         await writeSheetCell(
   process.env.SHEET_ID,
   "ASSESSMENT_PLO",
-  "supervisor_remark",   // ✅ lowercase
+  "Supervisor_Remark",   // ✅ FIXED
   rowNumber,
   supervisorRemark
 );
 
-        await writeSheetCell(
+await writeSheetCell(
   process.env.SHEET_ID,
   "ASSESSMENT_PLO",
-  "cqi_status",        // ✅ lowercase
+  "cqi_status",
   rowNumber,
   "PENDING"
 );
@@ -795,7 +797,7 @@ router.post(
 await writeSheetCell(
   process.env.SHEET_ID,
   "ASSESSMENT_PLO",
-  "cqi_updated_at",    // ✅ lowercase
+  "cqi_updated_at",
   rowNumber,
   new Date().toISOString()
 );
