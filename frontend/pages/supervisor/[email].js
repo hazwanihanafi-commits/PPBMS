@@ -60,20 +60,25 @@ export default function SupervisorStudentPage() {
   try {
     const token = localStorage.getItem("ppbms_token");
 
+    const payload = {
+      matric: student.student_id,
+      assessmentInstance: instance,
+      supervisorRemark: remarkInputs[instance] || ""
+    };
+
+    console.log("SENDING:", payload); // ✅ correct place
+
     await fetch(`${API_BASE}/api/supervisor/cqi/supervisor-remark`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({
-        studentEmail: student.email,
-        assessmentInstance: instance,
-        supervisorRemark: remarkInputs[instance] || ""
-      })
+      body: JSON.stringify(payload)
     });
 
     loadStudent(); // refresh after save
+
   } catch (e) {
     console.error("save remark error:", e);
   }
