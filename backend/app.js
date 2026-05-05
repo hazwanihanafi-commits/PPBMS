@@ -63,10 +63,12 @@ app.use("/admin-auth", adminAuthRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/supervisor", supervisorRemarkRoutes);
 
 // Alerts / system
 app.use("/alerts", alertsRoutes);
 app.use("/system", systemRoutes);
+
 
 /* ================= ⏰ AUTOMATIC DELAY DETECTION ================= */
 
