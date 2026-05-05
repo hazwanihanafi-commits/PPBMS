@@ -30,6 +30,8 @@ export default function StudentPage() {
   const [error, setError] =
     useState("");
 
+  const [responseInputs, setResponseInputs] = useState({});
+
   /* =========================
      LOAD
   ========================= */
@@ -137,6 +139,26 @@ export default function StudentPage() {
     loadStudent();
   }
 
+
+
+  async function submitResponse(instance, responseText) {
+  try {
+    await authFetch("/api/supervisor/cqi/student-response", {
+      method: "POST",
+      body: JSON.stringify({
+        studentEmail: profile.email,   // backend still using email here
+        assessmentInstance: instance,
+        studentResponse: responseText,
+        status: "RESPONDED"
+      })
+    });
+
+    loadStudent(); // refresh
+
+  } catch (e) {
+    console.error("student response error:", e);
+  }
+}
   /* =========================
      CALCULATIONS
   ========================= */
@@ -557,6 +579,7 @@ export default function StudentPage() {
         )}
 
         {/* REMARKS */}
+
 {activeTab === "remarks" && (
 
   <div className="space-y-4">
@@ -572,14 +595,14 @@ export default function StudentPage() {
       Object.entries(
         remarks.reduce((acc, r) => {
 
-         const key =
-  (
-    r.assessmentInstance ||
-    r.assessment_instance ||   // ✅ ADD THIS
-    ""
-  )
-    .toUpperCase()
-    .trim();
+          const key =
+            (
+              r.assessmentInstance ||
+              r.assessment_instance ||
+              ""
+            )
+              .toUpperCase()
+              .trim();
 
           if (!key) return acc;
 
@@ -602,17 +625,57 @@ export default function StudentPage() {
             {instance.replace("_", " ")}
           </h4>
 
-          {/* REMARKS */}
-          {items.map((r, i) => (
+          {items.map((r, i) => {
 
-            <div
-              key={i}
-              className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap mb-2"
-            >
-              {r.supervisorRemark || r.supervisor_remark || "No remark"}
-            </div>
+            const instanceKey =
+              instance.toUpperCase();
 
-          ))}
+            return (
+              <div key={i} className="mb-4">
+
+                {/* SUPERVISOR REMARK */}
+                <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap mb-2">
+                  {r.supervisorRemark || r.supervisor_remark || "No remark"}
+                </div>
+
+                {/* STUDENT RESPONSE (SHOW IF EXISTS) */}
+                {r.studentResponse && (
+                  <div className="bg-green-50 rounded-xl p-3 text-sm text-green-700 mb-2">
+                    <strong>Your response:</strong>
+                    <br />
+                    {r.studentResponse}
+                  </div>
+                )}
+
+                {/* INPUT */}
+                <textarea
+                  placeholder="Write your response..."
+                  className="w-full border rounded-lg p-2 text-sm"
+                  value={responseInputs[instanceKey] || ""}
+                  onChange={(e) =>
+                    setResponseInputs({
+                      ...responseInputs,
+                      [instanceKey]: e.target.value
+                    })
+                  }
+                />
+
+                {/* BUTTON */}
+                <button
+                  onClick={() =>
+                    submitResponse(
+                      instanceKey,
+                      responseInputs[instanceKey]
+                    )
+                  }
+                  className="mt-2 px-4 py-1 text-sm bg-purple-600 text-white rounded-lg"
+                >
+                  Submit Response
+                </button>
+
+              </div>
+            );
+          })}
 
         </div>
 
@@ -623,6 +686,7 @@ export default function StudentPage() {
   </div>
 
 )}
+
 
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
