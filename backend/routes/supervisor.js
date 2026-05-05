@@ -879,5 +879,110 @@ router.post(
   }
 );
 
+router.post(
+  "/cqi/student-response",
+  auth,
+  async (req, res) => {
+
+    try {
+
+      const {
+        matric,
+        assessmentInstance,
+        studentResponse
+      } = req.body;
+
+      const rawRows =
+        await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+      const rows = rawRows.map((r, i) => {
+
+        const clean = {};
+
+        Object.keys(r).forEach(k => {
+          clean[
+            k.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_")
+          ] = r[k];
+        });
+
+        return {
+          ...clean,
+          __index: i
+        };
+
+      });
+
+      const matched = rows.filter(r => {
+
+        const m = String(r.matric || "").trim();
+
+        const instance = String(
+          r.assessment_instance ||
+          r.assessment_type ||
+          ""
+        )
+          .toUpperCase()
+          .replace(/\s+/g, "_")
+          .trim();
+
+        const inputInstance =
+          String(assessmentInstance)
+            .toUpperCase()
+            .replace(/\s+/g, "_")
+            .trim();
+
+        return (
+          m === String(matric).trim() &&
+          instance === inputInstance
+        );
+
+      });
+
+      if (matched.length === 0) {
+        return res.status(404).json({
+          error: "Assessment not found"
+        });
+      }
+
+      for (const r of matched) {
+
+        const rowNumber = r.__index + 2;
+
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "student_response",
+          rowNumber,
+          studentResponse
+        );
+
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "cqi_status",
+          rowNumber,
+          "RESPONDED"
+        );
+
+        await writeSheetCell(
+          process.env.SHEET_ID,
+          "ASSESSMENT_PLO",
+          "cqi_updated_at",
+          rowNumber,
+          new Date().toISOString()
+        );
+
+      }
+
+      res.json({ success: true });
+
+    } catch (e) {
+      console.error("🔥 STUDENT RESPONSE ERROR:", e);
+      res.status(500).json({ error: e.message });
+    }
+
+  }
+);
+
 
 export default router;
