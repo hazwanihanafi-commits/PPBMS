@@ -22,17 +22,20 @@ function auth(req, res, next) {
 /* =========================
    SAVE / AUTOSAVE REMARK
 ========================= */
-router.post("/remark", auth, async (req, res) => {
+router.post("/cqi/supervisor-remark", auth, async (req, res) => {
   try {
-    const { studentMatric, studentEmail, assessmentType, remark } = req.body;
+    const {
+  studentEmail,
+  assessmentInstance,
+  supervisorRemark
+} = req.body;
 
-    await upsertSUPERVISOR_REMARK({
-      studentMatric,
-      studentEmail,
-      assessmentType,
-      supervisorEmail: req.user.email,
-      remark
-    });
+  await upsertSUPERVISOR_REMARK({
+  studentEmail,
+  assessmentType: assessmentInstance,   // map frontend → backend
+  supervisorEmail: req.user.email,
+  remark: supervisorRemark              // map field
+});
 
     return res.json({ success: true });
   } catch (e) {
