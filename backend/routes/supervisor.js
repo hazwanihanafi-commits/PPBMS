@@ -517,11 +517,7 @@ Object.entries(grouped)
       ) return;
 
       const email =
-  (
-    r["Student Email"] ||
-    r["Student's Email"] ||
-    ""
-  )
+  (raw["Student's Email"] || "")
     .toLowerCase()
     .trim();
 
