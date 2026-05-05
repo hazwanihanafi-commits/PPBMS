@@ -445,131 +445,74 @@ export default function StudentPage() {
         </div>
 
         {/* TIMELINE */}
-        {activeTab ===
-          "timeline" && (
+      {activeTab === "timeline" && (
+  <div className="grid gap-4">
 
-          <div className="grid gap-4">
+    {timeline.map((t, i) => {
 
-            {timeline.map(
-              (t, i) => {
+      const isLate =
+        t.status?.trim().toLowerCase() === "late" ||
+        t.status?.trim().toUpperCase() === "AT_RISK" ||
+        (!t.actual && t.remaining_days < 0 && t.status?.trim().toLowerCase() !== "completed");
 
-                const isLate =
+      return (
+        <div
+          key={i}
+          className={`rounded-2xl p-5 shadow border-l-4 ${
+            isLate
+              ? "border-red-500 bg-red-50"
+              : t.remaining_days <= 30
+              ? "border-yellow-400 bg-yellow-50"
+              : "border-green-400 bg-white"
+          }`}
+        >
 
-                  t.status
-                    ?.trim()
-                    .toLowerCase() ===
-                    "late" ||
+          <div className="flex justify-between mb-2">
+            <h4 className="font-semibold">{t.activity}</h4>
 
-                  t.status
-                    ?.trim()
-                    .toUpperCase() ===
-                    "AT_RISK" ||
+            <span className="text-sm font-bold text-purple-700">
+              {t.remaining_days < 0
+                ? `${Math.abs(t.remaining_days)} days overdue`
+                : `${t.remaining_days} days`}
+            </span>
+          </div>
 
-                  (
-                    !t.actual &&
-                    t.remaining_days < 0 &&
-                    t.status
-                      ?.trim()
-                      .toLowerCase() !==
-                      "completed"
-                  );
+          <p className="text-sm text-gray-600">
+            Expected: {t.expected || "-"} | Actual: {t.actual || "-"}
+          </p>
 
-                return (
+          <div className="mt-3 flex justify-between items-center">
 
-                  <div
-                    key={i}
-                    className={`rounded-2xl p-5 shadow border-l-4 ${
-                      isLate
-                        ? "border-red-500 bg-red-50"
-                        : t.remaining_days <= 30
-                        ? "border-yellow-400 bg-yellow-50"
-                        : "border-green-400 bg-white"
-                    }`}
-                  >
+            <span className="text-xs font-semibold">
+              {isLate
+                ? "Overdue – Attention Required"
+                : t.status?.replaceAll("_", " ").trim()}
+            </span>
 
-                    <div className="flex justify-between mb-2">
-
-                      <h4 className="font-semibold">
-                        {t.activity}
-                      </h4>
-
-                      <span className="text-sm font-bold text-purple-700">
-
-                        {t.remaining_days < 0
-                          ? `${Math.abs(
-                              t.remaining_days
-                            )} days overdue`
-                          : `${t.remaining_days} days`}
-
-                      </span>
-
-                    </div>
-
-                    <p className="text-sm text-gray-600">
-
-                      Expected:{" "}
-                      {t.expected || "-"}{" "}
-                      | Actual:{" "}
-                      {t.actual || "-"}
-
-                    </p>
-
-                    <div className="mt-3 flex justify-between items-center">
-
-                      <span className="text-xs font-semibold">
-
-                        {isLate
-                          ? "Overdue – Attention Required"
-                          : t.status
-                              ?.replaceAll(
-                                "_",
-                                " "
-                              )
-                              ?.trim()}
-
-                      </span>
-
-                      {t.actual ? (
-
-                        <button
-                          onClick={() =>
-                            resetCompleted(
-                              t.activity
-                            )
-                          }
-                          className="text-xs text-red-600"
-                        >
-                          Reset Status
-                        </button>
-
-                      ) : (
-
-                        <button
-                          onClick={() =>
-                            markCompleted(
-                              t.activity
-                            )
-                          }
-                          className="text-xs text-purple-700"
-                        >
-                          Mark as Completed
-
+            {t.actual ? (
+              <button
+                onClick={() => resetCompleted(t.activity)}
+                className="text-xs text-red-600"
+              >
+                Reset Status
               </button>
-
+            ) : (
+              <button
+                onClick={() => markCompleted(t.activity)}
+                className="text-xs text-purple-700"
+              >
+                Mark as Completed
+              </button>
             )}
 
           </div>
 
         </div>
-
       );
-
     })}
 
   </div>
-
 )}
-
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
           <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
@@ -583,7 +526,6 @@ export default function StudentPage() {
         )}
 
         {/* REMARKS */}
-
 {activeTab === "remarks" && (
   <div className="space-y-4">
 
@@ -620,19 +562,16 @@ export default function StudentPage() {
           {items.map((r, i) => {
 
             const instanceKey = instance.toUpperCase();
-
             const studentResp =
               r.studentResponse || r.student_response;
 
             return (
               <div key={i} className="mb-4">
 
-                {/* SUPERVISOR REMARK */}
                 <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 mb-2">
                   {r.supervisorRemark || r.supervisor_remark || "No remark"}
                 </div>
 
-                {/* STUDENT RESPONSE */}
                 {studentResp && (
                   <div className="bg-green-50 rounded-xl p-3 text-sm text-green-700 mb-2">
                     <strong>Your response:</strong><br />
@@ -640,7 +579,6 @@ export default function StudentPage() {
                   </div>
                 )}
 
-                {/* INPUT */}
                 <textarea
                   placeholder="Write your response..."
                   className="w-full border rounded-lg p-2 text-sm"
@@ -653,7 +591,6 @@ export default function StudentPage() {
                   }
                 />
 
-                {/* BUTTON */}
                 <button
                   onClick={() =>
                     submitResponse(
@@ -668,13 +605,16 @@ export default function StudentPage() {
 
               </div>
             );
-          
+          })}
+
+        </div>
+      ))
+
     )}
 
   </div>
 )}
 
-  </div>
 
 
         {/* FOOTER */}
