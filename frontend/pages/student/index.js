@@ -569,43 +569,56 @@ export default function StudentPage() {
 
             ) : (
 
-              remarks.map((r, i) => (
+          remarks.map((r, i) => (
 
-                <div
-                  key={i}
-                  className="bg-white rounded-2xl p-5 shadow"
-                >
+  <div
+    key={i}
+    className="bg-white rounded-2xl p-5 shadow"
+  >
 
-                  <div className="flex justify-between items-center mb-3">
+    <div className="flex justify-between items-center mb-3">
 
-                    <div>
-                      <h4 className="font-semibold text-purple-700">
-                        {r.assessment_instance ||
-                          r.assessmentType}
-                      </h4>
+      <div>
+        <h4 className="font-semibold text-purple-700">
+          {r.assessmentInstance || r.assessmentType}
+        </h4>
+      </div>
 
-                      <p className="text-xs text-gray-400">
-                        {r.supervisorEmail}
-                      </p>
-                    </div>
+      {r.updatedAt && (
+        <span className="text-xs text-gray-400">
+          {new Date(r.updatedAt).toLocaleString()}
+        </span>
+      )}
 
-                    <span className="text-xs text-gray-400">
-                      {r.timestamp}
-                    </span>
+    </div>
 
-                  </div>
+    <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 space-y-3">
 
-                  <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap">
-  <b>Supervisor:</b>
-  <p>{r.supervisorRemark || "-"}</p>
+      <div>
+        <span className="font-semibold text-purple-700">
+          Supervisor:
+        </span>
+        <p>{r.supervisorRemark || "-"}</p>
+      </div>
 
-  <b className="mt-2 block">Your Response:</b>
-  <p>{r.studentResponse || "-"}</p>
-                  </div>
+      <div>
+        <span className="font-semibold text-blue-700">
+          Your Response:
+        </span>
+        <p>{r.studentResponse || "-"}</p>
+      </div>
 
-                </div>
+      <div className="pt-2">
+        <span className="text-xs px-3 py-1 rounded-full bg-gray-200">
+          {r.status || "PENDING"}
+        </span>
+      </div>
 
-              ))
+    </div>
+
+  </div>
+
+))
 
             )}
 
