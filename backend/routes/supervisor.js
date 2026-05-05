@@ -467,52 +467,57 @@ Object.entries(grouped)
 
     rows.forEach(r => {
 
-      if (
-        !r ||
-        (!r.assessment_type && !r.assessment_instance)
-      ) return;
+  try {
 
-      const instanceKey =
-        String(
-          r["assessment_instance"] ||
-          r["assessment_type"] ||
-          ""
-        )
-          .toUpperCase()
-          .trim();
+    if (
+      !r ||
+      (!r.assessment_type && !r.assessment_instance)
+    ) return;
 
-      remarksByAssessment.push({
+    const instanceKey = String(
+      r["assessment_instance"] ||
+      r["assessment_type"] ||
+      ""
+    ).toUpperCase().trim();
 
-        assessmentType:
-          r["assessment_type"] || "UNKNOWN",
+    const safeDate =
+      r["cqi_updated_at"] &&
+      !isNaN(new Date(r["cqi_updated_at"]).getTime())
+        ? new Date(r["cqi_updated_at"]).toISOString()
+        : null;
 
-        assessmentInstance:
-          instanceKey,
+    remarksByAssessment.push({
 
-        remark:
-          r["remarks"] || "",
+      assessmentType:
+        r["assessment_type"] || "UNKNOWN",
 
-        supervisorRemark:
-          r["supervisor_remark"] || "",
+      assessmentInstance:
+        instanceKey,
 
-        studentResponse:
-          r["student_response"] || "",
+      remark:
+        r["remarks"] || "",
 
-        status:
-          r["cqi_status"] ||
-          (r["student_response"]
-            ? "RESPONDED"
-            : "PENDING"),
+      supervisorRemark:
+        r["supervisor_remark"] || "",
 
-        updatedAt:
-          r["cqi_updated_at"] &&
-          !isNaN(new Date(r["cqi_updated_at"]).getTime())
-            ? new Date(r["cqi_updated_at"]).toISOString()
-            : null
+      studentResponse:
+        r["student_response"] || "",
 
-      });
+      status:
+        r["cqi_status"] ||
+        (r["student_response"]
+          ? "RESPONDED"
+          : "PENDING"),
+
+      updatedAt: safeDate
 
     });
+
+  } catch (err) {
+    console.error("⚠️ CQI ROW ERROR:", err, r);
+  }
+
+});
 
   });  // ✅ THIS LINE WAS MISSING
 
