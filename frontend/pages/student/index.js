@@ -561,13 +561,10 @@ export default function StudentPage() {
 
                   </div>
 
-                );
-              }
-            )}
-
+                           ))}
           </div>
-
-
+        )}
+      )}
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
           <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
