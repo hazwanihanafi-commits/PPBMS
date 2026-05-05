@@ -517,9 +517,13 @@ Object.entries(grouped)
       ) return;
 
       const email =
-        (raw["Student's Email"] || "")
-          .toLowerCase()
-          .trim();
+  (
+    r["Student Email"] ||
+    r["Student's Email"] ||
+    ""
+  )
+    .toLowerCase()
+    .trim();
 
       const instanceKey =
         (
