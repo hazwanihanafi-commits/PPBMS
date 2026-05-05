@@ -11,7 +11,6 @@ import {
 import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
-import sendEmail from "../services/sendEmail.js";
 
 const router = express.Router();
 
@@ -447,14 +446,10 @@ router.get(
          CQI + REMARKS
       ========================================================= */
 
-      /* =========================================================
-   CQI + REMARKS (UPGRADED)
-========================================================= */
+      const cqiByAssessment = {};
+      const remarksByAssessment = [];
 
-const cqiByAssessment = {};
-const remarksByAssessment = [];
-
-Object.entries(grouped)
+     Object.entries(grouped)
   .forEach(([instance, rows]) => {
 
     const ploScores =
@@ -462,9 +457,14 @@ Object.entries(grouped)
 
         const o = {};
 
-        for (let i = 1; i <= 11; i++) {
+        for (
+          let i = 1;
+          i <= 11;
+          i++
+        ) {
 
-          const rawValue = r[`plo${i}`];
+          const rawValue =
+            r[`plo${i}`];
 
           const v =
             rawValue === undefined ||
@@ -474,305 +474,105 @@ Object.entries(grouped)
               : parseFloat(rawValue);
 
           o[`PLO${i}`] =
-            isNaN(v) ? null : v;
+            isNaN(v)
+              ? null
+              : v;
         }
 
         return o;
       });
 
+    console.log(
+      "PLO SCORES:",
+      ploScores
+    );
+
     cqiByAssessment[instance] =
-      deriveCQIByAssessment(ploScores);
+      deriveCQIByAssessment(
+        ploScores
+      );
 
     rows.forEach(r => {
 
-      if (
-        !r ||
-        (!r.assessment_type &&
-         !r.assessment_instance)
-      ) return;
-
-      remarksByAssessment.push({
-
-        assessmentType:
-          r.assessment_type || "UNKNOWN",
-
-        assessmentInstance:
-          r.assessment_instance ||
-          r.assessment_type ||
-          "UNKNOWN",
-
-        /* OLD FIELD (KEEP) */
-        remark:
-          r.remarks || "",
-
-        /* NEW CQI LEVEL 2 */
-        supervisorRemark:
-          r.supervisor_remark || "",
-
-        studentResponse:
-          r.student_response || "",
-
-        status:
-          r.cqi_status ||
-          (r.student_response
-            ? "RESPONDED"
-            : "PENDING"),
-
-        updatedAt:
-          r.cqi_updated_at || ""
-
-      });
-
-    });
-
-  });
-
-/* =========================================================
-   FINAL PLO
-========================================================= */
-
-const finalPLO =
-  aggregateFinalPLO(cqiByAssessment);
-
-for (let i = 1; i <= 11; i++) {
-
-  const key = `PLO${i}`;
-
-  if (!finalPLO[key]) {
-    finalPLO[key] = {
-      average: null,
-      status: "Not Assessed"
-    };
-  }
-}
-
-/* =========================================================
-   CQI AUTO ALERT
-========================================================= */
-
-const alerts = [];
-
-remarksByAssessment.forEach(r => {
-
   if (
-    r.supervisorRemark &&
-    !r.studentResponse &&
-    r.updatedAt
+    !r ||
+    (
+      !r.assessment_type &&
+      !r.assessment_instance
+    )
   ) {
+    return;
+  }
 
-    const days =
-      (Date.now() - new Date(r.updatedAt)) /
-      (1000 * 60 * 60 * 24);
+  remarksByAssessment.push({
 
-    if (days > 7) {
+    assessmentType:
+      r.assessment_type || "UNKNOWN",
 
-      alerts.push({
-        type: "CQI_PENDING",
-        assessmentInstance: r.assessmentInstance,
-        message:
-          `${r.assessmentInstance} ignored > 7 days`
+    assessmentInstance:
+      r.assessment_instance ||
+      r.assessment_type ||
+      "UNKNOWN",
+
+    remark:
+      r.remarks || ""
+
+  });
+
+});
+  });
+      /* =========================================================
+         FINAL PLO
+      ========================================================= */
+
+      const finalPLO =
+        aggregateFinalPLO(
+          cqiByAssessment
+        );
+
+      for (
+        let i = 1;
+        i <= 11;
+        i++
+      ) {
+
+        const key = `PLO${i}`;
+
+        if (!finalPLO[key]) {
+
+          finalPLO[key] = {
+            average: null,
+            status:
+              "Not Assessed"
+          };
+        }
+      }
+
+      /* =========================================================
+         RESPONSE
+      ========================================================= */
+
+      res.json({
+        row: {
+          ...profile,
+          documents,
+          timeline,
+          cqiByAssessment,
+          finalPLO,
+          remarksByAssessment
+        }
       });
 
-    }
-  }
-});
-
-/* =========================================================
-   RESPONSE
-========================================================= */
-
-res.json({
-  row: {
-    ...profile,
-    documents,
-    timeline,
-    cqiByAssessment,
-    finalPLO,
-    remarksByAssessment,
-    alerts
-  }
-});
-
-} catch (e) {
-
-  console.error("student detail error:", e);
-
-  res.status(500).json({
-    error: e.message
-  });
-}
-});
-
-/* =========================================================
-   SUPERVISOR ADD REMARK
-========================================================= */
-
-router.post(
-  "/cqi/supervisor-remark",
-  auth,
-  async (req, res) => {
-
-    try {
-
-      const {
-        studentEmail,
-        assessmentInstance,
-        supervisorRemark
-      } = req.body;
-
-      const rows =
-        await readASSESSMENT_PLO(
-          process.env.SHEET_ID
-        );
-
-      const matched = rows
-        .map((r, i) => ({ r, i }))
-        .filter(({ r }) =>
-          (r["Student's Email"] || "")
-            .toLowerCase()
-            .trim() ===
-          studentEmail.toLowerCase().trim() &&
-
-          String(r["assessment_instance"] || "")
-            .toLowerCase()
-            .trim() ===
-          assessmentInstance.toLowerCase().trim()
-        );
-
-      if (matched.length === 0) {
-        return res.status(404).json({
-          error: "Assessment not found"
-        });
-      }
-
-      for (const { i } of matched) {
-
-        const rowNumber = i + 2;
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "supervisor_remark",
-          rowNumber,
-          supervisorRemark
-        );
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "cqi_status",
-          rowNumber,
-          "PENDING"
-        );
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "cqi_updated_at",
-          rowNumber,
-          new Date().toISOString()
-        );
-      }
-
-      res.json({ success: true });
-
     } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
-  }
-);
 
-/* =========================================================
-   STUDENT RESPONSE + HISTORY
-========================================================= */
+      console.error(
+        "student detail error:",
+        e
+      );
 
-router.post(
-  "/cqi/student-response",
-  auth,
-  async (req, res) => {
-
-    try {
-
-      const {
-        studentEmail,
-        assessmentInstance,
-        studentResponse,
-        status
-      } = req.body;
-
-      const rows =
-        await readASSESSMENT_PLO(
-          process.env.SHEET_ID
-        );
-
-      const matched = rows
-        .map((r, i) => ({ r, i }))
-        .filter(({ r }) =>
-          (r["Student's Email"] || "")
-            .toLowerCase()
-            .trim() ===
-          studentEmail.toLowerCase().trim() &&
-
-          String(r["assessment_instance"] || "")
-            .toLowerCase()
-            .trim() ===
-          assessmentInstance.toLowerCase().trim()
-        );
-
-      if (matched.length === 0) {
-        return res.status(404).json({
-          error: "Assessment not found"
-        });
-      }
-
-      for (const { r, i } of matched) {
-
-        const rowNumber = i + 2;
-
-        const existing =
-          r["student_response_history"] || "";
-
-        const updated =
-          existing +
-          `\n[${new Date().toISOString()}] ${studentResponse}`;
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "student_response",
-          rowNumber,
-          studentResponse
-        );
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "student_response_history",
-          rowNumber,
-          updated
-        );
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "cqi_status",
-          rowNumber,
-          status || "RESPONDED"
-        );
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "cqi_updated_at",
-          rowNumber,
-          new Date().toISOString()
-        );
-      }
-
-      res.json({ success: true });
-
-    } catch (e) {
-      res.status(500).json({ error: e.message });
+      res.status(500).json({
+        error: e.message
+      });
     }
   }
 );
