@@ -12,6 +12,7 @@ import { buildTimelineForRow } from "../utils/buildTimeline.js";
 import { deriveCQIByAssessment } from "../utils/cqiAggregate.js";
 import { aggregateFinalPLO } from "../utils/finalPLOAggregate.js";
 import sendEmail from "../services/sendEmail.js";
+import { readSUPERVISOR_REMARKS } from "../services/googleSheets.js";
 
 const router = express.Router();
 
@@ -323,6 +324,32 @@ router.get(
       ========================================================= */
 
       const documents = {};
+      const supervisorRemarkRows =
+  await readSUPERVISOR_REMARKS(process.env.SHEET_ID);
+      const remarkMap = {};
+
+supervisorRemarkRows.forEach(r => {
+
+  const email =
+    (r["Student Email"] || "")
+      .toLowerCase()
+      .trim();
+
+  const instance =
+    (r["Assessment Type"] || "")
+      .toUpperCase()
+      .trim();
+
+  if (!remarkMap[email]) {
+    remarkMap[email] = {};
+  }
+
+  remarkMap[email][instance] = {
+    remark: r["Remark"] || "",
+    studentResponse: r["Student Response"] || "",
+    status: r["Status"] || "PENDING"
+  };
+});
 
       Object.entries(
         DOC_COLUMN_MAP
@@ -450,7 +477,6 @@ router.get(
       /* =========================================================
    CQI + REMARKS (UPGRADED)
 ========================================================= */
-
 const cqiByAssessment = {};
 const remarksByAssessment = [];
 
@@ -487,9 +513,25 @@ Object.entries(grouped)
 
       if (
         !r ||
-        (!r.assessment_type &&
-         !r.assessment_instance)
+        (!r.assessment_type && !r.assessment_instance)
       ) return;
+
+      const email =
+        (raw["Student's Email"] || "")
+          .toLowerCase()
+          .trim();
+
+      const instanceKey =
+        (
+          r.assessment_instance ||
+          r.assessment_type ||
+          ""
+        )
+          .toUpperCase()
+          .trim();
+
+      const savedRemark =
+        remarkMap[email]?.[instanceKey] || {};
 
       remarksByAssessment.push({
 
@@ -497,24 +539,20 @@ Object.entries(grouped)
           r.assessment_type || "UNKNOWN",
 
         assessmentInstance:
-          r.assessment_instance ||
-          r.assessment_type ||
-          "UNKNOWN",
+          instanceKey,
 
-        /* OLD FIELD (KEEP) */
         remark:
           r.remarks || "",
 
-        /* NEW CQI LEVEL 2 */
         supervisorRemark:
-          r.supervisor_remark || "",
+          savedRemark.remark || "",
 
         studentResponse:
-          r.student_response || "",
+          savedRemark.studentResponse || "",
 
         status:
-          r.cqi_status ||
-          (r.student_response
+          savedRemark.status ||
+          (savedRemark.studentResponse
             ? "RESPONDED"
             : "PENDING"),
 
@@ -525,7 +563,9 @@ Object.entries(grouped)
 
     });
 
-  });
+  });   // ✅ OUTER LOOP CLOSED PROPERLY
+
+
 
 /* =========================================================
    FINAL PLO
