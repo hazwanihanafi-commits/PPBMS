@@ -6,7 +6,6 @@ import StudentChecklist from "../../components/StudentChecklist";
 import TimelineSummary from "../../components/TimelineSummary";
 import CompletionDonut from "../../components/CompletionDonut";
 import TopBar from "../../components/TopBar";
-import { API_BASE } from "@/utils/api";
 
 export default function StudentPage() {
 
@@ -30,8 +29,6 @@ export default function StudentPage() {
 
   const [error, setError] =
     useState("");
-
-  const [responseInputs, setResponseInputs] = useState({});
 
   /* =========================
      LOAD
@@ -73,8 +70,8 @@ export default function StudentPage() {
       );
 
       setRemarks(
-  data.row.remarksByAssessment || []
-);
+        data.row.remarks || []
+      );
 
     } catch (e) {
 
@@ -114,40 +111,7 @@ export default function StudentPage() {
 
     loadStudent();
   }
-async function submitResponse(assessmentInstance) {
-  const text = responseInputs[assessmentInstance];
 
-  if (!text || !text.trim()) {
-    alert("Please enter response");
-    return;
-  }
-
-  try {
-await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("ppbms_token")}`
-  },
-  body: JSON.stringify({
-    studentEmail: profile.email,
-    assessmentInstance,
-    studentResponse: text.trim(),
-    status: "RESPONDED"
-  }),
-});
-    
-    setResponseInputs(prev => ({
-      ...prev,
-      [assessmentInstance]: ""
-    }));
-
-    loadStudent();
-  } catch (err) {
-    console.error(err);
-    alert("Failed to submit response");
-  }
-}
   async function resetCompleted(
     activity
   ) {
@@ -185,14 +149,6 @@ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
       "completed"
   ).length;
 
-  const coSupervisorDisplay =
-  profile?.coSupervisors ||
-  profile?.co_supervisor ||
-  profile?.coSupervisor ||
-  profile?.cosupervisor ||
-  profile?.cosupervisors ||
-  "-";
-  
   const late = timeline.filter(
     (t) =>
 
@@ -224,8 +180,6 @@ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
         ) * 100
       )
     : 0;
-
-
 
   /* =========================
      LOADING
@@ -339,7 +293,10 @@ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
               <strong>
                 Co-Supervisor(s):
               </strong>{" "}
-              {coSupervisorDisplay}
+              {profile.cosupervisor ||
+                profile.cosupervisors ||
+                profile.co_supervisor ||
+                "-"}
             </p>
 
           </div>
@@ -612,86 +569,39 @@ await fetch(`${API_BASE}/api/supervisor/cqi/student-response`, {
 
             ) : (
 
-          remarks.map((r, i) => (
+              remarks.map((r, i) => (
 
-  <div
-    key={i}
-    className="bg-white rounded-2xl p-5 shadow"
-  >
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl p-5 shadow"
+                >
 
-    <div className="flex justify-between items-center mb-3">
+                  <div className="flex justify-between items-center mb-3">
 
-      <div>
-        <h4 className="font-semibold text-purple-700">
-          {r.assessmentInstance || r.assessmentType}
-        </h4>
-      </div>
+                    <div>
+                      <h4 className="font-semibold text-purple-700">
+                        {r.assessment_instance ||
+                          r.assessmentType}
+                      </h4>
 
-      {r.updatedAt && (
-        <span className="text-xs text-gray-400">
-          {new Date(r.updatedAt).toLocaleString()}
-        </span>
-      )}
+                      <p className="text-xs text-gray-400">
+                        {r.supervisorEmail}
+                      </p>
+                    </div>
 
-    </div>
+                    <span className="text-xs text-gray-400">
+                      {r.timestamp}
+                    </span>
 
-    <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 space-y-3">
+                  </div>
 
-      <div>
-        <span className="font-semibold text-purple-700">
-          Supervisor:
-        </span>
-        <p>{r.supervisorRemark || "-"}</p>
-      </div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                    {r.remark}
+                  </div>
 
-      <div>
-  <span className="font-semibold text-blue-700">
-    Your Response:
-  </span>
+                </div>
 
-  {/* EXISTING RESPONSE */}
-  {r.studentResponse ? (
-    <p className="mb-2">{r.studentResponse}</p>
-  ) : (
-    <p className="mb-2 text-gray-400 italic">
-      No response yet
-    </p>
-  )}
-
-  {/* INPUT */}
-  <textarea
-    className="w-full p-2 border rounded-xl text-sm"
-    rows={3}
-    placeholder="Write your response..."
-    value={responseInputs[r.assessmentInstance] ?? ""}
-    onChange={(e) =>
-      setResponseInputs(prev => ({
-        ...prev,
-        [r.assessmentInstance]: e.target.value
-      }))
-    }
-  />
-
-  {/* BUTTON */}
-  <button
-    onClick={() => submitResponse(r.assessmentInstance)}
-    className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg"
-  >
-    Submit Response
-  </button>
-</div>
-
-      <div className="pt-2">
-        <span className="text-xs px-3 py-1 rounded-full bg-gray-200">
-          {r.status || "PENDING"}
-        </span>
-      </div>
-
-    </div>
-
-  </div>
-
-))
+              ))
 
             )}
 
