@@ -72,7 +72,7 @@ export default function StudentPage() {
         data.row.timeline || []
       );
 
-      setRemarks(data.row.remarksByAssessment || []);
+      setRemarks(data.row.remarks || []);
 
     } catch (e) {
 
@@ -584,33 +584,26 @@ export default function StudentPage() {
         {/* REMARKS */}
 
 {activeTab === "remarks" && (
-
   <div className="space-y-4">
 
     {remarks.length === 0 ? (
-
       <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500">
         No supervisor remarks yet.
       </div>
-
     ) : (
 
       Object.entries(
         remarks.reduce((acc, r) => {
 
-          const key =
-            (
-              r.assessmentInstance ||
-              r.assessment_instance ||
-              ""
-            )
-              .toUpperCase()
-              .trim();
+          const key = (
+            r.assessmentInstance ||
+            r.assessment_instance ||
+            ""
+          ).toUpperCase().trim();
 
           if (!key) return acc;
 
           if (!acc[key]) acc[key] = [];
-
           acc[key].push(r);
 
           return acc;
@@ -623,30 +616,30 @@ export default function StudentPage() {
           className="bg-white rounded-2xl p-5 shadow"
         >
 
-          {/* TITLE */}
           <h4 className="font-semibold text-purple-700 mb-3">
             {instance.replace("_", " ")}
           </h4>
 
           {items.map((r, i) => {
 
-            const instanceKey =
-              instance.toUpperCase();
+            const instanceKey = instance.toUpperCase();
+
+            const studentResp =
+              r.studentResponse || r.student_response;
 
             return (
               <div key={i} className="mb-4">
 
                 {/* SUPERVISOR REMARK */}
-                <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap mb-2">
+                <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 mb-2">
                   {r.supervisorRemark || r.supervisor_remark || "No remark"}
                 </div>
 
-                {/* STUDENT RESPONSE (SHOW IF EXISTS) */}
-                {r.studentResponse && (
+                {/* STUDENT RESPONSE */}
+                {studentResp && (
                   <div className="bg-green-50 rounded-xl p-3 text-sm text-green-700 mb-2">
-                    <strong>Your response:</strong>
-                    <br />
-                    {r.studentResponse}
+                    <strong>Your response:</strong><br />
+                    {studentResp}
                   </div>
                 )}
 
@@ -684,6 +677,10 @@ export default function StudentPage() {
 
       ))
 
+    )}
+
+  </div>
+)}
     )}
 
   </div>
