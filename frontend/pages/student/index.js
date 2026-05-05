@@ -553,17 +553,22 @@ export default function StudentPage() {
                           className="text-xs text-purple-700"
                         >
                           Mark as Completed
-                        </button>
 
-                      )}
+              </button>
 
-                    </div>
+            )}
 
-                  </div>
-
-                           )}
           </div>
-        )}
+
+        </div>
+
+      );
+
+    })}
+
+  </div>
+
+)}
 
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
