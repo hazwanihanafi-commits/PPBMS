@@ -380,10 +380,17 @@ const coSupervisorDisplay =
               </p>
             </div>
 
-            <span className="text-xs px-3 py-1 rounded bg-gray-100">
-              {item.status || "PENDING"}
-            </span>
-
+            <span
+  className={`text-xs px-3 py-1 rounded font-semibold ${
+    item.status === "RESPONDED"
+      ? "bg-green-100 text-green-700"
+      : item.status === "PENDING"
+      ? "bg-red-100 text-red-700"
+      : "bg-gray-100 text-gray-600"
+  }`}
+>
+  {item.status || "PENDING"}
+</span>
           </div>
 
           {/* ✅ FIXED HERE */}
