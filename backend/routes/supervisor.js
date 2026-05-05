@@ -400,8 +400,12 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
               ""
             ).trim();
 
-          return m === matric;
+          return m.toString().trim().toLowerCase() ===
+       matric.toString().trim().toLowerCase();
         });
+      console.log("MAT:", matric);
+console.log("FOUND:", studentRows.length);
+console.log("SAMPLE:", normalized[0]);
 
       /* =========================================================
          GROUP BY ASSESSMENT INSTANCE
