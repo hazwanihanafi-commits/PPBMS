@@ -218,16 +218,14 @@ router.get(
       res.json({ students });
 
     } catch (e) {
+  console.error("🔥 STUDENT API CRASH:", e);
 
-      console.error(
-        "students list error:",
-        e
-      );
-
-      res.status(500).json({
-        error: e.message
-      });
-    }
+  return res.status(500).json({
+    error: "student api failed",
+    message: e.message,
+    stack: e.stack
+  });
+}
   }
 );
 
@@ -708,7 +706,12 @@ router.post(
             .trim() ===
           studentEmail.toLowerCase().trim() &&
 
-          String(r["assessment_instance"] || "")
+          String(
+  r["assessment_instance"] ||
+  r["assessment_type"] ||
+  r["assessment_instance "] ||  // extra safety
+  ""
+)
             .toLowerCase()
             .trim() ===
           assessmentInstance.toLowerCase().trim()
