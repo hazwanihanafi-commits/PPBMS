@@ -544,4 +544,112 @@ Please log into PPBMS to review.
   }
 });
 
+/* ================= STUDENT RESPONSE (CQI) ================= */
+router.post("/cqi/student-response", auth, async (req, res) => {
+  try {
+
+    const {
+      matric,
+      assessmentInstance,
+      studentResponse,
+      status
+    } = req.body;
+
+    const rows =
+      await readASSESSMENT_PLO(process.env.SHEET_ID);
+
+    /* 🔥 NORMALIZE KEYS */
+    const normalized = rows.map(r => {
+      const clean = {};
+      Object.keys(r).forEach(k => {
+        clean[
+          k.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_")
+        ] = r[k];
+      });
+      return clean;
+    });
+
+    /* 🔥 MATCH USING matric + assessment_instance ONLY */
+    const matched = normalized
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => {
+
+        const m = String(r["matric"] || "").trim();
+
+        const instance = String(
+          r["assessment_instance"] || ""
+        )
+          .toUpperCase()
+          .trim();
+
+        return (
+          m === String(matric).trim() &&
+          instance === assessmentInstance.toUpperCase().trim()
+        );
+      });
+
+    console.log("📥 REQUEST:", { matric, assessmentInstance });
+    console.log("🎯 MATCHED:", matched.length);
+
+    if (matched.length === 0) {
+      return res.status(404).json({
+        error: "Assessment not found"
+      });
+    }
+
+    for (const { r, i } of matched) {
+
+      const rowNumber = i + 2;
+
+      /* 🔥 SAVE RESPONSE */
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "ASSESSMENT_PLO",
+        "student_response",
+        rowNumber,
+        studentResponse
+      );
+
+      /* 🔥 APPEND HISTORY */
+      const existing =
+        r["student_response_history"] || "";
+
+      const updated =
+        existing +
+        `\n[${new Date().toISOString()}] ${studentResponse}`;
+
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "ASSESSMENT_PLO",
+        "student_response_history",
+        rowNumber,
+        updated
+      );
+
+      /* 🔥 UPDATE STATUS */
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "ASSESSMENT_PLO",
+        "cqi_status",
+        rowNumber,
+        status || "RESPONDED"
+      );
+
+      await writeSheetCell(
+        process.env.SHEET_ID,
+        "ASSESSMENT_PLO",
+        "cqi_updated_at",
+        rowNumber,
+        new Date().toISOString()
+      );
+    }
+
+    res.json({ success: true });
+
+  } catch (e) {
+    console.error("🔥 STUDENT RESPONSE ERROR:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default router;
