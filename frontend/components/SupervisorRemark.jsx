@@ -41,7 +41,7 @@ export default function SupervisorRemark({
         );
 
       const res = await fetch(
-        `${API_BASE}/api/supervisor/remark/${encodeURIComponent(studentEmail)}`,
+        `${API_BASE}/api/cqi/supervisor-remark/${encodeURIComponent(studentEmail)}`,
         {
           headers: {
             Authorization:
@@ -128,7 +128,7 @@ export default function SupervisorRemark({
         );
 
       const res = await fetch(
-        `${API_BASE}/api/supervisor/remark`,
+        `${API_BASE}/api/cqi/supervisor-remark`,
         {
           method: "POST",
 
