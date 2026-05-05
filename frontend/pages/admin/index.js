@@ -1,41 +1,57 @@
+// ==========================================
+// PPBMS ADMIN DASHBOARD (UPGRADED PRO)
+// ==========================================
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+
+import {
+  LayoutDashboard,
+  Users,
+  LogOut,
+  Menu,
+} from "lucide-react";
+
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+
 import { apiGet } from "@/utils/api";
 
-/* ================= BADGE ================= */
+/* ==========================================
+   STATUS BADGE
+========================================== */
 function StatusBadge({ status }) {
+  const s = status?.toUpperCase();
+
   const map = {
-    "On Track": "bg-green-100 text-green-700",
-    "Slightly Late": "bg-yellow-100 text-yellow-700",
-    "At Risk": "bg-red-100 text-red-700",
-    "Graduated": "bg-blue-100 text-blue-700",
+    ON_TRACK: "bg-green-100 text-green-700",
+    SLIGHTLY_DELAYED: "bg-yellow-100 text-yellow-700",
+    AT_RISK: "bg-red-100 text-red-700",
+    GRADUATED: "bg-blue-100 text-blue-700",
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${map[status]}`}>
-      {status}
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${map[s]}`}>
+      {s?.replaceAll("_", " ")}
     </span>
   );
 }
 
-/* ================= PLO CARD ================= */
-function PLOCard({ plo, value }) {
-  let color = "bg-green-100 text-green-700";
-
-  if (value < 4 && value >= 3) color = "bg-yellow-100 text-yellow-700";
-  if (value < 3) color = "bg-red-100 text-red-700";
-
-  return (
-    <div className={`rounded-xl p-3 text-center ${color}`}>
-      <p className="text-xs">{plo}</p>
-      <h3 className="font-bold">{value ?? "-"}</h3>
-    </div>
-  );
-}
-
+/* ==========================================
+   PAGE
+========================================== */
 export default function AdminDashboard() {
-
   const router = useRouter();
 
   const [checked, setChecked] = useState(false);
@@ -44,15 +60,21 @@ export default function AdminDashboard() {
   const [programmes, setProgrammes] = useState([]);
   const [programme, setProgramme] = useState("");
 
-  const [students, setStudents] = useState([]);
   const [summary, setSummary] = useState({});
-  const [ploStats, setPloStats] = useState({}); // 🔥 NEW
+  const [activeStudents, setActiveStudents] = useState([]);
+  const [graduates, setGraduates] = useState([]);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  /* ================= AUTH ================= */
+  const [loading, setLoading] = useState(false);
+
+  /* ==========================================
+     AUTH
+  ========================================== */
   useEffect(() => {
+    if (!router.isReady) return;
+
     const token = localStorage.getItem("ppbms_token");
     const role = localStorage.getItem("ppbms_role");
 
@@ -63,146 +85,151 @@ export default function AdminDashboard() {
     }
 
     setChecked(true);
-  }, []);
+  }, [router.isReady]);
 
-  /* ================= LOAD PROGRAMMES ================= */
+  /* ==========================================
+     LOAD PROGRAMMES
+  ========================================== */
   useEffect(() => {
     if (!checked) return;
 
     apiGet("/api/admin/programmes/students")
-      .then(d => setProgrammes(d.programmes || []));
+      .then((d) => setProgrammes(d.programmes || []))
+      .catch(() => setProgrammes([]));
   }, [checked]);
 
-  /* ================= AUTO SELECT ================= */
+  /* ==========================================
+     LOAD DATA
+  ========================================== */
   useEffect(() => {
-    if (programmes.length > 0 && !programme) {
-      setProgramme(programmes[0]);
-    }
-  }, [programmes]);
-
-  /* ================= LOAD DATA ================= */
-  useEffect(() => {
-
     if (!programme) return;
+
+    setLoading(true);
 
     Promise.all([
       apiGet(`/api/admin/programme-active-students?programme=${programme}`),
       apiGet(`/api/admin/programme-graduates?programme=${programme}`),
-      apiGet(`/api/admin/programme-summary?programme=${programme}`),
-      apiGet(`/api/admin/programme-plo?programme=${programme}`) // 🔥 NEW
+      apiGet(`/api/admin/programme-summary?programme=${programme}`)
     ])
-    .then(([active, grad, sum, plo]) => {
-
-      setStudents([
-        ...(active.students || []),
-        ...(grad.students || [])
-      ]);
-
-      setSummary(sum || {});
-      setPloStats(plo || {});
-    });
-
+      .then(([active, grad, sum]) => {
+        setActiveStudents(active.students || []);
+        setGraduates(grad.students || []);
+        setSummary(sum || {});
+      })
+      .finally(() => setLoading(false));
   }, [programme]);
 
-  /* ================= FILTER ================= */
-  const filtered = useMemo(() => {
-    return students.filter(st => {
+  /* ==========================================
+     FILTER
+  ========================================== */
+  const students = useMemo(() => {
+    const all = [...activeStudents, ...graduates];
 
+    return all.filter((s) => {
       const q = search.toLowerCase();
 
       const matchSearch =
-        st.name?.toLowerCase().includes(q) ||
-        st.email?.toLowerCase().includes(q);
+        s.name?.toLowerCase().includes(q) ||
+        s.matric?.toLowerCase().includes(q);
 
       const matchStatus =
-        statusFilter === "All" ||
-        st.status === statusFilter;
+        statusFilter === "ALL" ||
+        s.status?.toUpperCase() === statusFilter;
 
       return matchSearch && matchStatus;
-
     });
-  }, [students, search, statusFilter]);
+  }, [search, statusFilter, activeStudents, graduates]);
 
-  if (!checked) return <div className="p-6">Checking...</div>;
+  /* ==========================================
+     CHART DATA
+  ========================================== */
+  const pieData = [
+    { name: "On Track", value: summary.onTrack || 0, color: "#16a34a" },
+    { name: "Slightly Late", value: summary.slightlyDelayed || 0, color: "#eab308" },
+    { name: "At Risk", value: summary.atRisk || 0, color: "#dc2626" },
+    { name: "Graduated", value: summary.graduated || 0, color: "#2563eb" },
+  ];
+
+  /* ==========================================
+     LOGOUT
+  ========================================== */
+  function handleLogout() {
+    localStorage.clear();
+    router.push("/login");
+  }
+
+  if (!checked) return <div className="p-10">Checking...</div>;
 
   return (
     <div className="flex min-h-screen bg-gray-100">
 
-      {/* ================= SIDEBAR ================= */}
+      {/* SIDEBAR */}
       <aside className={`
-        fixed lg:static z-50
-        w-64 h-full bg-gradient-to-b from-indigo-900 to-purple-800 text-white p-6
+        fixed lg:static z-50 w-64 h-full bg-slate-900 text-white p-6
         transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0
+        lg:translate-x-0 transition
       `}>
         <h2 className="text-xl font-bold mb-6">PPBMS</h2>
 
-        <button onClick={() => router.push("/admin")} className="block mb-3">
-          Dashboard
-        </button>
+        <button className="block mb-3">Dashboard</button>
+        <button className="block mb-3">Students</button>
 
-        <button onClick={() => router.push("/admin/cqi")} className="block">
-          CQI Analytics
+        <button onClick={handleLogout} className="mt-10 text-red-300">
+          Logout
         </button>
       </aside>
 
-      {/* ================= MAIN ================= */}
+      {/* MAIN */}
       <main className="flex-1 p-6 space-y-6">
 
-        <button onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+        {/* HEADER */}
+        <div className="flex justify-between items-center">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden">
+            <Menu />
+          </button>
 
-        <h1 className="text-2xl font-bold text-purple-700">
-          Admin Dashboard
-        </h1>
+          <h1 className="text-2xl font-bold text-purple-700">
+            Admin Dashboard
+          </h1>
+        </div>
 
-        {/* ================= PROGRAMME ================= */}
+        {/* PROGRAMME */}
         <select
           value={programme}
           onChange={(e) => setProgramme(e.target.value)}
           className="w-full p-3 border rounded-xl"
         >
-          {programmes.map(p => (
-            <option key={p}>{p}</option>
+          <option value="">Select Programme</option>
+          {programmes.map((p) => (
+            <option key={p} value={p}>{p}</option>
           ))}
         </select>
 
-        {/* ================= KPI ================= */}
+        {/* KPI CARDS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-          <div className="bg-green-100 p-4 rounded-xl">
-            <p className="text-xs">On Track</p>
-            <h2 className="text-xl font-bold">{summary.onTrack || 0}</h2>
-          </div>
-
-          <div className="bg-yellow-100 p-4 rounded-xl">
-            <p className="text-xs">Slightly Late</p>
-            <h2 className="text-xl font-bold">{summary.slightlyDelayed || 0}</h2>
-          </div>
-
-          <div className="bg-red-100 p-4 rounded-xl">
-            <p className="text-xs">At Risk</p>
-            <h2 className="text-xl font-bold">{summary.atRisk || 0}</h2>
-          </div>
-
-          <div className="bg-blue-100 p-4 rounded-xl">
-            <p className="text-xs">Graduated</p>
-            <h2 className="text-xl font-bold">{summary.graduated || 0}</h2>
-          </div>
-
+          <div className="bg-green-100 p-4 rounded-xl">On Track: {summary.onTrack || 0}</div>
+          <div className="bg-yellow-100 p-4 rounded-xl">Late: {summary.slightlyDelayed || 0}</div>
+          <div className="bg-red-100 p-4 rounded-xl">Risk: {summary.atRisk || 0}</div>
+          <div className="bg-blue-100 p-4 rounded-xl">Graduated: {summary.graduated || 0}</div>
         </div>
 
-        {/* ================= PLO ANALYTICS ================= */}
-        <div className="bg-white rounded-xl shadow p-5">
-          <h3 className="font-semibold mb-4">Programme PLO Attainment</h3>
+        {/* PIE CHART */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="font-semibold mb-4">Programme Distribution</h3>
 
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            {Object.keys(ploStats).map((plo) => (
-              <PLOCard key={plo} plo={plo} value={ploStats[plo]} />
-            ))}
-          </div>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie data={pieData} dataKey="value" outerRadius={80}>
+                {pieData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* ================= SEARCH ================= */}
+        {/* SEARCH */}
         <input
           placeholder="Search student..."
           className="w-full p-3 border rounded-xl"
@@ -210,55 +237,50 @@ export default function AdminDashboard() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {/* ================= FILTER ================= */}
+        {/* FILTER BUTTONS */}
         <div className="flex gap-2 flex-wrap">
-          {["All","On Track","Slightly Late","At Risk","Graduated"].map(s => (
+          {["ALL","ON_TRACK","SLIGHTLY_DELAYED","AT_RISK","GRADUATED"].map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1 rounded-full text-sm ${
-                statusFilter === s
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-200"
+              className={`px-4 py-1 rounded-full ${
+                statusFilter === s ? "bg-purple-600 text-white" : "bg-gray-200"
               }`}
             >
-              {s}
+              {s.replaceAll("_", " ")}
             </button>
           ))}
         </div>
 
-        {/* ================= STUDENT LIST ================= */}
+        {/* STUDENT LIST */}
         <div className="bg-white rounded-xl shadow divide-y">
 
-          {filtered.map((s, i) => (
-            <div key={i} className="p-4 flex justify-between items-center">
-
-              <div>
-                <p className="font-medium">{s.name}</p>
-                <p className="text-xs text-gray-500">{s.email}</p>
-                <p className="text-xs text-gray-400">
-                  Progress: {s.progressPercent}%
-                </p>
-              </div>
-
-              <div className="flex gap-3 items-center">
-
-                <StatusBadge status={s.status} />
-
-                <Link
-                  href={{
-                    pathname: "/admin/student/[email]",
-                    query: { email: s.email }
-                  }}
-                  className="text-purple-600 text-sm"
-                >
-                  View →
-                </Link>
-
-              </div>
-
+          {loading ? (
+            <div className="p-6 text-center">Loading...</div>
+          ) : students.length === 0 ? (
+            <div className="p-6 text-center text-gray-500">
+              No students found
             </div>
-          ))}
+          ) : (
+            students.map((s, i) => (
+              <div key={i} className="p-4 flex justify-between">
+
+                <div>
+                  <p className="font-medium">{s.name}</p>
+                  <p className="text-xs text-gray-500">{s.email}</p>
+                </div>
+
+                <div className="flex gap-3 items-center">
+                  <StatusBadge status={s.status} />
+
+                  <Link href={`/admin/student/${s.email}`}>
+                    View →
+                  </Link>
+                </div>
+
+              </div>
+            ))
+          )}
 
         </div>
 
