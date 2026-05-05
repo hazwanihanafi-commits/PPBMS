@@ -595,11 +595,7 @@ export default function StudentPage() {
       Object.entries(
         remarks.reduce((acc, r) => {
 
-          const key = (
-            r.assessmentInstance ||
-            r.assessment_instance ||
-            ""
-          ).toUpperCase().trim();
+          const key = r.assessmentInstance;
 
           if (!key) return acc;
 
