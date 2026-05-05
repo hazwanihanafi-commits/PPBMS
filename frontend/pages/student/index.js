@@ -6,6 +6,7 @@ import StudentChecklist from "../../components/StudentChecklist";
 import TimelineSummary from "../../components/TimelineSummary";
 import CompletionDonut from "../../components/CompletionDonut";
 import TopBar from "../../components/TopBar";
+import FinalPLOTable from "../../components/FinalPLOTable";
 
 export default function StudentPage() {
 
@@ -71,8 +72,7 @@ export default function StudentPage() {
         data.row.timeline || []
       );
 
-      setRemarks(data.row.remarksByAssessment || [])
-      );
+      setRemarks(data.row.remarksByAssessment || []);
 
     } catch (e) {
 
@@ -405,6 +405,11 @@ export default function StudentPage() {
           </p>
 
         </div>
+
+        {/* ✅ ADD HERE */}
+{profile?.finalPLO && Object.keys(profile.finalPLO).length > 0 && (
+  <FinalPLOTable finalPLO={profile.finalPLO} />
+)}
 
         {/* TABS */}
         <div className="flex gap-3">
