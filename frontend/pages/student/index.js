@@ -567,7 +567,6 @@ export default function StudentPage() {
 
           </div>
 
-        )}
 
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
