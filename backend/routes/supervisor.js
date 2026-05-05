@@ -440,6 +440,8 @@ const remarksByAssessment = [];
 Object.entries(grouped)
   .forEach(([instance, rows]) => {
 
+     if (!rows || !Array.isArray(rows)) return; 
+
     const ploScores = rows.map(r => {
 
       const o = {};
