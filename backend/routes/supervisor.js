@@ -468,8 +468,31 @@ Object.entries(grouped || {})
       return o;
     });
 
-    cqiByAssessment[instance] =
-      deriveCQIByAssessment(ploScores);
+    try {
+
+  const validScores = ploScores.map(p => {
+
+    const clean = {};
+
+    Object.keys(p).forEach(k => {
+      clean[k] =
+        typeof p[k] === "number"
+          ? p[k]
+          : 0;   // ✅ replace null with 0
+    });
+
+    return clean;
+  });
+
+  cqiByAssessment[instance] =
+    deriveCQIByAssessment(validScores);
+
+} catch (err) {
+
+  console.error("⚠️ CQI CALC ERROR:", err, instance);
+
+  cqiByAssessment[instance] = {};
+}
 
     rows.forEach(r => {
 
@@ -490,11 +513,18 @@ Object.entries(grouped || {})
 
 if (!instanceKey) return; // ✅ skip bad row
     
-    const safeDate =
-      r["cqi_updated_at"] &&
-      !isNaN(new Date(r["cqi_updated_at"]).getTime())
-        ? new Date(r["cqi_updated_at"]).toISOString()
-        : null;
+    let safeDate = null;
+
+try {
+  if (r["cqi_updated_at"]) {
+    const d = new Date(r["cqi_updated_at"]);
+    if (!isNaN(d.getTime())) {
+      safeDate = d.toISOString();
+    }
+  }
+} catch (e) {
+  safeDate = null;
+}
 
     remarksByAssessment.push({
 
@@ -504,8 +534,7 @@ if (!instanceKey) return; // ✅ skip bad row
       assessmentInstance:
         instanceKey,
 
-      remark:
-        r["remarks"] || "",
+      remark: "",
 
       supervisorRemark:
         r["supervisor_remark"] || "",
