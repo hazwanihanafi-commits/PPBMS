@@ -738,7 +738,7 @@ router.post(
     try {
 
       const {
-        studentEmail,
+        matric,   // ✅ use matric now
         assessmentInstance,
         supervisorRemark
       } = req.body;
@@ -749,26 +749,27 @@ router.post(
         );
 
       const matched = rows
-  .map((r, i) => ({ r, i }))
-  .filter(({ r }) =>
-    (r["Student's Email"] || "")   // ✅ FIXED
-      .toLowerCase()
-      .trim() ===
-    studentEmail.toLowerCase().trim() &&
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) => {
 
-    String(
-      r["assessment_instance"] ||
-      r["assessment_type"] ||
-      ""
-    )
-      .toLowerCase()
-      .trim() ===
-    assessmentInstance.toLowerCase().trim()
-  );
+          const m = String(r["Matric"] || "").trim();
 
-      
+          const instance = String(
+            r["assessment_instance"] ||
+            r["assessment_type"] ||
+            ""
+          )
+            .toUpperCase()
+            .trim();
+
+          return (
+            m === String(matric).trim() &&
+            instance === assessmentInstance.toUpperCase().trim()
+          );
+        });
 
       if (matched.length === 0) {
+        console.log("❌ NO MATCH FOUND", { matric, assessmentInstance });
         return res.status(404).json({
           error: "Assessment not found"
         });
@@ -778,107 +779,14 @@ router.post(
 
         const rowNumber = i + 2;
 
-        await writeSheetCell(
-  process.env.SHEET_ID,
-  "ASSESSMENT_PLO",
-  "Supervisor_Remark",   // ✅ FIXED
-  rowNumber,
-  supervisorRemark
-);
-
-await writeSheetCell(
-  process.env.SHEET_ID,
-  "ASSESSMENT_PLO",
-  "cqi_status",
-  rowNumber,
-  "PENDING"
-);
-
-await writeSheetCell(
-  process.env.SHEET_ID,
-  "ASSESSMENT_PLO",
-  "cqi_updated_at",
-  rowNumber,
-  new Date().toISOString()
-);
-      }
-
-      res.json({ success: true });
-
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
-  }
-);
-
-/* =========================================================
-   STUDENT RESPONSE + HISTORY
-========================================================= */
-
-router.post(
-  "/cqi/student-response",
-  auth,
-  async (req, res) => {
-
-    try {
-
-      const {
-        studentEmail,
-        assessmentInstance,
-        studentResponse,
-        status
-      } = req.body;
-
-      const rows =
-        await readASSESSMENT_PLO(
-          process.env.SHEET_ID
-        );
-
-      const matched = rows
-        .map((r, i) => ({ r, i }))
-        .filter(({ r }) =>
-          (r["Student's Email"] || "")
-            .toLowerCase()
-            .trim() ===
-          studentEmail.toLowerCase().trim() &&
-
-          String(r["assessment_instance"] || "")
-            .toLowerCase()
-            .trim() ===
-          assessmentInstance.toLowerCase().trim()
-        );
-
-      if (matched.length === 0) {
-        return res.status(404).json({
-          error: "Assessment not found"
-        });
-      }
-
-      for (const { r, i } of matched) {
-
-        const rowNumber = i + 2;
-
-        const existing =
-          r["student_response_history"] || "";
-
-        const updated =
-          existing +
-          `\n[${new Date().toISOString()}] ${studentResponse}`;
+        console.log("✅ WRITING TO ROW:", rowNumber);
 
         await writeSheetCell(
           process.env.SHEET_ID,
           "ASSESSMENT_PLO",
-          "student_response",
+          "Supervisor_Remark",
           rowNumber,
-          studentResponse
-        );
-
-        await writeSheetCell(
-          process.env.SHEET_ID,
-          "ASSESSMENT_PLO",
-          "student_response_history",
-          rowNumber,
-          updated
+          supervisorRemark
         );
 
         await writeSheetCell(
@@ -886,7 +794,7 @@ router.post(
           "ASSESSMENT_PLO",
           "cqi_status",
           rowNumber,
-          status || "RESPONDED"
+          "PENDING"
         );
 
         await writeSheetCell(
@@ -901,9 +809,12 @@ router.post(
       res.json({ success: true });
 
     } catch (e) {
+      console.error("🔥 SAVE ERROR:", e);
       res.status(500).json({ error: e.message });
     }
   }
 );
+
+
 
 export default router;
