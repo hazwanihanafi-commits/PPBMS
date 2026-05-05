@@ -790,7 +790,7 @@ router.post(
         await writeSheetCell(
           process.env.SHEET_ID,
           "ASSESSMENT_PLO",
-          "supervisor_remark",
+          "Supervisor_Remark",
           rowNumber,
           supervisorRemark
         );
@@ -798,7 +798,7 @@ router.post(
         await writeSheetCell(
           process.env.SHEET_ID,
           "ASSESSMENT_PLO",
-          "cqi_status",
+          "CQI_STATUS",
           rowNumber,
           "PENDING"
         );
@@ -806,7 +806,7 @@ router.post(
         await writeSheetCell(
           process.env.SHEET_ID,
           "ASSESSMENT_PLO",
-          "cqi_updated_at",
+          "CQI_UPDATED_AT",
           rowNumber,
           new Date().toISOString()
         );
