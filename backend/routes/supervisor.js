@@ -435,7 +435,7 @@ Object.entries(DOC_COLUMN_MAP).forEach(([label, column]) => {
 const cqiByAssessment = {};
 const remarksByAssessment = [];
 
-Object.entries(grouped)
+Object.entries(grouped || {})
   .forEach(([instance, rows]) => {
 
      if (!rows || !Array.isArray(rows)) return; 
@@ -528,8 +528,14 @@ Object.entries(grouped)
    FINAL PLO
 ========================================================= */
 
-const finalPLO =
-  aggregateFinalPLO(cqiByAssessment);
+let finalPLO = {};
+
+try {
+  finalPLO = aggregateFinalPLO(cqiByAssessment || {});
+} catch (err) {
+  console.error("⚠️ FINAL PLO ERROR:", err);
+  finalPLO = {};
+}
 
 for (let i = 1; i <= 11; i++) {
 
