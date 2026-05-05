@@ -564,7 +564,7 @@ export default function StudentPage() {
                            ))}
           </div>
         )}
-      )}
+
         {/* DOCUMENTS */}
         {activeTab === "documents" && (
           <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
@@ -663,21 +663,13 @@ export default function StudentPage() {
 
               </div>
             );
-          })}
-
-        </div>
-
-      ))
-
+          
     )}
 
   </div>
 )}
-    )}
 
   </div>
-
-)}
 
 
         {/* FOOTER */}
