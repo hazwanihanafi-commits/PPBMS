@@ -2,58 +2,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import { API_BASE } from "../../utils/api";
-import SupervisorChecklist from "../../components/SupervisorChecklist";
-import SupervisorRemark from "../../components/SupervisorRemark";
-import FinalPLOTable from "../../components/FinalPLOTable";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import jsPDF from "jspdf";
 
-/* ================= GLASS CARD ================= */
+import SupervisorChecklist from "../../components/SupervisorChecklist";
+import FinalPLOTable from "../../components/FinalPLOTable";
+
+/* ================= PREMIUM CARD ================= */
 const GlassCard = ({ children }) => (
-  <motion.div
-    whileHover={{ y: -4, scale: 1.02 }}
-    className="bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-sm border border-white/40"
-  >
+  <div className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-3xl p-6 shadow-sm">
     {children}
-  </motion.div>
+  </div>
 );
 
-/* ================= HELPERS ================= */
-function getStatusType(t) {
-  if (t.status === "Late") return "late";
-  if (t.status === "Due Soon") return "soon";
-  if (t.status === "Completed") return "done";
-  return "normal";
-}
-
-function getRiskColor(risk) {
-  if (risk === "HIGH RISK") return "text-red-600";
-  if (risk === "MODERATE RISK") return "text-amber-600";
-  return "text-green-600";
-}
-
-function getRiskBg(risk) {
-  if (risk === "HIGH RISK") return "bg-red-100";
-  if (risk === "MODERATE RISK") return "bg-amber-100";
-  return "bg-green-100";
-}
-
-/* ================= PAGE ================= */
 export default function SupervisorStudentPage() {
+
   const router = useRouter();
   const { email } = router.query;
 
   const [student, setStudent] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [cqi, setCqi] = useState({});
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+  const [remarkInputs, setRemarkInputs] = useState({});
+
+  /* ================= LOAD ================= */
 
   useEffect(() => {
     if (!email) return;
@@ -61,75 +33,137 @@ export default function SupervisorStudentPage() {
   }, [email]);
 
   async function loadStudent() {
-    const token = localStorage.getItem("ppbms_token");
+    try {
+      const token = localStorage.getItem("ppbms_token");
 
-    const res = await fetch(
-      `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+      const res = await fetch(
+        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-    const data = await res.json();
+      const data = await res.json();
+      const row = data.row || data.student || data;
 
-    setStudent(data.row || null);
-    setTimeline(data.row?.timeline || []);
-    setCqi(data.row?.cqiByAssessment || {});
+      setStudent(row);
+      setTimeline(row?.timeline || []);
+
+    } catch (err) {
+      console.error(err);
+    }
+
     setLoading(false);
   }
+
+  async function saveRemark(instance) {
+  try {
+    const token = localStorage.getItem("ppbms_token");
+
+    await fetch(`${API_BASE}/api/supervisor/cqi/supervisor-remark`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        studentEmail: student.email,
+        assessmentInstance: instance,
+        supervisorRemark: remarkInputs[instance] || ""
+      })
+    });
+
+    loadStudent(); // refresh after save
+  } catch (e) {
+    console.error("save remark error:", e);
+  }
+}
+  /* ================= LOADING ================= */
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!student) return <div className="p-6">Student not found</div>;
 
-  /* ================= DATA ================= */
-  const completed = timeline.filter(t => t.status === "Completed").length;
-  const late = timeline.filter(t => t.status === "Late").length;
-  const soon = timeline.filter(t => t.status === "Due Soon").length;
+  /* ================= LOGIC (MATCH DASHBOARD) ================= */
+
+  const completed = timeline.filter(
+    t => t.status === "Completed" || t.status === "COMPLETED"
+  ).length;
 
   const progress = timeline.length
     ? Math.round((completed / timeline.length) * 100)
     : 0;
 
-  const riskScore =
-    late > 2
-      ? "HIGH RISK"
-      : late > 0 || soon > 2
-      ? "MODERATE RISK"
-      : "LOW RISK";
+  const lateItems = timeline.filter(
+    t =>
+      t.status?.toLowerCase() === "late" ||
+      t.status?.toUpperCase() === "AT_RISK" ||
+      (!t.actual && t.remaining_days < 0)
+  ).length;
 
-  const coSupervisorDisplay =
-    student.coSupervisors ||
-    student.co_supervisor ||
-    student.coSupervisor ||
-    "-";
+  const nearDeadline = timeline.filter(
+    t =>
+      t.remaining_days > 0 &&
+      t.remaining_days <= 30 &&
+      t.status?.toLowerCase() !== "completed"
+  ).length;
+
+  const isGraduated =
+    student.status?.toLowerCase() === "graduated" ||
+    student.status?.toLowerCase() === "completed";
+
+  function getCategory() {
+    if (isGraduated) return "Graduated";
+    if (progress >= 80) return "On Track";
+    if (progress >= 50) return "Slightly Late";
+    return "At Risk";
+  }
+
+  const category = getCategory();
+const coSupervisorDisplay =
+  student.coSupervisors ||
+  student.co_supervisor ||
+  student.coSupervisor ||
+  student.cosupervisor ||
+  student.cosupervisors ||
+  "-";
+  /* ================= AI INSIGHT ================= */
+
+  let aiMessage = "";
+
+  if (isGraduated) {
+    aiMessage =
+      "🎓 Student has successfully completed the programme.";
+  } else if (lateItems >= 3) {
+    aiMessage =
+      "⚠️ High delay risk. Immediate intervention required.";
+  } else if (nearDeadline >= 2) {
+    aiMessage =
+      "⏳ Several milestones approaching deadline.";
+  } else {
+    aiMessage =
+      "✅ Progress is stable and on track.";
+  }
 
   /* ================= PDF ================= */
+
   function exportPDF() {
     const pdf = new jsPDF();
     let y = 20;
 
-    pdf.setFontSize(16);
-    pdf.text("Postgraduate Progress Report", 105, y, { align: "center" });
-
+    pdf.text("PPBMS Report", 105, y, { align: "center" });
     y += 10;
-    pdf.text(`Name: ${student.student_name}`, 20, y);
-    y += 7;
-    pdf.text(`Programme: ${student.programme}`, 20, y);
-    y += 7;
-    pdf.text(`Risk: ${riskScore}`, 20, y);
 
-    y += 10;
-    timeline.forEach((t, i) => {
-      pdf.text(`${i + 1}. ${t.activity} (${t.status})`, 20, y);
-      y += 5;
-    });
+    pdf.text(`Name: ${student.student_name}`, 20, y); y += 7;
+    pdf.text(`Programme: ${student.programme}`, 20, y); y += 7;
+    pdf.text(`Category: ${category}`, 20, y);
 
     pdf.save("report.pdf");
   }
 
   /* ================= UI ================= */
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#f1f5f9] flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] flex">
 
       {/* SIDEBAR */}
       <div className="w-56 p-4">
@@ -141,23 +175,23 @@ export default function SupervisorStudentPage() {
             onClick={() => router.push("/supervisor")}
             className="mb-3 text-sm text-purple-600 hover:underline"
           >
-            ← Back to Dashboard
+            ← Back
           </button>
 
-          {["overview","documents","timeline","cqi","remarks"].map(tab => (
+          {["overview","timeline","documents","cqi"].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1
-                ${
-                  activeTab === tab
-                    ? "bg-purple-100 text-purple-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${
+                activeTab === tab
+                  ? "bg-purple-100 text-purple-700"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               {tab.toUpperCase()}
             </button>
           ))}
+
         </div>
       </div>
 
@@ -166,109 +200,142 @@ export default function SupervisorStudentPage() {
 
         {/* HEADER */}
         <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-800">
-            Student Overview
-          </h1>
+          <h1 className="text-xl font-bold">Student Overview</h1>
 
           <button
             onClick={exportPDF}
-            className="px-4 py-2 bg-purple-600 text-white rounded-xl"
+            className="bg-purple-600 text-white px-4 py-2 rounded-xl"
           >
             Export PDF
           </button>
         </div>
 
         {/* HERO */}
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-3xl p-6">
-          <h1 className="text-xl font-semibold">{student.student_name}</h1>
-          <p className="text-sm">{student.programme}</p>
+        <div className="bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 text-white rounded-3xl p-6 shadow-xl flex justify-between">
 
-          <div className="mt-4 flex justify-between items-center">
-            <span className="text-3xl">{progress}%</span>
+          <div>
+            <h1 className="text-2xl font-semibold">
+              {student.student_name}
+            </h1>
+            <p className="text-sm text-purple-100">
+              {student.programme}
+            </p>
+          </div>
 
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRiskBg(riskScore)} ${getRiskColor(riskScore)}`}>
-              {riskScore}
+          <div className="text-right">
+            <p className="text-4xl font-bold">{progress}%</p>
+
+            <span className={`px-4 py-1 rounded-full text-xs font-semibold mt-2 inline-block
+              ${
+                category === "Graduated"
+                  ? "bg-blue-100 text-blue-700"
+                  : category === "On Track"
+                  ? "bg-green-100 text-green-700"
+                  : category === "Slightly Late"
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-red-100 text-red-700"
+              }
+            `}>
+              {category}
             </span>
           </div>
-        </div>
-
-        {/* ANALYTICS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">Completed</p>
-            <p className="text-2xl font-bold text-green-600">{completed}</p>
-          </GlassCard>
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">Due Soon</p>
-            <p className="text-2xl font-bold text-amber-600">{soon}</p>
-          </GlassCard>
-
-          <GlassCard>
-            <p className="text-xs text-gray-500">Late</p>
-            <p className="text-2xl font-bold text-red-600">{late}</p>
-          </GlassCard>
 
         </div>
 
-        {/* GRAPH */}
+        {/* STUDENT INFO */}
         <GlassCard>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={[
-              { name: "Done", value: completed },
-              { name: "Soon", value: soon },
-              { name: "Late", value: late },
-            ]}>
-              <XAxis dataKey="name" />
-              <Tooltip />
-              <Bar dataKey="value" />
-            </BarChart>
-          </ResponsiveContainer>
+          <h3 className="font-semibold mb-3">Student Information</h3>
+
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <p><b>Email:</b> {student.email}</p>
+            <p><b>Matric:</b> {student.student_id}</p>
+            <p><b>Status:</b> {student.status}</p>
+            <p><b>Supervisor:</b> {student.supervisor}</p>
+          <p><b>Co-Supervisor:</b> {coSupervisorDisplay}</p>
+          </div>
         </GlassCard>
 
-        {/* TABS CONTENT */}
-        {activeTab === "overview" && (
-          <GlassCard>
-            <p><strong>Email:</strong> {student.email}</p>
-            <p><strong>Co-Supervisor:</strong> {coSupervisorDisplay}</p>
-          </GlassCard>
+        {/* AI INSIGHT */}
+        <div className="rounded-2xl p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border">
+          <p className="text-xs text-indigo-500 uppercase font-semibold">
+            AI Insight
+          </p>
+          <p className="text-sm mt-2">{aiMessage}</p>
+        </div>
+
+        {/* KPI */}
+        {!isGraduated ? (
+
+          <div className="grid grid-cols-3 gap-4">
+
+            <GlassCard>
+              <p className="text-xs text-gray-500">Completed</p>
+              <p className="text-3xl font-bold text-green-600">{completed}</p>
+            </GlassCard>
+
+            <GlassCard>
+              <p className="text-xs text-gray-500">In Progress</p>
+              <p className="text-3xl font-bold text-yellow-600">
+                {timeline.length - completed}
+              </p>
+            </GlassCard>
+
+            <GlassCard>
+              <p className="text-xs text-gray-500">Late</p>
+              <p className="text-3xl font-bold text-red-600">{lateItems}</p>
+            </GlassCard>
+
+          </div>
+
+        ) : (
+
+          <div className="bg-blue-50 rounded-2xl p-5 text-center shadow">
+            🎓 Programme Completed Successfully
+          </div>
+
         )}
 
         {/* TIMELINE */}
         {activeTab === "timeline" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+
             {timeline.map((t, i) => {
-              const type = getStatusType(t);
+
+              const isCompleted = t.status?.toLowerCase() === "completed";
+              const isLate = t.remaining_days < 0;
 
               return (
-                <div
+                <motion.div
                   key={i}
-                  className={`p-4 rounded-xl border flex justify-between
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-5 rounded-2xl shadow border-l-4
                     ${
-                      type === "late"
-                        ? "bg-red-50 border-red-300"
-                        : type === "soon"
-                        ? "bg-amber-50 border-amber-300"
-                        : type === "done"
-                        ? "bg-green-50 border-green-300"
-                        : "bg-white"
+                      isCompleted
+                        ? "bg-green-50 border-green-400"
+                        : isLate
+                        ? "bg-red-50 border-red-400"
+                        : "bg-white border-gray-300"
                     }
                   `}
                 >
-                  <div>
-                    <p className="font-medium">{t.activity}</p>
-                    <p className="text-xs">{t.status}</p>
-                  </div>
 
-                  <div className="text-sm font-semibold">
-                    {t.remaining_days < 0
-                      ? `${Math.abs(t.remaining_days)} days overdue`
-                      : `${t.remaining_days} days`}
-                  </div>
-                </div>
+                  <h3 className="font-semibold">{t.activity}</h3>
+
+                  <p className="text-sm text-gray-500">
+                    {t.expected} → {t.actual || "-"}
+                  </p>
+
+                  {!isCompleted && (
+                    <p className="text-sm mt-1 font-semibold">
+                      {t.remaining_days} days
+                    </p>
+                  )}
+
+                </motion.div>
               );
             })}
+
           </div>
         )}
 
@@ -277,26 +344,83 @@ export default function SupervisorStudentPage() {
           <SupervisorChecklist documents={student.documents || {}} />
         )}
 
-        {/* CQI */}
-        {activeTab === "cqi" && (
-          <FinalPLOTable finalPLO={student.finalPLO} />
-        )}
+  
+     {/* CQI */}
+{activeTab === "cqi" && (
+  <div className="space-y-6">
 
-        {/* REMARKS */}
-        {activeTab === "remarks" && (
-          <SupervisorRemark
-            studentMatric={student.student_id}
-            studentEmail={student.email}
-          />
-        )}
+    <FinalPLOTable finalPLO={student.finalPLO} />
 
-        {/* FOOTER */}
-        <footer className="text-center text-xs text-gray-400 pt-6">
-          © 2026 PPBMS · Universiti Sains Malaysia  
-          <br />
-          Developed by Hazwani Ahmad Yusof (2025)
-        </footer>
+    {(student.remarksByAssessment || []).map((item, i) => {
 
+      const showAlert =
+        item.supervisorRemark &&
+        !item.studentResponse;
+
+      return (
+        <GlassCard key={i}>
+
+          <div className="flex justify-between mb-3">
+
+            <div>
+              <h3 className="font-semibold text-purple-700">
+                {item.assessmentInstance}
+              </h3>
+              <p className="text-xs text-gray-400">
+                {item.assessmentType}
+              </p>
+            </div>
+
+            <span className="text-xs px-3 py-1 rounded bg-gray-100">
+              {item.status || "PENDING"}
+            </span>
+
+          </div>
+
+          {/* ✅ FIXED HERE */}
+          <div className="mt-2">
+            <p className="text-sm font-semibold">Supervisor Remark</p>
+
+            <textarea
+              className="w-full mt-1 p-2 border rounded-xl text-sm"
+              rows={3}
+              value={
+                remarkInputs[item.assessmentInstance] ??
+                item.supervisorRemark ??
+                ""
+              }
+              onChange={(e) =>
+                setRemarkInputs(prev => ({
+                  ...prev,
+                  [item.assessmentInstance]: e.target.value
+                }))
+              }
+            />
+
+            <button
+              onClick={() => saveRemark(item.assessmentInstance)}
+              className="mt-2 px-3 py-1 bg-purple-600 text-white text-xs rounded-lg"
+            >
+              Save Remark
+            </button>
+          </div>
+
+          <p className="text-sm mt-2">
+            <b>Student:</b> {item.studentResponse || "—"}
+          </p>
+
+          {showAlert && (
+            <div className="mt-3 bg-red-100 text-red-700 text-xs p-2 rounded-xl">
+              ⚠ No student response yet
+            </div>
+          )}
+
+        </GlassCard>
+      );
+    })}
+
+  </div>
+)}
       </div>
     </div>
   );
