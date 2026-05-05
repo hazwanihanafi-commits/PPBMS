@@ -64,7 +64,7 @@ app.use("/api/student", studentRoutes);
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use(
-  "/api/supervisorRemark",
+  "/api/supervisor",
   supervisorRemarkRoutes
 );
 
