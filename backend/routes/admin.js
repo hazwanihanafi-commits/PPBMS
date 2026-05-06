@@ -37,20 +37,56 @@ function normalizeStatus(raw) {
   return "UNKNOWN";
 }
 
-function deriveOverallStatus(timeline) {
+function calculateProgress(row) {
 
-  if (!timeline || timeline.length === 0) return "NO_DATA";
+  const timeline =
+    buildTimelineForRow(row);
 
-  const statuses = timeline.map(t =>
-    String(t.status || "").toUpperCase().trim()
+  if (!timeline || timeline.length === 0) {
+    return 0;
+  }
+
+  const completed =
+    timeline.filter(t =>
+      String(t.status || "")
+        .toUpperCase()
+        .trim() === "COMPLETED"
+    ).length;
+
+  return Math.round(
+    (completed / timeline.length) * 100
   );
+}
 
-  // 🔴 SAME PRIORITY AS SUPERVISOR
-  if (statuses.includes("AT_RISK")) return "AT_RISK";
-  if (statuses.includes("SLIGHTLY_DELAYED")) return "SLIGHTLY_DELAYED";
-  if (statuses.every(s => s === "COMPLETED")) return "GRADUATED";
+function getStudentCategory(row) {
 
-  return "ON_TRACK";
+  const status = String(
+    row.Status || ""
+  )
+    .toLowerCase()
+    .trim();
+
+  // 🎓 graduated
+  if (
+    status === "graduated" ||
+    status === "completed"
+  ) {
+    return "GRADUATED";
+  }
+
+  const progress =
+    calculateProgress(row);
+
+  // ✅ EXACT SUPERVISOR LOGIC
+  if (progress >= 80) {
+    return "ON_TRACK";
+  }
+
+  if (progress >= 50) {
+    return "SLIGHTLY_DELAYED";
+  }
+
+  return "AT_RISK";
 }
 
 function normalizeProgramme(p) {
@@ -91,7 +127,7 @@ function processStudents(rows, programme) {
     if (status !== "ACTIVE" && status !== "GRADUATED") return;
 
     const timeline = buildTimelineForRow(r);
-    const overall = deriveOverallStatus(timeline);
+const overall = getStudentCategory(r);
 
     result.push({
       matric: r.Matric || "",
