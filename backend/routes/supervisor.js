@@ -134,7 +134,7 @@ router.get(
     try {
 
       const rows =
-        await readMasterTracking(
+         readMasterTracking(
           process.env.SHEET_ID
         );
 
@@ -246,7 +246,7 @@ router.get(
           .trim();
 
       const rows =
-        await readMasterTracking(
+         readMasterTracking(
           process.env.SHEET_ID
         );
 
@@ -914,6 +914,79 @@ router.post(
           new Date().toISOString()
         );
 
+        try {
+
+  const masterRows =
+    await readMasterTracking(
+      process.env.SHEET_ID
+    );
+
+  const student =
+    masterRows.find(r =>
+      String(r["Matric"] || "").trim() ===
+      String(matric).trim()
+    );
+
+  if (student?.["Student's Email"]) {
+
+    await sendEmail({
+
+      to:
+        student["Student's Email"],
+
+      subject:
+        `PPBMS CQI Feedback - ${assessmentInstance}`,
+
+      html: `
+        <div style="font-family:Arial;padding:20px;">
+
+          <h2 style="color:#6d28d9;">
+            CQI Feedback Notification
+          </h2>
+
+          <p>
+            Dear
+            <b>${student["Student Name"]}</b>,
+          </p>
+
+          <p>
+            Your supervisor has submitted
+            CQI feedback for:
+          </p>
+
+          <p>
+            <b>${assessmentInstance}</b>
+          </p>
+
+          <div style="
+            background:#f3f4f6;
+            padding:15px;
+            border-radius:10px;
+            margin-top:10px;
+          ">
+            ${supervisorRemark}
+          </div>
+
+          <p style="margin-top:20px;">
+            Please log in to PPBMS
+            to submit your response.
+          </p>
+
+        </div>
+      `
+    });
+
+  }
+
+} catch (e) {
+
+  console.error(
+    "EMAIL ERROR:",
+    e
+  );
+
+}
+
       }
 
       res.json({ success: true });
@@ -1023,6 +1096,83 @@ router.post(
           rowNumber,
           new Date().toISOString()
         );
+
+        try {
+
+  const masterRows =
+    await readMasterTracking(
+      process.env.SHEET_ID
+    );
+
+  const student =
+    masterRows.find(r =>
+      String(r["Matric"] || "").trim() ===
+      String(matric).trim()
+    );
+
+  if (
+    student?.["Main Supervisor's Email"]
+  ) {
+
+    await sendEmail({
+
+      to:
+        student[
+          "Main Supervisor's Email"
+        ],
+
+      subject:
+        `PPBMS Student Response - ${assessmentInstance}`,
+
+      html: `
+        <div style="
+          font-family:Arial;
+          padding:20px;
+        ">
+
+          <h2 style="
+            color:#16a34a;
+          ">
+            Student CQI Response
+          </h2>
+
+          <p>
+            Student
+            <b>
+              ${student["Student Name"]}
+            </b>
+            has responded to your
+            CQI feedback.
+          </p>
+
+          <p>
+            <b>Assessment:</b>
+            ${assessmentInstance}
+          </p>
+
+          <div style="
+            background:#f3f4f6;
+            padding:15px;
+            border-radius:10px;
+            margin-top:10px;
+          ">
+            ${studentResponse}
+          </div>
+
+        </div>
+      `
+    });
+
+  }
+
+} catch (e) {
+
+  console.error(
+    "EMAIL ERROR:",
+    e
+  );
+
+}
 
       }
 
