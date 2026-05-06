@@ -115,43 +115,65 @@ router.get("/programmes", adminAuth, async (req, res) => {
 function processStudents(rows, programme) {
 
   const result = [];
+  const seen = new Set();
 
   rows.forEach(r => {
 
-    const prog = normalizeProgramme(r.Programme);
-    const status = normalizeStatus(r.Status);
+    const prog =
+      normalizeProgramme(r.Programme);
 
-    if (prog !== normalizeProgramme(programme)) return;
+    const status =
+      normalizeStatus(r.Status);
 
-    // 🔥 EXACT SAME RULE AS SUPERVISOR
-    if (status !== "ACTIVE" && status !== "GRADUATED") return;
+    if (
+      prog !== normalizeProgramme(programme)
+    ) return;
 
-    const timeline = buildTimelineForRow(r);
-const overall = getStudentCategory(r);
+    if (
+      status !== "ACTIVE" &&
+      status !== "GRADUATED"
+    ) return;
+
+    // ✅ REMOVE DUPLICATES
+    const emailKey =
+      (
+        r["Student's Email"] || ""
+      )
+        .toLowerCase()
+        .trim();
+
+    if (seen.has(emailKey)) {
+      return;
+    }
+
+    seen.add(emailKey);
+
+    const timeline =
+      buildTimelineForRow(r);
+
+    const overall =
+      getStudentCategory(r);
 
     result.push({
-  matric: r.Matric || "",
 
-  name:
-    r["Student Name"] || "",
+      matric:
+        r.Matric || "",
 
-  email:
-    (
-      r["Student's Email"] || ""
-    )
-      .toLowerCase()
-      .trim(),
+      name:
+        r["Student Name"] || "",
 
-  status,
+      email: emailKey,
 
-  overallStatus:
-    overall,
+      status,
 
-  progressPercent:
-    calculateProgress(r),
+      overallStatus:
+        overall,
 
-  timeline
-});
+      progressPercent:
+        calculateProgress(r),
+
+      timeline
+    });
 
   });
 
