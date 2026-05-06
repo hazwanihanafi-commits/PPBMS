@@ -383,7 +383,84 @@ export default function AdminStudentPage() {
         </div>
 
         {/* KPI */}
-        {!isGraduated ? (
+{!isGraduated ? (
+
+  <div className="grid grid-cols-3 gap-4">
+
+    <GlassCard>
+      <p className="text-xs text-gray-500">
+        Completed
+      </p>
+
+      <p className="text-3xl font-bold text-green-600">
+        {completed}
+      </p>
+    </GlassCard>
+
+    <GlassCard>
+      <p className="text-xs text-gray-500">
+        In Progress
+      </p>
+
+      <p className="text-3xl font-bold text-yellow-600">
+        {timeline.length - completed}
+      </p>
+    </GlassCard>
+
+    <GlassCard>
+      <p className="text-xs text-gray-500">
+        Late
+      </p>
+
+      <p className="text-3xl font-bold text-red-600">
+        {lateItems}
+      </p>
+    </GlassCard>
+
+  </div>
+
+) : (
+
+  <div className="bg-blue-50 rounded-2xl p-5 text-center shadow">
+    🎓 Programme Completed Successfully
+  </div>
+
+)}
+
+{/* TAB CONTENT */}
+{activeTab === "timeline" && (
+  <GlassCard>
+    <SupervisorChecklist
+      timeline={timeline}
+    />
+  </GlassCard>
+)}
+
+{activeTab === "documents" && (
+  <GlassCard>
+    <SupervisorChecklist
+      documents={student.documents}
+    />
+  </GlassCard>
+)}
+
+{activeTab === "cqi" && (
+  <GlassCard>
+    <FinalPLOTable
+      finalPLO={student.finalPLO}
+    />
+  </GlassCard>
+)}
+
+{activeTab === "remarks" && (
+  <GlassCard>
+    <SupervisorRemark
+      remarks={
+        student.remarksByAssessment || []
+      }
+    />
+  </GlassCard>
+)}
 
           <div className="grid grid-cols-3 gap-4">
 
