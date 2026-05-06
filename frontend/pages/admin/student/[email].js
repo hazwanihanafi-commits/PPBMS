@@ -40,14 +40,13 @@ export default function AdminStudentPage() {
         localStorage.getItem("ppbms_token");
 
       const res = await fetch(
-        `fetch(
   `${API_BASE}/api/supervisor/student/${email}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+  {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }
+);
 
       const data = await res.json();
 
