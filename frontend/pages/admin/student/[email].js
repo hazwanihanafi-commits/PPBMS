@@ -41,7 +41,7 @@ export default function AdminStudentPage() {
 
       const res = await fetch(
         `fetch(
-  `${API_BASE}/api/supervisor/student/${email}`,`,
+  `${API_BASE}/api/supervisor/student/${email}`,
         {
           headers: {
             Authorization: `Bearer ${token}`
