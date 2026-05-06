@@ -164,9 +164,30 @@ export default function AdminDashboard() {
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.matric.toLowerCase().includes(search.toLowerCase());
 
-      const matchStatus =
-        statusFilter === "ALL" ||
-        s.overallStatus === statusFilter;
+      let matchStatus = false;
+
+if (statusFilter === "ALL") {
+
+  matchStatus = true;
+
+} else if (
+  statusFilter === "SLIGHTLY_DELAYED"
+) {
+
+  // show delayed + graduated
+  matchStatus =
+    s.overallStatus ===
+      "SLIGHTLY_DELAYED" ||
+
+    s.overallStatus ===
+      "GRADUATED";
+
+} else {
+
+  matchStatus =
+    s.overallStatus ===
+    statusFilter;
+}
 
       return matchSearch && matchStatus;
 
