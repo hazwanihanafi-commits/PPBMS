@@ -130,12 +130,28 @@ function processStudents(rows, programme) {
 const overall = getStudentCategory(r);
 
     result.push({
-      matric: r.Matric || "",
-      name: r["Student Name"] || "",
-      email: (r["Student's Email"] || "").toLowerCase().trim(),
-      status,
-      overallStatus: overall
-    });
+  matric: r.Matric || "",
+
+  name:
+    r["Student Name"] || "",
+
+  email:
+    (
+      r["Student's Email"] || ""
+    )
+      .toLowerCase()
+      .trim(),
+
+  status,
+
+  overallStatus:
+    overall,
+
+  progressPercent:
+    calculateProgress(r),
+
+  timeline
+});
 
   });
 
