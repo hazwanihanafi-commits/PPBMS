@@ -156,44 +156,92 @@ export default function AdminDashboard() {
   }, [programme]);
 
   /* FILTER */
-  const filtered = useMemo(() => {
+  /* FILTER + SORT */
+const filtered = useMemo(() => {
 
-    return students.filter(s => {
+  const q =
+    search.toLowerCase();
 
-      const matchSearch =
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.matric.toLowerCase().includes(search.toLowerCase());
+  let list = students.filter(s => {
 
-      let matchStatus = false;
+    const matchSearch =
 
-if (statusFilter === "ALL") {
+      s.name
+        ?.toLowerCase()
+        .includes(q) ||
 
-  matchStatus = true;
+      s.matric
+        ?.toLowerCase()
+        .includes(q);
 
-} else if (
-  statusFilter === "SLIGHTLY_DELAYED"
-) {
+    const matchStatus =
 
-  // show delayed + graduated
-  matchStatus =
-    s.overallStatus ===
-      "SLIGHTLY_DELAYED" ||
+      statusFilter === "ALL"
 
-    s.overallStatus ===
-      "GRADUATED";
+        ? true
 
-} else {
+        : s.overallStatus ===
+          statusFilter;
 
-  matchStatus =
-    s.overallStatus ===
-    statusFilter;
-}
+    return (
+      matchSearch &&
+      matchStatus
+    );
 
-      return matchSearch && matchStatus;
+  });
 
-    });
+  /* =========================
+     SORT STATUS
+  ========================= */
 
-  }, [students, search, statusFilter]);
+  const statusOrder = {
+
+    AT_RISK: 1,
+
+    SLIGHTLY_DELAYED: 2,
+
+    ON_TRACK: 3,
+
+    GRADUATED: 4
+
+  };
+
+  list.sort((a, b) => {
+
+    const statusA =
+      statusOrder[
+        a.overallStatus
+      ] || 99;
+
+    const statusB =
+      statusOrder[
+        b.overallStatus
+      ] || 99;
+
+    /* SORT STATUS FIRST */
+    if (statusA !== statusB) {
+
+      return (
+        statusA - statusB
+      );
+    }
+
+    /* THEN NAME */
+    return (
+      a.name || ""
+    ).localeCompare(
+      b.name || ""
+    );
+
+  });
+
+  return list;
+
+}, [
+  students,
+  search,
+  statusFilter
+]);
 
   function logout() {
     localStorage.clear();
@@ -259,49 +307,198 @@ if (statusFilter === "ALL") {
             onChange={e => setSearch(e.target.value)}
           />
 
-          <select
-            onChange={e => setStatusFilter(e.target.value)}
-            className="p-3 border rounded-xl"
-          >
-            <option value="ALL">All</option>
-            <option value="ON_TRACK">On Track</option>
-            <option value="SLIGHTLY_DELAYED">Delayed</option>
-            <option value="AT_RISK">At Risk</option>
-          </select>
-        </div>
+         <select
 
+  value={statusFilter}
+
+  onChange={e =>
+    setStatusFilter(
+      e.target.value
+    )
+  }
+
+  className="
+    p-3 border rounded-xl
+    bg-white
+    min-w-[220px]
+    font-medium
+  "
+>
+
+  <option value="ALL">
+    All Students
+  </option>
+
+  <option value="AT_RISK">
+    At Risk
+  </option>
+
+  <option value="SLIGHTLY_DELAYED">
+    Slightly Delayed
+  </option>
+
+  <option value="ON_TRACK">
+    On Track
+  </option>
+
+  <option value="GRADUATED">
+    Graduated
+  </option>
+
+</select>
+
+</div>
         {/* Table */}
         <table className="w-full border mt-4">
 
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Matric</th>
-              <th>Status</th>
-              <th>Profile</th>
-            </tr>
-          </thead>
+          <thead
+  className="
+    bg-gradient-to-r
+    from-purple-50
+    to-indigo-50
+    border-b
+  "
+>
 
-          <tbody>
-            {filtered.map(s => (
-              <tr key={s.matric}>
+  <tr>
 
-                <td>{s.name}</td>
-                <td>{s.matric}</td>
+    <th
+      className="
+        px-6 py-4 text-left
+        text-xs font-bold
+        uppercase tracking-wider
+        text-gray-700
+      "
+    >
+      Student Name
+    </th>
 
-                <td>
-                  <StatusBadge status={s.overallStatus} />
-                </td>
+    <th
+      className="
+        px-6 py-4 text-left
+        text-xs font-bold
+        uppercase tracking-wider
+        text-gray-700
+      "
+    >
+      Matric
+    </th>
 
-                <td>
-                  <Link href={`/admin/student/${s.email}`}>
-                    View
-                  </Link>
-                </td>
+    <th
+      className="
+        px-6 py-4 text-left
+        text-xs font-bold
+        uppercase tracking-wider
+        text-gray-700
+      "
+    >
+      Status
+    </th>
 
-              </tr>
-            ))}
-          </tbody>
+    <th
+      className="
+        px-6 py-4 text-center
+        text-xs font-bold
+        uppercase tracking-wider
+        text-gray-700
+      "
+    >
+      Profile
+    </th>
+
+  </tr>
+
+</thead>          
+        <tbody className="divide-y divide-gray-100">
+
+  {filtered.map((s, i) => (
+
+    <tr
+      key={i}
+      className="
+        hover:bg-purple-50/40
+        transition
+      "
+    >
+
+      <td
+        className="
+          px-6 py-4
+          font-medium
+          text-gray-800
+        "
+      >
+        {s.name}
+      </td>
+
+      <td
+        className="
+          px-6 py-4
+          text-gray-600
+        "
+      >
+        {s.matric}
+      </td>
+
+      <td className="px-6 py-4">
+
+        <span
+          className={`
+            px-3 py-1 rounded-full
+            text-xs font-semibold
+
+            ${
+              s.overallStatus ===
+              "AT_RISK"
+
+                ? "bg-red-100 text-red-700"
+
+              : s.overallStatus ===
+                "SLIGHTLY_DELAYED"
+
+                ? "bg-yellow-100 text-yellow-700"
+
+              : s.overallStatus ===
+                "ON_TRACK"
+
+                ? "bg-green-100 text-green-700"
+
+              : "bg-blue-100 text-blue-700"
+            }
+          `}
+        >
+          {s.overallStatus
+            ?.replaceAll("_", " ")}
+        </span>
+
+      </td>
+
+      <td
+        className="
+          px-6 py-4 text-center
+        "
+      >
+
+        <Link
+          href={`/admin/student/${encodeURIComponent(
+            s.email
+          )}`}
+          className="
+            text-purple-600
+            font-semibold
+            hover:underline
+          "
+        >
+          View
+        </Link>
+
+      </td>
+
+    </tr>
+
+  ))}
+
+</tbody>
 
         </table>
 
