@@ -1,431 +1,311 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
-import { motion } from "framer-motion";
-import { API_BASE } from "../../../utils/api";
-import jsPDF from "jspdf";
+import Link from "next/link";
+import { apiGet } from "@/utils/api";
 
-import SupervisorChecklist from "../../../components/SupervisorChecklist";
-import SupervisorRemark from "../../../components/SupervisorRemark";
-import FinalPLOTable from "../../../components/FinalPLOTable";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 
-/* ================= CARD ================= */
-const GlassCard = ({ children }) => (
-  <div className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-3xl p-6 shadow-sm">
-    {children}
-  </div>
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement);
 
-export default function AdminStudentPage() {
+/* ==========================================
+   SIDEBAR
+========================================== */
+function Sidebar({ onLogout }) {
+  return (
+    <div className="w-64 bg-gray-900 text-white min-h-screen p-6">
+      <h2 className="text-xl font-bold mb-6">PPBMS</h2>
+      <Link href="/admin" className="block mb-4">Dashboard</Link>
+      <button onClick={onLogout} className="bg-red-500 px-4 py-2 rounded-xl w-full">
+        Logout
+      </button>
+    </div>
+  );
+}
 
-  const router = useRouter();
-  const { email } = router.query;
-
-  const [student, setStudent] = useState(null);
-  const [timeline, setTimeline] = useState([]);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
-
-  /* ================= LOAD ================= */
-
-  useEffect(() => {
-    if (!email) return;
-    loadStudent();
-  }, [email]);
-
-  async function loadStudent() {
-
-    try {
-
-      const token =
-        localStorage.getItem("ppbms_token");
-
-      const res = await fetch(
-        `${API_BASE}/api/supervisor/student/${encodeURIComponent(email)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      const data = await res.json();
-
-      const row =
-        data.row || data.student || data;
-
-      setStudent(row);
-
-      setTimeline(
-        row?.timeline || []
-      );
-
-    } catch (err) {
-
-      console.error(err);
-
-    }
-
-    setLoading(false);
-  }
-
-  /* ================= LOADING ================= */
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!student) {
-    return (
-      <div className="p-6">
-        Student not found
-      </div>
-    );
-  }
-
-  /* ================= SAME LOGIC AS SUPERVISOR ================= */
-
-  const completed =
-    timeline.filter(
-      t =>
-        t.status === "Completed" ||
-        t.status === "COMPLETED"
-    ).length;
-
-  const progress =
-    timeline.length
-      ? Math.round(
-          (completed / timeline.length) * 100
-        )
-      : 0;
-
-  const lateItems =
-    timeline.filter(
-      t =>
-        t.status?.toLowerCase() === "late" ||
-
-        t.status?.toUpperCase() === "AT_RISK" ||
-
-        (!t.actual && t.remaining_days < 0)
-    ).length;
-
-  const nearDeadline =
-    timeline.filter(
-      t =>
-        t.remaining_days > 0 &&
-        t.remaining_days <= 30 &&
-        t.status?.toLowerCase() !== "completed"
-    ).length;
-
-  const isGraduated =
-    student.status?.toLowerCase() === "graduated" ||
-    student.status?.toLowerCase() === "completed";
-
-  function getCategory() {
-
-    if (isGraduated) {
-      return "Graduated";
-    }
-
-    if (progress >= 80) {
-      return "On Track";
-    }
-
-    if (progress >= 50) {
-      return "Slightly Late";
-    }
-
-    return "At Risk";
-  }
-
-  const category =
-    getCategory();
-
-  const coSupervisorDisplay =
-    student.coSupervisors ||
-    student.co_supervisor ||
-    student.coSupervisor ||
-    student.cosupervisor ||
-    student.cosupervisors ||
-    "-";
-
-  /* ================= AI INSIGHT ================= */
-
-  let aiMessage = "";
-
-  if (isGraduated) {
-
-    aiMessage =
-      "🎓 Student has successfully completed the programme.";
-
-  } else if (lateItems >= 3) {
-
-    aiMessage =
-      "⚠️ High delay risk. Immediate intervention required.";
-
-  } else if (nearDeadline >= 2) {
-
-    aiMessage =
-      "⏳ Several milestones approaching deadline.";
-
-  } else {
-
-    aiMessage =
-      "✅ Progress is stable and on track.";
-  }
-
-  /* ================= PDF ================= */
-
-  function exportPDF() {
-
-    const pdf = new jsPDF();
-
-    let y = 20;
-
-    pdf.text(
-      "PPBMS Report",
-      105,
-      y,
-      { align: "center" }
-    );
-
-    y += 10;
-
-    pdf.text(
-      `Name: ${student.student_name}`,
-      20,
-      y
-    );
-
-    y += 7;
-
-    pdf.text(
-      `Programme: ${student.programme}`,
-      20,
-      y
-    );
-
-    y += 7;
-
-    pdf.text(
-      `Category: ${category}`,
-      20,
-      y
-    );
-
-    pdf.save("report.pdf");
-  }
-
-  /* ================= UI ================= */
+/* ==========================================
+   STATUS BADGE
+========================================== */
+function StatusBadge({ status }) {
+  const map = {
+    ON_TRACK: "bg-blue-100 text-blue-700",
+    SLIGHTLY_DELAYED: "bg-yellow-100 text-yellow-700",
+    AT_RISK: "bg-red-100 text-red-700",
+    GRADUATED: "bg-green-100 text-green-700"
+  };
 
   return (
+    <span className={`px-3 py-1 rounded-full text-xs ${map[status]}`}>
+      {status}
+    </span>
+  );
+}
 
-    <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] flex">
+/* ==========================================
+   PLO CHART
+========================================== */
+function PLOChart({ plos }) {
 
-      {/* SIDEBAR */}
-      <div className="w-56 p-4">
+  if (!plos) return null;
 
-        <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
+  const sortedKeys =
+    Object.keys(plos)
+      .sort((a, b) =>
+        Number(a.replace("PLO", "")) -
+        Number(b.replace("PLO", ""))
+      );
 
-          <h2 className="font-bold text-purple-700 mb-4">
-            PPBMS ADMIN
-          </h2>
+  return (
+    <Bar
+      data={{
+        labels: sortedKeys,
 
-          <button
-            onClick={() => router.push("/admin")}
-            className="mb-3 text-sm text-purple-600 hover:underline"
-          >
-            ← Back
-          </button>
+        datasets: [
+          {
+            label: "PLO Score",
 
-          {[
-            "overview",
-            "timeline",
-            "documents",
-            "cqi",
-            "remarks"
-          ].map(tab => (
+            data:
+              sortedKeys.map(k =>
+                Number(plos[k])
+              ),
 
-            <button
-              key={tab}
-              onClick={() =>
-                setActiveTab(tab)
-              }
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${
-                activeTab === tab
-                  ? "bg-purple-100 text-purple-700"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {tab.toUpperCase()}
-            </button>
+            backgroundColor:
+              "#7c3aed",
 
-          ))}
+            borderRadius: 8
+          }
+        ]
+      }}
 
-        </div>
-      </div>
+      options={{
+        responsive: true,
 
-      {/* MAIN */}
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 5
+          }
+        }
+      }}
+    />
+  );
+}
+/* ==========================================
+   PAGE
+========================================== */
+export default function AdminDashboard() {
+
+  const router = useRouter();
+
+  const [checked, setChecked] = useState(false);
+  const [programme, setProgramme] = useState("");
+  const [programmes, setProgrammes] = useState([]);
+
+  const [summary, setSummary] = useState({});
+  const [students, setStudents] = useState([]);
+  const [plo, setPlo] = useState({});
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  /* AUTH */
+  useEffect(() => {
+    const token = localStorage.getItem("ppbms_token");
+    if (!token) return router.replace("/login");
+    setChecked(true);
+  }, []);
+
+  /* LOAD PROGRAMMES */
+  useEffect(() => {
+    if (!checked) return;
+
+    apiGet("/api/admin/programmes")
+      .then(d => {
+        setProgrammes(d.programmes || []);
+        setProgramme(d.programmes[0]);
+      });
+  }, [checked]);
+
+  /* LOAD DATA */
+  useEffect(() => {
+
+    if (!programme) return;
+
+    Promise.all([
+      apiGet(`/api/admin/programme-summary?programme=${programme}`),
+      apiGet(`/api/admin/programme-students?programme=${programme}`),
+      apiGet(`/api/admin/programme-plo?programme=${programme}`)
+    ])
+    .then(([sum, stu, p]) => {
+      setSummary(sum);
+      setStudents(stu.students);
+      setPlo(p);
+    });
+
+  }, [programme]);
+
+  /* FILTER */
+  const filtered = useMemo(() => {
+
+    return students.filter(s => {
+
+      const matchSearch =
+        s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.matric.toLowerCase().includes(search.toLowerCase());
+
+      let matchStatus = false;
+
+if (statusFilter === "ALL") {
+
+  matchStatus = true;
+
+} else if (
+  statusFilter === "SLIGHTLY_DELAYED"
+) {
+
+  // show delayed + graduated
+  matchStatus =
+    s.overallStatus ===
+      "SLIGHTLY_DELAYED" ||
+
+    s.overallStatus ===
+      "GRADUATED";
+
+} else {
+
+  matchStatus =
+    s.overallStatus ===
+    statusFilter;
+}
+
+      return matchSearch && matchStatus;
+
+    });
+
+  }, [students, search, statusFilter]);
+
+  function logout() {
+    localStorage.clear();
+    router.push("/login");
+  }
+
+  if (!checked) return <div>Loading...</div>;
+
+  return (
+    <div className="flex">
+
+      <Sidebar onLogout={logout} />
+
       <div className="flex-1 p-6 space-y-6">
 
-        {/* HEADER */}
-        <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-purple-700">
+          Admin Dashboard
+        </h1>
 
-          <h1 className="text-xl font-bold">
-            Student Overview
-          </h1>
+        {/* Programme */}
+        <select
+          value={programme}
+          onChange={e => setProgramme(e.target.value)}
+          className="p-3 border rounded-xl w-full"
+        >
+          {programmes.map(p => (
+            <option key={p}>{p}</option>
+          ))}
+        </select>
 
-          <button
-            onClick={exportPDF}
-            className="bg-purple-600 text-white px-4 py-2 rounded-xl"
+        {/* Summary */}
+        <div className="grid grid-cols-4 gap-4">
+
+          <div className="bg-blue-100 p-4 rounded-xl">
+            On Track {summary.onTrack}
+          </div>
+
+          <div className="bg-yellow-100 p-4 rounded-xl">
+            Delayed {summary.slightlyDelayed}
+          </div>
+
+          <div className="bg-red-100 p-4 rounded-xl">
+            At Risk {summary.atRisk}
+          </div>
+
+          <div className="bg-green-100 p-4 rounded-xl">
+            Graduated {summary.graduated}
+          </div>
+
+        </div>
+
+        {/* PLO */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3>PLO (Graduated: {plo.count})</h3>
+          <PLOChart plos={plo.plos} />
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-3">
+          <input
+            placeholder="Search"
+            className="p-3 border rounded-xl flex-1"
+            onChange={e => setSearch(e.target.value)}
+          />
+
+          <select
+            onChange={e => setStatusFilter(e.target.value)}
+            className="p-3 border rounded-xl"
           >
-            Export PDF
-          </button>
-
+            <option value="ALL">All</option>
+            <option value="ON_TRACK">On Track</option>
+            <option value="SLIGHTLY_DELAYED">Delayed</option>
+            <option value="AT_RISK">At Risk</option>
+          </select>
         </div>
 
-        {/* HERO */}
-        <div className={`text-white rounded-3xl p-6 shadow-xl flex justify-between
-          ${
-            category === "Graduated"
-              ? "bg-gradient-to-r from-blue-600 to-cyan-500"
-              : category === "On Track"
-              ? "bg-gradient-to-r from-green-600 to-emerald-500"
-              : category === "Slightly Late"
-              ? "bg-gradient-to-r from-yellow-500 to-amber-500"
-              : "bg-gradient-to-r from-red-500 to-pink-500"
-          }
-        `}>
+        {/* Table */}
+        <table className="w-full border mt-4">
 
-          <div>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Matric</th>
+              <th>Status</th>
+              <th>Profile</th>
+            </tr>
+          </thead>
 
-            <h1 className="text-2xl font-semibold">
-              {student.student_name}
-            </h1>
+          <tbody>
+            {filtered.map(s => (
+              <tr key={s.matric}>
 
-            <p className="text-sm text-white/80">
-              {student.programme}
-            </p>
+                <td>{s.name}</td>
+                <td>{s.matric}</td>
 
-          </div>
+                <td>
+                  <StatusBadge status={s.overallStatus} />
+                </td>
 
-          <div className="text-right">
+                <td>
+                  <Link href={`/admin/student/${s.email}`}>
+                    View
+                  </Link>
+                </td>
 
-            <p className="text-4xl font-bold">
-              {progress}%
-            </p>
+              </tr>
+            ))}
+          </tbody>
 
-            <span className={`px-4 py-1 rounded-full text-xs font-semibold mt-2 inline-block
-              ${
-                category === "Graduated"
-                  ? "bg-blue-100 text-blue-700"
-                  : category === "On Track"
-                  ? "bg-green-100 text-green-700"
-                  : category === "Slightly Late"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-red-100 text-red-700"
-              }
-            `}>
-              {category}
-            </span>
-
-          </div>
-
-        </div>
-
-        {/* INFO */}
-        <GlassCard>
-
-          <h3 className="font-semibold mb-3">
-            Student Information
-          </h3>
-
-          <div className="grid grid-cols-2 gap-3 text-sm">
-
-            <p>
-              <b>Email:</b> {student.email}
-            </p>
-
-            <p>
-              <b>Matric:</b> {student.student_id}
-            </p>
-
-            <p>
-              <b>Status:</b> {student.status}
-            </p>
-
-            <p>
-              <b>Supervisor:</b> {student.supervisor}
-            </p>
-
-            <p>
-              <b>Co-Supervisor:</b> {coSupervisorDisplay}
-            </p>
-
-          </div>
-
-        </GlassCard>
-
-        {/* AI */}
-        <div className="rounded-2xl p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border">
-
-          <p className="text-xs text-indigo-500 uppercase font-semibold">
-            AI Insight
-          </p>
-
-          <p className="text-sm mt-2">
-            {aiMessage}
-          </p>
-
-        </div>
-
-        {/* KPI */}
-        {!isGraduated ? (
-
-          <div className="grid grid-cols-3 gap-4">
-
-            <GlassCard>
-              <p className="text-xs text-gray-500">
-                Completed
-              </p>
-              <p className="text-3xl font-bold text-green-600">
-                {completed}
-              </p>
-            </GlassCard>
-
-            <GlassCard>
-              <p className="text-xs text-gray-500">
-                In Progress
-              </p>
-              <p className="text-3xl font-bold text-yellow-600">
-                {timeline.length - completed}
-              </p>
-            </GlassCard>
-
-            <GlassCard>
-              <p className="text-xs text-gray-500">
-                Late
-              </p>
-              <p className="text-3xl font-bold text-red-600">
-                {lateItems}
-              </p>
-            </GlassCard>
-
-          </div>
-
-        ) : (
-
-          <div className="bg-blue-50 rounded-2xl p-5 text-center shadow">
-            🎓 Programme Completed Successfully
-          </div>
-
-        )}
+        </table>
 
       </div>
-
     </div>
   );
 }
