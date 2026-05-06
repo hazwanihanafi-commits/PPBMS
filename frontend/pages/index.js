@@ -97,6 +97,105 @@ export default function Home() {
           />
         </section>
 
+        {/* RESOURCE DOCUMENTS */}
+        <section className="px-8 pb-12">
+
+          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-8 border border-white/40 shadow-lg">
+
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+
+              {/* LEFT */}
+              <div className="flex-1">
+
+                <h2 className="text-3xl font-bold text-purple-700">
+                  Academic Resource Documents
+                </h2>
+
+                <p className="mt-4 text-gray-600 leading-relaxed">
+                  Access postgraduate academic forms, supervision logbooks,
+                  Annual Progress Review (APR) templates, rubric forms,
+                  monitoring documents, and programme guidance materials
+                  through the official PPBMS resource repository.
+                </p>
+
+                <div className="mt-6 grid md:grid-cols-2 gap-4 text-sm">
+
+                  <div className="bg-purple-50 rounded-2xl p-4">
+                    <p className="font-semibold text-purple-700">
+                      Development Plan & Learning Contract
+                    </p>
+                    <p className="text-gray-600 mt-1">
+                      Research planning and supervisor agreement form.
+                    </p>
+                  </div>
+
+                  <div className="bg-purple-50 rounded-2xl p-4">
+                    <p className="font-semibold text-purple-700">
+                      Student Supervision Logbook
+                    </p>
+                    <p className="text-gray-600 mt-1">
+                      Weekly supervision and research activity records.
+                    </p>
+                  </div>
+
+                  <div className="bg-purple-50 rounded-2xl p-4">
+                    <p className="font-semibold text-purple-700">
+                      Annual Progress Review (APR)
+                    </p>
+                    <p className="text-gray-600 mt-1">
+                      Written report and presentation templates.
+                    </p>
+                  </div>
+
+                  <div className="bg-purple-50 rounded-2xl p-4">
+                    <p className="font-semibold text-purple-700">
+                      PLO Rubric Forms
+                    </p>
+                    <p className="text-gray-600 mt-1">
+                      MSc and PhD assessment rubrics and evaluation forms.
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* RIGHT */}
+              <div className="flex flex-col items-center justify-center">
+
+                <a
+                  href="https://drive.google.com/drive/folders/1Wnw9wS-pVNz1AOIRXkVYshuzjUxS15ei?usp=drive_link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="
+                    inline-flex items-center gap-3
+                    bg-purple-600 hover:bg-purple-700
+                    transition
+                    text-white
+                    px-8 py-4
+                    rounded-2xl
+                    font-semibold
+                    shadow-lg
+                  "
+                >
+                  📂 Open Resource Folder
+                </a>
+
+                <p className="text-xs text-gray-400 mt-3 text-center">
+                  Google Drive Resource Repository
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* FOOTER */}
+<footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
+
         {/* FOOTER */}
 <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
   © 2026 PPBMS · Universiti Sains Malaysia
