@@ -563,15 +563,6 @@ export default function AdminStudentPage() {
   </div>
 )}
 
-{activeTab === "remarks" && (
-  <GlassCard>
-    <SupervisorRemark
-      remarks={
-        student.remarksByAssessment || []
-      }
-    />
-  </GlassCard>
-)}
 
       </div>
 
