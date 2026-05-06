@@ -560,59 +560,98 @@ try {
   });  // ✅ THIS LINE WAS MISSING
 
 /* =========================================================
-   FINAL PLO
-========================================================= */
-/* =========================================================
-   FINAL PLO (FROM FINAL ROW - CORRECT)
+   FINAL PLO (FIXED)
 ========================================================= */
 
 let finalPLO = {};
 
 try {
 
-  const finalRow = normalized.find(r => {
+  const finalCandidates = normalized.filter(r => {
 
-  const type = String(
-    r["assessment_type"] ||
-    r["assessment_instance"] ||
-    ""
-  )
-    .toUpperCase()
-    .trim();
+    const rowMatric =
+      String(
+        r["matric"] ||
+        r["matricno"] ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
 
-  return (
-    String(r["matric"]).trim().toLowerCase() ===
-      String(matric).trim().toLowerCase() &&
+    const assess =
+      String(
+        r["assessment_type"] ||
+        r["assessment_instance"] ||
+        ""
+      )
+        .toUpperCase()
+        .trim();
 
-    type.includes("FINAL")
+    return (
+      rowMatric ===
+        String(matric)
+          .trim()
+          .toLowerCase()
+      &&
+      (
+        assess.includes("FINAL") ||
+        assess.includes("VIVA") ||
+        assess.includes("THESIS")
+      )
+    );
+  });
+
+  console.log(
+    "FINAL CANDIDATES:",
+    finalCandidates
   );
-});
+
+  const finalRow =
+    finalCandidates[
+      finalCandidates.length - 1
+    ];
 
   if (finalRow) {
 
     for (let i = 1; i <= 11; i++) {
 
-      const v = parseFloat(finalRow[`plo${i}`]);
+      const value =
+        parseFloat(
+          finalRow[`plo${i}`]
+        );
 
       finalPLO[`PLO${i}`] = {
-        value: isNaN(v) ? null : v,
-        status:
-          v >= 4 ? "Achieved"
-          : v >= 3 ? "Moderate"
-          : "CQI Required"
-      };
 
+        value:
+          isNaN(value)
+            ? null
+            : value,
+
+        status:
+          value >= 4
+            ? "Achieved"
+            : value >= 3
+            ? "Moderate"
+            : "CQI Required"
+      };
     }
 
   } else {
-    console.warn("⚠️ FINAL ROW NOT FOUND for matric:", matric);
+
+    console.warn(
+      "⚠️ FINAL ROW NOT FOUND:",
+      matric
+    );
   }
 
 } catch (err) {
 
-  console.error("⚠️ FINAL PLO ERROR:", err);
-  finalPLO = {};
+  console.error(
+    "⚠️ FINAL PLO ERROR:",
+    err
+  );
 
+  finalPLO = {};
 }
 /* =========================================================
    CQI AUTO ALERT
