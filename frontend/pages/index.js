@@ -193,9 +193,7 @@ export default function Home() {
 
         </section>
 
-        {/* FOOTER */}
-<footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
-
+    
         {/* FOOTER */}
 <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
   © 2026 PPBMS · Universiti Sains Malaysia
