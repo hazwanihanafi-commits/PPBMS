@@ -485,11 +485,82 @@ export default function AdminStudentPage() {
 )}
 
 {activeTab === "cqi" && (
-  <GlassCard>
+  <div className="space-y-6">
+
     <FinalPLOTable
       finalPLO={student.finalPLO}
     />
-  </GlassCard>
+
+    {(student.remarksByAssessment || []).map((item, i) => {
+
+      const showAlert =
+        item.supervisorRemark &&
+        !item.studentResponse;
+
+      return (
+
+        <GlassCard key={i}>
+
+          <div className="flex justify-between mb-3">
+
+            <div>
+
+              <h3 className="font-semibold text-purple-700">
+                {item.assessmentInstance}
+              </h3>
+
+              <p className="text-xs text-gray-400">
+                {item.assessmentType}
+              </p>
+
+            </div>
+
+            <span
+              className={`text-xs px-3 py-1 rounded font-semibold ${
+                item.status === "RESPONDED"
+                  ? "bg-green-100 text-green-700"
+                  : item.status === "PENDING"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {item.status || "PENDING"}
+            </span>
+
+          </div>
+
+          <div className="mt-2">
+
+            <p className="text-sm font-semibold">
+              Supervisor Remark
+            </p>
+
+            <textarea
+              className="w-full mt-1 p-2 border rounded-xl text-sm"
+              rows={3}
+              value={item.supervisorRemark || ""}
+              readOnly
+            />
+
+          </div>
+
+          <p className="text-sm mt-2">
+            <b>Student:</b>{" "}
+            {item.studentResponse || "—"}
+          </p>
+
+          {showAlert && (
+            <div className="mt-3 bg-red-100 text-red-700 text-xs p-2 rounded-xl">
+              ⚠ No student response yet
+            </div>
+          )}
+
+        </GlassCard>
+
+      );
+    })}
+
+  </div>
 )}
 
 {activeTab === "remarks" && (
