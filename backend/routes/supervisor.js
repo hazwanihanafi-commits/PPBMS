@@ -570,10 +570,23 @@ let finalPLO = {};
 
 try {
 
-  const finalRow = normalized.find(r =>
-    String(r["matric"]).trim() === String(matric).trim() &&
-    String(r["assessment_type"] || "").toUpperCase() === "FINAL"
+  const finalRow = normalized.find(r => {
+
+  const type = String(
+    r["assessment_type"] ||
+    r["assessment_instance"] ||
+    ""
+  )
+    .toUpperCase()
+    .trim();
+
+  return (
+    String(r["matric"]).trim().toLowerCase() ===
+      String(matric).trim().toLowerCase() &&
+
+    type.includes("FINAL")
   );
+});
 
   if (finalRow) {
 
