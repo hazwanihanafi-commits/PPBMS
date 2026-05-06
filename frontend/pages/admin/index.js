@@ -53,14 +53,26 @@ function PLOChart({ plos }) {
 
   if (!plos) return null;
 
+  const sortedKeys =
+    Object.keys(plos)
+      .sort((a, b) =>
+        Number(a.replace("PLO", "")) -
+        Number(b.replace("PLO", ""))
+      );
+
   return (
     <Bar
       data={{
-        labels: Object.keys(plos),
+        labels: sortedKeys,
+
         datasets: [
           {
             label: "PLO Score",
-            data: Object.values(plos).map(Number)
+
+            data:
+              sortedKeys.map(k =>
+                Number(plos[k])
+              )
           }
         ]
       }}
