@@ -429,11 +429,51 @@ export default function AdminStudentPage() {
 
 {/* TAB CONTENT */}
 {activeTab === "timeline" && (
-  <GlassCard>
-    <SupervisorChecklist
-      timeline={timeline}
-    />
-  </GlassCard>
+  <div className="space-y-4">
+
+    {timeline.map((t, i) => {
+
+      const isCompleted =
+        t.status?.toLowerCase() === "completed";
+
+      const isLate =
+        t.remaining_days < 0;
+
+      return (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-5 rounded-2xl shadow border-l-4
+            ${
+              isCompleted
+                ? "bg-green-50 border-green-400"
+                : isLate
+                ? "bg-red-50 border-red-400"
+                : "bg-white border-gray-300"
+            }
+          `}
+        >
+
+          <h3 className="font-semibold">
+            {t.activity}
+          </h3>
+
+          <p className="text-sm text-gray-500">
+            {t.expected} → {t.actual || "-"}
+          </p>
+
+          {!isCompleted && (
+            <p className="text-sm mt-1 font-semibold">
+              {t.remaining_days} days
+            </p>
+          )}
+
+        </motion.div>
+      );
+    })}
+
+  </div>
 )}
 
 {activeTab === "documents" && (
