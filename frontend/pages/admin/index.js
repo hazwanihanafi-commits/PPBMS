@@ -72,14 +72,35 @@ function PLOChart({ plos }) {
             data:
               sortedKeys.map(k =>
                 Number(plos[k])
-              )
+              ),
+
+            backgroundColor:
+              "#7c3aed",
+
+            borderRadius: 8
           }
         ]
+      }}
+
+      options={{
+        responsive: true,
+
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 5
+          }
+        }
       }}
     />
   );
 }
-
 /* ==========================================
    PAGE
 ========================================== */
