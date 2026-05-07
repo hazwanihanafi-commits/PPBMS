@@ -282,4 +282,69 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
   });
 });
 
+router.get(
+  "/student/:email",
+  adminAuth,
+  async (req, res) => {
+
+    const email =
+      decodeURIComponent(
+        req.params.email
+      )
+        .toLowerCase()
+        .trim();
+
+    const rows =
+      await readMasterTracking(
+        process.env.SHEET_ID
+      );
+
+    const row = rows.find(
+      r =>
+        String(
+          r["Student's Email"] || ""
+        )
+          .toLowerCase()
+          .trim() === email
+    );
+
+    if (!row) {
+      return res
+        .status(404)
+        .json({
+          error:
+            "Student not found"
+        });
+    }
+
+    const timeline =
+      buildTimelineForRow(row);
+
+    return res.json({
+      student_name:
+        row["Student Name"],
+
+      programme:
+        row.Programme,
+
+      email:
+        row["Student's Email"],
+
+      student_id:
+        row.Matric,
+
+      status:
+        row.Status,
+
+      supervisor:
+        row.Supervisor,
+
+      co_supervisor:
+        row["Co-Supervisor"],
+
+      timeline
+    });
+  }
+);
+
 export default router;
