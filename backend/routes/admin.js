@@ -134,7 +134,6 @@ function processStudents(rows, programme) {
       status !== "GRADUATED"
     ) return;
 
-    // ✅ REMOVE DUPLICATES
     const emailKey =
       (
         r["Student's Email"] || ""
@@ -149,47 +148,57 @@ function processStudents(rows, programme) {
     seen.add(emailKey);
 
     const timeline =
-  buildTimelineForRow(r);
+      buildTimelineForRow(r);
 
-const overall =
-  getStudentCategory(r);
+    const overall =
+      getStudentCategory(r);
 
-result.push({
+    result.push({
 
-  matric:
-    r.Matric || "",
+      matric:
+        r.Matric || "",
 
-  name:
-    r["Student Name"] || "",
+      name:
+        r["Student Name"] || "",
 
-  email: emailKey,
+      email: emailKey,
 
-  status,
+      status,
 
-  overallStatus:
-    overall,
+      overallStatus:
+        overall,
 
-  progressPercent:
-    calculateProgress(r),
+      progressPercent:
+        calculateProgress(r),
 
-  timeline
-});
+      timeline
+
+    });
+
+  });
 
   return result;
 }
 
 /* ==========================================
-   SUMMARY (USES SAME ENGINE)
+   SUMMARY
 ========================================== */
 router.get("/programme-summary", adminAuth, async (req, res) => {
 
   const { programme } = req.query;
 
-  const rows = await readMasterTracking(process.env.SHEET_ID);
+  const rows =
+    await readMasterTracking(
+      process.env.SHEET_ID
+    );
 
-  const students = processStudents(rows, programme);
+  const students =
+    processStudents(rows, programme);
 
-  let onTrack = 0, delayed = 0, atRisk = 0, graduated = 0;
+  let onTrack = 0,
+      delayed = 0,
+      atRisk = 0,
+      graduated = 0;
 
   students.forEach(s => {
 
@@ -198,9 +207,17 @@ router.get("/programme-summary", adminAuth, async (req, res) => {
       return;
     }
 
-    if (s.overallStatus === "AT_RISK") atRisk++;
-    else if (s.overallStatus === "SLIGHTLY_DELAYED") delayed++;
-    else onTrack++;
+    if (s.overallStatus === "AT_RISK") {
+      atRisk++;
+    }
+    else if (
+      s.overallStatus === "SLIGHTLY_DELAYED"
+    ) {
+      delayed++;
+    }
+    else {
+      onTrack++;
+    }
 
   });
 
@@ -210,76 +227,116 @@ router.get("/programme-summary", adminAuth, async (req, res) => {
     atRisk,
     graduated
   });
+
 });
 
 /* ==========================================
-   STUDENT LIST (USES SAME ENGINE)
+   STUDENT LIST
 ========================================== */
 router.get("/programme-students", adminAuth, async (req, res) => {
 
   const { programme } = req.query;
 
-  const rows = await readMasterTracking(process.env.SHEET_ID);
+  const rows =
+    await readMasterTracking(
+      process.env.SHEET_ID
+    );
 
-  const students = processStudents(rows, programme);
+  const students =
+    processStudents(rows, programme);
 
   res.json({
     count: students.length,
     students
   });
+
 });
 
 /* ==========================================
-   PLO
+   PLO SUMMARY
 ========================================== */
 router.get("/programme-plo", adminAuth, async (req, res) => {
 
   const { programme } = req.query;
 
-  const master = await readMasterTracking(process.env.SHEET_ID);
-  const ploRows = await readFINALPROGRAMPLO(process.env.SHEET_ID);
+  const master =
+    await readMasterTracking(
+      process.env.SHEET_ID
+    );
+
+  const ploRows =
+    await readFINALPROGRAMPLO(
+      process.env.SHEET_ID
+    );
 
   const graduatedEmails = new Set(
     master
       .filter(r =>
-        normalizeProgramme(r.Programme) === normalizeProgramme(programme) &&
-        normalizeStatus(r.Status) === "GRADUATED"
+        normalizeProgramme(r.Programme) ===
+        normalizeProgramme(programme) &&
+        normalizeStatus(r.Status) ===
+        "GRADUATED"
       )
       .map(r =>
-        String(r["Student's Email"] || "").toLowerCase().trim()
+        String(
+          r["Student's Email"] || ""
+        )
+          .toLowerCase()
+          .trim()
       )
   );
 
   const valid = ploRows.filter(r =>
     graduatedEmails.has(
-      String(r["Student's Email"] || "").toLowerCase().trim()
+      String(
+        r["Student's Email"] || ""
+      )
+        .toLowerCase()
+        .trim()
     )
   );
 
-  const totals = {}, counts = {};
+  const totals = {},
+        counts = {};
 
   valid.forEach(r => {
+
     for (let i = 1; i <= 11; i++) {
+
       const key = `PLO${i}`;
       const val = parseFloat(r[key]);
+
       if (!isNaN(val)) {
-        totals[key] = (totals[key] || 0) + val;
-        counts[key] = (counts[key] || 0) + 1;
+
+        totals[key] =
+          (totals[key] || 0) + val;
+
+        counts[key] =
+          (counts[key] || 0) + 1;
       }
     }
+
   });
 
   const plos = {};
+
   Object.keys(totals).forEach(k => {
-    plos[k] = (totals[k] / counts[k]).toFixed(2);
+    plos[k] =
+      (
+        totals[k] / counts[k]
+      ).toFixed(2);
   });
 
   res.json({
     count: valid.length,
     plos
   });
+
 });
 
+/* ==========================================
+   SINGLE STUDENT
+========================================== */
 router.get(
   "/student/:email",
   adminAuth,
@@ -307,15 +364,64 @@ router.get(
     );
 
     if (!row) {
+
       return res
         .status(404)
         .json({
           error:
             "Student not found"
         });
+
     }
 
-    
+    const timeline =
+      buildTimelineForRow(row);
 
+    const ploRows =
+      await readFINALPROGRAMPLO(
+        process.env.SHEET_ID
+      );
+
+    const finalPLO =
+      ploRows.find(
+        p =>
+          String(
+            p["Student's Email"] || ""
+          )
+            .toLowerCase()
+            .trim() === email
+      ) || null;
+
+    return res.json({
+
+      student_name:
+        row["Student Name"],
+
+      programme:
+        row.Programme,
+
+      email:
+        row["Student's Email"],
+
+      student_id:
+        row.Matric,
+
+      status:
+        row.Status,
+
+      supervisor:
+        row.Supervisor,
+
+      co_supervisor:
+        row["Co-Supervisor"],
+
+      timeline,
+
+      finalPLO
+
+    });
+
+  }
+);
 
 export default router;
