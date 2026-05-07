@@ -34,42 +34,51 @@ export default function AdminStudentPage() {
 
   async function loadStudent() {
 
-    try {
+  try {
 
-      const token =
-        localStorage.getItem("ppbms_token");
+    const token =
+      localStorage.getItem("ppbms_token");
 
-      const decodedEmail =
-  decodeURIComponent(email);
+    const decodedEmail =
+      decodeURIComponent(email);
 
-const res = await fetch(
-  `${API_BASE}/api/admin/student/${decodedEmail}`,
-  {
-    headers: {
-      Authorization: `Bearer ${token}`
+    const res = await fetch(
+      `${API_BASE}/api/admin/student/${decodedEmail}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await res.json();
+
+    console.log(decodedEmail);
+    console.log(data);
+
+    const row =
+      data.row || data.student || data;
+
+    if (!row || row.error) {
+      console.error(row);
+      setStudent(null);
+      return;
     }
+
+    setStudent(row);
+
+    setTimeline(
+      row?.timeline || []
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
   }
-);
 
-const data = await res.json();
-
-console.log(decodedEmail);
-console.log(data);
-
-const row =
-  data.row || data.student || data;
-
-if (!row || row.error) {
-  console.error(row);
-  setStudent(null);
-  return;
+  setLoading(false);
 }
-
-setStudent(row);
-
-setTimeline(
-  row?.timeline || []
-);
   /* ================= LOADING ================= */
 
   if (loading) {
