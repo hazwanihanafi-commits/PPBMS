@@ -134,7 +134,7 @@ router.get(
     try {
 
       const rows =
-         readMasterTracking(
+         await readMasterTracking(
           process.env.SHEET_ID
         );
 
@@ -246,7 +246,7 @@ router.get(
           .trim();
 
       const rows =
-         readMasterTracking(
+         await readMasterTracking(
           process.env.SHEET_ID
         );
 
