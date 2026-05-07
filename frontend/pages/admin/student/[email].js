@@ -43,7 +43,7 @@ export default function AdminStudentPage() {
       decodeURIComponent(email);
 
     const res = await fetch(
-      `${API_BASE}/api/admin/student/${decodedEmail}`,
+      `${API_BASE}/api/supervisor/student/${decodedEmail}`,
       {
         headers: {
           Authorization: `Bearer ${token}`
