@@ -39,8 +39,11 @@ export default function AdminStudentPage() {
       const token =
         localStorage.getItem("ppbms_token");
 
-      const res = await fetch(
-  `${API_BASE}/api/supervisor/student/${email}`,
+      const decodedEmail =
+  decodeURIComponent(email);
+
+const res = await fetch(
+  `${API_BASE}/api/admin/student/${decodedEmail}`,
   {
     headers: {
       Authorization: `Bearer ${token}`
@@ -48,26 +51,25 @@ export default function AdminStudentPage() {
   }
 );
 
-      const data = await res.json();
+const data = await res.json();
 
-      const row =
-        data.row || data.student || data;
+console.log(decodedEmail);
+console.log(data);
 
-      setStudent(row);
+const row =
+  data.row || data.student || data;
 
-      setTimeline(
-        row?.timeline || []
-      );
+if (!row || row.error) {
+  console.error(row);
+  setStudent(null);
+  return;
+}
 
-    } catch (err) {
+setStudent(row);
 
-      console.error(err);
-
-    }
-
-    setLoading(false);
-  }
-
+setTimeline(
+  row?.timeline || []
+);
   /* ================= LOADING ================= */
 
   if (loading) {
