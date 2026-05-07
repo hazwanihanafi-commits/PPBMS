@@ -149,50 +149,31 @@ function processStudents(rows, programme) {
     seen.add(emailKey);
 
     const timeline =
-  buildTimelineForRow(row);
+  buildTimelineForRow(r);
 
-const ploRows =
-  await readFINALPROGRAMPLO(
-    process.env.SHEET_ID
-  );
+const overall =
+  getStudentCategory(r);
 
-const finalPLO =
-  ploRows.find(
-    p =>
-      String(
-        p["Student's Email"] || ""
-      )
-        .toLowerCase()
-        .trim() === email
-  ) || null;
+result.push({
 
-return res.json({
-  student_name:
-    row["Student Name"],
+  matric:
+    r.Matric || "",
 
-  programme:
-    row.Programme,
+  name:
+    r["Student Name"] || "",
 
-  email:
-    row["Student's Email"],
+  email: emailKey,
 
-  student_id:
-    row.Matric,
+  status,
 
-  status:
-    row.Status,
+  overallStatus:
+    overall,
 
-  supervisor:
-    row.Supervisor,
+  progressPercent:
+    calculateProgress(r),
 
-  co_supervisor:
-    row["Co-Supervisor"],
-
-  timeline,
-
-  finalPLO
+  timeline
 });
-  });
 
   return result;
 }
@@ -334,34 +315,7 @@ router.get(
         });
     }
 
-    const timeline =
-      buildTimelineForRow(row);
+    
 
-    return res.json({
-      student_name:
-        row["Student Name"],
-
-      programme:
-        row.Programme,
-
-      email:
-        row["Student's Email"],
-
-      student_id:
-        row.Matric,
-
-      status:
-        row.Status,
-
-      supervisor:
-        row.Supervisor,
-
-      co_supervisor:
-        row["Co-Supervisor"],
-
-      timeline
-    });
-  }
-);
 
 export default router;
