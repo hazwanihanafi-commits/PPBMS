@@ -1,29 +1,229 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
 
-const checklistItems = [
-  "Development Plan & Learning Contract (DPLC)",
-  "Student Supervision Logbook",
-  "Annual Progress Review – Year 1",
-  "Annual Progress Review – Year 2",
-  "Annual Progress Review – Year 3 (Final Year)",
-  "Ethics Approval",
-  "Publication Acceptance",
-  "Proof of Submission",
-  "Conference Presentation",
-  "Thesis Notice",
-  "Viva Report",
-  "Correction Verification",
-  "Final Thesis",
+/* =========================================================
+   MSc DOCUMENT CHECKLIST
+========================================================= */
+
+const MSC_CHECKLIST = [
+
+  {
+    name:
+      "Development Plan & Learning Contract (DPLC)",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Student Supervision Logbook",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Annual Progress Review – Year 1 Submission Folder",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Ethics Approval",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Conference Presentation",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Final Notice of Thesis Submission Form",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Correction Verification (Final Submission to IPS)",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Final Thesis",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Viva Report",
+
+    role:
+      "Admin / IPS Upload"
+  }
+
+];
+
+/* =========================================================
+   PhD DOCUMENT CHECKLIST
+========================================================= */
+
+const PHD_CHECKLIST = [
+
+  {
+    name:
+      "Development Plan & Learning Contract (DPLC)",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Student Supervision Logbook",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Annual Progress Review – Year 1 Submission Folder",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Annual Progress Review – Year 2 Submission Folder",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Ethics Approval",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Publication Acceptance",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Proof of Submission",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Conference Presentation",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Final Notice of Thesis Submission Form",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Correction Verification (Final Submission to IPS)",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Final Thesis",
+
+    role:
+      "Student Upload"
+  },
+
+  {
+    name:
+      "Viva Report",
+
+    role:
+      "Admin / IPS Upload"
+  }
+
 ];
 
 export default function StudentChecklist({
   documents = {},
+  programme = "",
   onSaved,
 }) {
 
   const [links, setLinks] =
     useState({});
+
+  /* =========================================================
+     PROGRAMME DETECTION
+  ========================================================= */
+
+  const programmeText =
+    String(programme || "")
+      .toUpperCase();
+
+  const isMsc =
+
+    programmeText.includes("MASTER")
+
+    ||
+
+    programmeText.includes("MSC")
+
+    ||
+
+    programmeText.includes(
+      "MASTER OF SCIENCE"
+    );
+
+  const checklistItems =
+    isMsc
+      ? MSC_CHECKLIST
+      : PHD_CHECKLIST;
+
+  /* =========================================================
+     LOAD LINKS
+  ========================================================= */
 
   useEffect(() => {
 
@@ -41,6 +241,10 @@ export default function StudentChecklist({
     setLinks(mapped);
 
   }, [documents]);
+
+  /* =========================================================
+     SAVE
+  ========================================================= */
 
   async function saveDocument(name) {
 
@@ -73,6 +277,10 @@ export default function StudentChecklist({
     }
   }
 
+  /* =========================================================
+     BADGE COLOR
+  ========================================================= */
+
   function badgeColor(status) {
 
     if (status === "Approved") {
@@ -96,6 +304,10 @@ export default function StudentChecklist({
     return "bg-gray-100 text-gray-600";
   }
 
+  /* =========================================================
+     UI
+  ========================================================= */
+
   return (
 
     <div className="space-y-6">
@@ -104,7 +316,13 @@ export default function StudentChecklist({
         📁 Student Checklist
       </h2>
 
-      {checklistItems.map((item) => {
+      {checklistItems.map((itemObj) => {
+
+        const item =
+          itemObj.name;
+
+        const role =
+          itemObj.role;
 
         const doc =
           documents[item] || {};
@@ -140,9 +358,22 @@ export default function StudentChecklist({
                   {item}
                 </h3>
 
+                <p className="
+                  text-xs
+                  mt-1
+                  inline-block
+                  px-2
+                  py-1
+                  rounded-full
+                  bg-indigo-100
+                  text-indigo-700
+                ">
+                  {role}
+                </p>
+
                 {doc.reviewed_by && (
 
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-400 mt-2">
 
                     Reviewed by:
                     {" "}
@@ -184,46 +415,65 @@ export default function StudentChecklist({
 
             {/* INPUT */}
 
-            <div className="flex gap-3">
+            {role === "Admin / IPS Upload" ? (
 
-              <input
-                type="text"
-                placeholder="Paste link here"
-                value={links[item] || ""}
-                onChange={(e) =>
-                  setLinks({
-                    ...links,
-                    [item]:
-                      e.target.value,
-                  })
-                }
-                className="
-                  flex-1
-                  border
-                  rounded-xl
-                  px-4
-                  py-3
-                "
-              />
+              <div className="
+                bg-gray-100
+                text-gray-500
+                rounded-xl
+                p-4
+                text-sm
+              ">
 
-              <button
-                onClick={() =>
-                  saveDocument(item)
-                }
-                className="
-                  bg-purple-600
-                  hover:bg-purple-700
-                  text-white
-                  px-5
-                  py-3
-                  rounded-xl
-                  font-semibold
-                "
-              >
-                Save
-              </button>
+                This document will be uploaded
+                by IPS / administrator.
 
-            </div>
+              </div>
+
+            ) : (
+
+              <div className="flex gap-3">
+
+                <input
+                  type="text"
+                  placeholder="Paste Google Drive / folder link here"
+                  value={links[item] || ""}
+                  onChange={(e) =>
+                    setLinks({
+                      ...links,
+                      [item]:
+                        e.target.value,
+                    })
+                  }
+                  className="
+                    flex-1
+                    border
+                    rounded-xl
+                    px-4
+                    py-3
+                  "
+                />
+
+                <button
+                  onClick={() =>
+                    saveDocument(item)
+                  }
+                  className="
+                    bg-purple-600
+                    hover:bg-purple-700
+                    text-white
+                    px-5
+                    py-3
+                    rounded-xl
+                    font-semibold
+                  "
+                >
+                  Save
+                </button>
+
+              </div>
+
+            )}
 
             {/* LINK */}
 
