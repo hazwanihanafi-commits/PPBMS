@@ -560,41 +560,66 @@ try {
   });  // ✅ THIS LINE WAS MISSING
 
 /* =========================================================
-   FINAL PLO (FIXED)
-========================================================= */
-
-/* =========================================================
-   FINAL PLO (USE ONLY FINAL ROW)
+   FINAL PLO (STRICT FINAL ROW + SAFE MATRIC MATCH)
 ========================================================= */
 
 let finalPLO = {};
 
 try {
 
-  const finalCandidates = normalized.filter(r => {
+  /* =========================================
+     SAFE MATRIC
+  ========================================= */
 
-    const rowMatric =
-      String(
-        r["matric"] ||
-        r["matricno"] ||
-        ""
-      )
-        .trim()
-        .toLowerCase();
+  const targetMatric =
+    String(matric || "")
+      .replace(/\s+/g, "")
+      .trim();
 
-    return (
-      rowMatric ===
-      String(matric)
-        .trim()
-        .toLowerCase()
-    );
+  /* =========================================
+     FIND ALL ROWS FOR STUDENT
+  ========================================= */
 
-  });
+  const finalCandidates =
+    normalized.filter(r => {
+
+      const rowMatric =
+        String(
+          r["matric"] ||
+          r["matricno"] ||
+          ""
+        )
+          .replace(/\s+/g, "")
+          .trim();
+
+      return (
+        rowMatric === targetMatric
+      );
+
+    });
 
   console.log(
-    "🎯 FINAL SEARCH:",
-    matric,
+    "🎯 TARGET MATRIC:",
+    targetMatric
+  );
+
+  console.log(
+    "🎯 FINAL CANDIDATES:",
     finalCandidates.length
+  );
+
+  console.log(
+    "🎯 AVAILABLE INSTANCES:",
+    finalCandidates.map(r => ({
+      matric:
+        r["matric"],
+
+      assessment_type:
+        r["assessment_type"],
+
+      assessment_instance:
+        r["assessment_instance"]
+    }))
   );
 
   /* =========================================
@@ -602,6 +627,8 @@ try {
   ========================================= */
 
   const finalRow =
+
+    /* EXACT FINAL */
     finalCandidates.find(r => {
 
       const assess =
@@ -617,8 +644,11 @@ try {
         assess === "FINAL"
       );
 
-    }) ||
+    })
 
+    ||
+
+    /* CONTAINS FINAL */
     finalCandidates.find(r => {
 
       const assess =
@@ -637,9 +667,13 @@ try {
     });
 
   console.log(
-    "✅ FINAL ROW:",
+    "✅ FINAL ROW FOUND:",
     finalRow
   );
+
+  /* =========================================
+     BUILD FINAL PLO
+  ========================================= */
 
   if (finalRow) {
 
@@ -676,8 +710,8 @@ try {
   } else {
 
     console.warn(
-      "⚠️ FINAL ROW NOT FOUND:",
-      matric
+      "⚠️ FINAL ROW NOT FOUND FOR:",
+      targetMatric
     );
 
   }
