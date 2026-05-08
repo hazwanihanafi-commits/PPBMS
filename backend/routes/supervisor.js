@@ -563,6 +563,10 @@ try {
    FINAL PLO (FIXED)
 ========================================================= */
 
+/* =========================================================
+   FINAL PLO (USE ONLY FINAL ROW)
+========================================================= */
+
 let finalPLO = {};
 
 try {
@@ -578,47 +582,78 @@ try {
         .trim()
         .toLowerCase();
 
-    const assess =
-      String(
-        r["assessment_type"] ||
-        r["assessment_instance"] ||
-        ""
-      )
-        .toUpperCase()
-        .trim();
-
     return (
       rowMatric ===
-        String(matric)
-          .trim()
-          .toLowerCase()
-      &&
-      (
-        assess.includes("FINAL") ||
-        assess.includes("VIVA") ||
-        assess.includes("THESIS")
-      )
+      String(matric)
+        .trim()
+        .toLowerCase()
     );
+
   });
 
   console.log(
-    "FINAL CANDIDATES:",
-    finalCandidates
+    "🎯 FINAL SEARCH:",
+    matric,
+    finalCandidates.length
   );
 
+  /* =========================================
+     STRICT FINAL ROW
+  ========================================= */
+
   const finalRow =
-    finalCandidates[
-      finalCandidates.length - 1
-    ];
+    finalCandidates.find(r => {
+
+      const assess =
+        String(
+          r["assessment_instance"] ||
+          r["assessment_type"] ||
+          ""
+        )
+          .toUpperCase()
+          .trim();
+
+      return (
+        assess === "FINAL"
+      );
+
+    }) ||
+
+    finalCandidates.find(r => {
+
+      const assess =
+        String(
+          r["assessment_instance"] ||
+          r["assessment_type"] ||
+          ""
+        )
+          .toUpperCase()
+          .trim();
+
+      return (
+        assess.includes("FINAL")
+      );
+
+    });
+
+  console.log(
+    "✅ FINAL ROW:",
+    finalRow
+  );
 
   if (finalRow) {
 
     for (let i = 1; i <= 11; i++) {
 
+      const raw =
+        finalRow[`plo${i}`];
+
       const value =
-        parseFloat(
-          finalRow[`plo${i}`]
-        );
+        raw === undefined ||
+        raw === null ||
+        raw === ""
+          ? null
+          : parseFloat(raw);
 
       finalPLO[`PLO${i}`] = {
 
@@ -633,7 +668,9 @@ try {
             : value >= 3
             ? "Moderate"
             : "CQI Required"
+
       };
+
     }
 
   } else {
@@ -642,6 +679,7 @@ try {
       "⚠️ FINAL ROW NOT FOUND:",
       matric
     );
+
   }
 
 } catch (err) {
@@ -652,6 +690,7 @@ try {
   );
 
   finalPLO = {};
+
 }
 /* =========================================================
    CQI AUTO ALERT
