@@ -525,9 +525,10 @@ export default function StudentPage() {
           <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
 
             <StudentChecklist
-              documents={profile.documents || {}}
-              onSaved={loadStudent}
-            />
+  documents={profile.documents || {}}
+  programme={profile.programme || ""}
+  onSaved={loadStudent}
+/>
 
           </div>
         )}
