@@ -7,6 +7,7 @@ import jsPDF from "jspdf";
 import SupervisorChecklist from "../../../components/SupervisorChecklist";
 import SupervisorRemark from "../../../components/SupervisorRemark";
 import FinalPLOTable from "../../../components/FinalPLOTable";
+import AllPLOTable from "../../../components/AllPLOTable";
 
 /* ================= CARD ================= */
 const GlassCard = ({ children }) => (
@@ -498,10 +499,15 @@ export default function AdminStudentPage() {
 {activeTab === "cqi" && (
   <div className="space-y-6">
 
+    <AllPLOTable
+      allPLO={student.allPLO}
+    />
+
     <FinalPLOTable
       finalPLO={student.finalPLO}
     />
 
+  
     {(student.remarksByAssessment || []).map((item, i) => {
 
       const showAlert =
