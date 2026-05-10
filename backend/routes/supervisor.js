@@ -559,6 +559,56 @@ try {
 
   });  // ✅ THIS LINE WAS MISSING
 
+      /* =========================================================
+   ALL PLO
+========================================================= */
+
+const allPLO = {};
+
+Object.entries(grouped || {})
+  .forEach(([instance, rows]) => {
+
+    if (!rows || !rows.length) return;
+
+    const r = rows[0];
+
+    allPLO[instance] = {};
+
+    for (let i = 1; i <= 11; i++) {
+
+      const raw =
+        r[`plo${i}`];
+
+      const value =
+        raw === undefined ||
+        raw === null ||
+        raw === ""
+          ? null
+          : parseFloat(raw);
+
+      allPLO[instance][`PLO${i}`] = {
+
+        value:
+          isNaN(value)
+            ? null
+            : value,
+
+        status:
+          value >= 4
+            ? "Achieved"
+            : value >= 3
+            ? "Moderate"
+            : value === null ||
+              isNaN(value)
+            ? "Not Assessed"
+            : "CQI Required"
+
+      };
+
+    }
+
+  });
+
 /* =========================================================
    FINAL PLO (STRICT FINAL ROW + SAFE MATRIC MATCH)
 ========================================================= */
@@ -762,10 +812,15 @@ remarksByAssessment.forEach(r => {
 res.json({
   row: {
     ...profile,
+
     documents,
     timeline,
+
     cqiByAssessment,
+
+    allPLO,      // ✅ IMPORTANT
     finalPLO,
+
     remarksByAssessment,
     alerts
   }
