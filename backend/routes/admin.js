@@ -334,5 +334,201 @@ router.get("/programme-plo", adminAuth, async (req, res) => {
 
 });
 
+/* ==========================================
+   ALL ASSESSMENT PLO SUMMARY
+========================================== */
+
+router.get(
+  "/programme-plo-all",
+  adminAuth,
+  async (req, res) => {
+
+    try {
+
+      const { programme } = req.query;
+
+      /* =====================================
+         READ MASTER
+      ===================================== */
+
+      const master =
+        await readMasterTracking(
+          process.env.SHEET_ID
+        );
+
+      /* =====================================
+         READ ASSESSMENT PLO
+      ===================================== */
+
+      const assessmentRows =
+        await readASSESSMENT_PLO(
+          process.env.SHEET_ID
+        );
+
+      /* =====================================
+         VALID STUDENTS IN PROGRAMME
+      ===================================== */
+
+      const validMatric = new Set(
+
+        master
+          .filter(r =>
+
+            normalizeProgramme(
+              r.Programme
+            ) ===
+            normalizeProgramme(
+              programme
+            )
+
+          )
+          .map(r =>
+
+            String(
+              r.Matric || ""
+            )
+              .trim()
+
+          )
+
+      );
+
+      /* =====================================
+         GROUP
+      ===================================== */
+
+      const grouped = {};
+
+      assessmentRows.forEach(r => {
+
+        const matric =
+          String(
+            r.Matric ||
+            r.matric ||
+            ""
+          )
+            .trim();
+
+        if (
+          !validMatric.has(matric)
+        ) {
+          return;
+        }
+
+        const instance =
+          String(
+
+            r.Assessment_Instance ||
+            r.assessment_instance ||
+
+            r.Assessment_Type ||
+            r.assessment_type ||
+
+            ""
+
+          )
+            .toUpperCase()
+            .trim();
+
+        if (!instance) {
+          return;
+        }
+
+        if (!grouped[instance]) {
+          grouped[instance] = {};
+        }
+
+        /* ================================
+           PLO LOOP
+        ================================ */
+
+        for (let i = 1; i <= 11; i++) {
+
+          const key = `PLO${i}`;
+
+          const raw =
+            r[key] ||
+            r[key.toLowerCase()];
+
+          const val =
+            parseFloat(raw);
+
+          if (isNaN(val)) {
+            continue;
+          }
+
+          if (
+            !grouped[instance][key]
+          ) {
+            grouped[instance][key] = [];
+          }
+
+          grouped[instance][key]
+            .push(val);
+
+        }
+
+      });
+
+      /* =====================================
+         AVERAGE
+      ===================================== */
+
+      const result = {};
+
+      Object.entries(grouped)
+        .forEach(([instance, plos]) => {
+
+          result[instance] = {};
+
+          Object.entries(plos)
+            .forEach(([plo, arr]) => {
+
+              const avg =
+                arr.reduce(
+                  (a, b) => a + b,
+                  0
+                ) / arr.length;
+
+              result[instance][plo] =
+                Number(
+                  avg.toFixed(2)
+                );
+
+            });
+
+        });
+
+      /* =====================================
+         RESPONSE
+      ===================================== */
+
+      res.json({
+
+        programme,
+
+        assessmentCount:
+          Object.keys(grouped).length,
+
+        assessments:
+          result
+
+      });
+
+    } catch (e) {
+
+      console.error(
+        "programme-plo-all error:",
+        e
+      );
+
+      res.status(500).json({
+        error: e.message
+      });
+
+    }
+
+  }
+);
 
 export default router;
