@@ -6,6 +6,7 @@ import jsPDF from "jspdf";
 
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import FinalPLOTable from "../../components/FinalPLOTable";
+import AllPLOTable from "../../components/AllPLOTable";
 
 /* ================= PREMIUM CARD ================= */
 const GlassCard = ({ children }) => (
@@ -358,7 +359,9 @@ const coSupervisorDisplay =
 {activeTab === "cqi" && (
   <div className="space-y-6">
 
-    <FinalPLOTable finalPLO={student.finalPLO} />
+    <AllPLOTable allPLO={student.allPLO} />
+
+<FinalPLOTable finalPLO={student.finalPLO} />
 
     {(student.remarksByAssessment || []).map((item, i) => {
 
