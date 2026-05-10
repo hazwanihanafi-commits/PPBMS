@@ -249,6 +249,48 @@ Object.entries(grouped).forEach(([instance, rows]) => {
 });
 
 /* FINAL PLO */
+/* ================= ALL PLO ================= */
+
+const allPLO = {};
+
+Object.entries(grouped).forEach(([instance, rows]) => {
+
+  const r = rows[0];
+
+  allPLO[instance] = {};
+
+  for (let i = 1; i <= 11; i++) {
+
+    const rawValue = r[`plo${i}`];
+
+    const v =
+      rawValue === undefined ||
+      rawValue === null ||
+      rawValue === ""
+        ? null
+        : parseFloat(rawValue);
+
+    allPLO[instance][`PLO${i}`] = {
+
+      value:
+        isNaN(v) ? null : v,
+
+      status:
+        v >= 4
+          ? "Achieved"
+          : v >= 3
+          ? "Moderate"
+          : v === null || isNaN(v)
+          ? "Not Assessed"
+          : "CQI Required"
+
+    };
+  }
+
+});
+
+/* ================= FINAL PLO ================= */
+
 let finalPLO = {};
 
 try {
@@ -271,11 +313,17 @@ try {
       const v = parseFloat(finalRow[`plo${i}`]);
 
       finalPLO[`PLO${i}`] = {
-        value: isNaN(v) ? null : v,
+
+        value:
+          isNaN(v) ? null : v,
+
         status:
-          v >= 4 ? "Achieved"
-          : v >= 3 ? "Moderate"
-          : "CQI Required"
+          v >= 4
+            ? "Achieved"
+            : v >= 3
+            ? "Moderate"
+            : "CQI Required"
+
       };
     }
 
@@ -284,9 +332,12 @@ try {
 } catch (err) {
 
   console.error("❌ FINAL PLO ERROR:", err);
+
   finalPLO = {};
 
 }
+
+
 
 /* ALERT */
 const alerts = [];
@@ -318,10 +369,15 @@ remarks.forEach(r => {
     res.json({
   row: {
     ...profile,
+
     documents,
     timeline,
+
     cqiByAssessment,
+
+    allPLO,      // ✅ NEW
     finalPLO,
+
     remarks,
     alerts
   }
