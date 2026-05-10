@@ -7,6 +7,7 @@ import TimelineSummary from "../../components/TimelineSummary";
 import CompletionDonut from "../../components/CompletionDonut";
 import TopBar from "../../components/TopBar";
 import FinalPLOTable from "../../components/FinalPLOTable";
+import AllPLOTable from "../../components/AllPLOTable";
 
 export default function StudentPage() {
 
@@ -413,10 +414,19 @@ export default function StudentPage() {
 
         </div>
 
-        {/* ✅ ADD HERE */}
-{profile?.finalPLO && Object.keys(profile.finalPLO).length > 0 && (
-  <FinalPLOTable finalPLO={profile.finalPLO} />
+{/* ALL PLO */}
+{profile?.allPLO &&
+  Object.keys(profile.allPLO).length > 0 && (
+    <AllPLOTable allPLO={profile.allPLO} />
 )}
+
+{/* FINAL PLO */}
+{profile?.finalPLO &&
+  Object.keys(profile.finalPLO).length > 0 && (
+    <FinalPLOTable finalPLO={profile.finalPLO} />
+)}
+
+  
 
         {/* TABS */}
         <div className="flex gap-3">
