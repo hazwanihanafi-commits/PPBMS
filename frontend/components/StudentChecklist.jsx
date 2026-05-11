@@ -24,12 +24,15 @@ const MSC_CHECKLIST = [
   },
 
   {
-    name:
-      "Annual Progress Review – Year 1 Submission Folder",
+  name:
+    "Annual Progress Review – Year 1 Submission Folder",
 
-    role:
-      "Student Upload"
-  },
+  role:
+    "Student Upload",
+
+  note:
+    "Upload ONE folder containing Written Report and Presentation Slides"
+},
 
   {
     name:
@@ -71,13 +74,7 @@ const MSC_CHECKLIST = [
       "Student Upload"
   },
 
-  {
-    name:
-      "Viva Report",
 
-    role:
-      "Admin / IPS Upload"
-  }
 
 ];
 
@@ -104,20 +101,26 @@ const PHD_CHECKLIST = [
   },
 
   {
-    name:
-      "Annual Progress Review – Year 1 Submission Folder",
+  name:
+    "Annual Progress Review – Year 1 Submission Folder",
 
-    role:
-      "Student Upload"
-  },
+  role:
+    "Student Upload",
+
+  note:
+    "Upload ONE folder containing Written Report and Presentation Slides"
+},
 
   {
-    name:
-      "Annual Progress Review – Year 2 Submission Folder",
+  name:
+    "Annual Progress Review – Year 2 Submission Folder",
 
-    role:
-      "Student Upload"
-  },
+  role:
+    "Student Upload",
+
+  note:
+    "Upload ONE folder containing Written Report and Presentation Slides"
+},
 
   {
     name:
@@ -175,13 +178,7 @@ const PHD_CHECKLIST = [
       "Student Upload"
   },
 
-  {
-    name:
-      "Viva Report",
 
-    role:
-      "Admin / IPS Upload"
-  }
 
 ];
 
