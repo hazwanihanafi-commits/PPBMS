@@ -7,6 +7,11 @@ import jsPDF from "jspdf";
 import SupervisorChecklist from "../../components/SupervisorChecklist";
 import FinalPLOTable from "../../components/FinalPLOTable";
 import AllPLOTable from "../../components/AllPLOTable";
+import AcademicFrameworkBoxes
+from "../../../components/AcademicFrameworkBoxes";
+
+import AssessmentInfoBoxes
+from "../../../components/AssessmentInfoBoxes";
 
 /* ================= PREMIUM CARD ================= */
 const GlassCard = ({ children }) => (
@@ -358,6 +363,10 @@ const coSupervisorDisplay =
      {/* CQI */}
 {activeTab === "cqi" && (
   <div className="space-y-6">
+
+  <AcademicFrameworkBoxes />
+
+<AssessmentInfoBoxes />
 
     <AllPLOTable allPLO={student.allPLO} />
 
