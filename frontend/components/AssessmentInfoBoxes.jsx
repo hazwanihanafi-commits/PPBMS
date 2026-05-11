@@ -58,7 +58,7 @@ export default function AssessmentInfoBoxes() {
         "11–15% → Score 4",
         "16–20% → Score 3",
         "21–24% → Score 2",
-        ">25% → Score 1"
+        "≥25% → Score 1"
       ]
     }
 
