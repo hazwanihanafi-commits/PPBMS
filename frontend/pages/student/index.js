@@ -9,10 +9,10 @@ import TopBar from "../../components/TopBar";
 import FinalPLOTable from "../../components/FinalPLOTable";
 import AllPLOTable from "../../components/AllPLOTable";
 import AcademicFrameworkBoxes
-from "../../../components/AcademicFrameworkBoxes";
+from "../../components/AcademicFrameworkBoxes";
 
 import AssessmentInfoBoxes
-from "../../../components/AssessmentInfoBoxes";
+from "../../components/AssessmentInfoBoxes";
 
 export default function StudentPage() {
 
