@@ -8,6 +8,11 @@ import SupervisorChecklist from "../../../components/SupervisorChecklist";
 import SupervisorRemark from "../../../components/SupervisorRemark";
 import FinalPLOTable from "../../../components/FinalPLOTable";
 import AllPLOTable from "../../../components/AllPLOTable";
+import AcademicFrameworkBoxes
+from "../../../components/AcademicFrameworkBoxes";
+
+import AssessmentInfoBoxes
+from "../../../components/AssessmentInfoBoxes";
 
 /* ================= CARD ================= */
 const GlassCard = ({ children }) => (
@@ -498,6 +503,10 @@ export default function AdminStudentPage() {
 
 {activeTab === "cqi" && (
   <div className="space-y-6">
+
+  <AcademicFrameworkBoxes />
+
+<AssessmentInfoBoxes />
 
     <AllPLOTable
       allPLO={student.allPLO}
