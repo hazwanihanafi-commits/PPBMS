@@ -272,9 +272,9 @@ export default function StudentPage() {
               label: "📁 Documents"
             },
             {
-              key: "plo",
-              label: "🎯 PLO Achievement"
-            },
+  key: "plo",
+  label: "🎯 PLO Achievement"
+},
             {
               key: "remarks",
               label: "💬 Remarks"
@@ -567,39 +567,129 @@ export default function StudentPage() {
         )}
 
         {/* PLO */}
-        {activeTab === "plo" && (
+{activeTab === "plo" && (
 
-          <div className="space-y-6">
+  <div className="space-y-6">
 
-            <div className="rounded-3xl bg-white shadow p-6">
-              <AcademicFrameworkBoxes />
-            </div>
+    {/* ALL PLO */}
+    {profile?.allPLO &&
+      Object.keys(profile.allPLO).length > 0 && (
 
-            <div className="rounded-3xl bg-white shadow p-6">
-              <AssessmentInfoBoxes />
-            </div>
+        <div className="rounded-3xl bg-white shadow p-6">
 
-            {profile?.allPLO &&
-              Object.keys(profile.allPLO).length > 0 && (
+          <h2 className="text-lg font-semibold mb-4">
+            🎯 All PLO Attainment
+          </h2>
 
-                <div className="rounded-3xl bg-white shadow p-6">
+          <AllPLOTable
+            allPLO={profile.allPLO}
+          />
 
-                  <h2 className="text-lg font-semibold mb-4">
-                    All PLO Attainment
-                  </h2>
+        </div>
 
-                  <AllPLOTable
-                    allPLO={profile.allPLO}
-                  />
+    )}
 
-                </div>
+    {/* FRAMEWORK */}
+    <div className="rounded-3xl bg-white shadow p-6">
+      <AcademicFrameworkBoxes />
+    </div>
 
-            )}
+    {/* ASSESSMENT INFO */}
+    <div className="rounded-3xl bg-white shadow p-6">
+      <AssessmentInfoBoxes />
+    </div>
 
-          </div>
+    {/* PLO REFERENCE LIBRARY */}
+    <div className="rounded-3xl bg-white shadow p-6">
 
-        )}
+      <h2 className="text-lg font-semibold mb-6">
+        📘 Assessment & PLO Mapping Reference
+      </h2>
 
+      <div className="grid md:grid-cols-2 gap-6">
+
+        {/* TRX500 */}
+        <div className="border rounded-2xl p-4">
+
+          <h3 className="font-semibold text-purple-700">
+            Research Methodology Course (TRX500)
+          </h3>
+
+          <img
+            src="/trx500-mapping.png"
+            alt="TRX500 Mapping"
+            className="mt-4 rounded-xl border w-full"
+          />
+
+        </div>
+
+        {/* PROGRESS REPORT */}
+        <div className="border rounded-2xl p-4">
+
+          <h3 className="font-semibold text-purple-700">
+            Progress Report Mapping
+          </h3>
+
+          <img
+            src="/progress report-mapping.png"
+            alt="Progress Report"
+            className="mt-4 rounded-xl border w-full"
+          />
+
+        </div>
+
+        {/* TURNITIN */}
+        <div className="border rounded-2xl p-4">
+
+          <h3 className="font-semibold text-purple-700">
+            Similarity Index Rubric
+          </h3>
+
+          <img
+            src="/turnitin-mapping.png"
+            alt="Turnitin"
+            className="mt-4 rounded-xl border w-full"
+          />
+
+        </div>
+
+        {/* THESIS EXAMINATION */}
+        <div className="border rounded-2xl p-4">
+
+          <h3 className="font-semibold text-purple-700">
+            Thesis Examination Mapping
+          </h3>
+
+          <img
+            src="/Thesis Examination-mapping.png"
+            alt="Thesis Examination"
+            className="mt-4 rounded-xl border w-full"
+          />
+
+        </div>
+
+        {/* VIVA */}
+        <div className="border rounded-2xl p-4 md:col-span-2">
+
+          <h3 className="font-semibold text-purple-700">
+            Viva Voce Mapping
+          </h3>
+
+          <img
+            src="/viva voce-mapping.png"
+            alt="Viva Voce"
+            className="mt-4 rounded-xl border w-full"
+          />
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+)}
         {/* REMARKS */}
         {activeTab === "remarks" && (
 
