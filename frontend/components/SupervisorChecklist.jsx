@@ -5,30 +5,76 @@ const ITEMS = [
   {
     section: "Monitoring & Supervision",
     items: [
-      "Development Plan & Learning Contract (DPLC)",
-      "Student Supervision Logbook",
-      "Annual Progress Review – Year 1 Submission Folder",
-      "Annual Progress Review – Year 2 Submission Folder",
-      "Annual Progress Review – Year 3 (Final Year)",
+      {
+        name:
+          "Development Plan & Learning Contract (DPLC)"
+      },
+
+      {
+        name:
+          "Student Supervision Logbook"
+      },
+
+      {
+        name:
+          "APR Year 1 Submission",
+
+        note:
+          "Folder must contain Written Report and Presentation Slides"
+      },
+
+      {
+        name:
+          "APR Year 2 Submission",
+
+        note:
+          "Folder must contain Written Report and Presentation Slides"
+      },
     ],
   },
 
   {
     section: "Ethics & Research Outputs",
     items: [
-      "Ethics Approval",
-      "Publication Acceptance",
-      "Proof of Submission",
-      "Conference Presentation",
+      {
+        name:
+          "Ethics Approval"
+      },
+
+      {
+        name:
+          "Publication Acceptance"
+      },
+
+      {
+        name:
+          "Proof of Submission"
+      },
+
+      {
+        name:
+          "Conference Presentation"
+      },
     ],
   },
 
   {
     section: "Thesis & Viva",
     items: [
-      "Final Notice of Thesis Submission Form",
-      "Correction Verification (Final Submission to IPS)",
-      "Final Thesis",
+      {
+        name:
+          "Final Thesis Submission Form"
+      },
+
+      {
+        name:
+          "Correction Verification"
+      },
+
+      {
+        name:
+          "Final Thesis"
+      },
     ],
   },
 ];
@@ -157,7 +203,17 @@ export default function SupervisorChecklist({
 
           <ul className="space-y-5">
 
-            {group.items.map((label) => {
+            {group.items.map((itemObj) => {
+
+  const label =
+    typeof itemObj === "string"
+      ? itemObj
+      : itemObj.name;
+
+  const note =
+    typeof itemObj === "object"
+      ? itemObj.note
+      : "";
 
               const doc =
                 documents[label];
@@ -201,12 +257,20 @@ export default function SupervisorChecklist({
 
                     <div>
 
-                      <p className="font-medium text-sm">
+  <p className="font-medium text-sm">
 
-                        {url ? "✅" : "⬜"}{" "}
-                        {label}
+    {url ? "✅" : "⬜"}{" "}
+    {label}
 
-                      </p>
+  </p>
+
+  {note && (
+
+    <p className="text-xs text-gray-500 mt-1">
+      {note}
+    </p>
+
+  )}
 
                       {url ? (
 
