@@ -584,9 +584,8 @@ export default function StudentPage() {
 
     )}
 
-  
 
-    {/* PLO FRAMEWORK LIBRARY */}
+{/* PLO FRAMEWORK LIBRARY */}
 <div className="rounded-3xl bg-white shadow p-6">
 
   <h2 className="text-lg font-semibold mb-6">
@@ -695,8 +694,12 @@ export default function StudentPage() {
 
 </div>
 
+</div>
+
 )}
 
+
+{/* REMARKS */}
     
         {/* REMARKS */}
         {activeTab === "remarks" && (
