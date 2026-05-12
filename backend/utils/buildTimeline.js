@@ -255,8 +255,8 @@ export function buildExpectedOnly(raw) {
     "Thesis Draft Completed":
       { msc: 18, phd: 32 },
 
-    "Annual Progress Review (Year 3)":
-      { msc: 0, phd: 34 },
+    "Pre-Viva Review":
+  { msc: 20, phd: 34 },
 
     "Viva Voce":
       { msc: 21, phd: 36 },
