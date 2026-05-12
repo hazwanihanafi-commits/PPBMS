@@ -85,11 +85,11 @@ export const TIMELINE_MAP = {
     date: "Thesis Draft Completed - DELAY EMAIL DATE",
   },
 
-  FINAL_PROGRESS_REVIEW_Y3: {
-    expected: "Final Progress Review (Year 3) - Expected",
-    actual: "Final Progress Review (Year 3) - Actual",
-    sent: "Final Progress Review (Year 3) - DELAY EMAIL SENT",
-    date: "Final Progress Review (Year 3) - DELAY EMAIL DATE",
+  PRE_VIVA_REVIEW: {
+    expected: "Pre-Viva Review - Expected",
+    actual: "Pre-Viva Review - Actual",
+    sent: "Pre-Viva Review - DELAY EMAIL SENT",
+    date: "Pre-Viva Review - DELAY EMAIL DATE",
   },
 
   VIVA: {
