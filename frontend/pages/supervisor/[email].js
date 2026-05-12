@@ -14,8 +14,13 @@ import AssessmentInfoBoxes
 from "../../components/AssessmentInfoBoxes";
 
 /* ================= PREMIUM CARD ================= */
-const GlassCard = ({ children }) => (
-  <div className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-3xl p-6 shadow-sm">
+const GlassCard = ({
+  children,
+  className = ""
+}) => (
+  <div
+  className={`bg-white/70 backdrop-blur-xl border border-white/40 rounded-3xl p-6 shadow-sm ${className}`}
+>
     {children}
   </div>
 );
@@ -155,6 +160,24 @@ const coSupervisorDisplay =
       "✅ Progress is stable and on track.";
   }
 
+  {/* FINAL PLO */}
+{student?.finalPLO &&
+  Object.keys(student.finalPLO).length > 0 && (
+
+    <GlassCard>
+
+      <h2 className="text-lg font-semibold mb-4">
+        🎓 Final Programme Learning Outcome (PLO) Attainment
+      </h2>
+
+      <FinalPLOTable
+        finalPLO={student.finalPLO}
+      />
+
+    </GlassCard>
+
+)}
+
   /* ================= PDF ================= */
 
   function exportPDF() {
@@ -189,7 +212,7 @@ const coSupervisorDisplay =
             ← Back
           </button>
 
-         {[
+     {[
   {
     key: "overview",
     label: "🏠 Dashboard"
@@ -203,8 +226,12 @@ const coSupervisorDisplay =
     label: "📁 Documents"
   },
   {
-    key: "cqi",
-    label: "🎯 CQI & PLO"
+    key: "plo",
+    label: "🎯 PLO Achievements"
+  },
+  {
+    key: "remarks",
+    label: "💬 Remarks"
   }
 ].map(item => (
             <button
@@ -239,10 +266,10 @@ const coSupervisorDisplay =
         </div>
 
         {/* TOP SUMMARY */}
-<div className="grid lg:grid-cols-4 gap-6">
+<div className="grid lg:grid-cols-12 gap-6">
 
   {/* PROFILE */}
-  <GlassCard>
+ <GlassCard className="lg:col-span-6">
 
     <h3 className="font-semibold mb-4">
       Student Information
@@ -284,7 +311,7 @@ const coSupervisorDisplay =
   </GlassCard>
 
   {/* PROGRESS */}
-  <GlassCard>
+  <GlassCard className="lg:col-span-3">
 
     <p className="text-xs text-gray-500 mb-2">
       Overall Progress
@@ -312,7 +339,7 @@ const coSupervisorDisplay =
   </GlassCard>
 
   {/* KPI */}
-  <div className="space-y-4">
+  <div className="lg:col-span-3 space-y-4">
 
     <GlassCard>
       <p className="text-xs text-gray-500">
@@ -441,18 +468,19 @@ const coSupervisorDisplay =
 />
         )}
 
-  
-     {/* CQI */}
-{activeTab === "cqi" && (
+    
+Yes — revise the whole section because now:
+
+* CQI tab → should become Remarks
+* PLO already moved to dashboard
+* Framework/PLO tables should NOT be inside remarks anymore
+
+Replace your ENTIRE block with this:
+
+```jsx
+{/* REMARKS */}
+{activeTab === "remarks" && (
   <div className="space-y-6">
-
-  <AcademicFrameworkBoxes />
-
-<AssessmentInfoBoxes />
-
-    <AllPLOTable allPLO={student.allPLO} />
-
-<FinalPLOTable finalPLO={student.finalPLO} />
 
     {(student.remarksByAssessment || []).map((item, i) => {
 
@@ -461,39 +489,48 @@ const coSupervisorDisplay =
         !item.studentResponse;
 
       return (
+
         <GlassCard key={i}>
 
-          <div className="flex justify-between mb-3">
+          {/* HEADER */}
+          <div className="flex justify-between items-start mb-4">
 
             <div>
-              <h3 className="font-semibold text-purple-700">
+
+              <h3 className="font-semibold text-purple-700 text-lg">
                 {item.assessmentInstance}
               </h3>
-              <p className="text-xs text-gray-400">
+
+              <p className="text-xs text-gray-400 mt-1">
                 {item.assessmentType}
               </p>
+
             </div>
 
             <span
-  className={`text-xs px-3 py-1 rounded font-semibold ${
-    item.status === "RESPONDED"
-      ? "bg-green-100 text-green-700"
-      : item.status === "PENDING"
-      ? "bg-red-100 text-red-700"
-      : "bg-gray-100 text-gray-600"
-  }`}
->
-  {item.status || "PENDING"}
-</span>
+              className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                item.status === "RESPONDED"
+                  ? "bg-green-100 text-green-700"
+                  : item.status === "PENDING"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {item.status || "PENDING"}
+            </span>
+
           </div>
 
-          {/* ✅ FIXED HERE */}
-          <div className="mt-2">
-            <p className="text-sm font-semibold">Supervisor Remark</p>
+          {/* SUPERVISOR REMARK */}
+          <div className="mb-5">
+
+            <p className="text-sm font-semibold mb-2">
+              Supervisor Remark
+            </p>
 
             <textarea
-              className="w-full mt-1 p-2 border rounded-xl text-sm"
-              rows={3}
+              className="w-full mt-1 p-4 border rounded-2xl text-sm bg-gray-50"
+              rows={4}
               value={
                 remarkInputs[item.assessmentInstance] ??
                 item.supervisorRemark ??
@@ -502,35 +539,64 @@ const coSupervisorDisplay =
               onChange={(e) =>
                 setRemarkInputs(prev => ({
                   ...prev,
-                  [item.assessmentInstance]: e.target.value
+                  [item.assessmentInstance]:
+                    e.target.value
                 }))
               }
             />
 
             <button
-              onClick={() => saveRemark(item.assessmentInstance)}
-              className="mt-2 px-3 py-1 bg-purple-600 text-white text-xs rounded-lg"
+              onClick={() =>
+                saveRemark(item.assessmentInstance)
+              }
+              className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm rounded-xl hover:bg-purple-700 transition"
             >
               Save Remark
             </button>
+
           </div>
 
-          <p className="text-sm mt-2">
-            <b>Student:</b> {item.studentResponse || "—"}
-          </p>
+          {/* STUDENT RESPONSE */}
+          <div>
 
-          {showAlert && (
-            <div className="mt-3 bg-red-100 text-red-700 text-xs p-2 rounded-xl">
-              ⚠ No student response yet
+            <p className="text-sm font-semibold mb-2">
+              Student Response
+            </p>
+
+            <div className="bg-gray-50 rounded-2xl p-4 text-sm text-gray-700 border">
+
+              {item.studentResponse ? (
+                item.studentResponse
+              ) : (
+                <span className="text-gray-400 italic">
+                  No response submitted yet.
+                </span>
+              )}
+
             </div>
+
+          </div>
+
+          {/* ALERT */}
+          {showAlert && (
+
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-2xl">
+
+              ⚠ Awaiting student response for this CQI remark.
+
+            </div>
+
           )}
 
         </GlassCard>
+
       );
+
     })}
 
   </div>
 )}
+
       </div>
     </div>
   );
