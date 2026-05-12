@@ -27,7 +27,6 @@ const ITEMS = [
     section: "Thesis & Viva",
     items: [
       "Thesis Notice",
-      "Viva Report",
       "Correction Verification",
       "Final Thesis",
     ],
