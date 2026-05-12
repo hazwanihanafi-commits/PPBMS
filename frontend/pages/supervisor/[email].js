@@ -189,17 +189,34 @@ const coSupervisorDisplay =
             ← Back
           </button>
 
-          {["overview","timeline","documents","cqi"].map(tab => (
+         [
+  {
+    key: "overview",
+    label: "🏠 Dashboard"
+  },
+  {
+    key: "timeline",
+    label: "📅 Timeline"
+  },
+  {
+    key: "documents",
+    label: "📁 Documents"
+  },
+  {
+    key: "cqi",
+    label: "🎯 CQI & PLO"
+  }
+].map(item => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={item.key}
+             onClick={() => setActiveTab(item.key)}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${
-                activeTab === tab
+                activeTab === item.key
                   ? "bg-purple-100 text-purple-700"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              {tab.toUpperCase()}
+              {item.label}
             </button>
           ))}
 
@@ -221,52 +238,117 @@ const coSupervisorDisplay =
           </button>
         </div>
 
-        {/* HERO */}
-        <div className="bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 text-white rounded-3xl p-6 shadow-xl flex justify-between">
+        {/* TOP SUMMARY */}
+<div className="grid lg:grid-cols-4 gap-6">
 
-          <div>
-            <h1 className="text-2xl font-semibold">
-              {student.student_name}
-            </h1>
-            <p className="text-sm text-purple-100">
-              {student.programme}
-            </p>
-          </div>
+  {/* PROFILE */}
+  <GlassCard>
 
-          <div className="text-right">
-            <p className="text-4xl font-bold">{progress}%</p>
+    <h3 className="font-semibold mb-4">
+      Student Information
+    </h3>
 
-            <span className={`px-4 py-1 rounded-full text-xs font-semibold mt-2 inline-block
-              ${
-                category === "Graduated"
-                  ? "bg-blue-100 text-blue-700"
-                  : category === "On Track"
-                  ? "bg-green-100 text-green-700"
-                  : category === "Slightly Late"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-red-100 text-red-700"
-              }
-            `}>
-              {category}
-            </span>
-          </div>
+    <div className="grid md:grid-cols-2 gap-3 text-sm">
 
-        </div>
+      <p>
+        <b>Name:</b> {student.student_name}
+      </p>
 
-        {/* STUDENT INFO */}
-        <GlassCard>
-          <h3 className="font-semibold mb-3">Student Information</h3>
+      <p>
+        <b>Matric:</b> {student.student_id}
+      </p>
 
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <p><b>Email:</b> {student.email}</p>
-            <p><b>Matric:</b> {student.student_id}</p>
-            <p><b>Status:</b> {student.status}</p>
-            <p><b>Supervisor:</b> {student.supervisor}</p>
-          <p><b>Co-Supervisor:</b> {coSupervisorDisplay}</p>
-          </div>
-        </GlassCard>
+      <p>
+        <b>Email:</b> {student.email}
+      </p>
 
-        {/* AI INSIGHT */}
+      <p>
+        <b>Status:</b> {student.status}
+      </p>
+
+      <p>
+        <b>Programme:</b> {student.programme}
+      </p>
+
+      <p>
+        <b>Supervisor:</b> {student.supervisor}
+      </p>
+
+      <p className="md:col-span-2">
+        <b>Co-Supervisor:</b>{" "}
+        {coSupervisorDisplay}
+      </p>
+
+    </div>
+
+  </GlassCard>
+
+  {/* PROGRESS */}
+  <GlassCard>
+
+    <p className="text-xs text-gray-500 mb-2">
+      Overall Progress
+    </p>
+
+    <h2 className="text-5xl font-bold text-purple-700">
+      {progress}%
+    </h2>
+
+    <span
+      className={`mt-4 inline-block px-4 py-1 rounded-full text-xs font-semibold
+      ${
+        category === "Graduated"
+          ? "bg-blue-100 text-blue-700"
+          : category === "On Track"
+          ? "bg-green-100 text-green-700"
+          : category === "Slightly Late"
+          ? "bg-yellow-100 text-yellow-700"
+          : "bg-red-100 text-red-700"
+      }`}
+    >
+      {category}
+    </span>
+
+  </GlassCard>
+
+  {/* KPI */}
+  <div className="space-y-4">
+
+    <GlassCard>
+      <p className="text-xs text-gray-500">
+        Completed
+      </p>
+
+      <p className="text-3xl font-bold text-green-600">
+        {completed}
+      </p>
+    </GlassCard>
+
+    <GlassCard>
+      <p className="text-xs text-gray-500">
+        Near Deadline
+      </p>
+
+      <p className="text-3xl font-bold text-yellow-600">
+        {nearDeadline}
+      </p>
+    </GlassCard>
+
+    <GlassCard>
+      <p className="text-xs text-gray-500">
+        Late
+      </p>
+
+      <p className="text-3xl font-bold text-red-600">
+        {lateItems}
+      </p>
+    </GlassCard>
+
+  </div>
+
+</div>        
+  
+{/* AI INSIGHT */}
         <div className="rounded-2xl p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border">
           <p className="text-xs text-indigo-500 uppercase font-semibold">
             AI Insight
