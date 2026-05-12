@@ -189,7 +189,7 @@ const coSupervisorDisplay =
             ← Back
           </button>
 
-         [
+         {[
   {
     key: "overview",
     label: "🏠 Dashboard"
