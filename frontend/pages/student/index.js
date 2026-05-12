@@ -599,95 +599,114 @@ export default function StudentPage() {
       <AssessmentInfoBoxes />
     </div>
 
-    {/* IMAGE REFERENCES */}
-    <div className="rounded-3xl bg-white shadow p-6">
+    {/* PLO FRAMEWORK LIBRARY */}
+<div className="rounded-3xl bg-white shadow p-6">
 
-      <h2 className="text-lg font-semibold mb-6">
-        📘 Assessment & PLO Mapping Reference
-      </h2>
+  <h2 className="text-lg font-semibold mb-6">
+    📘 Programme & Assessment Framework
+  </h2>
 
-      <div className="grid md:grid-cols-2 gap-6">
+  {/* MAIN PLO OVERVIEW */}
+  <div className="mb-8 border rounded-2xl p-4 bg-gray-50">
 
-        {/* TRX500 */}
-        <div className="border rounded-2xl p-4">
+    <h3 className="font-semibold text-purple-700 text-lg">
+      🎯 Main PLO Mapping Overview
+    </h3>
 
-          <h3 className="font-semibold text-purple-700">
-            Research Methodology Course (TRX500)
-          </h3>
+    <p className="text-sm text-gray-500 mt-2">
+      Overall mapping between programme learning outcomes
+      and assessment components.
+    </p>
 
-          <img
-            src="/trx500-mapping.png"
-            alt="TRX500 Mapping"
-            className="mt-4 rounded-xl border w-full"
-          />
+    <img
+      src="/Assessments-mapping.png"
+      alt="Main PLO Mapping"
+      className="mt-5 rounded-xl border w-full"
+    />
 
-        </div>
+  </div>
 
-        {/* PROGRESS REPORT */}
-        <div className="border rounded-2xl p-4">
+  {/* DETAIL REFERENCES */}
+  <div className="grid md:grid-cols-2 gap-6">
 
-          <h3 className="font-semibold text-purple-700">
-            Progress Report Mapping
-          </h3>
+    {/* TRX500 */}
+    <div className="border rounded-2xl p-4">
 
-          <img
-            src="/progress-report.png"
-            alt="Progress Report"
-            className="mt-4 rounded-xl border w-full"
-          />
+      <h3 className="font-semibold text-purple-700">
+        Research Methodology Course (TRX500)
+      </h3>
 
-        </div>
+      <img
+        src="/trx500-mapping.png"
+        alt="TRX500"
+        className="mt-4 rounded-xl border w-full"
+      />
 
-        {/* TURNITIN */}
-        <div className="border rounded-2xl p-4">
+    </div>
 
-          <h3 className="font-semibold text-purple-700">
-            Similarity Index Rubric
-          </h3>
+    {/* PROGRESS REPORT */}
+    <div className="border rounded-2xl p-4">
 
-          <img
-            src="/turnitin-mapping.png"
-            alt="Turnitin"
-            className="mt-4 rounded-xl border w-full"
-          />
+      <h3 className="font-semibold text-purple-700">
+        Progress Review
+      </h3>
 
-        </div>
+      <img
+        src="/progress-report.png"
+        alt="Progress"
+        className="mt-4 rounded-xl border w-full"
+      />
 
-        {/* THESIS EXAM */}
-        <div className="border rounded-2xl p-4">
+    </div>
 
-          <h3 className="font-semibold text-purple-700">
-            Thesis Examination Mapping
-          </h3>
+    {/* TURNITIN */}
+    <div className="border rounded-2xl p-4">
 
-          <img
-            src="/thesis-exam.png"
-            alt="Thesis Examination"
-            className="mt-4 rounded-xl border w-full"
-          />
+      <h3 className="font-semibold text-purple-700">
+        Similarity Index
+      </h3>
 
-        </div>
+      <img
+        src="/turnitin-mapping.png"
+        alt="Similarity"
+        className="mt-4 rounded-xl border w-full"
+      />
 
-        {/* VIVA */}
-        <div className="border rounded-2xl p-4 md:col-span-2">
+    </div>
 
-          <h3 className="font-semibold text-purple-700">
-            Viva Voce Mapping
-          </h3>
+    {/* THESIS */}
+    <div className="border rounded-2xl p-4">
 
-          <img
-            src="/viva-voce.png"
-            alt="Viva Voce"
-            className="mt-4 rounded-xl border w-full"
-          />
+      <h3 className="font-semibold text-purple-700">
+        Thesis Examination
+      </h3>
 
-        </div>
+      <img
+        src="/thesis-exam.png"
+        alt="Thesis"
+        className="mt-4 rounded-xl border w-full"
+      />
 
-      </div>
+    </div>
+
+    {/* VIVA */}
+    <div className="border rounded-2xl p-4 md:col-span-2">
+
+      <h3 className="font-semibold text-purple-700">
+        Viva Voce
+      </h3>
+
+      <img
+        src="/viva-voce.png"
+        alt="Viva"
+        className="mt-4 rounded-xl border w-full"
+      />
 
     </div>
 
   </div>
+
+</div>
 
 )}
     
