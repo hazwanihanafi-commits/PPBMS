@@ -8,11 +8,6 @@ import CompletionDonut from "../../components/CompletionDonut";
 import TopBar from "../../components/TopBar";
 import FinalPLOTable from "../../components/FinalPLOTable";
 import AllPLOTable from "../../components/AllPLOTable";
-import AcademicFrameworkBoxes
-from "../../components/AcademicFrameworkBoxes";
-
-import AssessmentInfoBoxes
-from "../../components/AssessmentInfoBoxes";
 
 export default function StudentPage() {
 
@@ -589,15 +584,7 @@ export default function StudentPage() {
 
     )}
 
-    {/* FRAMEWORK */}
-    <div className="rounded-3xl bg-white shadow p-6">
-      <AcademicFrameworkBoxes />
-    </div>
-
-    {/* ASSESSMENT INFO */}
-    <div className="rounded-3xl bg-white shadow p-6">
-      <AssessmentInfoBoxes />
-    </div>
+  
 
     {/* PLO FRAMEWORK LIBRARY */}
 <div className="rounded-3xl bg-white shadow p-6">
@@ -709,6 +696,7 @@ export default function StudentPage() {
 </div>
 
 )}
+
     
         {/* REMARKS */}
         {activeTab === "remarks" && (
