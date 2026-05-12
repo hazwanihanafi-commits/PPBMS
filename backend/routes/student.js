@@ -530,13 +530,32 @@ const file_url = link;
     }
 
     const DOC_COLUMN_MAP = {
-      "Development Plan & Learning Contract (DPLC)": "DPLC",
-      "Student Supervision Logbook": "SUPERVISION_LOG",
-      "Annual Progress Review – Year 1": "APR_Y1",
-      "Annual Progress Review – Year 2": "APR_Y2",
-      "Annual Progress Review – Year 3 (Final Year)": "APR_Y3",
-    };
 
+  "Development Plan & Learning Contract (DPLC)": "DPLC",
+
+  "Student Supervision Logbook": "SUPERVISION_LOG",
+
+  "APR Year 1 Submission": "APR_Y1",
+
+  "APR Year 2 Submission": "APR_Y2",
+
+  "APR Year 3 Submission": "APR_Y3",
+
+  "Ethics Approval": "ETHICS_APPROVAL",
+
+  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
+
+  "Proof of Submission": "PROOF_OF_SUBMISSION",
+
+  "Conference Presentation": "CONFERENCE_PRESENTATION",
+
+  "Final Thesis Submission Form": "THESIS_NOTICE",
+
+  "Correction Verification": "CORRECTION_VERIFICATION",
+
+  "Final Thesis": "FINAL_THESIS"
+
+};
     const column = DOC_COLUMN_MAP[document_key];
 
     if (!column) {
