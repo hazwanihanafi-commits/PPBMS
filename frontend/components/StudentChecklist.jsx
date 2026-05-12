@@ -6,181 +6,109 @@ import { authFetch } from "../utils/authFetch";
 ========================================================= */
 
 const MSC_CHECKLIST = [
-
   {
-    name:
-      "Development Plan & Learning Contract (DPLC)",
-
-    role:
-      "Student Upload"
+    name: "DPLC",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Student Supervision Logbook",
-
-    role:
-      "Student Upload"
+    name: "Supervision Logbook",
+    role: "Student Upload"
   },
 
   {
-  name:
-    "Annual Progress Review – Year 1 Submission Folder",
-
-  role:
-    "Student Upload",
-
-  note:
-    "Upload ONE folder containing Written Report and Presentation Slides"
-},
-
-  {
-    name:
-      "Ethics Approval",
-
-    role:
-      "Student Upload"
+    name: "APR Year 1 Submission",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Conference Presentation",
-
-    role:
-      "Student Upload"
+    name: "Ethics Approval",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Final Notice of Thesis Submission Form",
-
-    role:
-      "Student Upload"
+    name: "Conference Presentation",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Correction Verification (Final Submission to IPS)",
-
-    role:
-      "Student Upload"
+    name: "Final Thesis Submission Form",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Final Thesis",
-
-    role:
-      "Student Upload"
+    name: "Correction Verification",
+    role: "Student Upload"
   },
 
-
-
+  {
+    name: "Final Thesis",
+    role: "Student Upload"
+  },
 ];
-
-/* =========================================================
-   PhD DOCUMENT CHECKLIST
-========================================================= */
 
 const PHD_CHECKLIST = [
-
   {
-    name:
-      "Development Plan & Learning Contract (DPLC)",
-
-    role:
-      "Student Upload"
+    name: "DPLC",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Student Supervision Logbook",
-
-    role:
-      "Student Upload"
+    name: "Supervision Logbook",
+    role: "Student Upload"
   },
 
   {
-  name:
-    "Annual Progress Review – Year 1 Submission Folder",
-
-  role:
-    "Student Upload",
-
+  name: "APR Year 1 Submission",
+  role: "Student Upload",
   note:
-    "Upload ONE folder containing Written Report and Presentation Slides"
+    "Upload ONE Google Drive folder containing Written Report and Presentation Slides"
 },
 
   {
-  name:
-    "Annual Progress Review – Year 2 Submission Folder",
-
-  role:
-    "Student Upload",
-
-  note:
-    "Upload ONE folder containing Written Report and Presentation Slides"
-},
-
-  {
-    name:
-      "Ethics Approval",
-
-    role:
-      "Student Upload"
+    name: "APR Year 2 Submission",
+    role: "Student Upload",
+     note:
+    "Upload ONE Google Drive folder containing Written Report and Presentation Slides"
   },
 
   {
-    name:
-      "Publication Acceptance",
-
-    role:
-      "Student Upload"
+    name: "Ethics Approval",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Proof of Submission",
-
-    role:
-      "Student Upload"
+    name: "Publication Acceptance",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Conference Presentation",
-
-    role:
-      "Student Upload"
+    name: "Proof of Submission",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Final Notice of Thesis Submission Form",
-
-    role:
-      "Student Upload"
+    name: "Conference Presentation",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Correction Verification (Final Submission to IPS)",
-
-    role:
-      "Student Upload"
+    name: "Final Thesis Submission Form",
+    role: "Student Upload"
   },
 
   {
-    name:
-      "Final Thesis",
-
-    role:
-      "Student Upload"
+    name: "Correction Verification",
+    role: "Student Upload"
   },
 
-
-
+  {
+    name: "Final Thesis",
+    role: "Student Upload"
+  },
 ];
+
+
 
 export default function StudentChecklist({
   documents = {},
@@ -367,6 +295,14 @@ export default function StudentChecklist({
                 ">
                   {role}
                 </p>
+
+                 {itemObj.note && (
+
+  <p className="text-xs text-gray-500 mt-2">
+    {itemObj.note}
+  </p>
+
+)}
 
                 {doc.reviewed_by && (
 
