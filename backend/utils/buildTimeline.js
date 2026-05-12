@@ -68,6 +68,12 @@ export const MSC_ACTIVITIES = [
       "Thesis Draft Completed - Actual"
   },
 
+   {
+  key: "Pre-Viva Review",
+  actualCol:
+    "Pre-Viva Review - Actual"
+},
+
   {
     key: "Viva Voce",
     actualCol:
@@ -159,12 +165,12 @@ export const PHD_ACTIVITIES = [
       "Thesis Draft Completed - Actual"
   },
 
-  {
-    key: "Annual Progress Review (Year 3)",
-    actualCol:
-      "Annual Progress Review (Year 3) - Actual"
-  },
-
+ {
+  key: "Pre-Viva Review",
+  actualCol:
+    "Pre-Viva Review - Actual"
+},
+   
   {
     key: "Viva Voce",
     actualCol:
