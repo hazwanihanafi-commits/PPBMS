@@ -533,9 +533,37 @@ export default function StudentPage() {
                   </div>
 
                   <p className="text-sm text-gray-600">
-                    Expected: {t.expected || "-"} |
-                    Actual: {t.actual || "-"}
-                  </p>
+  Expected: {t.expected || "-"} |
+  Actual: {t.actual || "-"}
+</p>
+
+<div className="mt-4 flex gap-3">
+
+  {!t.actual ? (
+
+    <button
+      onClick={() =>
+        markCompleted(t.activity)
+      }
+      className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm hover:bg-purple-700 transition"
+    >
+      Mark Completed
+    </button>
+
+  ) : (
+
+    <button
+      onClick={() =>
+        resetCompleted(t.activity)
+      }
+      className="px-4 py-2 rounded-xl bg-red-100 text-red-700 text-sm hover:bg-red-200 transition"
+    >
+      Reset Timeline
+    </button>
+
+  )}
+
+</div>
 
                 </div>
 
