@@ -160,24 +160,7 @@ const coSupervisorDisplay =
       "✅ Progress is stable and on track.";
   }
 
-  {/* FINAL PLO */}
-{student?.finalPLO &&
-  Object.keys(student.finalPLO).length > 0 && (
-
-    <GlassCard>
-
-      <h2 className="text-lg font-semibold mb-4">
-        🎓 Final Programme Learning Outcome (PLO) Attainment
-      </h2>
-
-      <FinalPLOTable
-        finalPLO={student.finalPLO}
-      />
-
-    </GlassCard>
-
-)}
-
+  
   /* ================= PDF ================= */
 
   function exportPDF() {
@@ -200,7 +183,7 @@ const coSupervisorDisplay =
     <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] flex">
 
       {/* SIDEBAR */}
-      <div className="w-56 p-4">
+      <div className="w-64 p-4">
         <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow">
 
           <h2 className="font-bold text-purple-700 mb-4">PPBMS</h2>
@@ -383,37 +366,31 @@ const coSupervisorDisplay =
           <p className="text-sm mt-2">{aiMessage}</p>
         </div>
 
-        {/* KPI */}
-        {!isGraduated ? (
+        
+{/* OVERVIEW */}
+{activeTab === "overview" && (
+  <div className="space-y-6">
 
-          <div className="grid grid-cols-3 gap-4">
+    {student?.finalPLO &&
+      Object.keys(student.finalPLO).length > 0 && (
 
-            <GlassCard>
-              <p className="text-xs text-gray-500">Completed</p>
-              <p className="text-3xl font-bold text-green-600">{completed}</p>
-            </GlassCard>
+        <GlassCard>
 
-            <GlassCard>
-              <p className="text-xs text-gray-500">In Progress</p>
-              <p className="text-3xl font-bold text-yellow-600">
-                {timeline.length - completed}
-              </p>
-            </GlassCard>
+          <h2 className="text-lg font-semibold mb-4">
+            🎓 Final Programme Learning Outcome (PLO) Attainment
+          </h2>
 
-            <GlassCard>
-              <p className="text-xs text-gray-500">Late</p>
-              <p className="text-3xl font-bold text-red-600">{lateItems}</p>
-            </GlassCard>
+          <FinalPLOTable
+            finalPLO={student.finalPLO}
+          />
 
-          </div>
+        </GlassCard>
 
-        ) : (
+    )}
 
-          <div className="bg-blue-50 rounded-2xl p-5 text-center shadow">
-            🎓 Programme Completed Successfully
-          </div>
+  </div>
+)}
 
-        )}
 
         {/* TIMELINE */}
         {activeTab === "timeline" && (
@@ -468,16 +445,33 @@ const coSupervisorDisplay =
 />
         )}
 
-    
-Yes — revise the whole section because now:
+    {/* PLO ACHIEVEMENT */}
+{activeTab === "plo" && (
+  <div className="space-y-6">
 
-* CQI tab → should become Remarks
-* PLO already moved to dashboard
-* Framework/PLO tables should NOT be inside remarks anymore
+    <GlassCard>
 
-Replace your ENTIRE block with this:
+      <h2 className="text-lg font-semibold mb-4">
+        🎯 All Programme Learning Outcome (PLO) Achievement
+      </h2>
 
-```jsx
+      <AllPLOTable
+        allPLO={student.allPLO}
+      />
+
+    </GlassCard>
+
+    <GlassCard>
+      <AcademicFrameworkBoxes />
+    </GlassCard>
+
+    <GlassCard>
+      <AssessmentInfoBoxes />
+    </GlassCard>
+
+  </div>
+)}
+
 {/* REMARKS */}
 {activeTab === "remarks" && (
   <div className="space-y-6">
