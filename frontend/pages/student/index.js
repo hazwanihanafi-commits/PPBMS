@@ -29,7 +29,7 @@ export default function StudentPage() {
     useState([]);
 
   const [activeTab, setActiveTab] =
-    useState("timeline");
+  useState("dashboard");
 
   const [loading, setLoading] =
     useState(true);
@@ -235,15 +235,74 @@ export default function StudentPage() {
     );
   }
 
-  /* =========================
-     UI
-  ========================= */
-
   return (
-    <>
-      <TopBar user={user} />
+  <>
+    <TopBar user={user} />
 
-      <div className="min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] p-6 space-y-6 text-gray-800">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#eef2ff] via-[#f8fafc] to-[#ede9fe] text-gray-800">
+
+      {/* SIDEBAR */}
+      <aside className="w-64 bg-white shadow-2xl border-r hidden md:flex flex-col">
+
+        <div className="p-6 border-b">
+
+          <h1 className="text-2xl font-bold text-purple-700">
+            PPBMS
+          </h1>
+
+          <p className="text-xs text-gray-500 mt-1">
+            Postgraduate Monitoring System
+          </p>
+
+        </div>
+
+        <nav className="flex-1 p-4 space-y-2">
+
+          {[
+            {
+              key: "dashboard",
+              label: "🏠 Dashboard"
+            },
+            {
+              key: "timeline",
+              label: "📅 Timeline"
+            },
+            {
+              key: "documents",
+              label: "📁 Documents"
+            },
+            {
+              key: "plo",
+              label: "🎯 PLO Achievement"
+            },
+            {
+              key: "remarks",
+              label: "💬 Remarks"
+            }
+          ].map((item) => (
+
+            <button
+              key={item.key}
+              onClick={() =>
+                setActiveTab(item.key)
+              }
+              className={`w-full text-left px-4 py-3 rounded-2xl transition font-medium ${
+                activeTab === item.key
+                  ? "bg-gradient-to-r from-purple-600 to-indigo-500 text-white shadow"
+                  : "hover:bg-purple-50 text-gray-700"
+              }`}
+            >
+              {item.label}
+            </button>
+
+          ))}
+
+        </nav>
+
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 p-6 overflow-y-auto space-y-6">
 
         {/* HERO */}
         <div className="rounded-3xl bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 text-white p-6 shadow-xl">
@@ -253,14 +312,7 @@ export default function StudentPage() {
           </h1>
 
           <p className="text-purple-100 mt-1 text-sm">
-            {profile.student_name} ·{" "}
-            {profile.programme}
-          </p>
-
-          <p className="text-purple-200 text-sm">
-            {completed} of{" "}
-            {timeline.length} milestones
-            completed
+            {profile.student_name} · {profile.programme}
           </p>
 
         </div>
@@ -270,121 +322,75 @@ export default function StudentPage() {
 
           <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded-2xl shadow">
 
-            ⚠️ There are {late} overdue
-            milestone(s) requiring
-            immediate attention.
+            ⚠️ There are {late} overdue milestone(s)
+            requiring immediate attention.
 
           </div>
 
         )}
 
-        {/* PROFILE */}
-        <div className="rounded-3xl bg-white/50 backdrop-blur-xl shadow p-6">
+        {/* TOP SUMMARY */}
+        <div className="grid lg:grid-cols-4 gap-6">
 
-          <h2 className="text-lg font-semibold mb-4 border-b pb-2">
-            Student Information
-          </h2>
+          {/* PROFILE */}
+          <div className="lg:col-span-2 rounded-3xl bg-white/70 backdrop-blur-xl shadow p-6">
 
-          <div className="grid md:grid-cols-2 gap-2 text-sm">
-
-            <p>
-              <span className="font-medium">
-                Matric Number:
-              </span>{" "}
-              {profile.student_id}
-            </p>
-
-            <p>
-              <span className="font-medium">
-                Email Address:
-              </span>{" "}
-              {profile.email}
-            </p>
-
-            <p>
-              <span className="font-medium">
-                Programme:
-              </span>{" "}
-              {profile.programme}
-            </p>
-
-            <p>
-              <span className="font-medium">
-                Main Supervisor:
-              </span>{" "}
-              {profile.supervisor}
-            </p>
-
-            <p>
-              <strong>
-                Co-Supervisor(s):
-              </strong>{" "}
-              {(
-  profile.cosupervisor ||
-  profile.cosupervisors ||
-  profile.co_supervisor ||
-  "-"
-)
-  .split(/[,;]/)   // split by comma or ;
-  .map(s => s.trim())
-  .filter(Boolean)
-  .join(", ")
-}
-            </p>
-
-          </div>
-
-        </div>
-
-        {/* KPI */}
-        <div className="grid md:grid-cols-3 gap-6">
-
-          <div className="rounded-2xl p-5 bg-green-50 shadow">
-
-            <p className="text-sm text-gray-600">
-              Completed Milestones
-            </p>
-
-            <h2 className="text-2xl font-bold text-green-700">
-              {completed}
+            <h2 className="text-lg font-semibold mb-4 border-b pb-2">
+              Student Information
             </h2>
 
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+
+              <p>
+                <span className="font-medium">
+                  Matric Number:
+                </span>{" "}
+                {profile.student_id}
+              </p>
+
+              <p>
+                <span className="font-medium">
+                  Email:
+                </span>{" "}
+                {profile.email}
+              </p>
+
+              <p>
+                <span className="font-medium">
+                  Programme:
+                </span>{" "}
+                {profile.programme}
+              </p>
+
+              <p>
+                <span className="font-medium">
+                  Supervisor:
+                </span>{" "}
+                {profile.supervisor}
+              </p>
+
+              <p className="md:col-span-2">
+                <span className="font-medium">
+                  Co-Supervisor(s):
+                </span>{" "}
+                {(
+                  profile.cosupervisor ||
+                  profile.cosupervisors ||
+                  profile.co_supervisor ||
+                  "-"
+                )
+                  .split(/[,;]/)
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+
+            </div>
+
           </div>
 
-          <div className="rounded-2xl p-5 bg-blue-50 shadow">
-
-            <p className="text-sm text-gray-600">
-              Milestones Within Timeline
-            </p>
-
-            <h2 className="text-2xl font-bold text-blue-700">
-
-              {timeline.length -
-                completed -
-                late}
-
-            </h2>
-
-          </div>
-
-          <div className="rounded-2xl p-5 bg-red-50 shadow">
-
-            <p className="text-sm text-gray-600">
-              Overdue Milestones
-            </p>
-
-            <h2 className="text-2xl font-bold text-red-700">
-              {late}
-            </h2>
-
-          </div>
-
-        </div>
-
-        {/* PROGRESS */}
-        <div className="grid md:grid-cols-3 gap-6">
-
-          <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-4 flex justify-center">
+          {/* DONUT */}
+          <div className="rounded-3xl bg-white/70 backdrop-blur shadow p-4 flex items-center justify-center">
 
             <CompletionDonut
               percent={progress}
@@ -392,297 +398,296 @@ export default function StudentPage() {
 
           </div>
 
-          <div className="md:col-span-2 rounded-3xl bg-white/50 backdrop-blur shadow p-4">
+          {/* KPI */}
+          <div className="space-y-4">
 
-            <TimelineSummary
-              timeline={timeline}
+            <div className="rounded-2xl p-4 bg-green-50 shadow">
+              <p className="text-sm text-gray-600">
+                Completed
+              </p>
+
+              <h2 className="text-2xl font-bold text-green-700">
+                {completed}
+              </h2>
+            </div>
+
+            <div className="rounded-2xl p-4 bg-blue-50 shadow">
+              <p className="text-sm text-gray-600">
+                On Track
+              </p>
+
+              <h2 className="text-2xl font-bold text-blue-700">
+                {timeline.length - completed - late}
+              </h2>
+            </div>
+
+            <div className="rounded-2xl p-4 bg-red-50 shadow">
+              <p className="text-sm text-gray-600">
+                Overdue
+              </p>
+
+              <h2 className="text-2xl font-bold text-red-700">
+                {late}
+              </h2>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* DASHBOARD */}
+        {activeTab === "dashboard" && (
+
+          <>
+
+            {/* TIMELINE SUMMARY */}
+            <div className="rounded-3xl bg-white/70 backdrop-blur shadow p-6">
+
+              <h2 className="text-lg font-semibold mb-4">
+                Timeline Summary
+              </h2>
+
+              <TimelineSummary
+                timeline={timeline}
+              />
+
+            </div>
+
+            {/* SYSTEM INSIGHT */}
+            <div className="rounded-2xl bg-white shadow p-5">
+
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                System Insight
+              </p>
+
+              <p className="mt-2 text-sm font-medium">
+
+                {late > 0
+                  ? "There are overdue milestones requiring immediate attention."
+                  : "All milestones are progressing within the expected timeline."}
+
+              </p>
+
+            </div>
+
+            {/* FINAL PLO */}
+            {profile?.finalPLO &&
+              Object.keys(profile.finalPLO).length > 0 && (
+
+                <div className="rounded-3xl bg-white shadow p-6">
+
+                  <h2 className="text-lg font-semibold mb-4">
+                    Final PLO Achievement
+                  </h2>
+
+                  <FinalPLOTable
+                    finalPLO={profile.finalPLO}
+                  />
+
+                </div>
+
+            )}
+
+          </>
+
+        )}
+
+        {/* TIMELINE */}
+        {activeTab === "timeline" && (
+
+          <div className="grid gap-4">
+
+            {timeline.map((t, i) => {
+
+              const isLate =
+                t.status?.trim().toLowerCase() === "late" ||
+                t.status?.trim().toUpperCase() === "AT_RISK" ||
+                (!t.actual &&
+                  t.remaining_days < 0 &&
+                  t.status?.trim().toLowerCase() !== "completed");
+
+              return (
+
+                <div
+                  key={i}
+                  className={`rounded-2xl p-5 shadow border-l-4 ${
+                    isLate
+                      ? "border-red-500 bg-red-50"
+                      : t.remaining_days <= 30
+                      ? "border-yellow-400 bg-yellow-50"
+                      : "border-green-400 bg-white"
+                  }`}
+                >
+
+                  <div className="flex justify-between mb-2">
+
+                    <h4 className="font-semibold">
+                      {t.activity}
+                    </h4>
+
+                    <span className="text-sm font-bold text-purple-700">
+
+                      {t.remaining_days < 0
+                        ? `${Math.abs(
+                            t.remaining_days
+                          )} days overdue`
+                        : `${t.remaining_days} days`}
+
+                    </span>
+
+                  </div>
+
+                  <p className="text-sm text-gray-600">
+                    Expected: {t.expected || "-"} |
+                    Actual: {t.actual || "-"}
+                  </p>
+
+                </div>
+
+              );
+            })}
+
+          </div>
+
+        )}
+
+        {/* DOCUMENTS */}
+        {activeTab === "documents" && (
+
+          <div className="rounded-3xl bg-white/70 backdrop-blur shadow p-6">
+
+            <StudentChecklist
+              documents={profile.documents || {}}
+              programme={profile.programme || ""}
+              onSaved={loadStudent}
             />
 
           </div>
 
-        </div>
+        )}
 
-        {/* INSIGHT */}
-        <div className="rounded-2xl bg-white shadow p-4">
+        {/* PLO */}
+        {activeTab === "plo" && (
 
-          <p className="text-xs text-gray-500 uppercase tracking-wide">
-            System Insight
-          </p>
+          <div className="space-y-6">
 
-          <p className="mt-1 text-sm font-medium">
+            <div className="rounded-3xl bg-white shadow p-6">
+              <AcademicFrameworkBoxes />
+            </div>
 
-            {late > 0
-              ? "There are overdue milestones requiring immediate attention."
-              : "All milestones are progressing within the expected timeline."}
+            <div className="rounded-3xl bg-white shadow p-6">
+              <AssessmentInfoBoxes />
+            </div>
 
-          </p>
+            {profile?.allPLO &&
+              Object.keys(profile.allPLO).length > 0 && (
 
-        </div>
+                <div className="rounded-3xl bg-white shadow p-6">
 
-{/* FRAMEWORK */}
-<AcademicFrameworkBoxes />
+                  <h2 className="text-lg font-semibold mb-4">
+                    All PLO Attainment
+                  </h2>
 
-{/* ASSESSMENT REFERENCES */}
-<AssessmentInfoBoxes />
+                  <AllPLOTable
+                    allPLO={profile.allPLO}
+                  />
 
-{/* ALL PLO */}
-{profile?.allPLO &&
-  Object.keys(profile.allPLO).length > 0 && (
-    <AllPLOTable allPLO={profile.allPLO} />
-)}
+                </div>
 
-{/* FINAL PLO */}
-{profile?.finalPLO &&
-  Object.keys(profile.finalPLO).length > 0 && (
-    <FinalPLOTable finalPLO={profile.finalPLO} />
-)}
-
-  
-
-        {/* TABS */}
-        <div className="flex gap-3">
-
-          {[
-            "timeline",
-            "documents",
-            "remarks",
-          ].map((tab) => (
-
-            <button
-              key={tab}
-              onClick={() =>
-                setActiveTab(tab)
-              }
-              className={`px-5 py-2 rounded-full font-semibold ${
-                activeTab === tab
-                  ? "bg-gradient-to-r from-purple-600 to-indigo-500 text-white"
-                  : "bg-white/50"
-              }`}
-            >
-
-              {tab === "timeline"
-                ? "📅 Timeline"
-                : tab === "documents"
-                ? "📁 Documents"
-                : "💬 Remarks"}
-
-            </button>
-
-          ))}
-
-        </div>
-
-        {/* TIMELINE */}
-      {activeTab === "timeline" && (
-  <div className="grid gap-4">
-
-    {timeline.map((t, i) => {
-
-      const isLate =
-        t.status?.trim().toLowerCase() === "late" ||
-        t.status?.trim().toUpperCase() === "AT_RISK" ||
-        (!t.actual && t.remaining_days < 0 && t.status?.trim().toLowerCase() !== "completed");
-
-      return (
-        <div
-          key={i}
-          className={`rounded-2xl p-5 shadow border-l-4 ${
-            isLate
-              ? "border-red-500 bg-red-50"
-              : t.remaining_days <= 30
-              ? "border-yellow-400 bg-yellow-50"
-              : "border-green-400 bg-white"
-          }`}
-        >
-
-          <div className="flex justify-between mb-2">
-            <h4 className="font-semibold">{t.activity}</h4>
-
-            <span className="text-sm font-bold text-purple-700">
-              {t.remaining_days < 0
-                ? `${Math.abs(t.remaining_days)} days overdue`
-                : `${t.remaining_days} days`}
-            </span>
-          </div>
-
-          <p className="text-sm text-gray-600">
-            Expected: {t.expected || "-"} | Actual: {t.actual || "-"}
-          </p>
-
-          <div className="mt-3 flex justify-between items-center">
-
-            <span className="text-xs font-semibold">
-              {isLate
-                ? "Overdue – Attention Required"
-                : t.status?.replaceAll("_", " ").trim()}
-            </span>
-
-            {t.actual ? (
-              <button
-                onClick={() => resetCompleted(t.activity)}
-                className="text-xs text-red-600"
-              >
-                Reset Status
-              </button>
-            ) : (
-              <button
-                onClick={() => markCompleted(t.activity)}
-                className="text-xs text-purple-700"
-              >
-                Mark as Completed
-              </button>
             )}
 
           </div>
 
-        </div>
-      );
-    })}
-
-  </div>
-)}
-        {/* DOCUMENTS */}
-        {activeTab === "documents" && (
-          <div className="rounded-3xl bg-white/50 backdrop-blur shadow p-6">
-
-            <StudentChecklist
-  documents={profile.documents || {}}
-  programme={profile.programme || ""}
-  onSaved={loadStudent}
-/>
-
-          </div>
         )}
 
         {/* REMARKS */}
-{activeTab === "remarks" && (
-  <div className="space-y-4">
+        {activeTab === "remarks" && (
 
-    {remarks.length === 0 ? (
-      <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500">
-        No supervisor remarks yet.
-      </div>
-    ) : (
+          <div className="space-y-4">
 
-      Object.entries(
-        remarks.reduce((acc, r) => {
+            {remarks.length === 0 ? (
 
-          const key = r.assessmentInstance;
+              <div className="bg-white rounded-2xl p-6 shadow text-sm text-gray-500">
+                No supervisor remarks yet.
+              </div>
 
-          if (!key) return acc;
+            ) : (
 
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(r);
+              Object.entries(
+                remarks.reduce((acc, r) => {
 
-          return acc;
+                  const key =
+                    r.assessmentInstance;
 
-        }, {})
-      ).map(([instance, items]) => (
+                  if (!key) return acc;
 
-        <div
-          key={instance}
-          className="bg-white rounded-2xl p-5 shadow"
-        >
+                  if (!acc[key]) acc[key] = [];
 
-          <div className="flex justify-between items-center mb-3">
+                  acc[key].push(r);
 
-  <h4 className="font-semibold text-purple-700">
-    {instance.replace("_", " ")}
-  </h4>
+                  return acc;
 
-  <span
-    className={`text-xs px-3 py-1 rounded font-semibold ${
-      items[0]?.status === "RESPONDED"
-        ? "bg-green-100 text-green-700"
-        : items[0]?.status === "PENDING"
-        ? "bg-red-100 text-red-700"
-        : "bg-gray-100 text-gray-600"
-    }`}
-  >
-    {items[0]?.status || "PENDING"}
-  </span>
+                }, {})
+              ).map(([instance, items]) => (
 
-</div>
-          {items.map((r, i) => {
+                <div
+                  key={instance}
+                  className="bg-white rounded-2xl p-5 shadow"
+                >
 
-            const instanceKey = instance.toUpperCase();
-            const studentResp =
-              r.studentResponse || r.student_response;
+                  <div className="flex justify-between items-center mb-4">
 
-            return (
-              <div key={i} className="mb-4">
+                    <h4 className="font-semibold text-purple-700">
+                      {instance.replace("_", " ")}
+                    </h4>
 
-                <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 mb-2">
-                  {r.supervisorRemark || r.supervisor_remark || "No remark"}
+                    <span className="text-xs px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
+                      {items[0]?.status || "PENDING"}
+                    </span>
+
+                  </div>
+
+                  {items.map((r, i) => (
+
+                    <div
+                      key={i}
+                      className="space-y-3 mb-5"
+                    >
+
+                      <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                        {r.supervisorRemark ||
+                          r.supervisor_remark}
+                      </div>
+
+                    </div>
+
+                  ))}
+
                 </div>
 
-                {studentResp && (
-                  <div className="bg-green-50 rounded-xl p-3 text-sm text-green-700 mb-2">
-                    <strong>Your response:</strong><br />
-                    {studentResp}
-                  </div>
-                )}
+              ))
 
-                <textarea
-                  placeholder="Write your response..."
-                  className="w-full border rounded-lg p-2 text-sm"
-                  value={responseInputs[instanceKey] || ""}
-                  onChange={(e) =>
-                    setResponseInputs({
-                      ...responseInputs,
-                      [instanceKey]: e.target.value
-                    })
-                  }
-                />
+            )}
 
-                <button
-                  onClick={() =>
-                    submitResponse(
-                      instanceKey,
-                      responseInputs[instanceKey]
-                    )
-                  }
-                  className="mt-2 px-4 py-1 text-sm bg-purple-600 text-white rounded-lg"
-                >
-                  Submit Response
-                </button>
+          </div>
 
-              </div>
-            );
-          })}
-
-        </div>
-      ))
-
-    )}
-
-  </div>
-)}
-
-
+        )}
 
         {/* FOOTER */}
         <footer className="text-center text-xs text-gray-400 py-6 border-t mt-10">
 
-          © 2026 Postgraduate
-          Portfolio-Based Monitoring
-          System (PPBMS)
+          © 2026 Postgraduate Portfolio-Based Monitoring System (PPBMS)
 
           <br />
 
           Universiti Sains Malaysia
 
-          <br />
-
-          Developed by{" "}
-          <span className="font-medium text-gray-600">
-            Hazwani Ahmad Yusof
-          </span>{" "}
-          (2025)
-
         </footer>
 
-      </div>
-    </>
-  );
-}
+      </main>
+
+    </div>
+  </>
+);
+ 
+ 
