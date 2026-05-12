@@ -160,9 +160,9 @@ export const PHD_ACTIVITIES = [
   },
 
   {
-    key: "Pre-Viva Review",
+    key: "Annual Progress Review (Year 3)",
     actualCol:
-      "Pre-Viva Review - Actual"
+      "Annual Progress Review (Year 3) - Actual"
   },
 
   {
@@ -249,7 +249,7 @@ export function buildExpectedOnly(raw) {
     "Thesis Draft Completed":
       { msc: 18, phd: 32 },
 
-    "Pre-Viva Review":
+    "Annual Progress Review (Year 3)":
       { msc: 0, phd: 34 },
 
     "Viva Voce":
