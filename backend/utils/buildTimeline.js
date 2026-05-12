@@ -199,8 +199,8 @@ export function buildExpectedOnly(raw) {
     ).toLowerCase();
 
   const isPhD =
-  programme.includes("phd") ||
-  programme.includes("doctor of philosophy");
+  programme.includes("doctor") ||
+  programme.includes("phd");
   
    const activities =
     isPhD
