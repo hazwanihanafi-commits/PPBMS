@@ -11,7 +11,7 @@ export const ACTUAL_COLUMN_MAP = {
   CONFERENCE_PRESENTATION: "Conference Presentation - Actual",
   APR_Y2: "Annual Progress Review (Year 2) - Actual",
   THESIS_DRAFT: "Thesis Draft Completed - Actual",
-  FINAL_PROGRESS_REVIEW: "Final Progress Review (Year 3) - Actual",
+  PRE_VIVA: "Pre-Viva Review - Actual",
   VIVA: "Viva Voce - Actual",
   CORRECTIONS: "Corrections Completed - Actual",
   FINAL_THESIS: "Final Thesis Submission - Actual"
