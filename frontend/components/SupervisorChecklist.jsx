@@ -7,8 +7,8 @@ const ITEMS = [
     items: [
       "Development Plan & Learning Contract (DPLC)",
       "Student Supervision Logbook",
-      "Annual Progress Review – Year 1",
-      "Annual Progress Review – Year 2",
+      "Annual Progress Review – Year 1 Submission Folder",
+      "Annual Progress Review – Year 2 Submission Folder",
       "Annual Progress Review – Year 3 (Final Year)",
     ],
   },
@@ -26,8 +26,8 @@ const ITEMS = [
   {
     section: "Thesis & Viva",
     items: [
-      "Thesis Notice",
-      "Correction Verification",
+      "Final Notice of Thesis Submission Form",
+      "Correction Verification (Final Submission to IPS)",
       "Final Thesis",
     ],
   },
