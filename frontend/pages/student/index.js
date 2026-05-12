@@ -599,7 +599,7 @@ export default function StudentPage() {
       <AssessmentInfoBoxes />
     </div>
 
-    {/* PLO REFERENCE LIBRARY */}
+    {/* IMAGE REFERENCES */}
     <div className="rounded-3xl bg-white shadow p-6">
 
       <h2 className="text-lg font-semibold mb-6">
@@ -631,7 +631,7 @@ export default function StudentPage() {
           </h3>
 
           <img
-            src="/progress report-mapping.png"
+            src="/progress-report.png"
             alt="Progress Report"
             className="mt-4 rounded-xl border w-full"
           />
@@ -653,7 +653,7 @@ export default function StudentPage() {
 
         </div>
 
-        {/* THESIS EXAMINATION */}
+        {/* THESIS EXAM */}
         <div className="border rounded-2xl p-4">
 
           <h3 className="font-semibold text-purple-700">
@@ -661,7 +661,7 @@ export default function StudentPage() {
           </h3>
 
           <img
-            src="/Thesis Examination-mapping.png"
+            src="/thesis-exam.png"
             alt="Thesis Examination"
             className="mt-4 rounded-xl border w-full"
           />
@@ -676,7 +676,7 @@ export default function StudentPage() {
           </h3>
 
           <img
-            src="/viva voce-mapping.png"
+            src="/viva-voce.png"
             alt="Viva Voce"
             className="mt-4 rounded-xl border w-full"
           />
@@ -690,6 +690,7 @@ export default function StudentPage() {
   </div>
 
 )}
+    
         {/* REMARKS */}
         {activeTab === "remarks" && (
 
