@@ -143,7 +143,7 @@ export async function readASSESSMENT_PLO(sheetId) {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "ASSESSMENT_PLO!",
+    range: "ASSESSMENT_PLO",
   });
 
   const rows = res.data.values || [];
@@ -183,7 +183,7 @@ export async function updateASSESSMENT_PLO_Cell({
 
   const headerRes = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.SHEET_ID,
-    range: "ASSESSMENT_PLO!A1:ZZ1",
+    range: "ASSESSMENT_PLO",
   });
 
   const headers = headerRes.data.values[0]
@@ -224,7 +224,7 @@ export async function updateASSESSMENT_PLO_Remark({
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.SHEET_ID,
-    range: "ASSESSMENT_PLO!",
+    range: "ASSESSMENT_PLO",
   });
 
   const rows = res.data.values || [];
@@ -311,7 +311,7 @@ export async function upsertSUPERVISOR_REMARK({
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.SHEET_ID,
-    range: "ASSESSMENT_PLO!",
+    range: "ASSESSMENT_PLO",
   });
 
   const rows = res.data.values || [];
@@ -575,7 +575,7 @@ export async function readSUPERVISOR_REMARKS(
         process.env.SHEET_ID,
 
       range:
-        "ASSESSMENT_PLO!",
+        "ASSESSMENT_PLO",
     });
 
   const rows =
