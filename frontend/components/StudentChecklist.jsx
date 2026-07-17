@@ -171,36 +171,38 @@ export default function StudentChecklist({
      SAVE
   ========================================================= */
 
-  async function saveDocument(name) {
+ async function saveDocument(name) {
+  try {
 
-    try {
-
-      await authFetch(
-        "/api/student/save-document",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            name,
-            link: links[name] || "",
-          }),
-        }
-      );
-
-      alert("Document saved");
-
-      if (onSaved) {
-        onSaved();
+    const res = await authFetch(
+      "/api/student/save-document",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          link: links[name] || "",
+        }),
       }
+    );
 
-    } catch (err) {
+    const data = await res.json();
 
-      console.error(err);
-
-      alert(
-        "Failed to save document"
-      );
+    if (!res.ok) {
+      alert(data.error || "Unable to save document.");
+      return;
     }
+
+    alert("Document saved successfully.");
+
+    if (onSaved) {
+      onSaved();
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Server error.");
   }
+}
 
   /* =========================================================
      BADGE COLOR
