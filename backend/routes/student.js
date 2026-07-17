@@ -516,51 +516,45 @@ router.post("/reset-actual", auth, async (req, res) => {
 /* ================= SAVE DOCUMENT ================= */
 router.post("/save-document", auth, async (req, res) => {
   try {
-    const {
-  name,
-  link
-} = req.body;
+    const { name, link } = req.body;
 
-const document_key = name;
-const file_url = link;
-    if (!document_key) {
+    if (!name) {
       return res.status(400).json({
-        error: "Missing document_key"
+        error: "Document name is required",
       });
     }
 
+    // Accept both frontend and legacy names
     const DOC_COLUMN_MAP = {
+      // DPLC
+      "DPLC": "DPLC",
+      "Development Plan & Learning Contract (DPLC)": "DPLC",
 
-  "Development Plan & Learning Contract (DPLC)": "DPLC",
+      // Logbook
+      "Supervision Logbook": "SUPERVISION_LOG",
+      "Student Supervision Logbook": "SUPERVISION_LOG",
 
-  "Student Supervision Logbook": "SUPERVISION_LOG",
+      // APR
+      "APR Year 1 Submission": "APR_Y1",
+      "APR Year 2 Submission": "APR_Y2",
+      "APR Year 3 Submission": "APR_Y3",
 
-  "APR Year 1 Submission": "APR_Y1",
+      // Others
+      "Ethics Approval": "ETHICS_APPROVAL",
+      "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
+      "Proof of Submission": "PROOF_OF_SUBMISSION",
+      "Conference Presentation": "CONFERENCE_PRESENTATION",
 
-  "APR Year 2 Submission": "APR_Y2",
+      "Final Thesis Submission Form": "THESIS_NOTICE",
+      "Correction Verification": "CORRECTION_VERIFICATION",
+      "Final Thesis": "FINAL_THESIS",
+    };
 
-  "APR Year 3 Submission": "APR_Y3",
-
-  "Ethics Approval": "ETHICS_APPROVAL",
-
-  "Publication Acceptance": "PUBLICATION_ACCEPTANCE",
-
-  "Proof of Submission": "PROOF_OF_SUBMISSION",
-
-  "Conference Presentation": "CONFERENCE_PRESENTATION",
-
-  "Final Thesis Submission Form": "THESIS_NOTICE",
-
-  "Correction Verification": "CORRECTION_VERIFICATION",
-
-  "Final Thesis": "FINAL_THESIS"
-
-};
-    const column = DOC_COLUMN_MAP[document_key];
+    const column = DOC_COLUMN_MAP[name];
 
     if (!column) {
       return res.status(400).json({
-        error: `Invalid document key: ${document_key}`
+        error: `Unknown document: ${name}`,
       });
     }
 
@@ -569,52 +563,96 @@ const file_url = link;
     const rows = await readMasterTracking(process.env.SHEET_ID);
 
     const idx = rows.findIndex(
-      r => (r["Student's Email"] || "").toLowerCase() === email
+      (r) =>
+        (r["Student's Email"] || "").toLowerCase() === email
     );
 
     if (idx === -1) {
       return res.status(404).json({
-        error: "Student not found"
+        error: "Student not found",
       });
     }
 
+    // Save document URL
     await writeSheetCell(
       process.env.SHEET_ID,
       "MasterTracking",
       column,
       idx + 2,
-      file_url || ""
+      link || ""
     );
 
-    await sendEmail({
+    // Update status
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MasterTracking",
+      `${column}_STATUS`,
+      idx + 2,
+      "Pending Review"
+    );
 
-  to:
-    rows[idx][
-      "Main Supervisor's Email"
-    ],
+    // Clear previous review
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MasterTracking",
+      `${column}_FEEDBACK`,
+      idx + 2,
+      ""
+    );
 
-  subject:
-    `New Document Submitted - ${document_key}`,
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MasterTracking",
+      `${column}_REVIEWED_BY`,
+      idx + 2,
+      ""
+    );
 
-  text: `
+    await writeSheetCell(
+      process.env.SHEET_ID,
+      "MasterTracking",
+      `${column}_REVIEWED_AT`,
+      idx + 2,
+      ""
+    );
+
+    // Notify supervisor
+    try {
+      await sendEmail({
+        to: rows[idx]["Main Supervisor's Email"],
+        subject: `New Document Submitted - ${name}`,
+        text: `
 A student has submitted a document.
 
 Student:
 ${rows[idx]["Student Name"]}
 
+Matric:
+${rows[idx]["Matric"]}
+
 Document:
-${document_key}
+${name}
+
+Link:
+${link || "-"}
 
 Please log into PPBMS to review.
-`
-});
-    res.json({ success: true });
+`,
+      });
+    } catch (mailErr) {
+      console.error("Email error:", mailErr);
+    }
+
+    res.json({
+      success: true,
+      message: "Document saved successfully.",
+    });
 
   } catch (e) {
     console.error("save-document:", e);
 
     res.status(500).json({
-      error: e.message
+      error: e.message,
     });
   }
 });
