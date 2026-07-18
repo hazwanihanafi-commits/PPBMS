@@ -15,7 +15,7 @@ export const TIMELINE_MAP = {
     date: "Proposal Defense Endorsed - DELAY EMAIL DATE",
   },
 
-  PHASE_1_PILOT: {
+  PILOT_PHASE_1: {
     expected: "Pilot / Phase 1 Completed - Expected",
     actual: "Pilot / Phase 1 Completed - Actual",
     sent: "Pilot / Phase 1 Completed - DELAY EMAIL SENT",
@@ -85,7 +85,7 @@ export const TIMELINE_MAP = {
     date: "Thesis Draft Completed - DELAY EMAIL DATE",
   },
 
-  PRE_VIVA_REVIEW: {
+  PRE_VIVA: {
     expected: "Pre-Viva Review - Expected",
     actual: "Pre-Viva Review - Actual",
     sent: "Pre-Viva Review - DELAY EMAIL SENT",
