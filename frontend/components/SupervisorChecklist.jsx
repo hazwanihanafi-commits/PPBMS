@@ -2,37 +2,29 @@ import { useState } from "react";
 import { authFetch } from "../utils/authFetch";
 
 const ITEMS = [
-  {
-    section: "Monitoring & Supervision",
-    items: [
-      {
-        name:
-          "Development Plan & Learning Contract (DPLC)"
-      },
-
-      {
-        name:
-          "Student Supervision Logbook"
-      },
-
-      {
-        name:
-          "APR Year 1 Submission",
-
-        note:
-          "Folder must contain Written Report and Presentation Slides"
-      },
-
-      {
-        name:
-          "APR Year 2 Submission",
-
-        note:
-          "Folder must contain Written Report and Presentation Slides"
-      },
-    ],
-  },
-
+ {
+  section: "Monitoring & Supervision",
+  items: [
+    {
+      name: "Development Plan & Learning Contract (DPLC)"
+    },
+    {
+      name: "Student Supervision Logbook"
+    },
+    {
+      name: "Annual Progress Review – Year 1",
+      note: "Folder must contain Written Report and Presentation Slides"
+    },
+    {
+      name: "Annual Progress Review – Year 2",
+      note: "Folder must contain Written Report and Presentation Slides"
+    },
+    {
+      name: "Annual Progress Review – Year 3 (Final Year)",
+      note: "Folder must contain Written Report and Presentation Slides"
+    },
+  ],
+},
   {
     section: "Ethics & Research Outputs",
     items: [
@@ -57,26 +49,20 @@ const ITEMS = [
       },
     ],
   },
-
-  {
-    section: "Thesis & Viva",
-    items: [
-      {
-        name:
-          "Final Thesis Submission Form"
-      },
-
-      {
-        name:
-          "Correction Verification"
-      },
-
-      {
-        name:
-          "Final Thesis"
-      },
-    ],
-  },
+{
+  section: "Thesis & Viva",
+  items: [
+    {
+      name: "Thesis Notice"
+    },
+    {
+      name: "Correction Verification"
+    },
+    {
+      name: "Final Thesis"
+    },
+  ],
+},
 ];
 
 export default function SupervisorChecklist({
@@ -217,6 +203,10 @@ export default function SupervisorChecklist({
 
               const doc =
                 documents[label];
+
+          console.log("LABEL:", label);
+console.log("DOC:", documents[label]);
+console.log("ALL DOCS:", documents);
 
               const url =
                 typeof doc === "string"
