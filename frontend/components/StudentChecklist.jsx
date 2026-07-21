@@ -8,107 +8,124 @@ import { authFetch } from "../utils/authFetch";
 const MSC_CHECKLIST = [
   {
     name: "DPLC",
-    role: "Student Upload"
+    label: "Development Plan & Learning Contract (DPLC)",
+    role: "Student Upload",
   },
 
   {
     name: "Supervision Logbook",
-    role: "Student Upload"
+    label: "Student Supervision Logbook",
+    role: "Student Upload",
   },
 
   {
     name: "APR Year 1 Submission",
-    role: "Student Upload"
+    label: "Annual Progress Review – Year 1",
+    role: "Student Upload",
   },
 
   {
     name: "Ethics Approval",
-    role: "Student Upload"
+    label: "Ethics Approval",
+    role: "Student Upload",
   },
 
   {
     name: "Conference Presentation",
-    role: "Student Upload"
+    label: "Conference Presentation",
+    role: "Student Upload",
   },
 
   {
     name: "Final Thesis Submission Form",
-    role: "Student Upload"
+    label: "Thesis Notice",
+    role: "Student Upload",
   },
 
   {
     name: "Correction Verification",
-    role: "Student Upload"
+    label: "Correction Verification",
+    role: "Student Upload",
   },
 
   {
     name: "Final Thesis",
-    role: "Student Upload"
+    label: "Final Thesis",
+    role: "Student Upload",
   },
 ];
 
 const PHD_CHECKLIST = [
   {
     name: "DPLC",
-    role: "Student Upload"
+    label: "Development Plan & Learning Contract (DPLC)",
+    role: "Student Upload",
   },
 
   {
     name: "Supervision Logbook",
-    role: "Student Upload"
+    label: "Student Supervision Logbook",
+    role: "Student Upload",
   },
 
   {
-  name: "APR Year 1 Submission",
-  role: "Student Upload",
-  note:
-    "Upload ONE Google Drive folder containing Written Report and Presentation Slides"
-},
+    name: "APR Year 1 Submission",
+    label: "Annual Progress Review – Year 1",
+    role: "Student Upload",
+    note:
+      "Upload ONE Google Drive folder containing Written Report and Presentation Slides",
+  },
 
   {
     name: "APR Year 2 Submission",
+    label: "Annual Progress Review – Year 2",
     role: "Student Upload",
-     note:
-    "Upload ONE Google Drive folder containing Written Report and Presentation Slides"
+    note:
+      "Upload ONE Google Drive folder containing Written Report and Presentation Slides",
   },
 
   {
     name: "Ethics Approval",
-    role: "Student Upload"
+    label: "Ethics Approval",
+    role: "Student Upload",
   },
 
   {
     name: "Publication Acceptance",
-    role: "Student Upload"
+    label: "Publication Acceptance",
+    role: "Student Upload",
   },
 
   {
     name: "Proof of Submission",
-    role: "Student Upload"
+    label: "Proof of Submission",
+    role: "Student Upload",
   },
 
   {
     name: "Conference Presentation",
-    role: "Student Upload"
+    label: "Conference Presentation",
+    role: "Student Upload",
   },
 
   {
     name: "Final Thesis Submission Form",
-    role: "Student Upload"
+    label: "Thesis Notice",
+    role: "Student Upload",
   },
 
   {
     name: "Correction Verification",
-    role: "Student Upload"
+    label: "Correction Verification",
+    role: "Student Upload",
   },
 
   {
     name: "Final Thesis",
-    role: "Student Upload"
+    label: "Final Thesis",
+    role: "Student Upload",
   },
 ];
-
-
 
 export default function StudentChecklist({
   documents = {},
@@ -282,8 +299,8 @@ export default function StudentChecklist({
               <div>
 
                 <h3 className="font-semibold text-lg">
-                  {item}
-                </h3>
+  {itemObj.label || item}
+</h3>
 
                 <p className="
                   text-xs
