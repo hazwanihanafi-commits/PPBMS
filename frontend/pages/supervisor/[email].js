@@ -440,7 +440,8 @@ const coSupervisorDisplay =
         {activeTab === "documents" && (
           <SupervisorChecklist
   documents={student.documents || {}}
-  studentEmail={student.email}   // 🔥 REQUIRED
+  studentEmail={student.email}
+  programme={student.programme}
   onUpdated={loadStudent}
 />
         )}
