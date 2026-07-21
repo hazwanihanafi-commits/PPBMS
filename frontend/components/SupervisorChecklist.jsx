@@ -1,78 +1,93 @@
 import { useState } from "react";
 import { authFetch } from "../utils/authFetch";
 
-const ITEMS = [
- {
-  section: "Monitoring & Supervision",
-  items: [
-    {
-      name: "Development Plan & Learning Contract (DPLC)"
-    },
-    {
-      name: "Student Supervision Logbook"
-    },
-    {
-      name: "Annual Progress Review – Year 1",
-      note: "Folder must contain Written Report and Presentation Slides"
-    },
-    {
-      name: "Annual Progress Review – Year 2",
-      note: "Folder must contain Written Report and Presentation Slides"
-    },
-    {
-      name: "Annual Progress Review – Year 3 (Final Year)",
-      note: "Folder must contain Written Report and Presentation Slides"
-    },
-  ],
-},
+const MSC_ITEMS = [
   {
-    section: "Ethics & Research Outputs",
+    section: "Monitoring & Supervision",
     items: [
+      { name: "Development Plan & Learning Contract (DPLC)" },
+      { name: "Student Supervision Logbook" },
       {
-        name:
-          "Ethics Approval"
-      },
-
-      {
-        name:
-          "Publication Acceptance"
-      },
-
-      {
-        name:
-          "Proof of Submission"
-      },
-
-      {
-        name:
-          "Conference Presentation"
+        name: "Annual Progress Review – Year 1",
+        note: "Folder must contain Written Report and Presentation Slides"
       },
     ],
   },
-{
-  section: "Thesis & Viva",
-  items: [
-    {
-      name: "Thesis Notice"
-    },
-    {
-      name: "Correction Verification"
-    },
-    {
-      name: "Final Thesis"
-    },
-  ],
-},
+  {
+    section: "Ethics & Research Outputs",
+    items: [
+      { name: "Ethics Approval" },
+      { name: "Publication Acceptance" },
+      { name: "Proof of Submission" },
+      { name: "Conference Presentation" },
+    ],
+  },
+  {
+    section: "Thesis & Viva",
+    items: [
+      { name: "Thesis Notice" },
+      { name: "Correction Verification" },
+      { name: "Final Thesis" },
+    ],
+  },
+];
+
+const PHD_ITEMS = [
+  {
+    section: "Monitoring & Supervision",
+    items: [
+      { name: "Development Plan & Learning Contract (DPLC)" },
+      { name: "Student Supervision Logbook" },
+      {
+        name: "Annual Progress Review – Year 1",
+        note: "Folder must contain Written Report and Presentation Slides"
+      },
+      {
+        name: "Annual Progress Review – Year 2",
+        note: "Folder must contain Written Report and Presentation Slides"
+      },
+      {
+        name: "Annual Progress Review – Year 3 (Final Year)",
+        note: "Folder must contain Written Report and Presentation Slides"
+      },
+    ],
+  },
+  {
+    section: "Ethics & Research Outputs",
+    items: [
+      { name: "Ethics Approval" },
+      { name: "Publication Acceptance" },
+      { name: "Proof of Submission" },
+      { name: "Conference Presentation" },
+    ],
+  },
+  {
+    section: "Thesis & Viva",
+    items: [
+      { name: "Thesis Notice" },
+      { name: "Correction Verification" },
+      { name: "Final Thesis" },
+    ],
+  },
 ];
 
 export default function SupervisorChecklist({
   documents = {},
   studentEmail,
+  programme = "",
   onUpdated,
 }) {
 
-  const [feedbacks, setFeedbacks] =
-    useState({});
+  const programmeText = String(programme || "").toUpperCase();
+
+const isMsc =
+  programmeText.includes("MASTER") ||
+  programmeText.includes("MSC") ||
+  programmeText.includes("MASTER OF SCIENCE");
+
+const ITEMS = isMsc ? MSC_ITEMS : PHD_ITEMS;
+
+ const [feedbacks, setFeedbacks] = useState({});
 
   /* =====================================================
      UPDATE DOCUMENT
