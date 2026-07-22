@@ -431,19 +431,26 @@ const studentStatus =
            SEND ONE EMAIL ONLY
         ===================================== */
 
-        if (
-          delayedMilestones.length > 0
-        ) {
+        if (delayedMilestones.length > 0) {
 
-          try {
+  try {
 
-           await sendDelayAlert({
-  studentName,
-  studentEmail,
-  supervisorEmail,
-  studentStatus,
-  delays: delayedMilestones
-});
+    console.log("===== BEFORE sendDelayAlert =====");
+    console.log({
+      studentName,
+      statusFromSheet: row["Status"],
+      studentStatus,
+      studentEmail,
+      supervisorEmail,
+    });
+
+    await sendDelayAlert({
+      studentName,
+      studentEmail,
+      supervisorEmail,
+      studentStatus,
+      delays: delayedMilestones,
+    });
 
             /* =========================
                UPDATE EMAIL FLAGS
