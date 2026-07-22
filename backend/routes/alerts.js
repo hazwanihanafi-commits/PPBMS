@@ -226,21 +226,13 @@ const MILESTONES = [
   },
 
   {
-    name:
-      "Final Progress Review (Year 3)",
+  name: "Pre-Viva Review",
+  expected: "Pre-Viva Review - Expected",
+  actual: "Pre-Viva Review - Actual",
+  sent: "Pre-Viva Review - DELAY EMAIL SENT",
+  date: "Pre-Viva Review - DELAY EMAIL DATE"
+},
 
-    expected:
-      "Final Progress Review (Year 3) - Expected",
-
-    actual:
-      "Final Progress Review (Year 3) - Actual",
-
-    sent:
-      "Final Progress Review (Year 3) - DELAY EMAIL SENT",
-
-    date:
-      "Final Progress Review (Year 3) - DELAY EMAIL DATE"
-  },
 
   {
     name:
@@ -325,16 +317,21 @@ router.post(
         const rowIndex =
           i + 2;
 
-        const studentName =
-          row["Student Name"];
+     const studentName =
+  row["Student Name"];
 
-        const studentEmail =
-          row["Student's Email"];
+const studentEmail =
+  row["Student's Email"];
 
-        const supervisorEmail =
-          row[
-            "Main Supervisor's Email"
-          ];
+const supervisorEmail =
+  row["Main Supervisor's Email"];
+
+const studentStatus =
+  String(row["Status"] || "").trim();
+        console.log({
+  student: studentName,
+  status: studentStatus
+});
 
         if (
           !studentEmail ||
@@ -440,17 +437,13 @@ router.post(
 
           try {
 
-            await sendDelayAlert({
-
-              studentName,
-
-              studentEmail,
-
-              supervisorEmail,
-
-              delays:
-                delayedMilestones
-            });
+           await sendDelayAlert({
+  studentName,
+  studentEmail,
+  supervisorEmail,
+  studentStatus,
+  delays: delayedMilestones
+});
 
             /* =========================
                UPDATE EMAIL FLAGS
