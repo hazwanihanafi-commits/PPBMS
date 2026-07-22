@@ -15,12 +15,13 @@ export async function triggerCQIIfNeeded({
 
   // 🔔 SEND EMAIL TO SUPERVISOR
   await sendCQIAlert({
-    to: student["Main Supervisor's Email"],
-    studentName: student["Student Name"],
-    matric: student["Matric"],
-    assessmentType,
-    cqiIssues: issues
-  });
+  supervisorEmail: student["Main Supervisor's Email"],
+  studentName: student["Student Name"],
+  matric: student["Matric"],
+  studentStatus: student["Status"],
+  assessmentType,
+  cqiIssues: issues
+});
 
   // 🏷️ FLAG ALL RELATED ROWS
   for (const r of assessmentRows) {
