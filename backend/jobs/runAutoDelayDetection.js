@@ -72,9 +72,9 @@ export async function runAutoDelayDetection() {
     const rowIndex = i + 2; // sheet row (row 1 = header)
 
     const studentEmail = String(row["Student's Email"] || "").trim();
-    const supervisorEmail = String(row["Main Supervisor's Email"] || "").trim();
-    const studentName = String(row["Student Name"] || "").trim();
-    const studentStatus = String(row["Status"] || "").trim();
+const supervisorEmail = String(row["Main Supervisor's Email"] || "").trim();
+const studentName = String(row["Student Name"] || "").trim();
+const studentStatus = String(row["Status"] || "").trim();
 
     if (!studentEmail) {
       console.log(`⏭️ Row ${rowIndex} skipped (no student email)`);
