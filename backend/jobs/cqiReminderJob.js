@@ -16,6 +16,7 @@ export async function runCQIReminderCheck() {
     const r = rows[i];
 
     if (r.cqi_email_sent !== "YES") continue;
+    if (r.cqi_reminder_sent === "YES") continue;
     if (r.cqi_response_date) continue;
     if (!r.cqi_email_date) continue;
 
@@ -32,13 +33,14 @@ export async function runCQIReminderCheck() {
 
     if (!student) continue;
 
-    await sendCQIReminder({
-      to: student["Main Supervisor's Email"],
-      studentName: student["Student Name"],
-      matric: student["Matric"],
-      assessmentType: r.assessment_type,
-      daysOverdue: diffDays
-    });
+   await sendCQIReminder({
+  supervisorEmail: student["Main Supervisor's Email"],
+  studentName: student["Student Name"],
+  matric: student["Matric"],
+  studentStatus: student["Status"],
+  assessmentType: r.assessment_type,
+  daysPending: diffDays
+});
 
     // ✅ Optional: prevent repeated reminders (comment out if you want weekly)
     await updateASSESSMENT_PLO_Cell({
