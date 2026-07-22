@@ -6,13 +6,21 @@ const TEST_EMAIL = "hazwanihanafi@gmail.com";
 /* =========================================================
    ⏰ DELAY ALERT → STUDENT (CC SUPERVISOR ONLY)
 ========================================================= */
-export async function sendDelayAlert({
+   export async function sendDelayAlert({
   studentName,
   studentEmail,
   supervisorEmail,
   studentStatus,
   delays,
 }) {
+
+  console.log("===== INSIDE sendDelayAlert =====");
+  console.log({
+    studentName,
+    studentStatus,
+    studentEmail,
+    supervisorEmail,
+  });
 
 // Only send to ACTIVE or STUDY SUSPENSION students
 const status = (studentStatus || "").trim().toUpperCase();
