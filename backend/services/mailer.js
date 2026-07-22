@@ -31,9 +31,10 @@ if (!allowedStatuses.includes(status)) {
     throw new Error("Invalid student email");
   }
 
-  if (!supervisorEmail || !supervisorEmail.includes("@")) {
-    throw new Error("Invalid supervisor email");
-  }
+  // Supervisor email is optional
+if (supervisorEmail && !supervisorEmail.includes("@")) {
+  throw new Error("Invalid supervisor email");
+}
 
   if (!Array.isArray(delays)) {
     throw new Error("Delays must be an array");
@@ -118,9 +119,22 @@ export async function sendCQIAlert({
   supervisorEmail,
   studentName,
   matric,
+  studentStatus,
   assessmentType,
   cqiIssues,
 }) {
+
+   // Only send CQI notifications for ACTIVE or STUDY SUSPENSION students
+const status = (studentStatus || "").trim().toUpperCase();
+
+const allowedStatuses = ["ACTIVE", "STUDY SUSPENSION"];
+
+if (!allowedStatuses.includes(status)) {
+  console.log(
+    `⏭️ Skipping CQI alert for ${studentName} (Status: ${studentStatus})`
+  );
+  return;
+}
   // 🔍 DEBUG LOGS (CRITICAL — MUST BE BEFORE VALIDATION)
   console.log("📧 CQI supervisorEmail =", supervisorEmail);
   console.log("📧 CQI payload =", {
@@ -180,9 +194,21 @@ export async function sendCQIReminder({
   supervisorEmail,
   studentName,
   matric,
+  studentStatus,
   assessmentType,
   daysPending,
 }) {
+   // Only send CQI reminders for ACTIVE or STUDY SUSPENSION students
+const status = (studentStatus || "").trim().toUpperCase();
+
+const allowedStatuses = ["ACTIVE", "STUDY SUSPENSION"];
+
+if (!allowedStatuses.includes(status)) {
+  console.log(
+    `⏭️ Skipping CQI reminder for ${studentName} (Status: ${studentStatus})`
+  );
+  return;
+}
   if (!supervisorEmail || !supervisorEmail.includes("@")) {
     throw new Error("Invalid supervisor email");
   }
