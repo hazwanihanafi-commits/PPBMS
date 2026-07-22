@@ -62,13 +62,14 @@ router.post("/run-cqi-detection", async (req, res) => {
       if (!supervisorEmail || !supervisorEmail.includes("@")) continue;
 
       try {
-        await sendCQIAlert({
-          supervisorEmail,
-          studentName: student["Student Name"],
-          matric: student["Matric"],
-          assessmentType: rows[0].assessment_type,
-          cqiIssues: issues
-        });
+       await sendCQIAlert({
+  supervisorEmail,
+  studentName: student["Student Name"],
+  matric: student["Matric"],
+  studentStatus: student["Status"],
+  assessmentType: rows[0].assessment_type,
+  cqiIssues: issues
+});
 
         for (const r of rows) {
           await updateASSESSMENT_PLO_Cell({
@@ -156,12 +157,13 @@ router.post("/trigger-cqi-row", async (req, res) => {
 
     // 📧 SEND EMAIL (single student)
     await sendCQIAlert({
-      supervisorEmail,
-      studentName: student["Student Name"],
-      matric,
-      assessmentType,
-      cqiIssues: issues
-    });
+  supervisorEmail,
+  studentName: student["Student Name"],
+  matric,
+  studentStatus: student["Status"],
+  assessmentType,
+  cqiIssues: issues
+});
 
     // ✅ UPDATE SHEET ONLY AFTER SUCCESS
     await updateASSESSMENT_PLO_Cell({
