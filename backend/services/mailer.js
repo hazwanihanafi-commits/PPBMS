@@ -73,7 +73,13 @@ ${delayList}
 
 Action Required
 
-• Please log in to PPBMS using your USM email address and password. If you have not previously activated your PPBMS account, please use the "Set Password" option to create your password before logging in.
+• Please log in to PPBMS using your USM email address and password.
+
+PPBMS Login:
+https://ppbms.my/
+
+If you have not previously activated your PPBMS account, please click "Set Password" on the login page to create your password before logging in.
+  
 • If you have already completed any of the milestones listed above, please mark the milestone as "Completed" in PPBMS.
 • Please upload the link of the relevant supporting documents for each completed milestone. These documents serve as official evidence for postgraduate progress monitoring, programme quality assurance, and institutional audit purposes.
 • If you believe the information displayed is inaccurate or require assistance, please consult your supervisor or contact the PPBMS Administrator.
