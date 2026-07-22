@@ -74,6 +74,7 @@ export async function runAutoDelayDetection() {
     const studentEmail = String(row["Student's Email"] || "").trim();
     const supervisorEmail = String(row["Main Supervisor's Email"] || "").trim();
     const studentName = String(row["Student Name"] || "").trim();
+    const studentStatus = String(row["Status"] || "").trim();
 
     if (!studentEmail) {
       console.log(`⏭️ Row ${rowIndex} skipped (no student email)`);
@@ -150,21 +151,23 @@ export async function runAutoDelayDetection() {
 
       if (supervisorEmail && supervisorEmail.includes("@")) {
         await sendDelayAlert({
-          studentName,
-          studentEmail,
-          supervisorEmail,
-          delays
-        });
+  studentName,
+  studentEmail,
+  supervisorEmail,
+  studentStatus,
+  delays
+});
       } else {
         console.warn(
           `⚠️ Supervisor email missing for ${studentEmail}, email sent to student only`
         );
         await sendDelayAlert({
-          studentName,
-          studentEmail,
-          supervisorEmail: undefined,
-          delays
-        });
+  studentName,
+  studentEmail,
+  supervisorEmail: undefined,
+  studentStatus,
+  delays
+});
       }
     } else {
       console.log("📭 No delays for this student");
