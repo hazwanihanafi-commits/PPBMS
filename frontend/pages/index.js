@@ -119,16 +119,16 @@ export default function Home() {
         </h3>
 
         <a
-          href="/images/student-workflow.png"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img
-  src="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/student-workflow.png"
-  alt="Student Workflow"
-  className="w-full rounded-xl border shadow-lg"
-/>
-        </a>
+  href="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/student-workflow.png"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  <img
+    src="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/student-workflow.png"
+    alt="Student Workflow"
+    className="w-full rounded-xl border shadow-lg"
+  />
+</a>
 
         <p className="mt-4 text-sm text-gray-600">
           Update your research timeline, upload supporting documents and view supervisor feedback.
@@ -144,17 +144,17 @@ export default function Home() {
         </h3>
 
         <a
-          href="/images/supervisor-workflow.png"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img
-  src="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/supervisor-workflow.png"
-  alt="Supervisor Workflow"
-  className="w-full rounded-xl border shadow-lg"
-/>
-        </a>
-
+  href="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/supervisor-workflow.png"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  <img
+    src="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/supervisor-workflow.png"
+    alt="Supervisor Workflow"
+    className="w-full rounded-xl border shadow-lg"
+  />
+</a>
+    
         <p className="mt-4 text-sm text-gray-600">
           Review submissions, provide feedback, approve milestones and monitor supervisee progress.
         </p>
