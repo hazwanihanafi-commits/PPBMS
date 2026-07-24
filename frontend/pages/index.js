@@ -124,10 +124,10 @@ export default function Home() {
           rel="noopener noreferrer"
         >
           <img
-            src="/images/student-workflow.png"
-            alt="Student Workflow"
-            className="w-full rounded-xl border shadow-md hover:scale-105 transition"
-          />
+  src="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/student-workflow.png"
+  alt="Student Workflow"
+  className="w-full rounded-xl border shadow-lg"
+/>
         </a>
 
         <p className="mt-4 text-sm text-gray-600">
@@ -149,10 +149,10 @@ export default function Home() {
           rel="noopener noreferrer"
         >
           <img
-            src="/images/supervisor-workflow.png"
-            alt="Supervisor Workflow"
-            className="w-full rounded-xl border shadow-md hover:scale-105 transition"
-          />
+  src="https://raw.githubusercontent.com/hazwanihanafi-commits/PPBMS/5164b40624c3177adfa2d5b2dc729c0639fc4c3a/frontend/public/supervisor-workflow.png"
+  alt="Supervisor Workflow"
+  className="w-full rounded-xl border shadow-lg"
+/>
         </a>
 
         <p className="mt-4 text-sm text-gray-600">
