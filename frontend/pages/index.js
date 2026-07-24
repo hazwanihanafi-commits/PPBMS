@@ -99,7 +99,6 @@ export default function Home() {
 
         {/* HOW PPBMS WORKS */}
 <section className="px-8 pb-14">
-
   <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-8 border border-white/40 shadow-lg">
 
     <h2 className="text-3xl font-bold text-center text-purple-700">
@@ -113,41 +112,51 @@ export default function Home() {
     <div className="grid md:grid-cols-2 gap-8">
 
       {/* Student */}
-      <div className="rounded-2xl bg-purple-50 p-6 text-center">
+      <div className="bg-purple-50 rounded-2xl p-6 text-center shadow-sm">
 
         <h3 className="text-xl font-semibold text-purple-700 mb-4">
           👨‍🎓 Student Workflow
         </h3>
 
-        <img
-          src="/images/student-flowchart.png"
-          alt="Student Workflow"
-          className="rounded-xl shadow-lg border"
-        />
+        <a
+          href="/images/student-workflow.png"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            src="/images/student-workflow.png"
+            alt="Student Workflow"
+            className="w-full rounded-xl border shadow-md hover:scale-105 transition"
+          />
+        </a>
 
         <p className="mt-4 text-sm text-gray-600">
-          Update your research timeline, upload supporting documents,
-          and monitor supervisor feedback.
+          Update your research timeline, upload supporting documents and view supervisor feedback.
         </p>
 
       </div>
 
       {/* Supervisor */}
-      <div className="rounded-2xl bg-indigo-50 p-6 text-center">
+      <div className="bg-indigo-50 rounded-2xl p-6 text-center shadow-sm">
 
         <h3 className="text-xl font-semibold text-indigo-700 mb-4">
           👩‍🏫 Supervisor Workflow
         </h3>
 
-        <img
-          src="/images/supervisor-flowchart.png"
-          alt="Supervisor Workflow"
-          className="rounded-xl shadow-lg border"
-        />
+        <a
+          href="/images/supervisor-workflow.png"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            src="/images/supervisor-workflow.png"
+            alt="Supervisor Workflow"
+            className="w-full rounded-xl border shadow-md hover:scale-105 transition"
+          />
+        </a>
 
         <p className="mt-4 text-sm text-gray-600">
-          Review submissions, provide feedback, approve milestones,
-          and monitor supervisee progress.
+          Review submissions, provide feedback, approve milestones and monitor supervisee progress.
         </p>
 
       </div>
@@ -155,10 +164,7 @@ export default function Home() {
     </div>
 
   </div>
-
 </section>
-
-
 
         {/* RESOURCE DOCUMENTS */}
         <section className="px-8 pb-12">
