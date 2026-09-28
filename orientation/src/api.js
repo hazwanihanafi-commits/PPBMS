@@ -1,6 +1,6 @@
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
-  "https://ppbms-backend.onrender.com";
+  "https://ppbms.onrender.com";
 
 export async function login(email, password) {
 
