@@ -1,173 +1,1089 @@
-import { useState } from "react";
+import React, { useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+  GraduationCap,
+  MapPin,
+  PlayCircle,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  Video,
+  ClipboardCheck,
+  MessageCircle,
+  Building2,
+  AlertTriangle,
+  Clock,
+  FolderOpen,
+} from "lucide-react";
+
 import { completeOrientation } from "../api";
 
-const modules = [
+/* =========================================================
+   PKTAAB POSTGRADUATE ORIENTATION
+   =========================================================
+   CONTENT IS STORED HERE SO IT IS EASY TO EDIT.
+
+   12 MODULES
+   01 — Know Us
+   02 — PPBMS
+   03 — PPBMS System Introduction
+   04 — Postgraduate Handbook
+   05 — Research Environment
+   06 — Research Milestones
+   07 — Research Ethics & Academic Integrity
+   08 — Campus & Student Facilities
+   09 — AduSiswa
+   10 — Where to Find Us
+   11 — Student Community / PKTAABSA
+   12 — Forms & Documents
+   ========================================================= */
+
+
+/* =========================================================
+   MODULE CONTENT
+   ========================================================= */
+
+const MODULES = [
+  /* =======================================================
+     01 — KNOW US
+     ======================================================= */
+
   {
     id: 1,
-    title: "Welcome to PKTAAB",
-    icon: "🏥",
-    text: "Discover PKTAAB, Universiti Sains Malaysia and what it means to begin your postgraduate journey here."
+    number: "01",
+    title: "KNOW US",
+    subtitle: "PKTAAB & Our People",
+    icon: Users,
+    color: "purple",
+
+    description:
+      "Start your postgraduate journey by getting to know PKTAAB, the Division of Academic & International, our people and the research environment around you.",
+
+    resources: [
+      {
+        label: "PKTAAB Corporate Video",
+        url:
+          "https://drive.google.com/file/d/1xTKmbp6MQ226BuPIdVrgDkjK3sg2z6cl/view?usp=sharing",
+        icon: Video,
+      },
+      {
+        label: "Sains @ Bertam Orientation Tour",
+        url:
+          "https://www.youtube.com/watch?v=d6pvBAYmpus",
+        icon: PlayCircle,
+      },
+    ],
+
+    sections: [
+      {
+        heading: "Welcome to PKTAAB",
+        text:
+          "Pusat Kanser Tun Abdullah Ahmad Badawi (PKTAAB), Universiti Sains Malaysia (USM), brings together education, research, clinical services and innovation in a multidisciplinary environment.",
+      },
+      {
+        heading: "Division of Academic & International",
+        text:
+          "The Division of Academic & International supports postgraduate academic administration, student progress monitoring, academic matters, international engagement and postgraduate development.",
+      },
+      {
+        heading: "Meet the People Around You",
+        text:
+          "Know who to contact when you need help. Your postgraduate journey involves your supervisor, programme team, Division of Academic & International, research teams and relevant support units.",
+      },
+    ],
+
+    checklist: [
+      "Watch the PKTAAB Corporate Video",
+      "Watch the Sains @ Bertam Orientation Tour",
+      "Review the PKTAAB / Meet the Team information",
+      "Identify the person or unit to contact for academic assistance",
+    ],
   },
+
+
+  /* =======================================================
+     02 — PPBMS
+     ======================================================= */
+
   {
     id: 2,
-    title: "Meet Your Team",
-    icon: "👥",
-    text: "Get to know the Academic & International team and who to contact when you need assistance."
+    number: "02",
+    title: "PPBMS",
+    subtitle: "Your Postgraduate Progress System",
+    icon: ClipboardCheck,
+    color: "gold",
+
+    description:
+      "PPBMS is your postgraduate progress monitoring system. Use it to keep track of your academic milestones, submissions and research progress.",
+
+    resources: [
+      {
+        label: "PPBMS Student Portal",
+        url:
+          "https://ppbms-frontend.onrender.com/",
+        icon: ExternalLink,
+      },
+      {
+        label: "PPBMS Step-by-Step Video",
+        url:
+          "https://www.youtube.com/watch?v=G2PEIBcbHCY",
+        icon: PlayCircle,
+      },
+    ],
+
+    sections: [
+      {
+        heading: "Use Your Official USM Email",
+        text:
+          "Your PPBMS account is linked to your official USM student email. Use the same account when accessing PPBMS and the PKTAAB Orientation SIM.",
+      },
+      {
+        heading: "Your PPBMS Journey",
+        text:
+          "Use PPBMS to review your student profile, submit required documents, monitor milestones and keep your postgraduate progress up to date.",
+      },
+    ],
+
+    steps: [
+      "Login using your official USM student email.",
+      "Review your student profile and academic information.",
+      "Complete required submissions and documents.",
+      "Monitor your research milestones.",
+      "Check PPBMS regularly for announcements, deadlines and required actions.",
+    ],
+
+    checklist: [
+      "Open the PPBMS Student Portal",
+      "Watch the PPBMS Step-by-Step Video",
+      "Confirm that your profile information is correct",
+      "Understand where to submit postgraduate documents",
+      "Know where to check your progress and milestones",
+    ],
   },
+
+
+  /* =======================================================
+     03 — SYSTEM INTRODUCTION
+     ======================================================= */
+
   {
     id: 3,
-    title: "Your Postgraduate Journey",
-    icon: "🎓",
-    text: "Understand your research journey, important milestones, supervision and postgraduate responsibilities."
+    number: "03",
+    title: "SYSTEM INTRODUCTION",
+    subtitle: "PPBMS System Introduction Session",
+    icon: GraduationCap,
+    color: "blue",
+
+    description:
+      "Take a guided tour of the PPBMS system before you begin using it independently.",
+
+    resources: [
+      {
+        label: "PPBMS System Introduction Session",
+        url:
+          "https://gamma.app/docs/SYSTEM-INTRODUCTION-SESSION-omuigv8ps5cn31j",
+        icon: BookOpen,
+      },
+      {
+        label: "PPBMS Student Portal",
+        url:
+          "https://ppbms-frontend.onrender.com/",
+        icon: ExternalLink,
+      },
+    ],
+
+    sections: [
+      {
+        heading: "What You Should Learn",
+        text:
+          "Understand how PPBMS is organised, where to find your academic information, how submissions work and how your postgraduate milestones are monitored.",
+      },
+      {
+        heading: "Your Responsibility",
+        text:
+          "PPBMS is a monitoring and communication tool. You remain responsible for checking your progress, responding to requests and submitting required documents within the required timeline.",
+      },
+    ],
+
+    checklist: [
+      "Open the PPBMS System Introduction Session",
+      "Review the main PPBMS functions",
+      "Identify where your milestones are displayed",
+      "Identify where documents are submitted",
+      "Know how to check announcements and required actions",
+    ],
   },
+
+
+  /* =======================================================
+     04 — HANDBOOK
+     ======================================================= */
+
   {
     id: 4,
-    title: "PPBMS — Your Student Portal",
-    icon: "💻",
-    text: "Learn how PPBMS helps you monitor your academic progress, submit documents and follow important milestones."
+    number: "04",
+    title: "READ THIS FIRST",
+    subtitle: "Postgraduate Handbook",
+    icon: BookOpen,
+    color: "purple",
+
+    description:
+      "The Postgraduate Student Handbook is one of your most important references throughout your postgraduate journey.",
+
+    resources: [
+      {
+        label: "PKTAAB Academic Resources",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+      {
+        label: "PPBMS Student Portal",
+        url:
+          "https://ppbms-frontend.onrender.com/",
+        icon: ExternalLink,
+      },
+    ],
+
+    sections: [
+      {
+        heading:
+          "2026 Postgraduate Student Handbook — Research Mode",
+        text:
+          "Use the handbook as your reference for programme requirements, candidature, research progress, academic regulations, thesis examination, viva voce and other postgraduate matters.",
+      },
+      {
+        heading: "Pay Particular Attention To",
+        text:
+          "Programme requirements, research milestones, progress reporting, TRX500 requirements, thesis preparation, thesis examination, viva voce, academic integrity and relevant USM postgraduate regulations.",
+      },
+      {
+        heading: "Do Not Wait Until You Have a Problem",
+        text:
+          "The handbook is most useful when you consult it before making important decisions. If you are unsure, discuss the matter with your supervisor or the Division of Academic & International.",
+      },
+    ],
+
+    checklist: [
+      "Locate the postgraduate handbook",
+      "Review your programme requirements",
+      "Review research progress requirements",
+      "Review thesis and viva requirements",
+      "Know where to obtain updated postgraduate information",
+    ],
   },
+
+
+  /* =======================================================
+     05 — RESEARCH ENVIRONMENT
+     ======================================================= */
+
   {
     id: 5,
-    title: "Research Do's & Don'ts",
-    icon: "🧬",
-    text: "Learn the essential practices for responsible research, research ethics, documentation and academic integrity."
+    number: "05",
+    title: "KNOW YOUR RESEARCH ENVIRONMENT",
+    subtitle: "Departments & Research Areas",
+    icon: Building2,
+    color: "teal",
+
+    description:
+      "Understand where your research fits within PKTAAB and identify the department, research area and people relevant to your postgraduate work.",
+
+    resources: [
+      {
+        label: "PKTAAB Departments & Research Areas",
+        url:
+          "https://www.amdi.usm.my/departments",
+        icon: Building2,
+      },
+      {
+        label: "PKTAAB Academic Resources",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+    ],
+
+    sections: [
+      {
+        heading: "Explore Your Department",
+        text:
+          "Review the departments and research areas available at PKTAAB. Identify where your research topic fits within the wider academic and research environment.",
+      },
+      {
+        heading: "Know Your Research Community",
+        text:
+          "Understand the research expertise around you. This can help you identify relevant facilities, researchers, collaborators and academic support.",
+      },
+      {
+        heading: "Your Research Identity",
+        text:
+          "Be able to explain your programme, research field, research topic and how your work contributes to your broader research area.",
+      },
+    ],
+
+    checklist: [
+      "Open the PKTAAB Departments page",
+      "Identify your department or research area",
+      "Review related research activities",
+      "Identify relevant research expertise or facilities",
+      "Discuss your research direction with your supervisor",
+    ],
   },
+
+
+  /* =======================================================
+     06 — RESEARCH MILESTONES
+     ======================================================= */
+
   {
     id: 6,
-    title: "Forms & Important Resources",
-    icon: "📂",
-    text: "Know where to find postgraduate forms, guidelines, templates and important documents."
+    number: "06",
+    title: "KNOW YOUR RESEARCH MILESTONES",
+    subtitle: "Plan • Monitor • Complete",
+    icon: Clock,
+    color: "gold",
+
+    description:
+      "A successful postgraduate journey requires more than doing good research. You also need to understand your academic milestones and complete them on time.",
+
+    resources: [
+      {
+        label: "PPBMS Student Portal",
+        url:
+          "https://ppbms-frontend.onrender.com/",
+        icon: ExternalLink,
+      },
+      {
+        label: "Postgraduate Resources & Forms",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+    ],
+
+    milestones: [
+      {
+        title: "Development Plan",
+        text:
+          "Establish your research direction, academic goals and development needs.",
+      },
+      {
+        title: "Year Plan / Gantt Chart",
+        text:
+          "Plan your research activities, milestones, outputs and target dates.",
+      },
+      {
+        title: "Progress Monitoring",
+        text:
+          "Keep your research progress updated and communicate regularly with your supervisor.",
+      },
+      {
+        title: "Annual Review",
+        text:
+          "Complete the required annual progress and academic review activities.",
+      },
+      {
+        title: "Thesis & Examination",
+        text:
+          "Prepare your thesis, complete the required submission process and prepare for examination and viva voce.",
+      },
+    ],
+
+    checklist: [
+      "Review your research timeline",
+      "Know your expected postgraduate milestones",
+      "Understand the role of PPBMS in progress monitoring",
+      "Discuss your timeline with your supervisor",
+      "Do not wait until a deadline is near before taking action",
+    ],
   },
+
+
+  /* =======================================================
+     07 — RESEARCH ETHICS
+     ======================================================= */
+
   {
     id: 7,
-    title: "AduSiswa",
-    icon: "📢",
-    text: "Learn where to submit student feedback, complaints, suggestions and other student-related matters."
+    number: "07",
+    title: "RESEARCH ETHICS",
+    subtitle: "Do's & Don'ts During Your Research Journey",
+    icon: ShieldCheck,
+    color: "red",
+
+    description:
+      "Good research is not only about getting results. It is about conducting research responsibly, ethically and with integrity.",
+
+    resources: [
+      {
+        label: "PKTAAB Academic Resources & Research Documents",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+      {
+        label: "Postgraduate Resources",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: BookOpen,
+      },
+    ],
+
+    ethicsPoster: true,
+
+    dos: [
+      "Obtain the required ethical approval before starting research that requires approval.",
+      "Keep your raw data, consent documents, laboratory records and research files properly organised.",
+      "Protect participant confidentiality and personal information.",
+      "Follow the approved research protocol.",
+      "Acknowledge and cite other people's work properly.",
+      "Communicate regularly with your supervisor.",
+      "Keep track of your research milestones and deadlines.",
+      "Discuss major methodological changes with your supervisor before implementation.",
+      "Maintain appropriate backups of important research data.",
+      "Ask for help early when you encounter a problem.",
+    ],
+
+    donts: [
+      "Do not start participant recruitment or data collection before the required ethical approval.",
+      "Do not fabricate, falsify or manipulate research data.",
+      "Do not plagiarise text, ideas, figures, tables or other work.",
+      "Do not submit the same manuscript to multiple journals simultaneously.",
+      "Do not publish in predatory or questionable journals.",
+      "Do not ignore your research timeline or important deadlines.",
+      "Do not disappear from your supervisor when your research is delayed.",
+      "Do not store important research data only on one personal device.",
+      "Do not make major changes to your research protocol without appropriate discussion and approval.",
+      "Do not wait until the final stage of your candidature to resolve documentation or milestone problems.",
+    ],
+
+    warning:
+      "When you are unsure, stop and ask. Your supervisor and the relevant academic or research unit should be consulted before you make decisions that may affect research ethics, participants, data or academic requirements.",
   },
+
+
+  /* =======================================================
+     08 — CAMPUS
+     ======================================================= */
+
   {
     id: 8,
-    title: "Campus Essentials",
-    icon: "🚌",
-    text: "Explore useful information about campus facilities, transportation, accommodation and daily student needs."
+    number: "08",
+    title: "KNOW YOUR CAMPUS",
+    subtitle: "Student Facilities & Getting Around",
+    icon: MapPin,
+    color: "blue",
+
+    description:
+      "Get familiar with the campus, facilities, transportation and important locations you may need during your postgraduate journey.",
+
+    resources: [
+      {
+        label: "Shuttle Bus Schedule",
+        url:
+          "https://reachapps.amdi.usm.my/tripschedule/",
+        icon: MapPin,
+      },
+      {
+        label: "PKTAAB / Bertam Location",
+        url:
+          "https://maps.app.goo.gl/x3FjXC69WCryEbV77?g_st=ic",
+        icon: MapPin,
+      },
+      {
+        label: "PKTAAB Academic Resources",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+    ],
+
+    sections: [
+      {
+        heading: "Transportation",
+        text:
+          "Check the shuttle schedule before travelling between campus locations. Plan your journey around teaching, research, meetings and administrative appointments.",
+      },
+      {
+        heading: "Campus Facilities",
+        text:
+          "Explore the facilities available to postgraduate students and identify where you can obtain academic, research and student support.",
+      },
+      {
+        heading: "Be Campus-Ready",
+        text:
+          "Save important locations and contact information on your phone so you can find them quickly when needed.",
+      },
+    ],
+
+    checklist: [
+      "Open the shuttle bus schedule",
+      "Save the PKTAAB location in your maps",
+      "Identify important student facilities",
+      "Know where to seek academic assistance",
+      "Know where to seek administrative assistance",
+    ],
   },
+
+
+  /* =======================================================
+     09 — ADUSISWA
+     ======================================================= */
+
   {
     id: 9,
-    title: "Communication & Support",
-    icon: "💬",
-    text: "Know how to stay connected with PKTAAB and where to get help when you need it."
+    number: "09",
+    title: "ADUSISWA",
+    subtitle: "Your USM Student System",
+    icon: GraduationCap,
+    color: "purple",
+
+    description:
+      "AduSiswa is part of your wider USM student experience. Make sure you know where to access official student-related information and services.",
+
+    resources: [
+      {
+        label: "PKTAAB Academic Resources",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+      {
+        label: "USM Official Website",
+        url:
+          "https://www.usm.my/",
+        icon: ExternalLink,
+      },
+    ],
+
+    sections: [
+      {
+        heading: "Your USM Student Information",
+        text:
+          "Use official USM student systems and services to manage student-related information and access services available to you.",
+      },
+      {
+        heading: "Use Official Sources",
+        text:
+          "Always use official USM or PKTAAB links when accessing student services. Avoid relying on outdated links shared in old documents or messages.",
+      },
+      {
+        heading: "Keep Your Information Updated",
+        text:
+          "Make sure your student information and contact details are kept up to date where required.",
+      },
+    ],
+
+    checklist: [
+      "Know what AduSiswa is used for",
+      "Access the official USM student information system",
+      "Check your student information",
+      "Know where to obtain help if you encounter a system problem",
+    ],
   },
+
+
+  /* =======================================================
+     10 — WHERE TO FIND US
+     ======================================================= */
+
   {
     id: 10,
-    title: "Final Checklist",
-    icon: "✅",
-    text: "Complete your final orientation checklist before starting your postgraduate journey."
-  }
+    number: "10",
+    title: "KNOW WHERE TO FIND US",
+    subtitle: "Location, Contacts & Support",
+    icon: MapPin,
+    color: "teal",
+
+    description:
+      "Knowing where to go and who to contact can save you time when you need academic, administrative or research assistance.",
+
+    resources: [
+      {
+        label: "PKTAAB Location",
+        url:
+          "https://maps.app.goo.gl/x3FjXC69WCryEbV77?g_st=ic",
+        icon: MapPin,
+      },
+      {
+        label: "PKTAAB Departments",
+        url:
+          "https://www.amdi.usm.my/departments",
+        icon: Building2,
+      },
+      {
+        label: "Academic Resources",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+    ],
+
+    sections: [
+      {
+        heading: "Division of Academic & International",
+        text:
+          "For postgraduate academic and administrative matters, contact the Division of Academic & International through the official channels provided to you.",
+      },
+      {
+        heading: "Your Supervisor",
+        text:
+          "Your supervisor is your primary academic and research guide. Maintain regular communication and discuss your progress, research decisions and challenges.",
+      },
+      {
+        heading: "Know Before You Ask",
+        text:
+          "Before contacting a unit, check PPBMS, the handbook and the official resources page. You may find the answer immediately.",
+      },
+    ],
+
+    checklist: [
+      "Save the PKTAAB location",
+      "Know how to contact the Division of Academic & International",
+      "Know your supervisor's contact details",
+      "Bookmark the official resources page",
+    ],
+  },
+
+
+  /* =======================================================
+     11 — PKTAAB STUDENTS ASSOCIATION
+     ======================================================= */
+
+  {
+    id: 11,
+    number: "11",
+    title: "JOIN THE STUDENT COMMUNITY",
+    subtitle: "PKTAAB Students Association & Communication",
+    icon: MessageCircle,
+    color: "green",
+
+    description:
+      "Your postgraduate journey is not only about research and academic milestones. Connect with fellow students, stay informed and become part of the PKTAAB student community.",
+
+    resources: [
+      {
+        label:
+          "PKTAAB Students Association — WhatsApp Community",
+        url:
+          "https://chat.whatsapp.com/H9m8mW0Mv2V6x5CxoSZS42",
+        icon: MessageCircle,
+      },
+      {
+        label:
+          "Academic & International — Email",
+        url:
+          "mailto:anissyamimi@usm.my",
+        icon: ExternalLink,
+      },
+    ],
+
+    communityCard: {
+      title:
+        "PKTAAB Students Association",
+      acronym:
+        "PKTAABSA",
+
+      description:
+        "A student-led community for PKTAAB students to foster unity, communication, collaboration and student-led activities.",
+
+      members:
+        "Student Community",
+
+      groups:
+        "2 groups",
+    },
+
+    sections: [
+      {
+        heading:
+          "PKTAAB Students Association",
+        text:
+          "PKTAAB Students Association (PKTAABSA) provides a student community where students can connect with one another, share information and participate in student-led activities.",
+      },
+      {
+        heading:
+          "From Students, For Students",
+        text:
+          "The student community is intended to support synergy, unity and seamless communication among students across programmes and cohorts.",
+      },
+      {
+        heading:
+          "Stay Connected",
+        text:
+          "Join the official student community so that you can stay connected with your peers and participate in relevant student activities, announcements and initiatives.",
+      },
+    ],
+
+    communityGuidelines: [
+      "Introduce yourself and connect with fellow postgraduate students.",
+      "Use the community for constructive student-to-student communication.",
+      "Share useful information and opportunities relevant to students.",
+      "Respect students from different programmes, backgrounds and cultures.",
+      "Do not share confidential research, participant or personal information.",
+      "Use official academic channels for formal academic or administrative matters.",
+    ],
+
+    checklist: [
+      "Join the PKTAAB Students Association WhatsApp Community",
+      "Open and review the available community groups",
+      "Know how to access student announcements",
+      "Connect with fellow postgraduate students",
+      "Know the difference between student-community communication and official academic communication",
+    ],
+  },
+
+
+  /* =======================================================
+     12 — FORMS & DOCUMENTS
+     ======================================================= */
+
+  {
+    id: 12,
+    number: "12",
+    title: "KNOW WHERE TO FIND YOUR FORMS",
+    subtitle: "Forms, Documents & Resources",
+    icon: FileText,
+    color: "gold",
+
+    description:
+      "You should never have to search randomly for postgraduate forms. Save this page — it is one of your key resource points.",
+
+    resources: [
+      {
+        label:
+          "PKTAAB Academic Resources & Student Forms",
+        url:
+          "https://academic.amdi.usm.my/25facilities/resources25",
+        icon: FolderOpen,
+      },
+      {
+        label:
+          "PPBMS Student Portal",
+        url:
+          "https://ppbms-frontend.onrender.com/",
+        icon: ExternalLink,
+      },
+    ],
+
+    formCategories: [
+      {
+        title:
+          "Admission & Registration",
+
+        items: [
+          "Confirmation of Registration — Master / PhD Research Mode",
+          "Admission and registration-related documents",
+        ],
+      },
+
+      {
+        title:
+          "Candidature",
+
+        items: [
+          "HEP 03 and candidature-related forms",
+          "Supervisor change",
+          "Thesis title / research-related changes",
+          "Extension and candidature matters",
+        ],
+      },
+
+      {
+        title:
+          "Thesis & Examination",
+
+        items: [
+          "Thesis submission documents",
+          "Draft thesis submission",
+          "Final thesis submission",
+          "Examination-related documents",
+        ],
+      },
+
+      {
+        title:
+          "Postgraduate Guidelines",
+
+        items: [
+          "USM postgraduate handbook",
+          "Research postgraduate guidelines",
+          "Code of Good Practice for Postgraduate Research Studies",
+          "Academic calendar and related information",
+        ],
+      },
+    ],
+
+    sections: [
+      {
+        heading:
+          "One Important Bookmark",
+        text:
+          "Save the PKTAAB Academic Resources page in your browser. It is the main place to check for postgraduate forms, documents and resources.",
+      },
+      {
+        heading:
+          "Use the Latest Version",
+        text:
+          "Before submitting a form, always check the official website for the latest version and current submission instructions.",
+      },
+    ],
+
+    checklist: [
+      "Open the PKTAAB Academic Resources page",
+      "Bookmark the page",
+      "Locate candidature-related forms",
+      "Locate thesis submission documents",
+      "Locate postgraduate guidelines",
+      "Use the latest version of every form",
+    ],
+  },
 ];
 
+
+/* =========================================================
+   HELPER
+   ========================================================= */
+
+function openResource(url) {
+  if (!url) return;
+
+  window.open(
+    url,
+    "_blank",
+    "noopener,noreferrer"
+  );
+}
+
+
+/* =========================================================
+   MAIN COMPONENT
+   ========================================================= */
+
 export default function Orientation({
-  student,
   token,
-  onComplete
+  student,
+  onCompleted,
+  initialModule = 1,
 }) {
-  const [current, setCurrent] = useState(0);
+  const [currentModule, setCurrentModule] =
+    useState(initialModule);
 
   const [completedModules, setCompletedModules] =
     useState([]);
 
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const module = modules[current];
+  const module =
+    MODULES.find(
+      (item) =>
+        item.id === currentModule
+    );
 
-  const totalModules = modules.length;
+  const progress = useMemo(() => {
+    return Math.round(
+      (completedModules.length /
+        MODULES.length) *
+        100
+    );
+  }, [completedModules]);
 
-  const progress = Math.round(
-    (completedModules.length / totalModules) * 100
-  );
+  const isCurrentCompleted =
+    completedModules.includes(
+      currentModule
+    );
 
+  const studentName =
+    student?.studentName ||
+    student?.["Student Name"] ||
+    student?.name ||
+    student?.email?.split("@")[0] ||
+    "Student";
 
-  function markComplete() {
+  const matric =
+    student?.matric ||
+    student?.["Matric"] ||
+    student?.matricNo ||
+    student?.["Matric No."] ||
+    "";
 
-    if (!completedModules.includes(module.id)) {
+  const programme =
+    student?.programme ||
+    student?.["Programme"] ||
+    "";
 
-      setCompletedModules([
-        ...completedModules,
-        module.id
-      ]);
+  /* -------------------------------------------------------
+     COMPLETE CURRENT MODULE
+     ------------------------------------------------------- */
 
-    }
-
-    if (current < totalModules - 1) {
-      setCurrent(current + 1);
+  function markModuleComplete() {
+    if (
+      !completedModules.includes(
+        currentModule
+      )
+    ) {
+      setCompletedModules(
+        (prev) => [
+          ...prev,
+          currentModule,
+        ]
+      );
     }
   }
 
+  /* -------------------------------------------------------
+     NEXT MODULE
+     ------------------------------------------------------- */
 
-  async function finishOrientation() {
+  function nextModule() {
+    markModuleComplete();
 
-    setSaving(true);
-    setError("");
-
-    try {
-
-      await completeOrientation(token, {
-        email:
-          student.email ||
-          student.student_email,
-
-        matric:
-          student.matric ||
-          student.student_id,
-
-        studentName:
-          student.studentName ||
-          student.student_name,
-
-        programme:
-          student.programme,
-
-        progress: 100
-      });
-
-      onComplete();
-
-    } catch (err) {
-
-      console.error(err);
-
-      setError(
-        err.message ||
-        "Unable to save your orientation completion."
+    if (
+      currentModule <
+      MODULES.length
+    ) {
+      setCurrentModule(
+        (prev) => prev + 1
       );
 
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  }
+
+  /* -------------------------------------------------------
+     PREVIOUS MODULE
+     ------------------------------------------------------- */
+
+  function previousModule() {
+    if (
+      currentModule > 1
+    ) {
+      setCurrentModule(
+        (prev) => prev - 1
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  }
+
+  /* -------------------------------------------------------
+     FINISH ORIENTATION
+     ------------------------------------------------------- */
+
+  async function finishOrientation() {
+    setError("");
+    setSaving(true);
+
+    try {
+      const allModules =
+        MODULES.map(
+          (item) => item.id
+        );
+
+      setCompletedModules(
+        allModules
+      );
+
+      await completeOrientation(
+        token,
+        {
+          progress: 100,
+
+          version:
+            "2026.1",
+
+          modulesCompleted:
+            allModules,
+
+          studentName,
+
+          matric,
+
+          programme,
+        }
+      );
+
+      if (onCompleted) {
+        onCompleted({
+          progress: 100,
+
+          completedAt:
+            new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      setError(
+        err.message ||
+          "Unable to save orientation completion."
+      );
     } finally {
-
       setSaving(false);
-
     }
   }
 
 
+  if (!module) {
+    return null;
+  }
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
   return (
-    <div className="orientation-page">
+    <div className="orientation-shell">
 
-      {/* HEADER */}
+      {/* ===================================================
+          TOP HEADER
+          =================================================== */}
 
-      <header className="orientation-header">
+      <header className="orientation-topbar">
 
-        <div className="header-brand">
-          PKTAAB
+        <div className="orientation-brand">
+
+          <div className="orientation-brand-mark">
+            USM
+          </div>
+
+          <div>
+            <div className="orientation-brand-title">
+              PKTAAB
+            </div>
+
+            <div className="orientation-brand-subtitle">
+              Postgraduate Student Orientation
+            </div>
+          </div>
+
         </div>
 
-        <div className="header-progress">
+
+        <div className="orientation-student">
 
           <span>
-            ORIENTATION
+            Welcome
           </span>
 
           <strong>
-            {progress}%
+            {studentName}
           </strong>
 
         </div>
@@ -175,385 +1091,1217 @@ export default function Orientation({
       </header>
 
 
-      {/* MAIN */}
+      {/* ===================================================
+          HERO
+          =================================================== */}
 
-      <main className="orientation-content">
+      <section className="orientation-hero">
 
-        {/* SIDE NAV */}
+        <div className="orientation-hero-inner">
 
-        <aside className="module-sidebar">
+          <div className="orientation-eyebrow">
 
-          <div className="sidebar-title">
-            YOUR JOURNEY
-          </div>
+            <Sparkles size={15} />
 
-          {modules.map((item, index) => {
+            YOUR PKTAAB POSTGRADUATE JOURNEY
 
-            const isCurrent =
-              index === current;
-
-            const isDone =
-              completedModules.includes(
-                item.id
-              );
-
-            return (
-              <button
-                key={item.id}
-                className={`module-nav ${
-                  isCurrent
-                    ? "active"
-                    : ""
-                } ${
-                  isDone
-                    ? "done"
-                    : ""
-                }`}
-                onClick={() =>
-                  setCurrent(index)
-                }
-              >
-
-                <span className="module-number">
-                  {isDone
-                    ? "✓"
-                    : String(index + 1).padStart(2, "0")}
-                </span>
-
-                <span className="module-name">
-                  {item.title}
-                </span>
-
-              </button>
-            );
-
-          })}
-
-        </aside>
-
-
-        {/* CONTENT */}
-
-        <section className="module-content">
-
-          <div className="module-counter">
-            MODULE {String(current + 1).padStart(2, "0")}
-            {" "} / {String(totalModules).padStart(2, "0")}
-          </div>
-
-
-          <div className="module-icon">
-            {module.icon}
           </div>
 
 
           <h1>
-            {module.title}
+            Welcome to your
+            <br />
+
+            <span>
+              PKTAAB Universe.
+            </span>
           </h1>
 
 
-          <p className="module-description">
-            {module.text}
+          <p>
+            Explore the people, systems,
+            research environment, milestones
+            and resources you need to begin
+            your postgraduate journey with
+            confidence.
           </p>
 
 
-          {/* PLACEHOLDER CONTENT */}
+          <div className="orientation-progress-card">
 
-          <div className="module-card">
+            <div className="progress-top">
 
-            {current === 0 && (
-              <>
-                <h2>
-                  Your journey starts here
-                </h2>
+              <span>
+                Orientation Progress
+              </span>
 
-                <p>
-                  Welcome to the Pusat Kanser Tun
-                  Abdullah Ahmad Badawi (PKTAAB),
-                  Universiti Sains Malaysia.
-                </p>
+              <strong>
+                {completedModules.length}
+                /
+                {MODULES.length}
+              </strong>
 
-                <p>
-                  This orientation will introduce
-                  you to the people, systems,
-                  responsibilities and resources
-                  that will support you throughout
-                  your postgraduate journey.
-                </p>
-              </>
-            )}
+            </div>
 
 
-            {current === 1 && (
-              <>
-                <h2>
-                  You are not on this journey alone.
-                </h2>
+            <div className="progress-track">
 
-                <p>
-                  Meet the Academic & International
-                  team and discover who to contact
-                  for academic, administrative and
-                  postgraduate matters.
-                </p>
+              <div
+                className="progress-fill"
+                style={{
+                  width:
+                    `${progress}%`,
+                }}
+              />
 
-                <div className="info-box">
-                  👥 Meet the PKTAAB team
-                </div>
-              </>
-            )}
+            </div>
 
 
-            {current === 2 && (
-              <>
-                <h2>
-                  Understand your milestones
-                </h2>
+            <div className="progress-caption">
 
-                <p>
-                  Your postgraduate journey includes
-                  planning, research, supervision,
-                  progress monitoring, annual review,
-                  thesis preparation and graduation.
-                </p>
+              {progress === 100
+                ? "Orientation completed"
+                : `${progress}% completed`}
 
-                <div className="info-box">
-                  🎓 Plan → Research → Monitor → Complete
-                </div>
-              </>
-            )}
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
 
 
-            {current === 3 && (
-              <>
-                <h2>
-                  PPBMS is your progress companion.
-                </h2>
+      {/* ===================================================
+          MODULE NAVIGATION
+          =================================================== */}
 
-                <p>
-                  Use PPBMS to monitor your academic
-                  progress, submit required documents,
-                  view milestones and stay updated
-                  with postgraduate requirements.
-                </p>
+      <section className="orientation-navigation">
 
-                <a
-                  href="https://ppbms-frontend.onrender.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="resource-link"
+        <div className="module-strip">
+
+          {MODULES.map(
+            (item) => {
+
+              const Icon =
+                item.icon;
+
+              const completed =
+                completedModules.includes(
+                  item.id
+                );
+
+              const active =
+                item.id ===
+                currentModule;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={
+                    `module-pill ${
+                      active
+                        ? "active"
+                        : ""
+                    } ${
+                      completed
+                        ? "completed"
+                        : ""
+                    }`
+                  }
+                  onClick={() => {
+
+                    setCurrentModule(
+                      item.id
+                    );
+
+                    window.scrollTo({
+                      top: 0,
+                      behavior:
+                        "smooth",
+                    });
+
+                  }}
                 >
-                  Open PPBMS →
-                </a>
-              </>
-            )}
+
+                  <span className="module-pill-number">
+
+                    {completed ? (
+                      <Check size={13} />
+                    ) : (
+                      item.number
+                    )}
+
+                  </span>
 
 
-            {current === 4 && (
-              <>
-                <h2>
-                  Research with integrity.
-                </h2>
+                  <span className="module-pill-title">
 
-                <p>
-                  Always follow approved research
-                  procedures, maintain proper records,
-                  protect participants and communicate
-                  with your supervisor when you are
-                  unsure.
-                </p>
+                    {item.title}
 
-                <div className="dosdonts">
+                  </span>
 
-                  <div>
-                    <strong>✓ DO</strong>
-                    <span>
-                      Keep research records updated.
-                    </span>
-                  </div>
+                </button>
+              );
+            }
+          )}
 
-                  <div>
-                    <strong>✓ DO</strong>
-                    <span>
-                      Follow ethics approval.
-                    </span>
-                  </div>
+        </div>
 
-                  <div>
-                    <strong>✕ DON'T</strong>
-                    <span>
-                      Collect data without approval.
-                    </span>
-                  </div>
-
-                </div>
-              </>
-            )}
+      </section>
 
 
-            {current === 5 && (
-              <>
-                <h2>
-                  Keep your important forms within reach.
-                </h2>
+      {/* ===================================================
+          MAIN
+          =================================================== */}
 
-                <p>
-                  Your orientation resources should
-                  help you locate postgraduate forms,
-                  guidelines, templates and official
-                  documents.
-                </p>
-
-                <div className="info-box">
-                  📂 Forms & Guidelines
-                </div>
-              </>
-            )}
+      <main className="orientation-main">
 
 
-            {current === 6 && (
-              <>
-                <h2>
-                  AduSiswa
-                </h2>
+        {/* MODULE HEADER */}
 
-                <p>
-                  AduSiswa provides a channel for
-                  students to communicate feedback,
-                  suggestions and student-related
-                  matters through the appropriate
-                  university process.
-                </p>
+        <div className="orientation-module-header">
 
-                <div className="info-box">
-                  📢 Know where to raise your concern.
-                </div>
-              </>
-            )}
+          <div
+            className={
+              `module-icon-large ${module.color}`
+            }
+          >
+            <module.icon size={30} />
+          </div>
 
 
-            {current === 7 && (
-              <>
-                <h2>
-                  Get comfortable on campus.
-                </h2>
+          <div>
 
-                <p>
-                  Familiarise yourself with campus
-                  facilities, transportation,
-                  accommodation and other services.
-                </p>
+            <div className="module-number-label">
+              MODULE {module.number}
+            </div>
 
-                <a
-                  href="https://reachapps.amdi.usm.my/tripschedule/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="resource-link"
-                >
-                  🚌 View Shuttle Schedule →
-                </a>
-              </>
-            )}
+            <h2>
+              {module.title}
+            </h2>
 
-
-            {current === 8 && (
-              <>
-                <h2>
-                  When in doubt, ask.
-                </h2>
-
-                <p>
-                  Keep your communication channels
-                  open with your supervisor, the
-                  Academic & International team and
-                  relevant university offices.
-                </p>
-
-                <div className="info-box">
-                  💬 Communication is part of good research.
-                </div>
-              </>
-            )}
-
-
-            {current === 9 && (
-              <>
-                <h2>
-                  You're ready to begin.
-                </h2>
-
-                <p>
-                  Before you finish, make sure you
-                  understand where to access PPBMS,
-                  where to find important forms and
-                  who to contact when you need help.
-                </p>
-
-                <div className="final-checklist">
-
-                  <div>✓ I know how to access PPBMS</div>
-                  <div>✓ I know where to find forms</div>
-                  <div>✓ I understand my responsibilities</div>
-                  <div>✓ I know where to get support</div>
-
-                </div>
-
-              </>
-            )}
+            <div className="module-subtitle">
+              {module.subtitle}
+            </div>
 
           </div>
 
 
-          {/* ERROR */}
+          {isCurrentCompleted && (
 
-          {error && (
-            <div className="error-message">
-              {error}
+            <div className="module-completed-badge">
+
+              <CheckCircle2 size={18} />
+
+              Completed
+
             </div>
+
           )}
 
+        </div>
 
-          {/* NAVIGATION */}
 
-          <div className="module-actions">
+        <p className="module-description">
+          {module.description}
+        </p>
+
+
+        {/* =================================================
+            RESOURCES
+            ================================================= */}
+
+        {module.resources?.length >
+          0 && (
+
+          <section className="resource-section">
+
+            <div className="section-heading">
+
+              <div className="section-heading-icon">
+
+                <ExternalLink
+                  size={18}
+                />
+
+              </div>
+
+              <div>
+
+                <h3>
+                  Start Here
+                </h3>
+
+                <p>
+                  Open these official
+                  resources before
+                  continuing.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div className="resource-grid">
+
+              {module.resources.map(
+                (
+                  resource,
+                  index
+                ) => {
+
+                  const ResourceIcon =
+                    resource.icon ||
+                    ExternalLink;
+
+                  return (
+
+                    <button
+                      type="button"
+                      className="resource-card"
+                      key={
+                        `${resource.label}-${index}`
+                      }
+                      onClick={() =>
+                        openResource(
+                          resource.url
+                        )
+                      }
+                    >
+
+                      <div className="resource-icon">
+
+                        <ResourceIcon
+                          size={22}
+                        />
+
+                      </div>
+
+
+                      <div className="resource-content">
+
+                        <strong>
+                          {resource.label}
+                        </strong>
+
+                        <span>
+
+                          Open resource
+
+                          <ExternalLink
+                            size={13}
+                          />
+
+                        </span>
+
+                      </div>
+
+                    </button>
+
+                  );
+                }
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            MODULE 11 — STUDENT COMMUNITY CARD
+            ================================================= */}
+
+        {module.communityCard && (
+
+          <section className="student-community-card">
+
+            <div className="community-card-top">
+
+              <div className="community-logo-placeholder">
+
+                <MessageCircle
+                  size={34}
+                />
+
+              </div>
+
+
+              <div className="community-card-title">
+
+                <div className="community-kicker">
+
+                  PKTAAB STUDENT COMMUNITY
+
+                </div>
+
+
+                <h2>
+                  {module.communityCard.title}
+                </h2>
+
+
+                <div className="community-acronym">
+
+                  {module.communityCard.acronym}
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <p className="community-description">
+
+              {module.communityCard.description}
+
+            </p>
+
+
+            <div className="community-stats">
+
+              <div className="community-stat">
+
+                <Users size={20} />
+
+                <div>
+
+                  <strong>
+                    {module.communityCard.members}
+                  </strong>
+
+                  <span>
+                    Community
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <div className="community-stat">
+
+                <MessageCircle
+                  size={20}
+                />
+
+                <div>
+
+                  <strong>
+                    {module.communityCard.groups}
+                  </strong>
+
+                  <span>
+                    Available groups
+                  </span>
+
+                </div>
+
+              </div>
+
+            </div>
+
 
             <button
-              className="secondary-button"
-              disabled={current === 0}
+              type="button"
+              className="community-join-button"
               onClick={() =>
-                setCurrent(
-                  current - 1
+                openResource(
+                  "https://chat.whatsapp.com/H9m8mW0Mv2V6x5CxoSZS42"
                 )
               }
             >
-              ← BACK
+
+              <MessageCircle
+                size={20}
+              />
+
+              Join PKTAAB Students Association
+
+              <ExternalLink
+                size={16}
+              />
+
             </button>
 
+          </section>
 
-            {current <
-            totalModules - 1 ? (
+        )}
+
+
+        {/* =================================================
+            MODULE 11 — COMMUNITY GUIDELINES
+            ================================================= */}
+
+        {module.communityGuidelines?.length >
+          0 && (
+
+          <section className="content-section">
+
+            <div className="section-heading">
+
+              <div className="section-heading-icon">
+
+                <Users size={18} />
+
+              </div>
+
+
+              <div>
+
+                <h3>
+                  Be Part of the Community
+                </h3>
+
+                <p>
+                  A few simple guidelines
+                  for a positive student
+                  community.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div className="community-guidelines">
+
+              {module.communityGuidelines.map(
+                (
+                  item,
+                  index
+                ) => (
+
+                  <div
+                    className="community-guideline"
+                    key={item}
+                  >
+
+                    <div className="guideline-number">
+
+                      {String(
+                        index + 1
+                      ).padStart(
+                        2,
+                        "0"
+                      )}
+
+                    </div>
+
+
+                    <div className="guideline-check">
+
+                      <Check
+                        size={14}
+                      />
+
+                    </div>
+
+
+                    <span>
+                      {item}
+                    </span>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            NORMAL INFORMATION SECTIONS
+            ================================================= */}
+
+        {module.sections?.length >
+          0 && (
+
+          <section className="content-section">
+
+            {module.sections.map(
+              (
+                section,
+                index
+              ) => (
+
+                <article
+                  className="info-card"
+                  key={
+                    `${section.heading}-${index}`
+                  }
+                >
+
+                  <div className="info-card-number">
+
+                    {String(
+                      index + 1
+                    ).padStart(
+                      2,
+                      "0"
+                    )}
+
+                  </div>
+
+
+                  <div>
+
+                    <h3>
+                      {section.heading}
+                    </h3>
+
+                    <p>
+                      {section.text}
+                    </p>
+
+                  </div>
+
+                </article>
+
+              )
+            )}
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            STEPS
+            ================================================= */}
+
+        {module.steps?.length >
+          0 && (
+
+          <section className="content-section">
+
+            <div className="section-heading">
+
+              <div className="section-heading-icon">
+
+                <ArrowRight
+                  size={18}
+                />
+
+              </div>
+
+
+              <div>
+
+                <h3>
+                  Your PPBMS Journey
+                </h3>
+
+                <p>
+                  Follow these steps.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div className="step-list">
+
+              {module.steps.map(
+                (
+                  step,
+                  index
+                ) => (
+
+                  <div
+                    className="step-row"
+                    key={step}
+                  >
+
+                    <div className="step-number">
+
+                      {index + 1}
+
+                    </div>
+
+
+                    <div className="step-text">
+
+                      {step}
+
+                    </div>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            MILESTONES
+            ================================================= */}
+
+        {module.milestones?.length >
+          0 && (
+
+          <section className="content-section">
+
+            <div className="milestone-grid">
+
+              {module.milestones.map(
+                (
+                  milestone,
+                  index
+                ) => (
+
+                  <article
+                    className="milestone-card"
+                    key={
+                      milestone.title
+                    }
+                  >
+
+                    <div className="milestone-number">
+
+                      {index + 1}
+
+                    </div>
+
+
+                    <div>
+
+                      <h3>
+                        {milestone.title}
+                      </h3>
+
+                      <p>
+                        {milestone.text}
+                      </p>
+
+                    </div>
+
+                  </article>
+
+                )
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            MODULE 07 — RESEARCH ETHICS POSTER
+            ================================================= */}
+
+        {module.ethicsPoster && (
+
+          <section className="ethics-poster">
+
+            <div className="ethics-poster-header">
+
+              <div className="ethics-shield">
+
+                <ShieldCheck
+                  size={34}
+                />
+
+              </div>
+
+
+              <div>
+
+                <div className="ethics-kicker">
+
+                  YOUR RESEARCHER'S CODE
+
+                </div>
+
+
+                <h2>
+
+                  DO IT RIGHT.
+                  <br />
+
+                  <span>
+                    RESEARCH WITH INTEGRITY.
+                  </span>
+
+                </h2>
+
+
+                <p>
+
+                  Your research journey
+                  is built on ethics,
+                  honesty, responsibility
+                  and respect.
+
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div className="ethics-columns">
+
+
+              {/* DO */}
+
+              <div className="ethics-column do-column">
+
+                <div className="ethics-column-header">
+
+                  <div className="ethics-symbol">
+                    ✓
+                  </div>
+
+
+                  <div>
+
+                    <span>
+                      DO
+                    </span>
+
+                    <h3>
+                      Research Responsibly
+                    </h3>
+
+                  </div>
+
+                </div>
+
+
+                <div className="ethics-list">
+
+                  {module.dos.map(
+                    (
+                      item,
+                      index
+                    ) => (
+
+                      <div
+                        className="ethics-item"
+                        key={
+                          `do-${index}`
+                        }
+                      >
+
+                        <div className="ethics-check">
+
+                          <Check
+                            size={15}
+                          />
+
+                        </div>
+
+
+                        <span>
+                          {item}
+                        </span>
+
+                      </div>
+
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+
+              {/* DON'T */}
+
+              <div className="ethics-column dont-column">
+
+                <div className="ethics-column-header">
+
+                  <div className="ethics-symbol">
+                    !
+                  </div>
+
+
+                  <div>
+
+                    <span>
+                      DON'T
+                    </span>
+
+                    <h3>
+                      Avoid Research Pitfalls
+                    </h3>
+
+                  </div>
+
+                </div>
+
+
+                <div className="ethics-list">
+
+                  {module.donts.map(
+                    (
+                      item,
+                      index
+                    ) => (
+
+                      <div
+                        className="ethics-item"
+                        key={
+                          `dont-${index}`
+                        }
+                      >
+
+                        <div className="ethics-cross">
+                          ×
+                        </div>
+
+
+                        <span>
+                          {item}
+                        </span>
+
+                      </div>
+
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div className="ethics-warning">
+
+              <AlertTriangle
+                size={20}
+              />
+
+              <div>
+
+                <strong>
+                  When in doubt, ask.
+                </strong>
+
+                <p>
+                  {module.warning}
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            FORM CATEGORIES — MODULE 12
+            ================================================= */}
+
+        {module.formCategories?.length >
+          0 && (
+
+          <section className="content-section">
+
+            <div className="section-heading">
+
+              <div className="section-heading-icon">
+
+                <FolderOpen
+                  size={18}
+                />
+
+              </div>
+
+
+              <div>
+
+                <h3>
+                  Your Form Finder
+                </h3>
+
+                <p>
+                  Use the official Academic
+                  Resources page for the
+                  latest documents.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div className="form-category-grid">
+
+              {module.formCategories.map(
+                (
+                  category
+                ) => (
+
+                  <article
+                    className="form-category-card"
+                    key={
+                      category.title
+                    }
+                  >
+
+                    <div className="form-category-icon">
+
+                      <FileText
+                        size={20}
+                      />
+
+                    </div>
+
+
+                    <h3>
+                      {category.title}
+                    </h3>
+
+
+                    <ul>
+
+                      {category.items.map(
+                        (
+                          item
+                        ) => (
+
+                          <li
+                            key={item}
+                          >
+
+                            <Check
+                              size={14}
+                            />
+
+                            <span>
+                              {item}
+                            </span>
+
+                          </li>
+
+                        )
+                      )}
+
+                    </ul>
+
+                  </article>
+
+                )
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            CHECKLIST
+            ================================================= */}
+
+        {module.checklist?.length >
+          0 && (
+
+          <section className="checklist-section">
+
+            <div className="checklist-header">
+
+              <div className="checklist-icon">
+
+                <ClipboardCheck
+                  size={21}
+                />
+
+              </div>
+
+
+              <div>
+
+                <h3>
+                  Before You Continue
+                </h3>
+
+                <p>
+                  Make sure you have completed
+                  these orientation actions.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div className="checklist-items">
+
+              {module.checklist.map(
+                (
+                  item
+                ) => (
+
+                  <label
+                    className="checklist-item"
+                    key={item}
+                  >
+
+                    <input
+                      type="checkbox"
+                    />
+
+
+                    <span className="custom-checkbox">
+
+                      <Check
+                        size={13}
+                      />
+
+                    </span>
+
+
+                    <span>
+                      {item}
+                    </span>
+
+                  </label>
+
+                )
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            MODULE ACTION
+            ================================================= */}
+
+        <section className="module-action">
+
+          <div>
+
+            <div className="module-action-kicker">
+
+              MODULE {module.number}
+              {" "}OF{" "}
+              {MODULES.length}
+
+            </div>
+
+
+            <h3>
+
+              {currentModule ===
+              MODULES.length
+                ? "Ready to complete your orientation?"
+                : "Completed this module?"}
+
+            </h3>
+
+
+            <p>
+
+              {currentModule ===
+              MODULES.length
+                ? "Submit your orientation completion to finish the PKTAAB onboarding journey."
+                : "Mark this module as completed and continue to the next part of your journey."}
+
+            </p>
+
+          </div>
+
+
+          <div className="module-action-buttons">
+
+            {currentModule > 1 && (
 
               <button
-                className="primary-button"
-                onClick={markComplete}
+                type="button"
+                className="btn-secondary"
+                onClick={
+                  previousModule
+                }
               >
-                {completedModules.includes(
-                  module.id
-                )
-                  ? "NEXT MODULE →"
-                  : "COMPLETE & CONTINUE →"}
+
+                <ArrowLeft
+                  size={17}
+                />
+
+                Previous
+
+              </button>
+
+            )}
+
+
+            {currentModule <
+            MODULES.length ? (
+
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={
+                  nextModule
+                }
+              >
+
+                Complete & Continue
+
+                <ArrowRight
+                  size={17}
+                />
+
               </button>
 
             ) : (
 
               <button
-                className="primary-button"
-                disabled={saving}
-                onClick={finishOrientation}
+                type="button"
+                className="btn-complete"
+                onClick={
+                  finishOrientation
+                }
+                disabled={
+                  saving
+                }
               >
-                {saving
-                  ? "SAVING..."
-                  : "🎉 COMPLETE ORIENTATION"}
+
+                {saving ? (
+
+                  "Saving..."
+
+                ) : (
+
+                  <>
+                    <CheckCircle2
+                      size={18}
+                    />
+
+                    Complete Orientation
+                  </>
+
+                )}
+
               </button>
 
             )}
@@ -561,6 +2309,74 @@ export default function Orientation({
           </div>
 
         </section>
+
+
+        {/* =================================================
+            ERROR
+            ================================================= */}
+
+        {error && (
+
+          <div className="orientation-error">
+
+            <AlertTriangle
+              size={18}
+            />
+
+            <span>
+              {error}
+            </span>
+
+          </div>
+
+        )}
+
+
+        {/* =================================================
+            FOOTER
+            ================================================= */}
+
+        <footer className="orientation-footer">
+
+          <div className="footer-brand">
+
+            <div className="footer-usm">
+              USM
+            </div>
+
+
+            <div>
+
+              <strong>
+                Division of Academic & International
+              </strong>
+
+              <span>
+
+                Pusat Kanser Tun Abdullah Ahmad Badawi
+                <br />
+
+                Universiti Sains Malaysia
+
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div className="footer-note">
+
+            <ShieldCheck
+              size={15}
+            />
+
+            Official postgraduate
+            orientation resource
+
+          </div>
+
+        </footer>
 
       </main>
 
