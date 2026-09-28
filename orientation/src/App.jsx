@@ -31,8 +31,8 @@ export default function App() {
       setLoading(false);
 
       // Send them to the EXISTING PPBMS login
-      window.location.href =
-        "/login?returnTo=/orientation";
+      window.top.location.href =
+  "/login?returnTo=/orientation";
 
       return;
     }
@@ -74,8 +74,8 @@ export default function App() {
 
         setToken(null);
 
-        window.location.href =
-          "/login?returnTo=/orientation";
+        window.top.location.href =
+  "/login?returnTo=/orientation";
 
       } finally {
         setLoading(false);
