@@ -1,120 +1,107 @@
 import { useEffect, useState } from "react";
 
-import Login from "./pages/Login";
 import Welcome from "./pages/Welcome";
 import Orientation from "./pages/Orientation";
 import Completed from "./pages/Completed";
 
 import {
   getStudentProfile,
-  getOrientationStatus
+  getOrientationStatus,
 } from "./api";
 
-
 export default function App() {
+  // Use the EXISTING PPBMS authentication
+  const [token, setToken] = useState(
+    localStorage.getItem("ppbms_token")
+  );
 
-  const [token, setToken] =
-    useState(
-      localStorage.getItem("orientation_token")
-    );
+  const [student, setStudent] = useState(null);
+  const [status, setStatus] = useState(null);
 
-  const [student, setStudent] =
-    useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [status, setStatus] =
-    useState(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [page, setPage] =
-    useState("welcome");
-
+  const [page, setPage] = useState("welcome");
 
   useEffect(() => {
+    const existingToken =
+      localStorage.getItem("ppbms_token");
 
-    if (!token) {
+    // Student has NOT logged into PPBMS
+    if (!existingToken) {
       setLoading(false);
+
+      // Send them to the EXISTING PPBMS login
+      window.location.href =
+        "/login?returnTo=/orientation";
+
       return;
     }
 
+    setToken(existingToken);
+
     async function loadStudent() {
-
       try {
-
         const profile =
-          await getStudentProfile(token);
+          await getStudentProfile(existingToken);
 
         const orientation =
-          await getOrientationStatus(token);
+          await getOrientationStatus(existingToken);
 
-        setStudent(profile);
+        // /api/student/me returns { row: {...} }
+        const studentData =
+          profile?.row || profile;
+
+        setStudent(studentData);
         setStatus(orientation);
 
         if (
-          orientation.status ===
-          "Completed"
+          orientation?.status === "Completed"
         ) {
           setPage("completed");
+        } else {
+          setPage("welcome");
         }
 
       } catch (error) {
-
-        console.error(error);
-
-        localStorage.removeItem(
-          "orientation_token"
+        console.error(
+          "Orientation authentication error:",
+          error
         );
+
+        // Token is invalid/expired
+        localStorage.removeItem("ppbms_token");
+        localStorage.removeItem("ppbms_role");
 
         setToken(null);
 
+        window.location.href =
+          "/login?returnTo=/orientation";
+
       } finally {
-
         setLoading(false);
-
       }
     }
 
     loadStudent();
 
-  }, [token]);
-
-
-  function handleLogin(data) {
-
-    localStorage.setItem(
-      "orientation_token",
-      data.token
-    );
-
-    localStorage.setItem(
-      "orientation_email",
-      data.email
-    );
-
-    setToken(data.token);
-  }
+  }, []);
 
 
   function logout() {
-
-    localStorage.removeItem(
-      "orientation_token"
-    );
-
-    localStorage.removeItem(
-      "orientation_email"
-    );
+    // Only remove PPBMS authentication
+    localStorage.removeItem("ppbms_token");
+    localStorage.removeItem("ppbms_role");
 
     setToken(null);
     setStudent(null);
     setStatus(null);
+    setPage("welcome");
 
+    window.location.href = "/login";
   }
 
 
   if (loading) {
-
     return (
       <div className="loading-screen">
 
@@ -135,9 +122,15 @@ export default function App() {
 
   if (!token) {
     return (
-      <Login
-        onLogin={handleLogin}
-      />
+      <div className="loading-screen">
+
+        <div className="spinner"></div>
+
+        <p>
+          Redirecting to PPBMS login...
+        </p>
+
+      </div>
     );
   }
 
@@ -145,15 +138,19 @@ export default function App() {
   if (!student) {
     return (
       <div className="loading-screen">
+
         <div className="spinner"></div>
-        <p>Loading student profile...</p>
+
+        <p>
+          Loading student profile...
+        </p>
+
       </div>
     );
   }
 
 
   if (page === "completed") {
-
     return (
       <Completed
         student={student}
@@ -164,12 +161,10 @@ export default function App() {
         onLogout={logout}
       />
     );
-
   }
 
 
   if (page === "orientation") {
-
     return (
       <Orientation
         student={student}
@@ -179,7 +174,6 @@ export default function App() {
         }
       />
     );
-
   }
 
 
