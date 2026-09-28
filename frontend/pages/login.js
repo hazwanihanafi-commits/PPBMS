@@ -11,6 +11,7 @@ export default function LoginPage() {
 
   async function handleLogin(e) {
     e.preventDefault();
+
     setError("");
     setLoading(true);
 
@@ -19,128 +20,246 @@ export default function LoginPage() {
         `${process.env.NEXT_PUBLIC_API_BASE}/auth/login`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
         }
       );
 
       const data = await res.json();
 
-// 🔐 FIRST-TIME LOGIN → REDIRECT TO SET PASSWORD
-if (data.requirePasswordSetup) {
-  router.push(`/set-password?email=${data.email}`);
-  return;
-}
+      /*
+       * --------------------------------
+       * RETURN PATH
+       * --------------------------------
+       */
 
-if (!res.ok) {
-  setError(data.error || "Login failed");
-  return;
-}
+      const returnTo =
+        typeof router.query.returnTo === "string"
+          ? router.query.returnTo
+          : null;
 
-      // ✅ STORE AUTH
-      localStorage.setItem("ppbms_token", data.token);
-      localStorage.setItem("ppbms_role", data.role);
-      localStorage.setItem("ppbms_email", data.email);
+      // Only allow internal PPBMS paths
+      const safeReturnTo =
+        returnTo &&
+        returnTo.startsWith("/")
+          ? returnTo
+          : null;
 
-     // ✅ RETURN TO THE PAGE THAT REQUESTED LOGIN
-const returnTo =
-  typeof router.query.returnTo === "string"
-    ? router.query.returnTo
-    : null;
 
-// Only allow internal PPBMS paths
-const safeReturnTo =
-  returnTo && returnTo.startsWith("/")
-    ? returnTo
-    : null;
+      /*
+       * --------------------------------
+       * FIRST-TIME LOGIN
+       * --------------------------------
+       */
 
-// Student
-if (data.role === "student") {
-  router.replace(
-    safeReturnTo || "/student"
-  );
-}
+      if (data.requirePasswordSetup) {
 
-// Supervisor
-else if (data.role === "supervisor") {
-  router.replace("/supervisor");
-}
+        const passwordSetupUrl =
+          `/set-password?email=${encodeURIComponent(
+            data.email
+          )}&returnTo=${encodeURIComponent(
+            safeReturnTo || ""
+          )}`;
 
-// Admin
-else if (data.role === "admin") {
-  router.replace("/admin");
-}
+        router.push(passwordSetupUrl);
 
-else {
-  setError("Unknown role");
-}
+        return;
+      }
+
+
+      /*
+       * --------------------------------
+       * LOGIN ERROR
+       * --------------------------------
+       */
+
+      if (!res.ok) {
+
+        setError(
+          data.error ||
+          "Login failed"
+        );
+
+        return;
+      }
+
+
+      /*
+       * --------------------------------
+       * STORE AUTH
+       * --------------------------------
+       */
+
+      localStorage.setItem(
+        "ppbms_token",
+        data.token
+      );
+
+      localStorage.setItem(
+        "ppbms_role",
+        data.role
+      );
+
+      localStorage.setItem(
+        "ppbms_email",
+        data.email
+      );
+
+
+      /*
+       * --------------------------------
+       * REDIRECT
+       * --------------------------------
+       */
+
+      // STUDENT
+      if (data.role === "student") {
+
+        router.replace(
+          safeReturnTo || "/student"
+        );
+
+        return;
+      }
+
+
+      // SUPERVISOR
+      if (data.role === "supervisor") {
+
+        router.replace(
+          "/supervisor"
+        );
+
+        return;
+      }
+
+
+      // ADMIN
+      if (data.role === "admin") {
+
+        router.replace(
+          "/admin"
+        );
+
+        return;
+      }
+
+
+      // UNKNOWN ROLE
+      setError(
+        "Unknown role"
+      );
+
     } catch (err) {
-      setError("Server error");
-    }
 
-    setLoading(false);
+      console.error(
+        "LOGIN ERROR:",
+        err
+      );
+
+      setError(
+        "Server error. Please try again."
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
   }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+
       <div className="w-full max-w-sm">
+
         <form
           onSubmit={handleLogin}
           className="bg-white p-6 rounded-xl shadow space-y-4"
         >
+
           <h1 className="text-xl font-bold text-purple-700 text-center">
             PPBMS Login
           </h1>
 
+
           <input
             className="w-full border p-2 rounded"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) =>
+              setEmail(e.target.value)
+            }
             placeholder="Email"
+            type="email"
             required
           />
+
 
           <input
             className="w-full border p-2 rounded"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
             placeholder="Password"
             required
           />
 
+
           {error && (
-            <p className="text-red-600 text-sm text-center">{error}</p>
+            <p className="text-red-600 text-sm text-center">
+              {error}
+            </p>
           )}
+
 
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading
+              ? "Logging in..."
+              : "Login"}
           </button>
+
         </form>
 
-        {/* 👇 OUTSIDE FORM (IMPORTANT) */}
+
         <p className="text-xs text-gray-500 text-center mt-4">
-          First time login? Use your registered email. You will go to set password page.
+          First time login? Use your registered email.
+          You will go to set password page.
         </p>
+
 
         <p className="text-xs text-purple-600 text-center mt-1">
           Forgot password? Contact admin.
         </p>
 
-          <div className="mt-4 text-center">
-  <button
-    type="button"
-    onClick={() => router.push("/")}
-    className="text-sm text-purple-600 underline"
-  >
-    ← Back to Landing Page
-  </button>
-</div>
+
+        <div className="mt-4 text-center">
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push("/")
+            }
+            className="text-sm text-purple-600 underline"
+          >
+            ← Back to Landing Page
+          </button>
+
+        </div>
+
       </div>
+
     </div>
   );
 }
