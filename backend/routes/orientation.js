@@ -140,7 +140,7 @@ async function findRow(email) {
         process.env.SHEET_ID,
 
       range:
-        "ORIENTATION_TRACKING!A1:I999"
+        "ORIENTATION_TRACKING!A1:U999"
 
     });
 
