@@ -42,11 +42,38 @@ if (!res.ok) {
       localStorage.setItem("ppbms_role", data.role);
       localStorage.setItem("ppbms_email", data.email);
 
-      // ✅ ROLE-BASED REDIRECT
-      if (data.role === "student") router.replace("/student");
-      else if (data.role === "supervisor") router.replace("/supervisor");
-      else if (data.role === "admin") router.replace("/admin");
-      else setError("Unknown role");
+     // ✅ RETURN TO THE PAGE THAT REQUESTED LOGIN
+const returnTo =
+  typeof router.query.returnTo === "string"
+    ? router.query.returnTo
+    : null;
+
+// Only allow internal PPBMS paths
+const safeReturnTo =
+  returnTo && returnTo.startsWith("/")
+    ? returnTo
+    : null;
+
+// Student
+if (data.role === "student") {
+  router.replace(
+    safeReturnTo || "/student"
+  );
+}
+
+// Supervisor
+else if (data.role === "supervisor") {
+  router.replace("/supervisor");
+}
+
+// Admin
+else if (data.role === "admin") {
+  router.replace("/admin");
+}
+
+else {
+  setError("Unknown role");
+}
     } catch (err) {
       setError("Server error");
     }
