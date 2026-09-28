@@ -6,103 +6,149 @@ import Completed from "./pages/Completed";
 
 import {
   getStudentProfile,
-  getOrientationStatus,
+  getOrientationStatus
 } from "./api";
 
+
 export default function App() {
-  // Use the EXISTING PPBMS authentication
-  const [token, setToken] = useState(
-    localStorage.getItem("ppbms_token")
-  );
 
-  const [student, setStudent] = useState(null);
-  const [status, setStatus] = useState(null);
+  const [token, setToken] =
+    useState(
+      localStorage.getItem("ppbms_token")
+    );
 
-  const [loading, setLoading] = useState(true);
+  const [student, setStudent] =
+    useState(null);
 
-  const [page, setPage] = useState("welcome");
+  const [status, setStatus] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [page, setPage] =
+    useState("welcome");
+
 
   useEffect(() => {
-    const existingToken =
-      localStorage.getItem("ppbms_token");
 
-    // Student has NOT logged into PPBMS
-    if (!existingToken) {
-      setLoading(false);
+    if (!token) {
 
-      // Send them to the EXISTING PPBMS login
       window.top.location.href =
-  "/login?returnTo=/orientation";
+        "/login?returnTo=/orientation";
 
       return;
     }
 
-    setToken(existingToken);
 
     async function loadStudent() {
+
       try {
+
+        setLoading(true);
+        setError("");
+
+        console.log(
+          "ORIENTATION: loading student profile..."
+        );
+
         const profile =
-          await getStudentProfile(existingToken);
+          await getStudentProfile(token);
+
+        console.log(
+          "ORIENTATION: profile received",
+          profile
+        );
+
+
+        console.log(
+          "ORIENTATION: loading orientation status..."
+        );
 
         const orientation =
-          await getOrientationStatus(existingToken);
+          await getOrientationStatus(token);
 
-        // /api/student/me returns { row: {...} }
-        const studentData =
-          profile?.row || profile;
+        console.log(
+          "ORIENTATION: status received",
+          orientation
+        );
 
-        setStudent(studentData);
-        setStatus(orientation);
+
+        setStudent(
+          profile?.row || profile
+        );
+
+        setStatus(
+          orientation
+        );
+
 
         if (
-          orientation?.status === "Completed"
+          orientation?.status ===
+          "Completed"
         ) {
+
           setPage("completed");
+
         } else {
+
           setPage("welcome");
+
         }
 
       } catch (error) {
+
         console.error(
-          "Orientation authentication error:",
+          "ORIENTATION ERROR:",
           error
         );
 
-        // Token is invalid/expired
-        localStorage.removeItem("ppbms_token");
-        localStorage.removeItem("ppbms_role");
-
-        setToken(null);
-
-        window.top.location.href =
-  "/login?returnTo=/orientation";
+        setError(
+          error.message ||
+          "Unable to load your orientation."
+        );
 
       } finally {
+
         setLoading(false);
+
       }
+
     }
+
 
     loadStudent();
 
-  }, []);
+  }, [token]);
 
 
   function logout() {
-    // Only remove PPBMS authentication
-    localStorage.removeItem("ppbms_token");
-    localStorage.removeItem("ppbms_role");
 
-    setToken(null);
-    setStudent(null);
-    setStatus(null);
-    setPage("welcome");
+    localStorage.removeItem(
+      "ppbms_token"
+    );
 
-    window.location.href = "/login";
+    localStorage.removeItem(
+      "ppbms_role"
+    );
+
+    localStorage.removeItem(
+      "ppbms_email"
+    );
+
+    window.top.location.href =
+      "/login";
+
   }
 
 
   if (loading) {
+
     return (
+
       <div className="loading-screen">
 
         <div className="loading-logo">
@@ -116,42 +162,76 @@ export default function App() {
         </p>
 
       </div>
+
     );
+
   }
 
 
-  if (!token) {
+  if (error) {
+
     return (
+
       <div className="loading-screen">
 
-        <div className="spinner"></div>
+        <div className="loading-logo">
+          PKTAAB
+        </div>
 
-        <p>
-          Redirecting to PPBMS login...
+        <h2>
+          Orientation could not be loaded
+        </h2>
+
+        <p
+          style={{
+            maxWidth: "600px",
+            textAlign: "center",
+            color: "#b91c1c",
+            marginTop: "15px"
+          }}
+        >
+          {error}
         </p>
 
+        <button
+          className="primary-button"
+          onClick={() =>
+            window.location.reload()
+          }
+        >
+          TRY AGAIN
+        </button>
+
       </div>
+
     );
+
   }
 
 
   if (!student) {
+
     return (
+
       <div className="loading-screen">
 
         <div className="spinner"></div>
 
         <p>
-          Loading student profile...
+          Student profile not found.
         </p>
 
       </div>
+
     );
+
   }
 
 
   if (page === "completed") {
+
     return (
+
       <Completed
         student={student}
         status={status}
@@ -160,12 +240,16 @@ export default function App() {
         }
         onLogout={logout}
       />
+
     );
+
   }
 
 
   if (page === "orientation") {
+
     return (
+
       <Orientation
         student={student}
         token={token}
@@ -173,11 +257,14 @@ export default function App() {
           setPage("completed")
         }
       />
+
     );
+
   }
 
 
   return (
+
     <Welcome
       student={student}
       status={status}
@@ -186,5 +273,7 @@ export default function App() {
       }
       onLogout={logout}
     />
+
   );
+
 }
