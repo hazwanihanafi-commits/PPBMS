@@ -6,127 +6,98 @@ import Completed from "./pages/Completed";
 
 import {
   getStudentProfile,
-  getOrientationStatus
+  getOrientationStatus,
 } from "./api";
 
-
 export default function App() {
+  const [token, setToken] = useState(
+    localStorage.getItem("ppbms_token")
+  );
 
-  const [token, setToken] =
-    useState(
-      localStorage.getItem("ppbms_token")
-    );
-
-  const [student, setStudent] =
-    useState(null);
-
-  const [status, setStatus] =
-    useState(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  const [page, setPage] =
-    useState("welcome");
-
+  const [student, setStudent] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [page, setPage] = useState("welcome");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-
+    // No PPBMS login → use the EXISTING PPBMS login
     if (!token) {
-
       window.top.location.href =
         "/login?returnTo=/orientation";
-
       return;
     }
 
-
-    async function loadStudent() {
-
+    async function loadOrientation() {
       try {
-
         setLoading(true);
         setError("");
 
-        console.log(
-          "ORIENTATION: loading student profile..."
-        );
+        console.log("ORIENTATION: checking PPBMS account");
 
         const profile =
           await getStudentProfile(token);
 
         console.log(
-          "ORIENTATION: profile received",
+          "ORIENTATION: student profile",
           profile
-        );
-
-
-        console.log(
-          "ORIENTATION: loading orientation status..."
         );
 
         const orientation =
           await getOrientationStatus(token);
 
         console.log(
-          "ORIENTATION: status received",
+          "ORIENTATION: status",
           orientation
         );
-
 
         setStudent(
           profile?.row || profile
         );
 
-        setStatus(
-          orientation
-        );
-
+        setStatus(orientation);
 
         if (
-          orientation?.status ===
-          "Completed"
+          orientation?.status === "Completed"
         ) {
-
           setPage("completed");
-
         } else {
-
           setPage("welcome");
-
         }
 
-      } catch (error) {
-
+      } catch (err) {
         console.error(
           "ORIENTATION ERROR:",
-          error
+          err
         );
 
-        setError(
-          error.message ||
-          "Unable to load your orientation."
+        // Token is invalid/expired
+        localStorage.removeItem(
+          "ppbms_token"
         );
 
+        localStorage.removeItem(
+          "ppbms_role"
+        );
+
+        localStorage.removeItem(
+          "ppbms_email"
+        );
+
+        // Go to the REAL PPBMS login
+        window.top.location.href =
+          "/login?returnTo=/orientation";
       } finally {
-
         setLoading(false);
-
       }
-
     }
 
-
-    loadStudent();
+    loadOrientation();
 
   }, [token]);
 
 
   function logout() {
-
     localStorage.removeItem(
       "ppbms_token"
     );
@@ -141,14 +112,11 @@ export default function App() {
 
     window.top.location.href =
       "/login";
-
   }
 
 
   if (loading) {
-
     return (
-
       <div className="loading-screen">
 
         <div className="loading-logo">
@@ -162,16 +130,12 @@ export default function App() {
         </p>
 
       </div>
-
     );
-
   }
 
 
   if (error) {
-
     return (
-
       <div className="loading-screen">
 
         <div className="loading-logo">
@@ -182,14 +146,7 @@ export default function App() {
           Orientation could not be loaded
         </h2>
 
-        <p
-          style={{
-            maxWidth: "600px",
-            textAlign: "center",
-            color: "#b91c1c",
-            marginTop: "15px"
-          }}
-        >
+        <p>
           {error}
         </p>
 
@@ -203,16 +160,12 @@ export default function App() {
         </button>
 
       </div>
-
     );
-
   }
 
 
   if (!student) {
-
     return (
-
       <div className="loading-screen">
 
         <div className="spinner"></div>
@@ -222,16 +175,12 @@ export default function App() {
         </p>
 
       </div>
-
     );
-
   }
 
 
   if (page === "completed") {
-
     return (
-
       <Completed
         student={student}
         status={status}
@@ -240,16 +189,12 @@ export default function App() {
         }
         onLogout={logout}
       />
-
     );
-
   }
 
 
   if (page === "orientation") {
-
     return (
-
       <Orientation
         student={student}
         token={token}
@@ -257,14 +202,11 @@ export default function App() {
           setPage("completed")
         }
       />
-
     );
-
   }
 
 
   return (
-
     <Welcome
       student={student}
       status={status}
@@ -273,7 +215,5 @@ export default function App() {
       }
       onLogout={logout}
     />
-
   );
-
 }
