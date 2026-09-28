@@ -13,6 +13,8 @@ import alertsRoutes from "./routes/alerts.js";
 import systemRoutes from "./routes/system.js";
 import supervisorRemarkRoutes
   from "./routes/supervisorRemark.js";
+import orientationRoutes
+  from "./routes/orientation.js";
 
 const app = express();
 
@@ -63,6 +65,10 @@ app.use("/admin-auth", adminAuthRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/supervisor", supervisorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use(
+  "/api/orientation",
+  orientationRoutes
+);
 
 // Alerts / system
 app.use("/alerts", alertsRoutes);
