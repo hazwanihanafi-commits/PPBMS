@@ -10,7 +10,7 @@ import {
 } from "./api";
 
 export default function App() {
-  const [token, setToken] = useState(
+  const [token, setToken] = useState(() =>
     localStorage.getItem("ppbms_token")
   );
 
@@ -21,7 +21,7 @@ export default function App() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // No PPBMS login → use the EXISTING PPBMS login
+    // No PPBMS login → use the existing PPBMS login
     if (!token) {
       window.top.location.href =
         "/login?returnTo=/orientation";
@@ -33,7 +33,13 @@ export default function App() {
         setLoading(true);
         setError("");
 
-        console.log("ORIENTATION: checking PPBMS account");
+        console.log(
+          "ORIENTATION: checking PPBMS account"
+        );
+
+        // ---------------------------------------------
+        // 1. GET STUDENT PROFILE
+        // ---------------------------------------------
 
         const profile =
           await getStudentProfile(token);
@@ -43,22 +49,35 @@ export default function App() {
           profile
         );
 
+        // ---------------------------------------------
+        // 2. GET ORIENTATION STATUS
+        // ---------------------------------------------
+
         const orientation =
           await getOrientationStatus(token);
 
         console.log(
-          "ORIENTATION: status",
+          "ORIENTATION: orientation status",
           orientation
         );
 
-        setStudent(
-          profile?.row || profile
-        );
+        // ---------------------------------------------
+        // 3. STORE DATA
+        // ---------------------------------------------
 
+        const studentData =
+          profile?.row || profile;
+
+        setStudent(studentData);
         setStatus(orientation);
 
+        // ---------------------------------------------
+        // 4. DETERMINE PAGE
+        // ---------------------------------------------
+
         if (
-          orientation?.status === "Completed"
+          orientation?.status ===
+          "Completed"
         ) {
           setPage("completed");
         } else {
@@ -71,22 +90,20 @@ export default function App() {
           err
         );
 
-        // Token is invalid/expired
-        localStorage.removeItem(
-          "ppbms_token"
+        /*
+         * IMPORTANT:
+         * Do NOT automatically delete the PPBMS token.
+         *
+         * This allows us to see the actual error
+         * instead of silently redirecting the student
+         * back to the login page.
+         */
+
+        setError(
+          err?.message ||
+          "Unable to load your orientation."
         );
 
-        localStorage.removeItem(
-          "ppbms_role"
-        );
-
-        localStorage.removeItem(
-          "ppbms_email"
-        );
-
-        // Go to the REAL PPBMS login
-        window.top.location.href =
-          "/login?returnTo=/orientation";
       } finally {
         setLoading(false);
       }
@@ -96,6 +113,10 @@ export default function App() {
 
   }, [token]);
 
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
   function logout() {
     localStorage.removeItem(
@@ -115,6 +136,10 @@ export default function App() {
   }
 
 
+  // =====================================================
+  // LOADING SCREEN
+  // =====================================================
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -133,6 +158,10 @@ export default function App() {
     );
   }
 
+
+  // =====================================================
+  // ERROR SCREEN
+  // =====================================================
 
   if (error) {
     return (
@@ -164,6 +193,10 @@ export default function App() {
   }
 
 
+  // =====================================================
+  // NO STUDENT PROFILE
+  // =====================================================
+
   if (!student) {
     return (
       <div className="loading-screen">
@@ -179,6 +212,10 @@ export default function App() {
   }
 
 
+  // =====================================================
+  // COMPLETED
+  // =====================================================
+
   if (page === "completed") {
     return (
       <Completed
@@ -193,18 +230,26 @@ export default function App() {
   }
 
 
+  // =====================================================
+  // ORIENTATION
+  // =====================================================
+
   if (page === "orientation") {
     return (
       <Orientation
         student={student}
         token={token}
-        onComplete={() =>
+        onCompleted={() =>
           setPage("completed")
         }
       />
     );
   }
 
+
+  // =====================================================
+  // WELCOME
+  // =====================================================
 
   return (
     <Welcome
