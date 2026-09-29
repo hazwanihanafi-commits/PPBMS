@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Clock,
   FolderOpen,
+  HeartHandshake,
 } from "lucide-react";
 
 import { completeOrientation } from "../api";
@@ -578,19 +579,19 @@ const MODULES = [
     id: 9,
     number: "09",
     title: "ADUSISWA",
-    subtitle: "Your USM Student System",
-    icon: GraduationCap,
+    subtitle: "Know Where to Get Help",
+    icon: HeartHandshake,
     color: "purple",
 
     description:
-      "AduSiswa is part of your wider USM student experience. It provides access to official student-related information and services. Please note that the AduSiswa system is accessible only when you are connected to the USM campus network.",
+      "AduSiswa is part of the USM student support environment. It provides a channel for students who need assistance with student affairs, personal well-being, concerns related to their postgraduate experience, or situations that may require further support or referral. Please note that the AduSiswa system is accessible only when you are connected to the USM campus network.",
 
     resources: [
       {
-        label: "AduSiswa Student System",
+        label: "AduSiswa / GRAMS — Student Support",
         url:
           "https://healthservice.amdi.usm.my/gramsv2/home.php?view=dash",
-        icon: FolderOpen,
+        icon: HeartHandshake,
       },
       {
         label: "USM Official Website",
@@ -602,27 +603,33 @@ const MODULES = [
 
     sections: [
       {
-        heading: "Your USM Student Information",
+        heading: "🤝 Having Difficulties with Your Supervisor?",
         text:
-          "Use official USM student systems and services to manage student-related information and access services available to you.",
+          "If you experience concerns or difficulties in your supervisory relationship, you do not have to deal with the situation alone. Seek appropriate support and guidance through the relevant USM student support channels.",
       },
       {
-        heading: "Use Official Sources",
+        heading: "🧠 Need Psychological or Counselling Support?",
         text:
-          "Always use official USM or PKTAAB links when accessing student services. Avoid relying on outdated links shared in old documents or messages.",
+          "If research, academic, personal or other circumstances are affecting your well-being, seek professional psychological or counselling support through the appropriate USM support channel.",
       },
       {
-        heading: "Keep Your Information Updated",
+        heading: "❤️ Need Student Welfare Support?",
         text:
-          "Make sure your student information and contact details are kept up to date where required.",
+          "For welfare, student affairs or other student-related concerns, seek assistance through the appropriate USM student support and BHEPA-related channels.",
+      },
+      {
+        heading: "💜 You Don't Have to Face It Alone",
+        text:
+          "If you are unsure who to approach, start by contacting the appropriate student support channel and ask for guidance or referral to the relevant person or unit.",
       },
     ],
 
     checklist: [
-      "Know what AduSiswa is used for",
-      "Access the official USM student information system",
-      "Check your student information",
-      "Know where to obtain help if you encounter a system problem",
+      "Know what AduSiswa / GRAMS is used for",
+      "Know where to seek help if you have difficulties with your supervisor",
+      "Know where to seek psychological or counselling support",
+      "Know where to seek student welfare assistance",
+      "Know the appropriate USM student support channel",
     ],
   },
 
@@ -688,8 +695,7 @@ const MODULES = [
       "Bookmark the official resources page",
     ],
   },
-
-
+  
   /* =======================================================
      11 — PKTAAB STUDENTS ASSOCIATION
      ======================================================= */
