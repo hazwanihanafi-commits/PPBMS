@@ -2036,6 +2036,48 @@ export default function Orientation({
 
         )}
 
+        {/* =================================================
+    PROFESSIONAL APPEARANCE
+    ================================================= */}
+
+{currentModule === 7 && (
+
+  <section className="professional-appearance-section">
+
+    <div className="section-heading">
+
+      <div className="section-heading-icon">
+        <Users size={18} />
+      </div>
+
+      <div>
+        <h3>
+          Professional Appearance
+        </h3>
+
+        <p>
+          Dress appropriately for your academic,
+          research, clinical and university activities.
+        </p>
+      </div>
+
+    </div>
+
+
+    <div className="professional-appearance-card">
+
+      <img
+        src="/orientation/professional-appearance.png"
+        alt="Professional Appearance for Postgraduate Students"
+        className="professional-appearance-image"
+      />
+
+    </div>
+
+  </section>
+
+)}
+
 
         {/* =================================================
             FORM CATEGORIES — MODULE 12
