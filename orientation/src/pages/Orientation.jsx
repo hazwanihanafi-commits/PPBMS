@@ -510,12 +510,30 @@ const MODULES = [
           "https://reachapps.amdi.usm.my/tripschedule/",
         icon: MapPin,
       },
-      {
-        label: "PKTAAB / Bertam Location",
-        url:
-          "https://maps.app.goo.gl/x3FjXC69WCryEbV77?g_st=ic",
-        icon: MapPin,
-      },
+  {
+    label: "PKTAAB Location",
+    url:
+      "https://maps.app.goo.gl/x3FjXC69WCryEbV77?g_st=ic",
+    icon: MapPin,
+  },
+  {
+    label: "Sains@Bertam",
+    url:
+      "https://maps.app.goo.gl/bMNxrguBivMR6fwR9",
+    icon: MapPin,
+  },
+  {
+    label: "Cancer Teaching Complex",
+    url:
+      "https://maps.app.goo.gl/2ehhkW8d92QRYufP7",
+    icon: MapPin,
+  },
+  {
+    label: "Cancer Research Centre",
+    url:
+      "https://maps.app.goo.gl/7uRBjJ4g6tUo74WGA",
+    icon: MapPin,
+  },
       {
         label: "PKTAAB Official Website",
         url:
