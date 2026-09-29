@@ -1,6 +1,6 @@
 /* =========================================================
-   PKTAAB ORIENTATION — WELCOME PAGE
-   USM Purple + Gold Design
+   PKTAAB POSTGRADUATE ORIENTATION
+   WELCOME PAGE
    ========================================================= */
 
 :root {
@@ -10,32 +10,38 @@
   --usm-gold: #ffb703;
   --usm-gold-light: #ffd166;
   --white: #ffffff;
-  --text: #25212b;
+  --text: #27222d;
   --muted: #77717f;
-  --bg: #f7f5fa;
   --border: #e8e2ee;
-  --green: #22a06b;
+  --green: #1f9d68;
+  --bg: #f7f5fa;
 }
 
-/* ================= RESET ================= */
-
-.welcome-page *,
-.welcome-page *::before,
-.welcome-page *::after {
-  box-sizing: border-box;
-}
+/* =========================================================
+   PAGE
+   ========================================================= */
 
 .welcome-page {
   min-height: 100vh;
+  width: 100%;
+
+  margin: 0;
+  padding: 0;
+
   background:
     radial-gradient(
-      circle at top right,
-      rgba(118, 80, 160, 0.10),
-      transparent 35%
+      circle at 85% 5%,
+      rgba(83, 37, 127, 0.10),
+      transparent 28%
     ),
-    #f7f5fa;
+    linear-gradient(
+      180deg,
+      #faf9fc 0%,
+      #f7f5fa 100%
+    );
 
   color: var(--text);
+
   font-family:
     Inter,
     -apple-system,
@@ -44,81 +50,100 @@
     sans-serif;
 }
 
-/* ================= HEADER ================= */
+/* =========================================================
+   HEADER
+   ========================================================= */
 
 .welcome-header {
   position: relative;
   overflow: hidden;
 
+  width: 100%;
+
   background:
     radial-gradient(
-      circle at 85% 10%,
-      rgba(255, 183, 3, 0.20),
+      circle at 85% 20%,
+      rgba(255, 183, 3, 0.18),
       transparent 25%
+    ),
+    radial-gradient(
+      circle at 10% 90%,
+      rgba(118, 80, 160, 0.25),
+      transparent 30%
     ),
     linear-gradient(
       135deg,
       #351653 0%,
-      #53257f 50%,
-      #684194 100%
+      #53257f 48%,
+      #6d4497 100%
     );
 
   color: white;
-  padding: 0;
 }
 
-/* decorative circles */
+/* Decorative background */
 
 .welcome-header::before {
   content: "";
+
   position: absolute;
 
-  width: 280px;
-  height: 280px;
+  width: 420px;
+  height: 420px;
 
-  right: -100px;
-  top: -150px;
+  right: -180px;
+  top: -240px;
 
   border-radius: 50%;
 
-  background: rgba(255, 255, 255, 0.06);
+  background:
+    rgba(255, 255, 255, 0.06);
 }
 
 .welcome-header::after {
   content: "";
+
   position: absolute;
 
-  width: 180px;
-  height: 180px;
+  width: 260px;
+  height: 260px;
 
-  left: -80px;
-  bottom: -100px;
+  left: -120px;
+  bottom: -180px;
 
   border-radius: 50%;
 
-  background: rgba(255, 183, 3, 0.08);
+  background:
+    rgba(255, 183, 3, 0.07);
 }
 
-/* ================= TOP BAR ================= */
+/* =========================================================
+   TOP BAR
+   ========================================================= */
 
 .welcome-topbar {
   position: relative;
-  z-index: 2;
+  z-index: 5;
 
   max-width: 1180px;
-  margin: auto;
+
+  margin: 0 auto;
 
   padding: 20px 28px;
 
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 }
 
 .welcome-brand {
   display: flex;
+
   align-items: center;
-  gap: 14px;
+
+  gap: 13px;
 }
 
 .welcome-brand-mark {
@@ -128,83 +153,107 @@
   border-radius: 14px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  background: rgba(255, 255, 255, 0.14);
+  background:
+    rgba(255, 255, 255, 0.14);
 
-  border: 1px solid rgba(255, 255, 255, 0.18);
-
-  font-size: 18px;
-  font-weight: 800;
+  border:
+    1px solid rgba(255, 255, 255, 0.18);
 
   box-shadow:
-    0 8px 25px rgba(0, 0, 0, 0.15);
+    0 8px 25px rgba(0, 0, 0, 0.18);
+
+  font-weight: 900;
+
+  font-size: 16px;
 }
 
 .welcome-brand-title {
-  font-size: 15px;
+  font-size: 14px;
+
   font-weight: 800;
-  letter-spacing: 0.04em;
+
+  letter-spacing: 0.05em;
+
+  color: white;
 }
 
 .welcome-brand-subtitle {
   margin-top: 3px;
 
-  font-size: 11px;
+  font-size: 10px;
 
-  color: rgba(255, 255, 255, 0.70);
+  letter-spacing: 0.08em;
 
-  letter-spacing: 0.05em;
+  color:
+    rgba(255, 255, 255, 0.65);
 }
 
 .welcome-signout {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border:
+    1px solid rgba(255, 255, 255, 0.25);
 
-  background: rgba(255, 255, 255, 0.10);
+  background:
+    rgba(255, 255, 255, 0.10);
 
   color: white;
 
-  padding: 9px 16px;
+  padding:
+    9px 16px;
 
   border-radius: 999px;
 
+  font-size: 12px;
+
+  font-weight: 700;
+
   cursor: pointer;
 
-  font-size: 12px;
-  font-weight: 600;
-
-  transition: 0.2s ease;
+  transition:
+    all 0.2s ease;
 }
 
 .welcome-signout:hover {
-  background: rgba(255, 255, 255, 0.20);
+  background:
+    rgba(255, 255, 255, 0.20);
+
+  transform: translateY(-1px);
 }
 
-/* ================= HERO ================= */
+/* =========================================================
+   HERO
+   ========================================================= */
 
 .welcome-hero {
   position: relative;
+
   z-index: 2;
 
   max-width: 1180px;
 
-  margin: auto;
+  margin: 0 auto;
 
-  padding: 55px 28px 70px;
+  padding:
+    55px 28px
+    75px;
 
   display: grid;
 
   grid-template-columns:
-    minmax(0, 1.25fr)
-    minmax(320px, 0.75fr);
+    minmax(0, 1.2fr)
+    minmax(330px, 0.8fr);
 
-  gap: 60px;
+  gap: 70px;
 
   align-items: center;
 }
 
-/* eyebrow */
+/* =========================================================
+   HERO TEXT
+   ========================================================= */
 
 .welcome-eyebrow {
   display: inline-flex;
@@ -215,21 +264,25 @@
 
   margin-bottom: 18px;
 
-  padding: 7px 12px;
+  padding:
+    7px 13px;
 
   border-radius: 999px;
 
-  background: rgba(255, 255, 255, 0.10);
+  background:
+    rgba(255, 255, 255, 0.10);
 
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border:
+    1px solid rgba(255, 255, 255, 0.15);
 
-  color: var(--usm-gold-light);
+  color:
+    var(--usm-gold-light);
 
-  font-size: 11px;
+  font-size: 10px;
 
   font-weight: 800;
 
-  letter-spacing: 0.10em;
+  letter-spacing: 0.12em;
 
   text-transform: uppercase;
 }
@@ -238,20 +291,21 @@
   content: "✦";
 }
 
-/* title */
-
 .welcome-hero h1 {
   margin: 0;
 
+  max-width: 700px;
+
   color: white;
 
-  font-size: clamp(36px, 5vw, 64px);
+  font-size:
+    clamp(40px, 5vw, 68px);
 
-  line-height: 1.04;
+  line-height: 1.02;
 
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
 
-  font-weight: 850;
+  font-weight: 900;
 }
 
 .welcome-hero h1 span {
@@ -261,32 +315,38 @@
 .welcome-hero p {
   max-width: 620px;
 
-  margin: 20px 0 0;
+  margin:
+    22px 0 0;
 
-  color: rgba(255, 255, 255, 0.78);
+  color:
+    rgba(255, 255, 255, 0.78);
 
-  font-size: 17px;
+  font-size: 16px;
 
   line-height: 1.7;
 }
 
-/* ================= STUDENT CARD ================= */
+/* =========================================================
+   STUDENT CARD
+   ========================================================= */
 
 .student-card {
   position: relative;
 
-  padding: 26px;
+  padding: 28px;
 
   border-radius: 24px;
 
-  background: rgba(255, 255, 255, 0.11);
+  background:
+    rgba(255, 255, 255, 0.12);
 
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border:
+    1px solid rgba(255, 255, 255, 0.20);
 
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(18px);
 
   box-shadow:
-    0 25px 60px rgba(0, 0, 0, 0.18);
+    0 25px 60px rgba(0, 0, 0, 0.20);
 }
 
 .student-card::before {
@@ -295,18 +355,23 @@
   position: absolute;
 
   left: 0;
-  top: 22px;
-  bottom: 22px;
+
+  top: 24px;
+
+  bottom: 24px;
 
   width: 4px;
 
-  background: var(--usm-gold);
+  border-radius:
+    0 5px 5px 0;
 
-  border-radius: 0 4px 4px 0;
+  background:
+    var(--usm-gold);
 }
 
 .student-label {
-  color: rgba(255, 255, 255, 0.60);
+  color:
+    rgba(255, 255, 255, 0.58);
 
   font-size: 10px;
 
@@ -324,23 +389,26 @@
 
   font-size: 23px;
 
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .student-detail {
   margin-top: 5px;
 
-  color: rgba(255, 255, 255, 0.70);
+  color:
+    rgba(255, 255, 255, 0.72);
 
   font-size: 13px;
 
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
-/* ================= PROGRESS ================= */
+/* =========================================================
+   PROGRESS
+   ========================================================= */
 
 .progress-box {
-  margin-top: 22px;
+  margin-top: 23px;
 
   padding-top: 20px;
 
@@ -359,23 +427,25 @@
 }
 
 .progress-title {
-  color: rgba(255, 255, 255, 0.70);
+  color:
+    rgba(255, 255, 255, 0.65);
 
-  font-size: 11px;
+  font-size: 10px;
 
-  font-weight: 700;
+  font-weight: 800;
+
+  letter-spacing: 0.10em;
 
   text-transform: uppercase;
-
-  letter-spacing: 0.08em;
 }
 
 .progress-percent {
-  color: var(--usm-gold);
+  color:
+    var(--usm-gold);
 
   font-size: 20px;
 
-  font-weight: 850;
+  font-weight: 900;
 }
 
 .progress-track {
@@ -383,11 +453,12 @@
 
   height: 9px;
 
+  overflow: hidden;
+
   border-radius: 999px;
 
-  background: rgba(255, 255, 255, 0.13);
-
-  overflow: hidden;
+  background:
+    rgba(255, 255, 255, 0.13);
 }
 
 .progress-fill {
@@ -398,24 +469,30 @@
   background:
     linear-gradient(
       90deg,
-      var(--usm-gold),
-      var(--usm-gold-light)
+      #ffb703,
+      #ffd166
     );
 
   box-shadow:
-    0 0 14px rgba(255, 183, 3, 0.35);
+    0 0 16px
+    rgba(255, 183, 3, 0.40);
 
-  transition: width 0.5s ease;
+  transition:
+    width 0.5s ease;
 }
 
-/* ================= MAIN CONTENT ================= */
+/* =========================================================
+   MAIN
+   ========================================================= */
 
 .welcome-content {
   max-width: 1100px;
 
-  margin: auto;
+  margin: 0 auto;
 
-  padding: 60px 28px 90px;
+  padding:
+    60px 28px
+    90px;
 }
 
 .welcome-section-heading {
@@ -427,13 +504,14 @@
 
   margin-bottom: 7px;
 
-  color: var(--usm-purple);
+  color:
+    var(--usm-purple);
 
-  font-size: 11px;
+  font-size: 10px;
 
-  font-weight: 850;
+  font-weight: 900;
 
-  letter-spacing: 0.12em;
+  letter-spacing: 0.13em;
 
   text-transform: uppercase;
 }
@@ -441,24 +519,32 @@
 .welcome-section-heading h2 {
   margin: 0;
 
-  color: var(--usm-purple-dark);
+  color:
+    var(--usm-purple-dark);
 
   font-size: 30px;
 
-  letter-spacing: -0.025em;
+  font-weight: 850;
+
+  letter-spacing: -0.03em;
 }
 
 .welcome-section-heading p {
   max-width: 650px;
 
-  margin: 9px 0 0;
+  margin-top: 9px;
 
-  color: var(--muted);
+  color:
+    var(--muted);
 
-  line-height: 1.6;
+  font-size: 14px;
+
+  line-height: 1.65;
 }
 
-/* ================= MODULE GRID ================= */
+/* =========================================================
+   MODULE GRID
+   ========================================================= */
 
 .welcome-modules {
   display: grid;
@@ -469,61 +555,52 @@
   gap: 18px;
 }
 
-/* ================= MODULE CARD ================= */
-
 .welcome-module {
   position: relative;
 
+  min-height: 185px;
+
   padding: 25px;
 
-  min-height: 180px;
+  overflow: hidden;
 
-  background: white;
+  background:
+    white;
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
   border-radius: 20px;
 
   box-shadow:
-    0 8px 25px rgba(53, 22, 83, 0.06);
+    0 8px 28px
+    rgba(53, 22, 83, 0.06);
 
   transition:
     transform 0.22s ease,
     box-shadow 0.22s ease,
     border-color 0.22s ease;
-
-  overflow: hidden;
-}
-
-.welcome-module::after {
-  content: "";
-
-  position: absolute;
-
-  width: 90px;
-  height: 90px;
-
-  right: -30px;
-  bottom: -40px;
-
-  border-radius: 50%;
-
-  background: rgba(83, 37, 127, 0.045);
 }
 
 .welcome-module:hover {
-  transform: translateY(-4px);
+  transform:
+    translateY(-4px);
 
-  border-color: rgba(83, 37, 127, 0.22);
+  border-color:
+    rgba(83, 37, 127, 0.25);
 
   box-shadow:
-    0 16px 38px rgba(53, 22, 83, 0.11);
+    0 18px 40px
+    rgba(53, 22, 83, 0.12);
 }
 
-/* completed */
+/* =========================================================
+   MODULE STATUS
+   ========================================================= */
 
 .welcome-module.completed {
-  border-color: rgba(34, 160, 107, 0.22);
+  border-color:
+    rgba(31, 157, 104, 0.25);
 }
 
 .welcome-module.completed::before {
@@ -537,16 +614,17 @@
 
   width: 4px;
 
-  background: var(--green);
+  background:
+    var(--green);
 }
 
-/* next */
-
 .welcome-module.next {
-  border-color: rgba(255, 183, 3, 0.35);
+  border-color:
+    rgba(255, 183, 3, 0.35);
 
   box-shadow:
-    0 12px 35px rgba(255, 183, 3, 0.10);
+    0 12px 35px
+    rgba(255, 183, 3, 0.10);
 }
 
 .welcome-module.next::before {
@@ -560,16 +638,17 @@
 
   width: 4px;
 
-  background: var(--usm-gold);
+  background:
+    var(--usm-gold);
 }
-
-/* locked */
 
 .welcome-module.locked {
   opacity: 0.68;
 }
 
-/* ================= MODULE TOP ================= */
+/* =========================================================
+   MODULE TOP
+   ========================================================= */
 
 .module-top {
   display: flex;
@@ -588,93 +667,100 @@
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
   background:
     linear-gradient(
       135deg,
       #eee5f5,
-      #f7f2fa
+      #f8f4fb
     );
 
-  color: var(--usm-purple);
-
-  font-weight: 850;
+  color:
+    var(--usm-purple);
 
   font-size: 13px;
+
+  font-weight: 900;
 }
 
 .module-status {
-  padding: 6px 10px;
+  padding:
+    6px 10px;
 
   border-radius: 999px;
 
-  font-size: 10px;
+  font-size: 9px;
 
-  font-weight: 800;
-
-  text-transform: uppercase;
+  font-weight: 850;
 
   letter-spacing: 0.05em;
+
+  text-transform: uppercase;
 }
 
 .module-status.completed {
   color: #18794e;
 
-  background: #e8f7ef;
+  background:
+    #e8f7ef;
 }
 
 .module-status.next {
   color: #986b00;
 
-  background: #fff5d6;
+  background:
+    #fff5d6;
 }
 
 .module-status.locked {
   color: #77717f;
 
-  background: #f0eef2;
+  background:
+    #f0eef2;
 }
 
-/* ================= MODULE CONTENT ================= */
+/* =========================================================
+   MODULE CONTENT
+   ========================================================= */
 
 .module-title {
   margin-top: 20px;
 
-  color: var(--usm-purple-dark);
+  color:
+    var(--usm-purple-dark);
 
   font-size: 19px;
 
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .module-description {
   margin-top: 7px;
 
-  color: var(--muted);
+  color:
+    var(--muted);
 
   font-size: 13px;
 
   line-height: 1.6;
 }
 
-/* ================= ACTION ================= */
-
 .module-action {
-  margin-top: 18px;
-
   display: inline-flex;
 
   align-items: center;
 
   gap: 6px;
 
-  color: var(--usm-purple);
+  margin-top: 17px;
+
+  color:
+    var(--usm-purple);
 
   font-size: 12px;
 
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .module-action::after {
@@ -682,30 +768,41 @@
 
   font-size: 15px;
 
-  transition: transform 0.2s ease;
+  transition:
+    transform 0.2s ease;
 }
 
-.welcome-module:hover .module-action::after {
-  transform: translateX(4px);
+.welcome-module:hover
+.module-action::after {
+  transform:
+    translateX(4px);
 }
 
-/* ================= FOOTER ================= */
+/* =========================================================
+   FOOTER
+   ========================================================= */
 
 .welcome-footer {
-  padding: 30px 20px 40px;
+  padding:
+    30px 20px
+    40px;
 
   text-align: center;
 
-  color: #8b8492;
+  color:
+    #8b8492;
 
   font-size: 11px;
 }
 
 .welcome-footer strong {
-  color: var(--usm-purple);
+  color:
+    var(--usm-purple);
 }
 
-/* ================= MOBILE ================= */
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
 @media (max-width: 850px) {
 
@@ -718,7 +815,7 @@
   }
 
   .welcome-hero h1 {
-    font-size: 42px;
+    font-size: 44px;
   }
 
   .welcome-modules {
@@ -729,15 +826,8 @@
 @media (max-width: 600px) {
 
   .welcome-topbar {
-    padding: 15px 18px;
-  }
-
-  .welcome-brand-title {
-    font-size: 13px;
-  }
-
-  .welcome-brand-subtitle {
-    font-size: 9px;
+    padding:
+      15px 18px;
   }
 
   .welcome-brand-mark {
@@ -745,20 +835,29 @@
     height: 42px;
   }
 
-  .welcome-signout {
-    padding: 8px 12px;
+  .welcome-brand-title {
+    font-size: 12px;
+  }
 
-    font-size: 11px;
+  .welcome-brand-subtitle {
+    font-size: 9px;
+  }
+
+  .welcome-signout {
+    padding:
+      8px 12px;
+
+    font-size: 10px;
   }
 
   .welcome-hero {
     padding:
       35px 18px
-      45px;
+      48px;
   }
 
   .welcome-hero h1 {
-    font-size: 36px;
+    font-size: 37px;
   }
 
   .welcome-hero p {
@@ -771,8 +870,8 @@
 
   .welcome-content {
     padding:
-      42px 18px
-      60px;
+      45px 18px
+      65px;
   }
 
   .welcome-section-heading h2 {
