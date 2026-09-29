@@ -309,15 +309,15 @@
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 
-  margin-bottom: 19px;
+  margin-bottom: 22px;
 
   color:
     var(--pk-purple);
 
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 750;
 
   letter-spacing: .13em;
 
@@ -412,6 +412,9 @@
     var(--pk-purple-dark);
 
   font-weight: 600;
+
+  /* Creates a clear breathing space after “at” */
+  margin-left: 5px;
 }
 
 /* =========================================================
@@ -1403,6 +1406,32 @@
 }
 
 /* =========================================================
+   DEVELOPER CREDIT
+   ========================================================= */
+
+.developer-credit {
+  display: block;
+
+  margin-top: 8px;
+
+  color:
+    #9a939f;
+
+  font-size: 9px;
+
+  font-weight: 500;
+
+  letter-spacing: .02em;
+}
+
+.developer-credit strong {
+  color:
+    var(--pk-purple);
+
+  font-weight: 650;
+}
+
+/* =========================================================
    TABLET — 601px to 900px
    ========================================================= */
 
@@ -1536,9 +1565,9 @@
   .hero-eyebrow {
     margin-bottom: 15px;
 
-    font-size: 8px;
+    font-size: 10px;
 
-    letter-spacing: .11em;
+    letter-spacing: .08em;
   }
 
   /*
@@ -1554,7 +1583,7 @@
     margin: 0;
 
     font-size:
-      clamp(35px, 10vw, 40px);
+      clamp(31px, 9.2vw, 38px);
 
     line-height: 1.07;
 
@@ -1942,6 +1971,12 @@
   .footer-text {
     text-align:
       left;
+  }
+
+  .developer-credit {
+    margin-top: 6px;
+
+    font-size: 8.5px;
   }
 }
 
