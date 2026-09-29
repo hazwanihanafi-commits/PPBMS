@@ -1,15 +1,17 @@
 
 /* =========================================================
-   PKTAAB POSTGRADUATE ORIENTATION
-   WELCOME PAGE — WIDE EDITORIAL LAYOUT
-   Matched to Welcome.jsx
+   PKTAAB POSTGRADUATE ORIENTATION — WELCOME
+   FINAL RESPONSIVE DESIGN
+   Desktop + Tablet + Phone
+   Matched to the existing Welcome.jsx
    ========================================================= */
 
 :root {
   --pk-purple: #53257f;
   --pk-purple-dark: #351653;
+  --pk-purple-mid: #70469a;
   --pk-purple-soft: #eee7f5;
-  --pk-purple-pale: #f7f3fa;
+  --pk-purple-pale: #f8f5fb;
   --pk-gold: #ffb703;
   --pk-gold-light: #ffd166;
   --pk-text: #302b36;
@@ -21,7 +23,7 @@
 }
 
 /* =========================================================
-   BASE
+   GLOBAL
    ========================================================= */
 
 .orientation-page {
@@ -33,15 +35,15 @@
 
   background:
     radial-gradient(
-      circle at 88% 8%,
-      rgba(83, 37, 127, 0.055),
-      transparent 26%
+      circle at 88% 7%,
+      rgba(83,37,127,.055),
+      transparent 25%
     ),
     linear-gradient(
       180deg,
       #ffffff 0%,
-      var(--pk-bg) 58%,
-      #f8f6fa 100%
+      #faf9fc 60%,
+      #f7f5fa 100%
     ) !important;
 
   color: var(--pk-text);
@@ -62,42 +64,34 @@
 }
 
 /* =========================================================
-   BACKGROUND ORBS
+   DECORATIVE BACKGROUND
    ========================================================= */
 
 .bg-orb {
   position: fixed;
   z-index: 0;
-
   border-radius: 50%;
-
   pointer-events: none;
 }
 
 .bg-orb-one {
   width: 430px;
   height: 430px;
-
   right: -240px;
   top: 150px;
-
-  background:
-    rgba(83, 37, 127, 0.045);
+  background: rgba(83,37,127,.045);
 }
 
 .bg-orb-two {
   width: 310px;
   height: 310px;
-
   left: -190px;
-  bottom: 40px;
-
-  background:
-    rgba(255, 183, 3, 0.045);
+  bottom: 35px;
+  background: rgba(255,183,3,.045);
 }
 
 /* =========================================================
-   HEADER
+   HEADER — ALL DEVICES
    ========================================================= */
 
 .orientation-header {
@@ -108,19 +102,18 @@
   min-height: 76px;
 
   padding:
-    14px
-    clamp(22px, 4vw, 58px) !important;
+    14px clamp(18px, 4vw, 58px) !important;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  color: #fff;
+  color: white;
 
   background:
     radial-gradient(
       circle at 88% 0%,
-      rgba(255, 183, 3, 0.17),
+      rgba(255,183,3,.17),
       transparent 24%
     ),
     linear-gradient(
@@ -131,7 +124,7 @@
     ) !important;
 
   box-shadow:
-    0 7px 28px rgba(53, 22, 83, 0.13);
+    0 7px 28px rgba(53,22,83,.13);
 }
 
 .orientation-header::before {
@@ -148,14 +141,10 @@
   border-radius: 50%;
 
   background:
-    rgba(255, 255, 255, 0.055);
+    rgba(255,255,255,.055);
 
   pointer-events: none;
 }
-
-/* =========================================================
-   BRAND
-   ========================================================= */
 
 .brand-area {
   position: relative;
@@ -178,20 +167,18 @@
   border-radius: 13px;
 
   background:
-    rgba(255, 255, 255, 0.14);
+    rgba(255,255,255,.14);
 
   border:
-    1px solid rgba(255, 255, 255, 0.20);
+    1px solid rgba(255,255,255,.20);
 
-  color: #fff;
+  color: white;
 
   font-size: 12px;
   font-weight: 700;
 
-  letter-spacing: -0.02em;
-
   box-shadow:
-    0 7px 20px rgba(0, 0, 0, 0.15);
+    0 7px 20px rgba(0,0,0,.15);
 }
 
 .brand-divider {
@@ -199,17 +186,17 @@
   height: 27px;
 
   background:
-    rgba(255, 255, 255, 0.28);
+    rgba(255,255,255,.28);
 }
 
 .brand-usm {
   color:
-    rgba(255, 255, 255, 0.92);
+    rgba(255,255,255,.92);
 
   font-size: 13px;
   font-weight: 700;
 
-  letter-spacing: 0.06em;
+  letter-spacing: .06em;
 }
 
 .logout-button {
@@ -223,14 +210,14 @@
   padding: 9px 15px;
 
   border:
-    1px solid rgba(255, 255, 255, 0.24);
+    1px solid rgba(255,255,255,.24);
 
   border-radius: 999px;
 
   background:
-    rgba(255, 255, 255, 0.09);
+    rgba(255,255,255,.09);
 
-  color: #fff;
+  color: white;
 
   font-size: 11px;
   font-weight: 600;
@@ -238,13 +225,13 @@
   cursor: pointer;
 
   transition:
-    background 0.2s ease,
-    transform 0.2s ease;
+    background .2s ease,
+    transform .2s ease;
 }
 
 .logout-button:hover {
   background:
-    rgba(255, 255, 255, 0.18);
+    rgba(255,255,255,.18);
 
   transform:
     translateY(-1px);
@@ -255,8 +242,7 @@
 }
 
 /* =========================================================
-   MAIN — IMPORTANT:
-   Override old orientation.css max-width
+   MAIN WIDTH
    ========================================================= */
 
 .orientation-main {
@@ -274,7 +260,8 @@
 }
 
 /* =========================================================
-   HERO
+   DESKTOP HERO
+   901px+
    ========================================================= */
 
 .welcome-hero {
@@ -283,20 +270,18 @@
   display: grid;
 
   grid-template-columns:
-    minmax(0, 1.12fr)
-    minmax(380px, 0.88fr);
+    minmax(0, 1.05fr)
+    minmax(390px, .95fr);
 
-  gap: clamp(55px, 7vw, 110px);
+  gap: clamp(55px, 7vw, 105px);
 
   align-items: center;
 
-  min-height: 480px;
+  min-height: 465px;
 
   padding:
-    62px 0 58px;
+    58px 0 52px;
 }
-
-/* subtle left glow */
 
 .welcome-hero::before {
   content: "";
@@ -306,38 +291,35 @@
   width: 500px;
   height: 500px;
 
-  left: -220px;
-  top: -100px;
+  left: -230px;
+  top: -90px;
 
   border-radius: 50%;
 
   background:
     radial-gradient(
       circle,
-      rgba(83, 37, 127, 0.055),
+      rgba(83,37,127,.05),
       transparent 68%
     );
 
   pointer-events: none;
 }
 
-/* =========================================================
-   HERO LEFT
-   ========================================================= */
-
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 
-  margin-bottom: 20px;
+  margin-bottom: 19px;
 
-  color: var(--pk-purple);
+  color:
+    var(--pk-purple);
 
   font-size: 10px;
   font-weight: 700;
 
-  letter-spacing: 0.13em;
+  letter-spacing: .13em;
 
   text-transform: uppercase;
 }
@@ -345,7 +327,8 @@
 .hero-eyebrow::before {
   content: "✦";
 
-  color: var(--pk-gold);
+  color:
+    var(--pk-gold);
 
   font-size: 14px;
 }
@@ -359,22 +342,20 @@
     var(--pk-purple-dark);
 
   font-size:
-    clamp(42px, 4.7vw, 66px);
+    clamp(44px, 4.4vw, 64px);
 
   line-height: 1.05;
 
-  letter-spacing: -0.035em;
+  letter-spacing: -.035em;
 
   font-weight: 700 !important;
 }
 
 .welcome-hero h1 > span:first-of-type {
-  display: inline;
-
-  margin-left: 7px;
-
   color:
     var(--pk-gold);
+
+  margin-left: 7px;
 
   font-weight: 700 !important;
 }
@@ -382,9 +363,7 @@
 .wave {
   display: inline-block;
 
-  margin-left: 7px;
-
-  font-weight: 400;
+  margin-left: 6px;
 
   transform-origin: 70% 70%;
 
@@ -393,9 +372,7 @@
 }
 
 @keyframes welcome-wave {
-  0%,
-  55%,
-  100% {
+  0%,55%,100% {
     transform: rotate(0deg);
   }
 
@@ -420,7 +397,7 @@
   max-width: 650px;
 
   margin:
-    25px 0 0;
+    24px 0 0;
 
   color:
     var(--pk-muted);
@@ -428,8 +405,6 @@
   font-size: 15px;
 
   line-height: 1.75;
-
-  font-weight: 400;
 }
 
 .hero-description strong {
@@ -447,7 +422,6 @@
   position: relative;
 
   width: 100%;
-
   max-width: 560px;
 
   justify-self: end;
@@ -455,23 +429,23 @@
   overflow: hidden;
 
   padding:
-    31px 32px;
+    30px 32px;
 
   border-radius: 24px;
 
   background:
     linear-gradient(
       145deg,
-      #ffffff 0%,
-      #fbf8fd 100%
+      #ffffff,
+      #fbf8fd
     );
 
   border:
-    1px solid rgba(83, 37, 127, 0.13);
+    1px solid rgba(83,37,127,.13);
 
   box-shadow:
-    0 20px 55px rgba(53, 22, 83, 0.11),
-    0 2px 8px rgba(53, 22, 83, 0.04);
+    0 20px 55px rgba(53,22,83,.11),
+    0 2px 8px rgba(53,22,83,.04);
 }
 
 .student-card::before {
@@ -480,8 +454,8 @@
   position: absolute;
 
   left: 0;
-  top: 24px;
-  bottom: 24px;
+  top: 23px;
+  bottom: 23px;
 
   width: 4px;
 
@@ -502,15 +476,15 @@
   position: absolute;
 
   right: -80px;
-  bottom: -110px;
+  bottom: -105px;
 
-  width: 230px;
-  height: 230px;
+  width: 225px;
+  height: 225px;
 
   border-radius: 50%;
 
   background:
-    rgba(83, 37, 127, 0.035);
+    rgba(83,37,127,.035);
 }
 
 .student-info {
@@ -520,9 +494,9 @@
   display: grid;
 
   grid-template-columns:
-    0.65fr 1.35fr;
+    .65fr 1.35fr;
 
-  gap: 26px;
+  gap: 25px;
 }
 
 .student-item {
@@ -532,7 +506,7 @@
 .student-label {
   display: block;
 
-  margin-bottom: 9px;
+  margin-bottom: 8px;
 
   color:
     #8c8592;
@@ -541,7 +515,7 @@
 
   font-weight: 700;
 
-  letter-spacing: 0.13em;
+  letter-spacing: .13em;
 }
 
 .student-item strong {
@@ -571,9 +545,7 @@
 
   flex-direction: column;
 
-  gap: 1px;
-
-  margin-top: 23px;
+  margin-top: 22px;
 
   padding:
     8px 11px;
@@ -590,7 +562,7 @@
 
   font-weight: 700;
 
-  letter-spacing: 0.10em;
+  letter-spacing: .10em;
 }
 
 /* =========================================================
@@ -605,7 +577,7 @@
   overflow: hidden;
 
   margin:
-    0 0 68px !important;
+    0 0 66px !important;
 
   padding:
     29px 34px 26px;
@@ -619,7 +591,7 @@
     1px solid var(--pk-border);
 
   box-shadow:
-    0 12px 35px rgba(53, 22, 83, 0.065);
+    0 12px 35px rgba(53,22,83,.065);
 }
 
 .progress-card::before {
@@ -663,7 +635,7 @@
 
   font-weight: 700;
 
-  letter-spacing: 0.14em;
+  letter-spacing: .14em;
 
   text-transform: uppercase;
 }
@@ -678,7 +650,7 @@
 
   line-height: 1.15;
 
-  letter-spacing: -0.02em;
+  letter-spacing: -.02em;
 
   font-weight: 650 !important;
 }
@@ -688,8 +660,6 @@
     var(--pk-purple);
 
   font-size: 27px;
-
-  line-height: 1;
 
   font-weight: 700;
 }
@@ -725,10 +695,10 @@
     );
 
   box-shadow:
-    0 0 14px rgba(255, 183, 3, 0.23);
+    0 0 14px rgba(255,183,3,.23);
 
   transition:
-    width 0.6s ease;
+    width .6s ease;
 }
 
 .progress-fill span {
@@ -742,13 +712,11 @@
 
   border-radius: 50%;
 
-  background: #fff;
+  background: white;
 }
 
 .progress-bottom {
   display: flex;
-
-  align-items: center;
 
   justify-content: space-between;
 
@@ -760,8 +728,6 @@
     var(--pk-muted);
 
   font-size: 10px;
-
-  font-weight: 400;
 }
 
 /* =========================================================
@@ -775,9 +741,9 @@
 
   justify-content: space-between;
 
-  gap: 60px;
+  gap: 55px;
 
-  margin-bottom: 31px;
+  margin-bottom: 30px;
 
   padding:
     0 3px;
@@ -793,7 +759,7 @@
 
   line-height: 1.1;
 
-  letter-spacing: -0.025em;
+  letter-spacing: -.025em;
 
   font-weight: 650 !important;
 }
@@ -802,7 +768,7 @@
   max-width: 700px;
 
   margin:
-    13px 0 0;
+    12px 0 0;
 
   color:
     var(--pk-muted);
@@ -810,8 +776,6 @@
   font-size: 13px;
 
   line-height: 1.65;
-
-  font-weight: 400;
 }
 
 .journey-symbol {
@@ -829,13 +793,13 @@
   border-radius: 17px;
 
   background:
-    #ffffff;
+    white;
 
   border:
     1px solid var(--pk-border);
 
   box-shadow:
-    0 7px 20px rgba(53, 22, 83, 0.05);
+    0 7px 20px rgba(53,22,83,.05);
 
   font-size: 21px;
 }
@@ -861,7 +825,7 @@
   display: grid;
 
   grid-template-columns:
-    auto minmax(0, 1fr) auto;
+    auto minmax(0,1fr) auto;
 
   align-items: center;
 
@@ -870,7 +834,7 @@
   width: 100%;
 
   margin:
-    0 0 64px;
+    0 0 63px;
 
   padding:
     21px 25px;
@@ -887,10 +851,10 @@
     );
 
   border:
-    1px solid rgba(255, 183, 3, 0.32);
+    1px solid rgba(255,183,3,.32);
 
   box-shadow:
-    0 10px 28px rgba(255, 183, 3, 0.06);
+    0 10px 28px rgba(255,183,3,.06);
 }
 
 .next-step-card::before,
@@ -952,8 +916,6 @@
   font-size: 11px;
 
   line-height: 1.55;
-
-  font-weight: 400;
 }
 
 .next-label {
@@ -966,7 +928,7 @@
 
   font-weight: 700;
 
-  letter-spacing: 0.13em;
+  letter-spacing: .13em;
 }
 
 .primary-button {
@@ -989,7 +951,7 @@
   background:
     var(--pk-purple);
 
-  color: #fff;
+  color: white;
 
   font-size: 11px;
 
@@ -998,11 +960,11 @@
   cursor: pointer;
 
   box-shadow:
-    0 7px 17px rgba(83, 37, 127, 0.20);
+    0 7px 17px rgba(83,37,127,.20);
 
   transition:
-    background 0.2s ease,
-    transform 0.2s ease;
+    background .2s ease,
+    transform .2s ease;
 }
 
 .primary-button:hover {
@@ -1017,8 +979,6 @@
   font-size: 15px;
 }
 
-/* ================= COMPLETED ================= */
-
 .completed-card {
   background:
     linear-gradient(
@@ -1028,7 +988,7 @@
     );
 
   border-color:
-    rgba(38, 155, 104, 0.22);
+    rgba(38,155,104,.22);
 }
 
 .completed-card::before {
@@ -1042,12 +1002,10 @@
 
   color:
     var(--pk-green);
-
-  font-weight: 700;
 }
 
 /* =========================================================
-   ORIENTATION CARDS
+   SIX SECTION CARDS
    ========================================================= */
 
 .sections-section {
@@ -1088,14 +1046,14 @@
 
   font-weight: 700;
 
-  letter-spacing: 0.11em;
+  letter-spacing: .11em;
 }
 
 .section-grid {
   display: grid;
 
   grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+    repeat(3,minmax(0,1fr));
 
   gap: 18px;
 }
@@ -1114,9 +1072,9 @@
   padding:
     22px;
 
-  text-align: left;
-
   overflow: hidden;
+
+  text-align: left;
 
   border:
     1px solid var(--pk-border);
@@ -1132,12 +1090,12 @@
   cursor: pointer;
 
   box-shadow:
-    0 7px 23px rgba(53, 22, 83, 0.045);
+    0 7px 23px rgba(53,22,83,.045);
 
   transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease;
+    transform .22s ease,
+    box-shadow .22s ease,
+    border-color .22s ease;
 }
 
 .orientation-section-card::after {
@@ -1154,7 +1112,7 @@
   border-radius: 50%;
 
   background:
-    rgba(83, 37, 127, 0.04);
+    rgba(83,37,127,.04);
 
   pointer-events: none;
 }
@@ -1164,15 +1122,15 @@
     translateY(-4px);
 
   border-color:
-    rgba(83, 37, 127, 0.22);
+    rgba(83,37,127,.22);
 
   box-shadow:
-    0 15px 32px rgba(53, 22, 83, 0.09);
+    0 15px 32px rgba(53,22,83,.09);
 }
 
 .orientation-section-card.is-next {
   border-color:
-    rgba(255, 183, 3, 0.38);
+    rgba(255,183,3,.38);
 }
 
 .orientation-section-card.is-next::before {
@@ -1192,7 +1150,7 @@
 
 .orientation-section-card.is-completed {
   border-color:
-    rgba(38, 155, 104, 0.23);
+    rgba(38,155,104,.23);
 }
 
 .orientation-section-card.is-completed::before {
@@ -1211,7 +1169,7 @@
 }
 
 .orientation-section-card.is-locked {
-  opacity: 0.55;
+  opacity: .55;
 
   cursor:
     not-allowed;
@@ -1285,8 +1243,6 @@
   font-size: 11px;
 
   line-height: 1.55;
-
-  font-weight: 400;
 }
 
 .card-footer {
@@ -1316,7 +1272,7 @@
   display: grid;
 
   grid-template-columns:
-    auto minmax(0, 1fr) auto;
+    auto minmax(0,1fr) auto;
 
   align-items: center;
 
@@ -1340,7 +1296,7 @@
     );
 
   border:
-    1px solid rgba(83, 37, 127, 0.12);
+    1px solid rgba(83,37,127,.12);
 }
 
 .help-icon {
@@ -1355,10 +1311,10 @@
   border-radius: 15px;
 
   background:
-    #ffffff;
+    white;
 
   box-shadow:
-    0 6px 18px rgba(53, 22, 83, 0.07);
+    0 6px 18px rgba(53,22,83,.07);
 
   font-size: 23px;
 }
@@ -1447,79 +1403,81 @@
 }
 
 /* =========================================================
-   TABLET
+   TABLET — 601px to 900px
    ========================================================= */
 
-@media (max-width: 1050px) {
+@media (min-width: 601px) and (max-width: 900px) {
 
   .orientation-main {
     width:
-      calc(100% - 60px) !important;
+      calc(100% - 54px) !important;
   }
 
   .welcome-hero {
     grid-template-columns:
-      minmax(0, 1fr)
-      minmax(320px, 0.85fr);
+      minmax(0,1fr)
+      minmax(300px,.85fr);
 
-    gap: 45px;
+    gap: 35px;
+
+    min-height: 430px;
+
+    padding:
+      48px 0 45px;
   }
 
   .welcome-hero h1 {
     font-size:
-      clamp(40px, 5vw, 57px);
+      clamp(39px,5vw,52px);
   }
 
-  .section-grid {
-    gap: 14px;
-  }
-}
-
-/* =========================================================
-   TABLET / SMALL LAPTOP
-   ========================================================= */
-
-@media (max-width: 850px) {
-
-  .orientation-main {
-    width:
-      calc(100% - 44px) !important;
-  }
-
-  .welcome-hero {
-    grid-template-columns: 1fr;
-
-    gap: 35px;
-
-    min-height: auto;
-
-    padding:
-      48px 0 50px;
+  .hero-description {
+    font-size: 13px;
   }
 
   .student-card {
-    max-width: 620px;
+    padding:
+      25px;
+  }
 
-    justify-self: start;
+  .student-info {
+    grid-template-columns:
+      1fr;
+
+    gap: 17px;
   }
 
   .section-grid {
     grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+      repeat(2,minmax(0,1fr));
+  }
+
+  .journey-intro {
+    gap: 30px;
+  }
+
+  .journey-intro h2 {
+    font-size: 30px;
   }
 }
 
 /* =========================================================
-   MOBILE
+   PHONE — 600px AND BELOW
    ========================================================= */
 
 @media (max-width: 600px) {
+
+  /* ---------- HEADER ---------- */
 
   .orientation-header {
     min-height: 67px;
 
     padding:
-      11px 16px !important;
+      11px 15px !important;
+  }
+
+  .brand-area {
+    gap: 10px;
   }
 
   .brand-mark {
@@ -1541,10 +1499,12 @@
 
   .logout-button {
     padding:
-      8px 12px;
+      8px 11px;
 
     font-size: 10px;
   }
+
+  /* ---------- MAIN ---------- */
 
   .orientation-main {
     width:
@@ -1554,11 +1514,23 @@
       55px !important;
   }
 
-  .welcome-hero {
-    padding:
-      37px 0 42px;
+  /* ---------- PHONE HERO ---------- */
 
-    gap: 28px;
+  .welcome-hero {
+    display: block;
+
+    min-height: auto;
+
+    padding:
+      34px 0 40px;
+  }
+
+  .welcome-hero::before {
+    width: 330px;
+    height: 330px;
+
+    left: -180px;
+    top: -50px;
   }
 
   .hero-eyebrow {
@@ -1569,49 +1541,138 @@
     letter-spacing: .11em;
   }
 
-  .welcome-hero h1 {
-    font-size: 37px;
+  /*
+    IMPORTANT:
+    On phone the heading becomes deliberately 3 lines.
+    This prevents "Postgraduate" from being clipped.
+  */
 
-    line-height: 1.06;
+  .welcome-hero h1 {
+    width: 100%;
+    max-width: 100%;
+
+    margin: 0;
+
+    font-size:
+      clamp(35px, 10vw, 40px);
+
+    line-height: 1.07;
+
+    letter-spacing: -.035em;
+
+    font-weight: 700 !important;
+
+    overflow-wrap:
+      normal;
+
+    word-break:
+      normal;
+  }
+
+  .welcome-hero h1 > span:first-of-type {
+    display: block;
+
+    width: 100%;
+
+    margin-left: 0;
+
+    margin-top: 2px;
+
+    color:
+      var(--pk-gold);
+
+    white-space:
+      normal;
+
+    font-weight:
+      700 !important;
+  }
+
+  .wave {
+    margin-left: 3px;
   }
 
   .hero-description {
-    margin-top: 18px;
+    max-width: 100%;
 
-    font-size: 13px;
+    margin-top: 19px;
+
+    font-size: 12.5px;
 
     line-height: 1.65;
   }
 
+  /* ---------- STUDENT CARD ---------- */
+
   .student-card {
+    width: 100%;
+
+    max-width: 100%;
+
+    margin-top: 28px;
+
     padding:
-      23px;
+      22px;
+
+    border-radius:
+      21px;
   }
 
   .student-info {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr 1.55fr;
 
-    gap: 17px;
+    gap: 14px;
+  }
+
+  .student-label {
+    font-size: 8px;
+  }
+
+  .student-item strong {
+    font-size: 12px;
+  }
+
+  .programme-item strong {
+    font-size: 11.5px;
   }
 
   .student-badge {
     margin-top: 17px;
-  }
-
-  .progress-card {
-    margin-bottom:
-      47px !important;
 
     padding:
-      23px 20px;
+      7px 9px;
+
+    font-size: 7px;
+  }
+
+  /* ---------- PROGRESS ---------- */
+
+  .progress-card {
+    margin:
+      0 0 46px !important;
+
+    padding:
+      22px 19px 21px;
+
+    border-radius:
+      19px;
   }
 
   .progress-top h2 {
-    font-size: 22px;
+    font-size:
+      21px;
   }
 
   .progress-number {
-    font-size: 23px;
+    font-size:
+      22px;
+  }
+
+  .progress-track {
+    height: 8px;
+
+    margin-top: 17px;
   }
 
   .progress-bottom {
@@ -1619,414 +1680,299 @@
 
     align-items: flex-start;
 
-    gap: 5px;
+    gap: 4px;
+
+    margin-top: 10px;
+
+    font-size: 9px;
   }
 
+  /* ---------- JOURNEY ---------- */
+
   .journey-intro {
-    align-items: flex-start;
+    display: block;
 
-    flex-direction: column;
+    margin-bottom: 22px;
 
-    gap: 17px;
-
-    margin-bottom: 24px;
+    padding: 0;
   }
 
   .journey-intro h2 {
-    font-size: 29px;
+    max-width: 330px;
+
+    font-size:
+      28px;
+
+    line-height:
+      1.08;
   }
 
   .journey-intro p {
-    font-size: 12px;
+    margin-top: 12px;
+
+    font-size: 11.5px;
+
+    line-height: 1.6;
   }
 
   .journey-symbol {
-    align-self: flex-start;
+    display: inline-flex;
+
+    margin-top: 15px;
+
+    padding:
+      10px 14px;
+
+    border-radius:
+      15px;
+
+    font-size:
+      19px;
   }
+
+  /* ---------- NEXT STEP ---------- */
 
   .next-step-card,
   .completed-card {
     grid-template-columns:
-      auto minmax(0, 1fr);
+      auto minmax(0,1fr);
 
-    gap: 14px;
+    gap: 13px;
+
+    margin-bottom:
+      45px;
 
     padding:
-      18px;
+      17px;
+
+    border-radius:
+      17px;
+  }
+
+  .next-icon,
+  .completed-icon {
+    width: 48px;
+    height: 48px;
+
+    border-radius:
+      14px;
+
+    font-size:
+      21px;
+  }
+
+  .next-content h3,
+  .completed-card h3 {
+    font-size:
+      16px;
+  }
+
+  .next-content p,
+  .completed-card p {
+    font-size:
+      10px;
   }
 
   .next-step-card .primary-button {
     grid-column:
       1 / -1;
 
-    width: 100%;
+    width:
+      100%;
+
+    min-height:
+      39px;
   }
 
-  .section-heading {
-    align-items: flex-start;
+  /* ---------- SIX CARDS ---------- */
 
-    flex-direction: column;
-
-    gap: 7px;
-  }
-
-  .section-heading h2 {
-    font-size: 28px;
-  }
-
-  .section-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .orientation-section-card {
-    min-height: 195px;
-  }
-
-  .help-card {
-    grid-template-columns:
-      auto minmax(0, 1fr);
-  }
-
-  .help-arrow {
-    display: none;
-  }
-
-  .orientation-footer {
-    align-items: flex-start;
-
-    flex-direction: column;
-  }
-
-  .footer-text {
-    text-align: left;
-  }
-}
-
-
-/* =========================================================
-   LAPTOP OPTIMISATION
-   Designed for common 13–16" laptop screens
-   Approx. 1100–1450px viewport width
-   ========================================================= */
-
-@media (min-width: 601px) and (max-width: 1450px) {
-
-  /* Use the laptop width properly — not too wide, not cramped */
-  .orientation-main {
-    width: min(1120px, calc(100% - 72px)) !important;
-    max-width: 1120px !important;
-  }
-
-  /* More compact hero so the first screen feels balanced */
-  .welcome-hero {
-    grid-template-columns:
-      minmax(0, 1fr)
-      minmax(350px, 0.88fr);
-
-    gap: 52px;
-
-    min-height: 405px;
-
-    padding:
-      48px 0 42px;
-  }
-
-  .welcome-hero h1 {
-    max-width: 610px;
-
-    font-size:
-      clamp(42px, 4.2vw, 54px);
-
-    line-height: 1.04;
-
-    letter-spacing: -0.032em;
-  }
-
-  .hero-eyebrow {
-    margin-bottom: 15px;
-
-    font-size: 9px;
-  }
-
-  .hero-description {
-    max-width: 535px;
-
-    margin-top: 18px;
-
-    font-size: 13px;
-
-    line-height: 1.65;
-  }
-
-  /* Student card becomes a deliberate hero panel */
-  .student-card {
-    max-width: 485px;
-
-    padding:
-      26px 27px;
-
-    border-radius: 21px;
-  }
-
-  .student-info {
-    gap: 20px;
-  }
-
-  .student-item strong {
-    font-size: 13px;
-  }
-
-  .programme-item strong {
-    font-size: 12px;
-  }
-
-  .student-badge {
-    margin-top: 18px;
-  }
-
-  /* Progress is closer to hero */
-  .progress-card {
-    margin-bottom:
-      53px !important;
-
-    padding:
-      25px 28px 23px;
-  }
-
-  .progress-top h2 {
-    font-size: 24px;
-  }
-
-  .progress-number {
-    font-size: 25px;
-  }
-
-  /* Journey heading */
-  .journey-intro {
-    gap: 35px;
-
-    margin-bottom: 24px;
-  }
-
-  .journey-intro h2 {
-    font-size: 30px;
-  }
-
-  .journey-intro p {
-    max-width: 580px;
-
-    font-size: 12px;
-  }
-
-  .journey-symbol {
-    padding:
-      11px 14px;
-
-    font-size: 18px;
-  }
-
-  /* Next step card is slimmer */
-  .next-step-card,
-  .completed-card {
-    gap: 17px;
-
-    margin-bottom:
-      48px;
-
-    padding:
-      18px 21px;
-
-    border-radius: 17px;
-  }
-
-  .next-icon,
-  .completed-icon {
-    width: 50px;
-    height: 50px;
-
-    font-size: 21px;
-  }
-
-  .next-content h3,
-  .completed-card h3 {
-    font-size: 17px;
-  }
-
-  .next-content p,
-  .completed-card p {
-    font-size: 10px;
-  }
-
-  .primary-button {
-    min-width: 98px;
-
-    padding:
-      10px 14px;
-
-    font-size: 10px;
-  }
-
-  /* Six cards remain 3 x 2, but with a more compact footprint */
   .sections-section {
     margin-bottom:
       48px;
   }
 
   .section-heading {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+
+    gap:
+      6px;
+
     margin-bottom:
       17px;
   }
 
   .section-heading h2 {
-    font-size: 27px;
+    font-size:
+      27px;
+  }
+
+  .section-count {
+    font-size:
+      8px;
   }
 
   .section-grid {
     grid-template-columns:
-      repeat(3, minmax(0, 1fr));
+      1fr;
 
-    gap: 14px;
+    gap:
+      12px;
   }
 
   .orientation-section-card {
-    min-height: 190px;
+    min-height:
+      177px;
 
     padding:
       18px;
 
-    border-radius: 17px;
+    border-radius:
+      17px;
   }
 
   .card-number {
-    width: 34px;
-    height: 34px;
+    width:
+      34px;
+    height:
+      34px;
 
-    border-radius: 10px;
+    border-radius:
+      10px;
 
-    font-size: 9px;
+    font-size:
+      9px;
   }
 
   .card-icon {
-    margin-top: 14px;
+    margin-top:
+      13px;
 
-    font-size: 21px;
+    font-size:
+      22px;
   }
 
   .orientation-section-card h3 {
-    margin-top: 7px;
+    margin-top:
+      7px;
 
-    font-size: 15px;
+    font-size:
+      16px;
   }
 
   .orientation-section-card p {
-    font-size: 10px;
+    max-width:
+      100%;
+
+    font-size:
+      10px;
   }
 
   .card-footer {
-    padding-top: 12px;
+    padding-top:
+      12px;
 
-    font-size: 8px;
+    font-size:
+      8px;
   }
 
-  /* Help and footer */
+  /* ---------- HELP ---------- */
+
   .help-card {
+    grid-template-columns:
+      auto minmax(0,1fr);
+
+    gap:
+      13px;
+
     margin-bottom:
-      38px;
+      35px;
 
     padding:
-      18px 21px;
-
-    border-radius: 17px;
+      18px;
   }
 
   .help-icon {
-    width: 47px;
-    height: 47px;
+    width:
+      45px;
+    height:
+      45px;
 
-    font-size: 20px;
+    border-radius:
+      13px;
+
+    font-size:
+      20px;
   }
 
   .help-content h3 {
-    font-size: 16px;
+    font-size:
+      16px;
   }
 
   .help-content p {
-    font-size: 10px;
+    font-size:
+      10px;
   }
 
+  .help-arrow {
+    display:
+      none;
+  }
+
+  /* ---------- FOOTER ---------- */
+
   .orientation-footer {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+
+    gap:
+      8px;
+
     padding-top:
-      21px;
+      20px;
+  }
+
+  .footer-text {
+    text-align:
+      left;
   }
 }
 
 /* =========================================================
-   LAPTOP — 1024 TO 1180px
-   Keep the two-column hero but tighten it further
+   VERY SMALL PHONE
    ========================================================= */
 
-@media (min-width: 601px) and (max-width: 1180px) {
+@media (max-width: 380px) {
 
   .orientation-main {
     width:
-      calc(100% - 48px) !important;
-  }
-
-  .welcome-hero {
-    grid-template-columns:
-      minmax(0, 1fr)
-      minmax(310px, 0.82fr);
-
-    gap: 32px;
-
-    min-height: 370px;
-
-    padding-top:
-      38px;
+      calc(100% - 24px) !important;
   }
 
   .welcome-hero h1 {
     font-size:
-      clamp(37px, 5vw, 48px);
-  }
-
-  .hero-description {
-    max-width: 470px;
-
-    font-size: 12px;
-  }
-
-  .student-card {
-    max-width: 430px;
-
-    padding:
-      23px;
+      33px;
   }
 
   .student-info {
     grid-template-columns:
-      0.6fr 1.4fr;
-
-    gap: 15px;
+      1fr;
   }
 
-  .progress-card {
-    margin-bottom:
-      44px !important;
+  .student-card {
+    padding:
+      20px;
   }
 
   .journey-intro h2 {
-    font-size: 27px;
-  }
-
-  .section-grid {
-    gap: 11px;
-  }
-
-  .orientation-section-card {
-    min-height: 180px;
-
-    padding:
-      16px;
+    font-size:
+      26px;
   }
 }
