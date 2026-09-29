@@ -1,34 +1,37 @@
-import Head from "next/head";
+import { useEffect } from "react";
 
 export default function OrientationPage() {
+  useEffect(() => {
+    window.location.replace("/orientation/index.html");
+  }, []);
+
   return (
-    <>
-      <Head>
-        <title>
-          PKTAAB Postgraduate Orientation | USM
-        </title>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#53257f",
+        color: "white",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            fontSize: "32px",
+            fontWeight: 800,
+            marginBottom: "12px",
+          }}
+        >
+          PKTAAB
+        </div>
 
-        <meta
-          name="description"
-          content="PKTAAB Postgraduate Student Orientation"
-        />
-
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1"
-        />
-      </Head>
-
-      <iframe
-        src="/orientation/index.html"
-        title="PKTAAB Postgraduate Orientation"
-        style={{
-          width: "100%",
-          height: "100vh",
-          border: "none",
-          display: "block",
-        }}
-      />
-    </>
+        <div style={{ fontSize: "14px", opacity: 0.8 }}>
+          Loading Postgraduate Orientation...
+        </div>
+      </div>
+    </div>
   );
 }
