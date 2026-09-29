@@ -6,12 +6,22 @@ import sendEmail from "../services/sendEmail.js";
 
 const router = express.Router();
 
+const SHEET_NAME = "ORIENTATION_TRACKING";
+const SHEET_RANGE = `${SHEET_NAME}!A1:U999`;
+
+const ANIS_EMAIL = "anissyamimi@usm.my";
+
+
+/* =========================================================
+   AUTH
+========================================================= */
 
 function auth(req, res, next) {
 
   const token =
     (req.headers.authorization || "")
-      .replace("Bearer ", "");
+      .replace("Bearer ", "")
+      .trim();
 
   if (!token) {
     return res.status(401).json({
@@ -29,7 +39,12 @@ function auth(req, res, next) {
 
     next();
 
-  } catch {
+  } catch (error) {
+
+    console.error(
+      "Orientation auth error:",
+      error
+    );
 
     return res.status(401).json({
       error: "Invalid token"
@@ -38,6 +53,10 @@ function auth(req, res, next) {
   }
 }
 
+
+/* =========================================================
+   GOOGLE SHEETS AUTH
+========================================================= */
 
 function getAuth() {
 
@@ -56,82 +75,33 @@ function getAuth() {
 }
 
 
-async function getSheetRows() {
+/* =========================================================
+   GET SHEET CLIENT
+========================================================= */
+
+async function getSheetsClient() {
 
   const auth = getAuth();
 
   const client =
     await auth.getClient();
 
-  const sheets =
-    google.sheets({
-      version: "v4",
-      auth: client
-    });
-
-
-  const response =
-    await sheets.spreadsheets.values.get({
-
-      spreadsheetId:
-        process.env.SHEET_ID,
-
-      range:
-        "ORIENTATION_TRACKING!A1:I999"
-
-    });
-
-
-  const values =
-    response.data.values || [];
-
-
-  if (values.length < 2) {
-    return [];
-  }
-
-
-  const headers =
-    values[0].map(
-      h => String(h).trim()
-    );
-
-
-  return values
-    .slice(1)
-    .map(row => {
-
-      const obj = {};
-
-      headers.forEach(
-        (header, index) => {
-
-          obj[header] =
-            row[index] || "";
-
-        }
-      );
-
-      return obj;
-
-    });
+  return google.sheets({
+    version: "v4",
+    auth: client
+  });
 
 }
 
 
-async function findRow(email) {
+/* =========================================================
+   READ ORIENTATION SHEET
+========================================================= */
 
-  const auth = getAuth();
-
-  const client =
-    await auth.getClient();
+async function getSheetData() {
 
   const sheets =
-    google.sheets({
-      version: "v4",
-      auth: client
-    });
-
+    await getSheetsClient();
 
   const response =
     await sheets.spreadsheets.values.get({
@@ -140,56 +110,246 @@ async function findRow(email) {
         process.env.SHEET_ID,
 
       range:
-        "ORIENTATION_TRACKING!A1:U999"
+        SHEET_RANGE
 
     });
-
 
   const values =
     response.data.values || [];
 
-
   if (!values.length) {
-    return null;
-  }
 
+    return {
+      sheets,
+      headers: [],
+      rows: []
+    };
+
+  }
 
   const headers =
     values[0].map(
-      h => String(h).trim()
+      header =>
+        String(header || "").trim()
     );
 
-
-  const emailIndex =
-    headers.indexOf("Email");
-
-
-  const rowIndex =
-    values.findIndex(
-      (row, index) =>
-        index > 0 &&
-        String(
-          row[emailIndex] || ""
-        )
-          .toLowerCase()
-          .trim() ===
-        email.toLowerCase().trim()
-    );
-
-
-  if (rowIndex === -1) {
-    return null;
-  }
-
+  const rows =
+    values.slice(1);
 
   return {
-    rowNumber: rowIndex + 1,
+    sheets,
     headers,
-    values: values[rowIndex]
+    rows
   };
 
 }
 
+
+/* =========================================================
+   FIND STUDENT ROW BY USM EMAIL
+========================================================= */
+
+async function findRow(email) {
+
+  const {
+    sheets,
+    headers,
+    rows
+  } =
+    await getSheetData();
+
+
+  if (!headers.length) {
+
+    return null;
+
+  }
+
+
+  // YOUR SHEET USES "USM Email"
+  const emailIndex =
+    headers.indexOf("USM Email");
+
+
+  if (emailIndex === -1) {
+
+    throw new Error(
+      'Column "USM Email" not found in ORIENTATION_TRACKING'
+    );
+
+  }
+
+
+  const targetEmail =
+    String(email || "")
+      .trim()
+      .toLowerCase();
+
+
+  const rowIndex =
+    rows.findIndex(
+      row =>
+        String(
+          row[emailIndex] || ""
+        )
+          .trim()
+          .toLowerCase() ===
+        targetEmail
+    );
+
+
+  if (rowIndex === -1) {
+
+    return null;
+
+  }
+
+
+  const actualRowNumber =
+    rowIndex + 2;
+
+
+  return {
+
+    sheets,
+
+    rowNumber:
+      actualRowNumber,
+
+    headers,
+
+    values:
+      rows[rowIndex]
+
+  };
+
+}
+
+
+/* =========================================================
+   CONVERT ROW TO OBJECT
+========================================================= */
+
+function rowToObject(row) {
+
+  const obj = {};
+
+  row.headers.forEach(
+    (header, index) => {
+
+      obj[header] =
+        row.values[index] || "";
+
+    }
+  );
+
+  return obj;
+
+}
+
+
+/* =========================================================
+   GET COLUMN INDEX
+========================================================= */
+
+function getColumnIndex(
+  headers,
+  columnName
+) {
+
+  const index =
+    headers.indexOf(columnName);
+
+  if (index === -1) {
+
+    throw new Error(
+      `Column "${columnName}" not found in ${SHEET_NAME}`
+    );
+
+  }
+
+  return index;
+
+}
+
+
+/* =========================================================
+   COLUMN NUMBER → LETTER
+========================================================= */
+
+function columnLetter(columnIndex) {
+
+  let column = "";
+
+  let n =
+    columnIndex;
+
+  while (n >= 0) {
+
+    column =
+      String.fromCharCode(
+        (n % 26) + 65
+      ) + column;
+
+    n =
+      Math.floor(n / 26) - 1;
+
+  }
+
+  return column;
+
+}
+
+
+/* =========================================================
+   UPDATE ONE CELL
+========================================================= */
+
+async function updateCell(
+  sheets,
+  headers,
+  rowNumber,
+  columnName,
+  value
+) {
+
+  const columnIndex =
+    getColumnIndex(
+      headers,
+      columnName
+    );
+
+  const column =
+    columnLetter(
+      columnIndex
+    );
+
+
+  await sheets.spreadsheets.values.update({
+
+    spreadsheetId:
+      process.env.SHEET_ID,
+
+    range:
+      `${SHEET_NAME}!${column}${rowNumber}`,
+
+    valueInputOption:
+      "USER_ENTERED",
+
+    requestBody: {
+      values: [
+        [value]
+      ]
+    }
+
+  });
+
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
 
 router.get(
   "/status",
@@ -201,49 +361,105 @@ router.get(
       const email =
         req.user.email;
 
+
       const row =
         await findRow(email);
 
 
+      /*
+       * Student has not yet been added
+       * to Orientation Tracking.
+       */
+
       if (!row) {
 
         return res.json({
-          status: "Not Started",
-          progress: 0
+
+          status:
+            "Not Started",
+
+          progress:
+            0,
+
+          email
+
         });
 
       }
 
 
-      const obj = {};
+      const obj =
+        rowToObject(row);
 
-      row.headers.forEach(
-        (header, index) => {
 
-          obj[header] =
-            row.values[index] || "";
+      const orientationStatus =
+        obj["Orientation Status"] ||
+        "Not Started";
 
-        }
-      );
+
+      const progress =
+        orientationStatus ===
+        "Completed"
+          ? 100
+          : 0;
 
 
       res.json({
 
         status:
-          obj.Status ||
-          "Not Started",
+          orientationStatus,
 
-        progress:
-          Number(obj.Progress || 0),
+        progress,
 
-        startedAt:
-          obj["Started At"] || "",
+        email:
+
+          obj["USM Email"] ||
+          email,
+
+        studentName:
+          obj["Student Name"] || "",
+
+        matricNo:
+          obj["Matric No."] || "",
+
+        programme:
+          obj["Programme"] || "",
+
+        studentType:
+          obj["Student Type"] || "",
 
         completedAt:
-          obj["Completed At"] || "",
+          obj["Completion Date"] || "",
 
-        version:
-          obj.Version || "1.0"
+        ppbmsAccess:
+          obj["PPBMS Access"] || "",
+
+        systemIntroduction:
+          obj["System Introduction"] || "",
+
+        meetTheTeam:
+          obj["Meet the Team"] || "",
+
+        adusiswaReviewed:
+          obj["AduSiswa Reviewed"] || "",
+
+        handbookReviewed:
+          obj["Handbook / Forms Reviewed"] || "",
+
+        whatsappJoined:
+          obj["WhatsApp Joined"] || "",
+
+        shuttleReviewed:
+          obj["Shuttle / Location Reviewed"] || "",
+
+        dosDontsReviewed:
+          obj["Do's & Don'ts Reviewed"] || "",
+
+        assistanceRequired:
+          obj["Assistance Required"] || "",
+
+        assistanceDetails:
+          obj["Assistance Details"] || ""
 
       });
 
@@ -255,8 +471,10 @@ router.get(
       );
 
       res.status(500).json({
+
         error:
           "Unable to retrieve orientation status"
+
       });
 
     }
@@ -264,6 +482,10 @@ router.get(
   }
 );
 
+
+/* =========================================================
+   COMPLETE ORIENTATION
+========================================================= */
 
 router.post(
   "/complete",
@@ -280,78 +502,80 @@ router.post(
         await findRow(email);
 
 
-      const auth =
-        getAuth();
+      /*
+       * Student must already exist
+       * in ORIENTATION_TRACKING.
+       */
 
-      const client =
-        await auth.getClient();
+      if (!row) {
 
-      const sheets =
-        google.sheets({
-          version: "v4",
-          auth: client
+        return res.status(404).json({
+
+          error:
+            "Student is not found in ORIENTATION_TRACKING."
+
         });
+
+      }
 
 
       const now =
         new Date().toISOString();
 
 
-      if (row) {
+      /*
+       * Update required tracking fields
+       */
 
-        // Existing record:
-        // update status/progress/completion
-
-        const statusCol =
-          row.headers.indexOf("Status");
-
-        const progressCol =
-          row.headers.indexOf("Progress");
-
-        const completedCol =
-          row.headers.indexOf("Completed At");
+      await updateCell(
+        row.sheets,
+        row.headers,
+        row.rowNumber,
+        "Orientation Status",
+        "Completed"
+      );
 
 
-        await updateCell(
-          sheets,
-          statusCol,
-          row.rowNumber,
-          "Completed"
-        );
+      await updateCell(
+        row.sheets,
+        row.headers,
+        row.rowNumber,
+        "Completion Date",
+        now
+      );
 
 
-        await updateCell(
-          sheets,
-          progressCol,
-          row.rowNumber,
-          100
-        );
+      /*
+       * PPBMS access already confirmed
+       */
+
+      await updateCell(
+        row.sheets,
+        row.headers,
+        row.rowNumber,
+        "PPBMS Access",
+        "Completed"
+      );
 
 
-        await updateCell(
-          sheets,
-          completedCol,
-          row.rowNumber,
-          now
-        );
+      /*
+       * BAA notification status
+       */
 
-      } else {
-
-        return res.status(404).json({
-          error:
-            "Orientation record not found."
-        });
-
-      }
+      let emailStatus =
+        "Pending";
 
 
-      // Notify Anis
+      /*
+       * Notify Anis
+       */
+
       try {
 
         await sendEmail({
 
           to:
-            "anissyamimi@usm.my",
+            ANIS_EMAIL,
 
           subject:
             "PKTAAB Orientation Completed",
@@ -360,7 +584,10 @@ router.post(
             `${email} has completed the PKTAAB Postgraduate Student Orientation.`,
 
           html: `
-            <div style="font-family:Arial,sans-serif;line-height:1.6">
+            <div style="
+              font-family:Arial,sans-serif;
+              line-height:1.6;
+            ">
 
               <h2>
                 🎓 PKTAAB Orientation Completed
@@ -368,7 +595,7 @@ router.post(
 
               <p>
                 A postgraduate student has completed
-                the PKTAAB Student Orientation.
+                the PKTAAB Postgraduate Student Orientation.
               </p>
 
               <p>
@@ -381,10 +608,29 @@ router.post(
                 ${now}
               </p>
 
+              <p>
+                The student's orientation record has
+                been updated in ORIENTATION_TRACKING.
+              </p>
+
             </div>
           `
 
         });
+
+
+        emailStatus =
+          "Sent";
+
+
+        await updateCell(
+          row.sheets,
+          row.headers,
+          row.rowNumber,
+          "BAA Notification",
+          "Sent"
+        );
+
 
       } catch (emailError) {
 
@@ -393,17 +639,54 @@ router.post(
           emailError
         );
 
-        // Do not fail completion
-        // just because email failed.
+
+        emailStatus =
+          "Failed";
+
+
+        try {
+
+          await updateCell(
+            row.sheets,
+            row.headers,
+            row.rowNumber,
+            "BAA Notification",
+            "Failed"
+          );
+
+        } catch (updateError) {
+
+          console.error(
+            "Unable to update BAA Notification:",
+            updateError
+          );
+
+        }
 
       }
 
 
+      /*
+       * Final response
+       */
+
       res.json({
-        success: true,
-        status: "Completed",
-        progress: 100,
-        completedAt: now
+
+        success:
+          true,
+
+        status:
+          "Completed",
+
+        progress:
+          100,
+
+        completedAt:
+          now,
+
+        emailNotification:
+          emailStatus
+
       });
 
 
@@ -414,66 +697,18 @@ router.post(
         error
       );
 
+
       res.status(500).json({
+
         error:
           "Unable to complete orientation"
+
       });
 
     }
 
   }
 );
-
-
-async function updateCell(
-  sheets,
-  columnIndex,
-  rowNumber,
-  value
-) {
-
-  if (columnIndex === -1) {
-    throw new Error(
-      "Required orientation column missing"
-    );
-  }
-
-
-  let column = "";
-  let n = columnIndex;
-
-
-  while (n >= 0) {
-
-    column =
-      String.fromCharCode(
-        (n % 26) + 65
-      ) + column;
-
-    n =
-      Math.floor(n / 26) - 1;
-
-  }
-
-
-  await sheets.spreadsheets.values.update({
-
-    spreadsheetId:
-      process.env.SHEET_ID,
-
-    range:
-      `ORIENTATION_TRACKING!${column}${rowNumber}`,
-
-    valueInputOption:
-      "USER_ENTERED",
-
-    requestBody: {
-      values: [[value]]
-    }
-
-  });
-
-}
 
 
 export default router;
