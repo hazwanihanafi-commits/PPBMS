@@ -160,12 +160,9 @@ class OrientationErrorBoundary extends React.Component {
 
 function OrientationApp() {
 
-  const [token, setToken] =
-    useState(() =>
-      localStorage.getItem(
-        "ppbms_token"
-      )
-    );
+  const [token] = useState(() =>
+    localStorage.getItem("ppbms_token")
+  );
 
   const [student, setStudent] =
     useState(null);
@@ -179,12 +176,17 @@ function OrientationApp() {
   const [loading, setLoading] =
     useState(true);
 
+  const [loadingMessage, setLoadingMessage] =
+    useState(
+      "Preparing your orientation..."
+    );
+
   const [error, setError] =
     useState("");
 
 
   // =====================================================
-  // LOAD
+  // LOAD ORIENTATION
   // =====================================================
 
   useEffect(() => {
@@ -205,19 +207,34 @@ function OrientationApp() {
         setLoading(true);
         setError("");
 
+
+        // =================================================
+        // STEP 1 — PPBMS LOGIN
+        // =================================================
+
+        setLoadingMessage(
+          "Checking your PPBMS account..."
+        );
+
         console.log(
           "ORIENTATION: token found"
         );
 
 
-        // ---------------------------------------------
-        // STUDENT
-        // ---------------------------------------------
+        // =================================================
+        // STEP 2 — STUDENT PROFILE
+        // =================================================
+
+        setLoadingMessage(
+          "Checking your student profile..."
+        );
+
+        console.log(
+          "ORIENTATION: requesting /api/student/me"
+        );
 
         const profile =
-          await getStudentProfile(
-            token
-          );
+          await getStudentProfile(token);
 
         console.log(
           "ORIENTATION PROFILE:",
@@ -225,14 +242,20 @@ function OrientationApp() {
         );
 
 
-        // ---------------------------------------------
-        // ORIENTATION
-        // ---------------------------------------------
+        // =================================================
+        // STEP 3 — ORIENTATION STATUS
+        // =================================================
+
+        setLoadingMessage(
+          "Loading your orientation progress..."
+        );
+
+        console.log(
+          "ORIENTATION: requesting /api/orientation/status"
+        );
 
         const orientation =
-          await getOrientationStatus(
-            token
-          );
+          await getOrientationStatus(token);
 
         console.log(
           "ORIENTATION STATUS:",
@@ -240,15 +263,14 @@ function OrientationApp() {
         );
 
 
-        // ---------------------------------------------
-        // NORMALISE
-        // ---------------------------------------------
+        // =================================================
+        // STEP 4 — NORMALISE DATA
+        // =================================================
 
         const studentData =
           profile?.row ||
           profile?.student ||
           profile;
-
 
         const orientationData =
           orientation?.row ||
@@ -275,6 +297,10 @@ function OrientationApp() {
         }
 
 
+        // =================================================
+        // STEP 5 — SAVE DATA
+        // =================================================
+
         setStudent(
           studentData
         );
@@ -284,14 +310,13 @@ function OrientationApp() {
         );
 
 
-        // ---------------------------------------------
-        // PAGE
-        // ---------------------------------------------
+        // =================================================
+        // STEP 6 — DETERMINE PAGE
+        // =================================================
 
         if (
           String(
-            orientationData?.status ||
-            ""
+            orientationData?.status || ""
           ).toLowerCase() ===
           "completed"
         ) {
@@ -359,7 +384,7 @@ function OrientationApp() {
 
 
   // =====================================================
-  // LOADING
+  // LOADING SCREEN
   // =====================================================
 
   if (loading) {
@@ -374,7 +399,7 @@ function OrientationApp() {
         <div className="spinner"></div>
 
         <p>
-          Preparing your orientation...
+          {loadingMessage}
         </p>
 
       </div>
@@ -400,7 +425,13 @@ function OrientationApp() {
           Orientation could not be loaded
         </h2>
 
-        <p>
+        <p
+          style={{
+            maxWidth: "600px",
+            margin: "15px auto",
+            wordBreak: "break-word"
+          }}
+        >
           {error}
         </p>
 
@@ -504,14 +535,16 @@ function OrientationApp() {
 
 
 // =====================================================
-// EXPORT WITH ERROR BOUNDARY
+// ERROR BOUNDARY WRAPPER
 // =====================================================
 
 export default function App() {
 
   return (
     <OrientationErrorBoundary>
+
       <OrientationApp />
+
     </OrientationErrorBoundary>
   );
 
