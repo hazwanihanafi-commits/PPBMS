@@ -18,8 +18,8 @@ export default function OrientationPage() {
       </Head>
 
       <iframe
-        src="/orientation/index.html"
-        title="PKTAAB Postgraduate Student Orientation"
+        src="/orientation/index.html?v=20260929"
+        title="PKTAAB Postgraduate Research Student Orientation"
         style={{
           width: "100%",
           height: "100vh",
