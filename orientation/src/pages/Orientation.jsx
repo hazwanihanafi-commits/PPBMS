@@ -67,6 +67,12 @@ const MODULES = [
 
     resources: [
   {
+    label: "PKTAAB Official Website",
+    url:
+      "https://www.amdi.usm.my/",
+    icon: ExternalLink,
+  },
+  {
     label: "PKTAAB Corporate Video",
     url:
       "https://drive.google.com/file/d/1xTKmbp6MQ226BuPIdVrgDkjK3sg2z6cl/view?usp=sharing",
@@ -244,9 +250,9 @@ const MODULES = [
 
     resources: [
       {
-        label: "PKTAAB Academic Resources",
+        label: "25 Academic Home",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
+          "https://academic.amdi.usm.my/academic25",
         icon: FolderOpen,
       },
       {
@@ -309,9 +315,9 @@ const MODULES = [
         icon: Building2,
       },
       {
-        label: "PKTAAB Academic Resources",
+        label: "25 Academic Home",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
+          "https://academic.amdi.usm.my/academic25",
         icon: FolderOpen,
       },
     ],
@@ -367,9 +373,9 @@ const MODULES = [
         icon: ExternalLink,
       },
       {
-        label: "Postgraduate Resources & Forms",
+        label: "25 Academic Home",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
+          "https://academic.amdi.usm.my/academic25",
         icon: FolderOpen,
       },
     ],
@@ -429,16 +435,16 @@ const MODULES = [
 
     resources: [
       {
-        label: "PKTAAB Academic Resources & Research Documents",
+        label: "IPS Postgraduate Guidelines",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
-        icon: FolderOpen,
+          "https://ips.usm.my/index.php/muat-turun/garis-panduan",
+        icon: BookOpen,
       },
       {
-        label: "Postgraduate Resources",
+        label: "USM Code of Good Practice",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
-        icon: BookOpen,
+          "https://ips.usm.my/index.php/download/others",
+        icon: ShieldCheck,
       },
     ],
 
@@ -504,9 +510,9 @@ const MODULES = [
         icon: MapPin,
       },
       {
-        label: "PKTAAB Academic Resources",
+        label: "PKTAAB Official Website",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
+          "https://www.amdi.usm.my/",
         icon: FolderOpen,
       },
     ],
@@ -556,9 +562,9 @@ const MODULES = [
 
     resources: [
       {
-        label: "PKTAAB Academic Resources",
+        label: "AduSiswa Student System",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
+          "https://healthservice.amdi.usm.my/gramsv2/home.php?view=dash",
         icon: FolderOpen,
       },
       {
@@ -625,9 +631,9 @@ const MODULES = [
         icon: Building2,
       },
       {
-        label: "Academic Resources",
+        label: "Academic Contact & Directory",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
+          "https://academic.amdi.usm.my/25acadabout/contactus25",
         icon: FolderOpen,
       },
     ],
@@ -681,6 +687,13 @@ const MODULES = [
         url:
           "https://chat.whatsapp.com/H9m8mW0Mv2V6x5CxoSZS42",
         icon: MessageCircle,
+      },
+      {
+        label:
+          "Postgraduate Student Community — WhatsApp",
+        url:
+          "https://chat.whatsapp.com/B5ZaFOBac71C7fvJaHmwnz",
+        icon: Users,
       },
       {
         label:
@@ -765,10 +778,17 @@ const MODULES = [
     resources: [
       {
         label:
-          "PKTAAB Academic Resources & Student Forms",
+          "Academic Forms & Downloads",
         url:
-          "https://academic.amdi.usm.my/25facilities/resources25",
+          "https://academic.amdi.usm.my/acdm-svc/academicdw",
         icon: FolderOpen,
+      },
+      {
+        label:
+          "25 Academic Home",
+        url:
+          "https://academic.amdi.usm.my/academic25",
+        icon: BookOpen,
       },
       {
         label:
@@ -832,7 +852,7 @@ const MODULES = [
         heading:
           "One Important Bookmark",
         text:
-          "Save the PKTAAB Academic Resources page in your browser. It is the main place to check for postgraduate forms, documents and resources.",
+          "Save the Academic Forms & Downloads page in your browser. It is the main place to check for postgraduate forms, documents and resources.",
       },
       {
         heading:
@@ -843,7 +863,7 @@ const MODULES = [
     ],
 
     checklist: [
-      "Open the PKTAAB Academic Resources page",
+      "Open the Academic Forms & Downloads page",
       "Bookmark the page",
       "Locate candidature-related forms",
       "Locate thesis submission documents",
