@@ -24,20 +24,25 @@ export default function Welcome({
      ===================================================== */
 
   const name =
-    student?.name ||
-    student?.studentName ||
-    "Postgraduate Student";
+  student?.name ||
+  student?.studentName ||
+  student?.["Student Name"] ||
+  student?.["student_name"] ||
+  "Postgraduate Student";
 
-  const matricNo =
-    student?.matricNo ||
-    student?.matric ||
-    student?.matricNumber ||
-    "—";
+const matricNo =
+  student?.matricNo ||
+  student?.matric ||
+  student?.matricNumber ||
+  student?.["Matric"] ||
+  student?.["Matric No."] ||
+  "—";
 
-  const programme =
-    student?.programme ||
-    student?.program ||
-    "Postgraduate Programme";
+const programme =
+  student?.programme ||
+  student?.program ||
+  student?.["Programme"] ||
+  "Postgraduate Programme";
 
   /* =====================================================
      WELCOME SECTIONS
