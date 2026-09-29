@@ -66,19 +66,25 @@ const MODULES = [
       "Start your postgraduate journey by getting to know PKTAAB, the Division of Academic & International, our people and the research environment around you.",
 
     resources: [
-      {
-        label: "PKTAAB Corporate Video",
-        url:
-          "https://drive.google.com/file/d/1xTKmbp6MQ226BuPIdVrgDkjK3sg2z6cl/view?usp=sharing",
-        icon: Video,
-      },
-      {
-        label: "Sains @ Bertam Orientation Tour",
-        url:
-          "https://www.youtube.com/watch?v=d6pvBAYmpus",
-        icon: PlayCircle,
-      },
-    ],
+  {
+    label: "PKTAAB Corporate Video",
+    url:
+      "https://drive.google.com/file/d/1xTKmbp6MQ226BuPIdVrgDkjK3sg2z6cl/view?usp=sharing",
+    icon: Video,
+  },
+  {
+    label: "Sains @ Bertam Orientation Tour",
+    url:
+      "https://www.youtube.com/watch?v=d6pvBAYmpus",
+    icon: PlayCircle,
+  },
+  {
+    label: "Meet the Team",
+    url:
+      "https://youtu.be/Q4ZFzwZpEX4",
+    icon: Users,
+  },
+],
 
     sections: [
       {
