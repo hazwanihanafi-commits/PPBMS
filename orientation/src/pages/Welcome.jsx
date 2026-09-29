@@ -1,2013 +1,755 @@
+import React from "react";
+import "./Welcome.css";
+
+export default function Welcome({
+  student,
+  status,
+  onStart,
+  onLogout
+}) {
+  /* =====================================================
+     PROGRESS
+     ===================================================== */
+
+  const progress = Math.min(
+    100,
+    Math.max(0, Number(status?.progress || 0))
+  );
+
+  const completed =
+    status?.status === "Completed";
+
+  /* =====================================================
+     STUDENT INFORMATION
+     ===================================================== */
+
+  const name =
+    student?.name ||
+    student?.studentName ||
+    "Postgraduate Student";
+
+  const matricNo =
+    student?.matricNo ||
+    student?.matric ||
+    student?.matricNumber ||
+    "—";
+
+  const programme =
+    student?.programme ||
+    student?.program ||
+    "Postgraduate Programme";
+
+  /* =====================================================
+     WELCOME SECTIONS
+     ===================================================== */
+
+  const sections = [
+    {
+      number: "01",
+      icon: "👋",
+      title: "Welcome",
+      description:
+        "Start your PKTAAB postgraduate journey.",
+      state:
+        progress > 0
+          ? "completed"
+          : "current"
+    },
+
+    {
+      number: "02",
+      icon: "👥",
+      title: "Meet the Team",
+      description:
+        "Meet the people supporting your academic journey.",
+      state:
+        progress >= 20
+          ? "completed"
+          : "next"
+    },
+
+    {
+      number: "03",
+      icon: "🎓",
+      title: "Your Journey",
+      description:
+        "Understand your postgraduate pathway and milestones.",
+      state:
+        progress >= 40
+          ? "completed"
+          : "locked"
+    },
+
+    {
+      number: "04",
+      icon: "📊",
+      title: "PPBMS",
+      description:
+        "Learn how to monitor your postgraduate progress.",
+      state:
+        progress >= 60
+          ? "completed"
+          : "locked"
+    },
+
+    {
+      number: "05",
+      icon: "🧬",
+      title: "Research",
+      description:
+        "Explore your research environment and responsibilities.",
+      state:
+        progress >= 80
+          ? "completed"
+          : "locked"
+    },
+
+    {
+      number: "06",
+      icon: "📚",
+      title: "Resources",
+      description:
+        "Find essential documents, forms and student support.",
+      state:
+        completed
+          ? "completed"
+          : "locked"
+    }
+  ];
 
-/* =========================================================
-   PKTAAB POSTGRADUATE ORIENTATION — WELCOME
-   FINAL RESPONSIVE DESIGN
-   Desktop + Tablet + Phone
-   Matched to the existing Welcome.jsx
-   ========================================================= */
-
-:root {
-  --pk-purple: #53257f;
-  --pk-purple-dark: #351653;
-  --pk-purple-mid: #70469a;
-  --pk-purple-soft: #eee7f5;
-  --pk-purple-pale: #f8f5fb;
-  --pk-gold: #ffb703;
-  --pk-gold-light: #ffd166;
-  --pk-text: #302b36;
-  --pk-muted: #77717f;
-  --pk-border: #e7e1ec;
-  --pk-green: #269b68;
-  --pk-green-soft: #eaf7f0;
-  --pk-bg: #faf9fc;
-}
-
-/* =========================================================
-   GLOBAL
-   ========================================================= */
-
-.orientation-page {
-  width: 100% !important;
-  min-height: 100vh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow-x: hidden !important;
-
-  background:
-    radial-gradient(
-      circle at 88% 7%,
-      rgba(83,37,127,.055),
-      transparent 25%
-    ),
-    linear-gradient(
-      180deg,
-      #ffffff 0%,
-      #faf9fc 60%,
-      #f7f5fa 100%
-    ) !important;
-
-  color: var(--pk-text);
-
-  font-family:
-    Inter,
-    "Segoe UI",
-    Arial,
-    sans-serif;
-
-  font-weight: 400;
-}
-
-.orientation-page *,
-.orientation-page *::before,
-.orientation-page *::after {
-  box-sizing: border-box;
-}
-
-/* =========================================================
-   DECORATIVE BACKGROUND
-   ========================================================= */
-
-.bg-orb {
-  position: fixed;
-  z-index: 0;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.bg-orb-one {
-  width: 430px;
-  height: 430px;
-  right: -240px;
-  top: 150px;
-  background: rgba(83,37,127,.045);
-}
-
-.bg-orb-two {
-  width: 310px;
-  height: 310px;
-  left: -190px;
-  bottom: 35px;
-  background: rgba(255,183,3,.045);
-}
-
-/* =========================================================
-   HEADER — ALL DEVICES
-   ========================================================= */
-
-.orientation-header {
-  position: relative;
-  z-index: 10;
-
-  width: 100% !important;
-  min-height: 76px;
+  /* =====================================================
+     NEXT SECTION
+     ===================================================== */
 
-  padding:
-    14px clamp(18px, 4vw, 58px) !important;
+  const nextSection =
+    sections.find(
+      (section) =>
+        section.state === "current" ||
+        section.state === "next"
+    ) ||
+    sections[sections.length - 1];
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  /* =====================================================
+     STATUS LABEL
+     ===================================================== */
 
-  color: white;
+  const getStatusLabel = (state) => {
+    if (state === "completed") {
+      return "Completed";
+    }
 
-  background:
-    radial-gradient(
-      circle at 88% 0%,
-      rgba(255,183,3,.17),
-      transparent 24%
-    ),
-    linear-gradient(
-      115deg,
-      #351653 0%,
-      #53257f 55%,
-      #70469a 100%
-    ) !important;
+    if (state === "current") {
+      return "Continue";
+    }
 
-  box-shadow:
-    0 7px 28px rgba(53,22,83,.13);
-}
+    if (state === "next") {
+      return "Next";
+    }
 
-.orientation-header::before {
-  content: "";
+    return "Locked";
+  };
 
-  position: absolute;
+  /* =====================================================
+     RENDER
+     ===================================================== */
 
-  width: 270px;
-  height: 270px;
+  return (
+    <div className="orientation-page">
 
-  right: -120px;
-  top: -155px;
+      {/* =================================================
+          BACKGROUND DECORATION
+          ================================================= */}
 
-  border-radius: 50%;
+      <div className="bg-orb bg-orb-one" />
+      <div className="bg-orb bg-orb-two" />
 
-  background:
-    rgba(255,255,255,.055);
 
-  pointer-events: none;
-}
+      {/* =================================================
+          HEADER
+          ================================================= */}
 
-.brand-area {
-  position: relative;
-  z-index: 2;
+      <header className="orientation-header">
 
-  display: flex;
-  align-items: center;
+        <div className="brand-area">
 
-  gap: 13px;
-}
+          <div className="brand-mark">
+            PKTAAB
+          </div>
 
-.brand-mark {
-  width: 47px;
-  height: 47px;
+          <div className="brand-divider" />
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+          <div className="brand-usm">
+            USM
+          </div>
 
-  border-radius: 13px;
+        </div>
 
-  background:
-    rgba(255,255,255,.14);
 
-  border:
-    1px solid rgba(255,255,255,.20);
+        <button
+          type="button"
+          className="logout-button"
+          onClick={onLogout}
+        >
+          <span>
+            Sign out
+          </span>
 
-  color: white;
+          <span className="logout-icon">
+            ↗
+          </span>
+        </button>
 
-  font-size: 12px;
-  font-weight: 700;
+      </header>
 
-  box-shadow:
-    0 7px 20px rgba(0,0,0,.15);
-}
 
-.brand-divider {
-  width: 1px;
-  height: 27px;
+      {/* =================================================
+          MAIN CONTENT
+          ================================================= */}
 
-  background:
-    rgba(255,255,255,.28);
-}
+      <main className="orientation-main">
 
-.brand-usm {
-  color:
-    rgba(255,255,255,.92);
 
-  font-size: 13px;
-  font-weight: 700;
+        {/* =================================================
+            HERO
+            ================================================= */}
 
-  letter-spacing: .06em;
-}
+        <section className="welcome-hero">
 
-.logout-button {
-  position: relative;
-  z-index: 2;
+          <div>
 
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+            {/* BRANDING */}
 
-  padding: 9px 15px;
+            <div className="hero-eyebrow">
+              PKTAAB · UNIVERSITI SAINS MALAYSIA
+            </div>
 
-  border:
-    1px solid rgba(255,255,255,.24);
 
-  border-radius: 999px;
+            {/* WELCOME */}
 
-  background:
-    rgba(255,255,255,.09);
+            <h1>
 
-  color: white;
+              Welcome,
 
-  font-size: 11px;
-  font-weight: 600;
+              <span>
+                {name}
+              </span>
 
-  cursor: pointer;
+              <span className="wave">
+                👋
+              </span>
 
-  transition:
-    background .2s ease,
-    transform .2s ease;
-}
+            </h1>
 
-.logout-button:hover {
-  background:
-    rgba(255,255,255,.18);
 
-  transform:
-    translateY(-1px);
-}
+            {/* DESCRIPTION */}
 
-.logout-icon {
-  font-size: 13px;
-}
+            <p className="hero-description">
 
-/* =========================================================
-   MAIN WIDTH
-   ========================================================= */
+              Welcome to your postgraduate journey at{" "}
 
-.orientation-main {
-  position: relative;
-  z-index: 1;
+              <strong>
+                Pusat Kanser Tun Abdullah Ahmad Badawi,
+                Universiti Sains Malaysia.
+              </strong>
 
-  width: calc(100% - 96px) !important;
-  max-width: 1380px !important;
+            </p>
 
-  margin-left: auto !important;
-  margin-right: auto !important;
+          </div>
 
-  padding:
-    0 0 80px !important;
-}
 
-/* =========================================================
-   DESKTOP HERO
-   901px+
-   ========================================================= */
+          {/* =================================================
+              STUDENT INFORMATION CARD
+              ================================================= */}
 
-.welcome-hero {
-  position: relative;
+          <div className="student-card">
 
-  display: grid;
+            <div className="student-info">
 
-  grid-template-columns:
-    minmax(0, 1.05fr)
-    minmax(390px, .95fr);
 
-  gap: clamp(55px, 7vw, 105px);
+              {/* MATRIC */}
 
-  align-items: center;
+              <div className="student-item">
 
-  min-height: 465px;
+                <span className="student-label">
+                  MATRIC NO.
+                </span>
 
-  padding:
-    58px 0 52px;
-}
+                <strong>
+                  {matricNo}
+                </strong>
 
-.welcome-hero::before {
-  content: "";
+              </div>
 
-  position: absolute;
 
-  width: 500px;
-  height: 500px;
+              {/* PROGRAMME */}
 
-  left: -230px;
-  top: -90px;
+              <div className="student-item programme-item">
 
-  border-radius: 50%;
+                <span className="student-label">
+                  PROGRAMME
+                </span>
 
-  background:
-    radial-gradient(
-      circle,
-      rgba(83,37,127,.05),
-      transparent 68%
-    );
+                <strong>
+                  {programme}
+                </strong>
 
-  pointer-events: none;
-}
+              </div>
 
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
+            </div>
 
-  margin-bottom: 22px;
 
-  color:
-    var(--pk-purple);
+            {/* STUDENT TYPE */}
 
-  font-size: 14px;
-  font-weight: 750;
+            <div className="student-badge">
 
-  letter-spacing: .13em;
+              POSTGRADUATE STUDENT
 
-  text-transform: uppercase;
-}
+            </div>
 
-.hero-eyebrow::before {
-  content: "✦";
+          </div>
 
-  color:
-    var(--pk-gold);
+        </section>
 
-  font-size: 14px;
-}
 
-.welcome-hero h1 {
-  max-width: 760px;
+        {/* =================================================
+            PROGRESS
+            ================================================= */}
 
-  margin: 0;
+        <section className="progress-card">
 
-  color:
-    var(--pk-purple-dark);
 
-  font-size:
-    clamp(44px, 4.4vw, 64px);
+          <div className="progress-top">
 
-  line-height: 1.05;
+            <div>
 
-  letter-spacing: -.035em;
+              <span className="section-kicker">
+                YOUR ORIENTATION
+              </span>
 
-  font-weight: 700 !important;
-}
+              <h2>
+                Journey Progress
+              </h2>
 
-.welcome-hero h1 > span:first-of-type {
-  color:
-    var(--pk-gold);
+            </div>
 
-  margin-left: 7px;
 
-  font-weight: 700 !important;
-}
+            <div className="progress-number">
+              {progress}%
+            </div>
 
-.wave {
-  display: inline-block;
+          </div>
 
-  margin-left: 6px;
 
-  transform-origin: 70% 70%;
+          {/* PROGRESS BAR */}
 
-  animation:
-    welcome-wave 3s ease-in-out infinite;
-}
+          <div className="progress-track">
 
-@keyframes welcome-wave {
-  0%,55%,100% {
-    transform: rotate(0deg);
-  }
+            <div
+              className="progress-fill"
+              style={{
+                width: `${progress}%`
+              }}
+            >
 
-  62% {
-    transform: rotate(13deg);
-  }
+              <span />
 
-  68% {
-    transform: rotate(-7deg);
-  }
+            </div>
 
-  74% {
-    transform: rotate(10deg);
-  }
+          </div>
 
-  80% {
-    transform: rotate(-3deg);
-  }
-}
 
-.hero-description {
-  max-width: 650px;
+          {/* PROGRESS CAPTION */}
 
-  margin:
-    24px 0 0;
+          <div className="progress-bottom">
 
-  color:
-    var(--pk-muted);
+            <span>
+              Keep going — you're doing great!
+            </span>
 
-  font-size: 15px;
+            <span>
+              {progress}% complete
+            </span>
 
-  line-height: 1.75;
-}
+          </div>
 
-.hero-description strong {
-  color:
-    var(--pk-purple-dark);
+        </section>
 
-  font-weight: 600;
 
-  /* Creates a clear breathing space after “at” */
-  margin-left: 5px;
-}
+        {/* =================================================
+            JOURNEY INTRO
+            ================================================= */}
 
-/* =========================================================
-   STUDENT CARD
-   ========================================================= */
+        <section className="journey-intro">
 
-.student-card {
-  position: relative;
+          <div>
 
-  width: 100%;
-  max-width: 560px;
+            <span className="section-kicker">
+              YOUR POSTGRADUATE JOURNEY
+            </span>
 
-  justify-self: end;
 
-  overflow: hidden;
+            <h2>
+              Everything you need,
+              <br />
+              in one place.
+            </h2>
 
-  padding:
-    30px 32px;
 
-  border-radius: 24px;
+            <p>
+              Take a few minutes to explore each
+              section. You can return here anytime
+              during your orientation.
+            </p>
 
-  background:
-    linear-gradient(
-      145deg,
-      #ffffff,
-      #fbf8fd
-    );
+          </div>
 
-  border:
-    1px solid rgba(83,37,127,.13);
 
-  box-shadow:
-    0 20px 55px rgba(53,22,83,.11),
-    0 2px 8px rgba(53,22,83,.04);
-}
+          <div className="journey-symbol">
 
-.student-card::before {
-  content: "";
+            <div>
+              🎓
+            </div>
 
-  position: absolute;
+            <div>
+              🧬
+            </div>
 
-  left: 0;
-  top: 23px;
-  bottom: 23px;
+            <div>
+              📊
+            </div>
 
-  width: 4px;
+          </div>
 
-  border-radius:
-    0 5px 5px 0;
+        </section>
 
-  background:
-    linear-gradient(
-      180deg,
-      var(--pk-gold),
-      var(--pk-gold-light)
-    );
-}
 
-.student-card::after {
-  content: "";
+        {/* =================================================
+            NEXT STEP
+            ================================================= */}
 
-  position: absolute;
+        {!completed && (
 
-  right: -80px;
-  bottom: -105px;
+          <section className="next-step-card">
 
-  width: 225px;
-  height: 225px;
 
-  border-radius: 50%;
+            <div className="next-icon">
+              {nextSection.icon}
+            </div>
 
-  background:
-    rgba(83,37,127,.035);
-}
 
-.student-info {
-  position: relative;
-  z-index: 2;
+            <div className="next-content">
 
-  display: grid;
+              <span className="next-label">
+                YOUR NEXT STEP
+              </span>
 
-  grid-template-columns:
-    .65fr 1.35fr;
 
-  gap: 25px;
-}
+              <h3>
+                {nextSection.title}
+              </h3>
 
-.student-item {
-  min-width: 0;
-}
 
-.student-label {
-  display: block;
+              <p>
+                {nextSection.description}
+              </p>
 
-  margin-bottom: 8px;
+            </div>
 
-  color:
-    #8c8592;
 
-  font-size: 9px;
+            <button
+              type="button"
+              className="primary-button"
+              onClick={onStart}
+            >
 
-  font-weight: 700;
+              <span>
+                Continue
+              </span>
 
-  letter-spacing: .13em;
-}
+              <span className="button-arrow">
+                →
+              </span>
 
-.student-item strong {
-  display: block;
+            </button>
 
-  color:
-    var(--pk-purple-dark);
+          </section>
 
-  font-size: 14px;
+        )}
 
-  line-height: 1.45;
 
-  font-weight: 650;
+        {/* =================================================
+            COMPLETED STATE
+            ================================================= */}
 
-  overflow-wrap: anywhere;
-}
+        {completed && (
 
-.programme-item strong {
-  font-size: 13px;
-}
+          <section className="completed-card">
 
-.student-badge {
-  position: relative;
-  z-index: 2;
 
-  display: inline-flex;
+            <div className="completed-icon">
+              ✓
+            </div>
 
-  flex-direction: column;
 
-  margin-top: 22px;
+            <div>
 
-  padding:
-    8px 11px;
+              <span className="next-label">
+                ORIENTATION COMPLETE
+              </span>
 
-  border-radius: 9px;
 
-  background:
-    var(--pk-purple-soft);
+              <h3>
+                Congratulations,
+                {" "}
+                {name.split(" ")[0]}!
+              </h3>
 
-  color:
-    var(--pk-purple);
 
-  font-size: 8px;
+              <p>
+                You have completed your PKTAAB
+                postgraduate orientation. You are
+                now ready to continue your academic
+                journey.
+              </p>
 
-  font-weight: 700;
+            </div>
 
-  letter-spacing: .10em;
-}
+          </section>
 
-/* =========================================================
-   PROGRESS
-   ========================================================= */
+        )}
 
-.progress-card {
-  position: relative;
 
-  width: 100% !important;
+        {/* =================================================
+            SECTION GRID
+            ================================================= */}
 
-  overflow: hidden;
+        <section className="sections-section">
 
-  margin:
-    0 0 66px !important;
 
-  padding:
-    29px 34px 26px;
+          <div className="section-heading">
 
-  border-radius: 21px;
+            <div>
 
-  background:
-    #ffffff;
+              <span className="section-kicker">
+                EXPLORE
+              </span>
 
-  border:
-    1px solid var(--pk-border);
 
-  box-shadow:
-    0 12px 35px rgba(53,22,83,.065);
-}
+              <h2>
+                Your Orientation
+              </h2>
 
-.progress-card::before {
-  content: "";
+            </div>
 
-  position: absolute;
 
-  left: 0;
-  right: 0;
-  top: 0;
+            <span className="section-count">
+              06 SECTIONS
+            </span>
 
-  height: 4px;
+          </div>
 
-  background:
-    linear-gradient(
-      90deg,
-      var(--pk-purple),
-      var(--pk-gold)
-    );
-}
 
-.progress-top {
-  display: flex;
+          <div className="section-grid">
 
-  align-items: flex-end;
 
-  justify-content: space-between;
+            {sections.map((section) => {
 
-  gap: 20px;
-}
+              const isLocked =
+                section.state === "locked";
 
-.section-kicker {
-  display: block;
+              const isCompleted =
+                section.state === "completed";
 
-  margin-bottom: 7px;
+              const isNext =
+                section.state === "current" ||
+                section.state === "next";
 
-  color:
-    var(--pk-purple);
 
-  font-size: 9px;
+              return (
 
-  font-weight: 700;
+                <button
+                  key={section.number}
+                  type="button"
 
-  letter-spacing: .14em;
+                  className={`
+                    orientation-section-card
+                    ${isLocked ? "is-locked" : ""}
+                    ${isCompleted ? "is-completed" : ""}
+                    ${isNext ? "is-next" : ""}
+                  `}
 
-  text-transform: uppercase;
-}
+                  onClick={() => {
 
-.progress-top h2 {
-  margin: 0;
+                    if (!isLocked) {
+                      onStart();
+                    }
 
-  color:
-    var(--pk-purple-dark);
+                  }}
 
-  font-size: 27px;
+                  disabled={isLocked}
+                >
 
-  line-height: 1.15;
 
-  letter-spacing: -.02em;
+                  {/* CARD TOP */}
 
-  font-weight: 650 !important;
-}
+                  <div className="card-top">
 
-.progress-number {
-  color:
-    var(--pk-purple);
+                    <span className="card-number">
+                      {section.number}
+                    </span>
 
-  font-size: 27px;
 
-  font-weight: 700;
-}
+                    <span className="card-status">
 
-.progress-track {
-  position: relative;
+                      {isCompleted
+                        ? "✓"
+                        : isLocked
+                          ? "🔒"
+                          : "→"}
 
-  width: 100%;
-  height: 9px;
+                    </span>
 
-  margin-top: 20px;
+                  </div>
 
-  overflow: hidden;
 
-  border-radius: 999px;
+                  {/* ICON */}
 
-  background:
-    #eeeaf2;
-}
+                  <div className="card-icon">
+                    {section.icon}
+                  </div>
 
-.progress-fill {
-  position: relative;
 
-  height: 100%;
+                  {/* TITLE */}
 
-  border-radius: inherit;
+                  <h3>
+                    {section.title}
+                  </h3>
 
-  background:
-    linear-gradient(
-      90deg,
-      var(--pk-purple),
-      var(--pk-gold)
-    );
 
-  box-shadow:
-    0 0 14px rgba(255,183,3,.23);
+                  {/* DESCRIPTION */}
 
-  transition:
-    width .6s ease;
-}
+                  <p>
+                    {section.description}
+                  </p>
 
-.progress-fill span {
-  position: absolute;
 
-  right: 3px;
-  top: 1.5px;
+                  {/* FOOTER */}
 
-  width: 6px;
-  height: 6px;
+                  <div className="card-footer">
 
-  border-radius: 50%;
+                    <span>
+                      {getStatusLabel(
+                        section.state
+                      )}
+                    </span>
 
-  background: white;
-}
 
-.progress-bottom {
-  display: flex;
+                    <span>
+                      {isLocked
+                        ? "🔒"
+                        : "→"}
+                    </span>
 
-  justify-content: space-between;
+                  </div>
 
-  gap: 20px;
+                </button>
 
-  margin-top: 12px;
+              );
 
-  color:
-    var(--pk-muted);
+            })}
 
-  font-size: 10px;
-}
+          </div>
 
-/* =========================================================
-   JOURNEY INTRO
-   ========================================================= */
+        </section>
 
-.journey-intro {
-  display: flex;
 
-  align-items: flex-end;
+        {/* =================================================
+            HELP
+            ================================================= */}
 
-  justify-content: space-between;
+        <section className="help-card">
 
-  gap: 55px;
 
-  margin-bottom: 30px;
+          <div className="help-icon">
+            💬
+          </div>
 
-  padding:
-    0 3px;
-}
 
-.journey-intro h2 {
-  margin: 0;
+          <div className="help-content">
 
-  color:
-    var(--pk-purple-dark);
+            <h3>
+              Need help?
+            </h3>
 
-  font-size: 35px;
 
-  line-height: 1.1;
+            <p>
+              If you are unsure where to go or who
+              to contact, your academic and
+              postgraduate support team is here to
+              help you.
+            </p>
 
-  letter-spacing: -.025em;
+          </div>
 
-  font-weight: 650 !important;
-}
 
-.journey-intro p {
-  max-width: 700px;
+          <div className="help-arrow">
+            →
+          </div>
 
-  margin:
-    12px 0 0;
+        </section>
 
-  color:
-    var(--pk-muted);
 
-  font-size: 13px;
+        {/* =================================================
+            FOOTER
+            ================================================= */}
 
-  line-height: 1.65;
-}
+        <footer className="orientation-footer">
 
-.journey-symbol {
-  flex: 0 0 auto;
 
-  display: flex;
+          <div className="footer-brand">
 
-  align-items: center;
+            <strong>
+              PKTAAB
+            </strong>
 
-  gap: 11px;
+            <span>
+              ·
+            </span>
 
-  padding:
-    13px 17px;
+            <span>
+              Universiti Sains Malaysia
+            </span>
 
-  border-radius: 17px;
+          </div>
 
-  background:
-    white;
 
-  border:
-    1px solid var(--pk-border);
+          <div className="footer-text">
 
-  box-shadow:
-    0 7px 20px rgba(53,22,83,.05);
+            <span>
+              Division of Academic & International
+            </span>
 
-  font-size: 21px;
-}
 
-.journey-symbol div:nth-child(2) {
-  transform:
-    translateY(-7px);
-}
+            {/* NEW DEVELOPER CREDIT */}
 
-.journey-symbol div:nth-child(3) {
-  transform:
-    translateY(4px);
-}
+            <div className="developer-credit">
 
-/* =========================================================
-   NEXT STEP
-   ========================================================= */
+              Developed by{" "}
 
-.next-step-card,
-.completed-card {
-  position: relative;
+              <strong>
+                Hazwani Hanafi
+              </strong>
 
-  display: grid;
+              {" "}· 2026
 
-  grid-template-columns:
-    auto minmax(0,1fr) auto;
+            </div>
 
-  align-items: center;
+          </div>
 
-  gap: 22px;
+        </footer>
 
-  width: 100%;
+      </main>
 
-  margin:
-    0 0 63px;
-
-  padding:
-    21px 25px;
-
-  overflow: hidden;
-
-  border-radius: 19px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #fffdf8,
-      #ffffff
-    );
-
-  border:
-    1px solid rgba(255,183,3,.32);
-
-  box-shadow:
-    0 10px 28px rgba(255,183,3,.06);
-}
-
-.next-step-card::before,
-.completed-card::before {
-  content: "";
-
-  position: absolute;
-
-  left: 0;
-  top: 0;
-  bottom: 0;
-
-  width: 4px;
-
-  background:
-    var(--pk-gold);
-}
-
-.next-icon,
-.completed-icon {
-  width: 56px;
-  height: 56px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 16px;
-
-  background:
-    #fff4d2;
-
-  font-size: 24px;
-}
-
-.next-content h3,
-.completed-card h3 {
-  margin:
-    3px 0 5px;
-
-  color:
-    var(--pk-purple-dark);
-
-  font-size: 19px;
-
-  line-height: 1.25;
-
-  font-weight: 650;
-}
-
-.next-content p,
-.completed-card p {
-  margin: 0;
-
-  color:
-    var(--pk-muted);
-
-  font-size: 11px;
-
-  line-height: 1.55;
-}
-
-.next-label {
-  display: block;
-
-  color:
-    #987000;
-
-  font-size: 8px;
-
-  font-weight: 700;
-
-  letter-spacing: .13em;
-}
-
-.primary-button {
-  display: inline-flex;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 9px;
-
-  min-width: 108px;
-
-  padding:
-    11px 17px;
-
-  border: none;
-
-  border-radius: 11px;
-
-  background:
-    var(--pk-purple);
-
-  color: white;
-
-  font-size: 11px;
-
-  font-weight: 650;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 7px 17px rgba(83,37,127,.20);
-
-  transition:
-    background .2s ease,
-    transform .2s ease;
-}
-
-.primary-button:hover {
-  background:
-    var(--pk-purple-dark);
-
-  transform:
-    translateY(-2px);
-}
-
-.button-arrow {
-  font-size: 15px;
-}
-
-.completed-card {
-  background:
-    linear-gradient(
-      135deg,
-      #f4fcf8,
-      #ffffff
-    );
-
-  border-color:
-    rgba(38,155,104,.22);
-}
-
-.completed-card::before {
-  background:
-    var(--pk-green);
-}
-
-.completed-icon {
-  background:
-    var(--pk-green-soft);
-
-  color:
-    var(--pk-green);
-}
-
-/* =========================================================
-   SIX SECTION CARDS
-   ========================================================= */
-
-.sections-section {
-  width: 100%;
-
-  margin:
-    0 0 60px;
-}
-
-.section-heading {
-  display: flex;
-
-  align-items: flex-end;
-
-  justify-content: space-between;
-
-  gap: 20px;
-
-  margin-bottom: 23px;
-}
-
-.section-heading h2 {
-  margin: 0;
-
-  color:
-    var(--pk-purple-dark);
-
-  font-size: 31px;
-
-  font-weight: 650 !important;
-}
-
-.section-count {
-  color:
-    #8b8492;
-
-  font-size: 9px;
-
-  font-weight: 700;
-
-  letter-spacing: .11em;
-}
-
-.section-grid {
-  display: grid;
-
-  grid-template-columns:
-    repeat(3,minmax(0,1fr));
-
-  gap: 18px;
-}
-
-.orientation-section-card {
-  position: relative;
-
-  display: flex;
-
-  flex-direction: column;
-
-  width: 100%;
-
-  min-height: 218px;
-
-  padding:
-    22px;
-
-  overflow: hidden;
-
-  text-align: left;
-
-  border:
-    1px solid var(--pk-border);
-
-  border-radius: 19px;
-
-  background:
-    #ffffff;
-
-  color:
-    var(--pk-text);
-
-  cursor: pointer;
-
-  box-shadow:
-    0 7px 23px rgba(53,22,83,.045);
-
-  transition:
-    transform .22s ease,
-    box-shadow .22s ease,
-    border-color .22s ease;
-}
-
-.orientation-section-card::after {
-  content: "";
-
-  position: absolute;
-
-  right: -45px;
-  bottom: -55px;
-
-  width: 145px;
-  height: 145px;
-
-  border-radius: 50%;
-
-  background:
-    rgba(83,37,127,.04);
-
-  pointer-events: none;
-}
-
-.orientation-section-card:hover:not(:disabled) {
-  transform:
-    translateY(-4px);
-
-  border-color:
-    rgba(83,37,127,.22);
-
-  box-shadow:
-    0 15px 32px rgba(53,22,83,.09);
-}
-
-.orientation-section-card.is-next {
-  border-color:
-    rgba(255,183,3,.38);
-}
-
-.orientation-section-card.is-next::before {
-  content: "";
-
-  position: absolute;
-
-  left: 0;
-  top: 0;
-  bottom: 0;
-
-  width: 4px;
-
-  background:
-    var(--pk-gold);
-}
-
-.orientation-section-card.is-completed {
-  border-color:
-    rgba(38,155,104,.23);
-}
-
-.orientation-section-card.is-completed::before {
-  content: "";
-
-  position: absolute;
-
-  left: 0;
-  top: 0;
-  bottom: 0;
-
-  width: 4px;
-
-  background:
-    var(--pk-green);
-}
-
-.orientation-section-card.is-locked {
-  opacity: .55;
-
-  cursor:
-    not-allowed;
-
-  background:
-    #fcfbfd;
-}
-
-.card-top {
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-}
-
-.card-number {
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 11px;
-
-  background:
-    var(--pk-purple-soft);
-
-  color:
-    var(--pk-purple);
-
-  font-size: 10px;
-
-  font-weight: 700;
-}
-
-.card-status {
-  font-size: 13px;
-}
-
-.card-icon {
-  margin-top: 18px;
-
-  font-size: 24px;
-}
-
-.orientation-section-card h3 {
-  margin:
-    9px 0 5px;
-
-  color:
-    var(--pk-purple-dark);
-
-  font-size: 17px;
-
-  line-height: 1.25;
-
-  font-weight: 650;
-}
-
-.orientation-section-card p {
-  margin: 0;
-
-  max-width: 290px;
-
-  color:
-    var(--pk-muted);
-
-  font-size: 11px;
-
-  line-height: 1.55;
-}
-
-.card-footer {
-  margin-top: auto;
-
-  padding-top: 16px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-
-  color:
-    var(--pk-purple);
-
-  font-size: 9px;
-
-  font-weight: 700;
-}
-
-/* =========================================================
-   HELP
-   ========================================================= */
-
-.help-card {
-  display: grid;
-
-  grid-template-columns:
-    auto minmax(0,1fr) auto;
-
-  align-items: center;
-
-  gap: 18px;
-
-  width: 100%;
-
-  margin:
-    0 0 45px;
-
-  padding:
-    22px 24px;
-
-  border-radius: 19px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #f4eff8,
-      #ffffff
-    );
-
-  border:
-    1px solid rgba(83,37,127,.12);
-}
-
-.help-icon {
-  width: 53px;
-  height: 53px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 15px;
-
-  background:
-    white;
-
-  box-shadow:
-    0 6px 18px rgba(53,22,83,.07);
-
-  font-size: 23px;
-}
-
-.help-content h3 {
-  margin:
-    2px 0 5px;
-
-  color:
-    var(--pk-purple-dark);
-
-  font-size: 18px;
-
-  font-weight: 650;
-}
-
-.help-content p {
-  margin: 0;
-
-  max-width: 700px;
-
-  color:
-    var(--pk-muted);
-
-  font-size: 11px;
-
-  line-height: 1.6;
-}
-
-.help-arrow {
-  color:
-    var(--pk-purple);
-
-  font-size: 23px;
-}
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
-.orientation-footer {
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-
-  gap: 20px;
-
-  padding:
-    26px 0 8px;
-
-  border-top:
-    1px solid var(--pk-border);
-
-  color:
-    #8b8492;
-
-  font-size: 9px;
-}
-
-.footer-brand {
-  display: flex;
-
-  align-items: center;
-
-  gap: 8px;
-}
-
-.footer-brand strong {
-  color:
-    var(--pk-purple);
-
-  font-size: 10px;
-
-  font-weight: 700;
-}
-
-.footer-brand span {
-  color:
-    #9a939f;
-}
-
-.footer-text {
-  text-align: right;
-}
-
-/* =========================================================
-   DEVELOPER CREDIT
-   ========================================================= */
-
-.developer-credit {
-  display: block;
-
-  margin-top: 8px;
-
-  color:
-    #9a939f;
-
-  font-size: 9px;
-
-  font-weight: 500;
-
-  letter-spacing: .02em;
-}
-
-.developer-credit strong {
-  color:
-    var(--pk-purple);
-
-  font-weight: 650;
-}
-
-/* =========================================================
-   TABLET — 601px to 900px
-   ========================================================= */
-
-@media (min-width: 601px) and (max-width: 900px) {
-
-  .orientation-main {
-    width:
-      calc(100% - 54px) !important;
-  }
-
-  .welcome-hero {
-    grid-template-columns:
-      minmax(0,1fr)
-      minmax(300px,.85fr);
-
-    gap: 35px;
-
-    min-height: 430px;
-
-    padding:
-      48px 0 45px;
-  }
-
-  .welcome-hero h1 {
-    font-size:
-      clamp(39px,5vw,52px);
-  }
-
-  .hero-description {
-    font-size: 13px;
-  }
-
-  .student-card {
-    padding:
-      25px;
-  }
-
-  .student-info {
-    grid-template-columns:
-      1fr;
-
-    gap: 17px;
-  }
-
-  .section-grid {
-    grid-template-columns:
-      repeat(2,minmax(0,1fr));
-  }
-
-  .journey-intro {
-    gap: 30px;
-  }
-
-  .journey-intro h2 {
-    font-size: 30px;
-  }
-}
-
-/* =========================================================
-   PHONE — 600px AND BELOW
-   ========================================================= */
-
-@media (max-width: 600px) {
-
-  /* ---------- HEADER ---------- */
-
-  .orientation-header {
-    min-height: 67px;
-
-    padding:
-      11px 15px !important;
-  }
-
-  .brand-area {
-    gap: 10px;
-  }
-
-  .brand-mark {
-    width: 41px;
-    height: 41px;
-
-    border-radius: 11px;
-
-    font-size: 10px;
-  }
-
-  .brand-divider {
-    height: 24px;
-  }
-
-  .brand-usm {
-    font-size: 11px;
-  }
-
-  .logout-button {
-    padding:
-      8px 11px;
-
-    font-size: 10px;
-  }
-
-  /* ---------- MAIN ---------- */
-
-  .orientation-main {
-    width:
-      calc(100% - 30px) !important;
-
-    padding-bottom:
-      55px !important;
-  }
-
-  /* ---------- PHONE HERO ---------- */
-
-  .welcome-hero {
-    display: block;
-
-    min-height: auto;
-
-    padding:
-      34px 0 40px;
-  }
-
-  .welcome-hero::before {
-    width: 330px;
-    height: 330px;
-
-    left: -180px;
-    top: -50px;
-  }
-
-  .hero-eyebrow {
-    margin-bottom: 15px;
-
-    font-size: 10px;
-
-    letter-spacing: .08em;
-  }
-
-  /*
-    IMPORTANT:
-    On phone the heading becomes deliberately 3 lines.
-    This prevents "Postgraduate" from being clipped.
-  */
-
-  .welcome-hero h1 {
-    width: 100%;
-    max-width: 100%;
-
-    margin: 0;
-
-    font-size:
-      clamp(31px, 9.2vw, 38px);
-
-    line-height: 1.07;
-
-    letter-spacing: -.035em;
-
-    font-weight: 700 !important;
-
-    overflow-wrap:
-      normal;
-
-    word-break:
-      normal;
-  }
-
-  .welcome-hero h1 > span:first-of-type {
-    display: block;
-
-    width: 100%;
-
-    margin-left: 0;
-
-    margin-top: 2px;
-
-    color:
-      var(--pk-gold);
-
-    white-space:
-      normal;
-
-    font-weight:
-      700 !important;
-  }
-
-  .wave {
-    margin-left: 3px;
-  }
-
-  .hero-description {
-    max-width: 100%;
-
-    margin-top: 19px;
-
-    font-size: 12.5px;
-
-    line-height: 1.65;
-  }
-
-  /* ---------- STUDENT CARD ---------- */
-
-  .student-card {
-    width: 100%;
-
-    max-width: 100%;
-
-    margin-top: 28px;
-
-    padding:
-      22px;
-
-    border-radius:
-      21px;
-  }
-
-  .student-info {
-    grid-template-columns:
-      1fr 1.55fr;
-
-    gap: 14px;
-  }
-
-  .student-label {
-    font-size: 8px;
-  }
-
-  .student-item strong {
-    font-size: 12px;
-  }
-
-  .programme-item strong {
-    font-size: 11.5px;
-  }
-
-  .student-badge {
-    margin-top: 17px;
-
-    padding:
-      7px 9px;
-
-    font-size: 7px;
-  }
-
-  /* ---------- PROGRESS ---------- */
-
-  .progress-card {
-    margin:
-      0 0 46px !important;
-
-    padding:
-      22px 19px 21px;
-
-    border-radius:
-      19px;
-  }
-
-  .progress-top h2 {
-    font-size:
-      21px;
-  }
-
-  .progress-number {
-    font-size:
-      22px;
-  }
-
-  .progress-track {
-    height: 8px;
-
-    margin-top: 17px;
-  }
-
-  .progress-bottom {
-    flex-direction: column;
-
-    align-items: flex-start;
-
-    gap: 4px;
-
-    margin-top: 10px;
-
-    font-size: 9px;
-  }
-
-  /* ---------- JOURNEY ---------- */
-
-  .journey-intro {
-    display: block;
-
-    margin-bottom: 22px;
-
-    padding: 0;
-  }
-
-  .journey-intro h2 {
-    max-width: 330px;
-
-    font-size:
-      28px;
-
-    line-height:
-      1.08;
-  }
-
-  .journey-intro p {
-    margin-top: 12px;
-
-    font-size: 11.5px;
-
-    line-height: 1.6;
-  }
-
-  .journey-symbol {
-    display: inline-flex;
-
-    margin-top: 15px;
-
-    padding:
-      10px 14px;
-
-    border-radius:
-      15px;
-
-    font-size:
-      19px;
-  }
-
-  /* ---------- NEXT STEP ---------- */
-
-  .next-step-card,
-  .completed-card {
-    grid-template-columns:
-      auto minmax(0,1fr);
-
-    gap: 13px;
-
-    margin-bottom:
-      45px;
-
-    padding:
-      17px;
-
-    border-radius:
-      17px;
-  }
-
-  .next-icon,
-  .completed-icon {
-    width: 48px;
-    height: 48px;
-
-    border-radius:
-      14px;
-
-    font-size:
-      21px;
-  }
-
-  .next-content h3,
-  .completed-card h3 {
-    font-size:
-      16px;
-  }
-
-  .next-content p,
-  .completed-card p {
-    font-size:
-      10px;
-  }
-
-  .next-step-card .primary-button {
-    grid-column:
-      1 / -1;
-
-    width:
-      100%;
-
-    min-height:
-      39px;
-  }
-
-  /* ---------- SIX CARDS ---------- */
-
-  .sections-section {
-    margin-bottom:
-      48px;
-  }
-
-  .section-heading {
-    align-items:
-      flex-start;
-
-    flex-direction:
-      column;
-
-    gap:
-      6px;
-
-    margin-bottom:
-      17px;
-  }
-
-  .section-heading h2 {
-    font-size:
-      27px;
-  }
-
-  .section-count {
-    font-size:
-      8px;
-  }
-
-  .section-grid {
-    grid-template-columns:
-      1fr;
-
-    gap:
-      12px;
-  }
-
-  .orientation-section-card {
-    min-height:
-      177px;
-
-    padding:
-      18px;
-
-    border-radius:
-      17px;
-  }
-
-  .card-number {
-    width:
-      34px;
-    height:
-      34px;
-
-    border-radius:
-      10px;
-
-    font-size:
-      9px;
-  }
-
-  .card-icon {
-    margin-top:
-      13px;
-
-    font-size:
-      22px;
-  }
-
-  .orientation-section-card h3 {
-    margin-top:
-      7px;
-
-    font-size:
-      16px;
-  }
-
-  .orientation-section-card p {
-    max-width:
-      100%;
-
-    font-size:
-      10px;
-  }
-
-  .card-footer {
-    padding-top:
-      12px;
-
-    font-size:
-      8px;
-  }
-
-  /* ---------- HELP ---------- */
-
-  .help-card {
-    grid-template-columns:
-      auto minmax(0,1fr);
-
-    gap:
-      13px;
-
-    margin-bottom:
-      35px;
-
-    padding:
-      18px;
-  }
-
-  .help-icon {
-    width:
-      45px;
-    height:
-      45px;
-
-    border-radius:
-      13px;
-
-    font-size:
-      20px;
-  }
-
-  .help-content h3 {
-    font-size:
-      16px;
-  }
-
-  .help-content p {
-    font-size:
-      10px;
-  }
-
-  .help-arrow {
-    display:
-      none;
-  }
-
-  /* ---------- FOOTER ---------- */
-
-  .orientation-footer {
-    align-items:
-      flex-start;
-
-    flex-direction:
-      column;
-
-    gap:
-      8px;
-
-    padding-top:
-      20px;
-  }
-
-  .footer-text {
-    text-align:
-      left;
-  }
-
-  .developer-credit {
-    margin-top: 6px;
-
-    font-size: 8.5px;
-  }
-}
-
-/* =========================================================
-   VERY SMALL PHONE
-   ========================================================= */
-
-@media (max-width: 380px) {
-
-  .orientation-main {
-    width:
-      calc(100% - 24px) !important;
-  }
-
-  .welcome-hero h1 {
-    font-size:
-      33px;
-  }
-
-  .student-info {
-    grid-template-columns:
-      1fr;
-  }
-
-  .student-card {
-    padding:
-      20px;
-  }
-
-  .journey-intro h2 {
-    font-size:
-      26px;
-  }
+    </div>
+  );
 }
