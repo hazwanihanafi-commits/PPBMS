@@ -5,8 +5,42 @@ export default function Welcome({
   onLogout
 }) {
 
-  const progress =
-    status?.progress || 0;
+  const progressData =
+  status?.progress;
+
+let progress = 0;
+
+if (
+  typeof progressData === "number"
+) {
+
+  progress = progressData;
+
+} else if (
+  progressData &&
+  typeof progressData === "object"
+) {
+
+  const values =
+    Object.values(progressData);
+
+  const completedCount =
+    values.filter(
+      value =>
+        String(value)
+          .toLowerCase()
+          .includes("completed")
+    ).length;
+
+  progress =
+    values.length > 0
+      ? Math.round(
+          (completedCount /
+            values.length) *
+            100
+        )
+      : 0;
+}
 
   const completed =
     status?.status === "Completed";
