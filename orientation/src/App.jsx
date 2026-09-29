@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState
+} from "react";
 
 import Welcome from "./pages/Welcome";
 import Orientation from "./pages/Orientation";
@@ -6,98 +9,311 @@ import Completed from "./pages/Completed";
 
 import {
   getStudentProfile,
-  getOrientationStatus,
+  getOrientationStatus
 } from "./api";
 
-export default function App() {
-  const [token, setToken] = useState(() =>
-    localStorage.getItem("ppbms_token")
-  );
 
-  const [student, setStudent] = useState(null);
-  const [status, setStatus] = useState(null);
-  const [page, setPage] = useState("welcome");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+// =====================================================
+// ERROR BOUNDARY
+// =====================================================
+
+class OrientationErrorBoundary extends React.Component {
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      hasError: false,
+      error: null
+    };
+  }
+
+  static getDerivedStateFromError(error) {
+    return {
+      hasError: true,
+      error
+    };
+  }
+
+  componentDidCatch(error, errorInfo) {
+
+    console.error(
+      "ORIENTATION RENDER ERROR:",
+      error
+    );
+
+    console.error(
+      "ORIENTATION ERROR INFO:",
+      errorInfo
+    );
+  }
+
+  render() {
+
+    if (this.state.hasError) {
+
+      return (
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "#f8f7fb",
+            padding: "40px 20px",
+            fontFamily: "Arial, sans-serif",
+            color: "#222"
+          }}
+        >
+
+          <div
+            style={{
+              maxWidth: "700px",
+              margin: "0 auto",
+              background: "white",
+              borderRadius: "16px",
+              padding: "30px",
+              boxShadow:
+                "0 10px 40px rgba(0,0,0,0.08)"
+            }}
+          >
+
+            <div
+              style={{
+                fontSize: "28px",
+                fontWeight: "800",
+                color: "#53257f",
+                marginBottom: "10px"
+              }}
+            >
+              PKTAAB
+            </div>
+
+            <h2>
+              Orientation encountered an error
+            </h2>
+
+            <p>
+              The Orientation system loaded, but
+              something went wrong while displaying
+              the page.
+            </p>
+
+            <div
+              style={{
+                background: "#fff3f3",
+                border:
+                  "1px solid #f0b5b5",
+                borderRadius: "10px",
+                padding: "15px",
+                marginTop: "20px",
+                overflowX: "auto"
+              }}
+            >
+
+              <strong>
+                Error:
+              </strong>
+
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  marginTop: "10px"
+                }}
+              >
+                {this.state.error?.message ||
+                  String(this.state.error)}
+              </pre>
+
+            </div>
+
+            <button
+              onClick={() =>
+                window.location.reload()
+              }
+              style={{
+                marginTop: "20px",
+                padding: "12px 20px",
+                border: "none",
+                borderRadius: "8px",
+                background: "#53257f",
+                color: "white",
+                fontWeight: "700",
+                cursor: "pointer"
+              }}
+            >
+              TRY AGAIN
+            </button>
+
+          </div>
+
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+
+// =====================================================
+// MAIN APP
+// =====================================================
+
+function OrientationApp() {
+
+  const [token, setToken] =
+    useState(() =>
+      localStorage.getItem(
+        "ppbms_token"
+      )
+    );
+
+  const [student, setStudent] =
+    useState(null);
+
+  const [status, setStatus] =
+    useState(null);
+
+  const [page, setPage] =
+    useState("welcome");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+
+  // =====================================================
+  // LOAD
+  // =====================================================
 
   useEffect(() => {
-    // No PPBMS login → use the existing PPBMS login
+
     if (!token) {
+
       window.top.location.href =
         "/login?returnTo=/orientation";
+
       return;
     }
 
+
     async function loadOrientation() {
+
       try {
+
         setLoading(true);
         setError("");
 
         console.log(
-          "ORIENTATION: checking PPBMS account"
+          "ORIENTATION: token found"
         );
 
+
         // ---------------------------------------------
-        // 1. GET STUDENT PROFILE
+        // STUDENT
         // ---------------------------------------------
 
         const profile =
-          await getStudentProfile(token);
+          await getStudentProfile(
+            token
+          );
 
         console.log(
-          "ORIENTATION: student profile",
+          "ORIENTATION PROFILE:",
           profile
         );
 
+
         // ---------------------------------------------
-        // 2. GET ORIENTATION STATUS
+        // ORIENTATION
         // ---------------------------------------------
 
         const orientation =
-          await getOrientationStatus(token);
+          await getOrientationStatus(
+            token
+          );
 
         console.log(
-          "ORIENTATION: orientation status",
+          "ORIENTATION STATUS:",
           orientation
         );
 
+
         // ---------------------------------------------
-        // 3. STORE DATA
+        // NORMALISE
         // ---------------------------------------------
 
         const studentData =
-          profile?.row || profile;
+          profile?.row ||
+          profile?.student ||
+          profile;
 
-        setStudent(studentData);
-        setStatus(orientation);
+
+        const orientationData =
+          orientation?.row ||
+          orientation;
+
+
+        console.log(
+          "NORMALISED STUDENT:",
+          studentData
+        );
+
+        console.log(
+          "NORMALISED ORIENTATION:",
+          orientationData
+        );
+
+
+        if (!studentData) {
+
+          throw new Error(
+            "Student profile returned empty data."
+          );
+
+        }
+
+
+        setStudent(
+          studentData
+        );
+
+        setStatus(
+          orientationData
+        );
+
 
         // ---------------------------------------------
-        // 4. DETERMINE PAGE
+        // PAGE
         // ---------------------------------------------
 
         if (
-          orientation?.status ===
-          "Completed"
+          String(
+            orientationData?.status ||
+            ""
+          ).toLowerCase() ===
+          "completed"
         ) {
-          setPage("completed");
+
+          setPage(
+            "completed"
+          );
+
         } else {
-          setPage("welcome");
+
+          setPage(
+            "welcome"
+          );
+
         }
 
       } catch (err) {
+
         console.error(
-          "ORIENTATION ERROR:",
+          "ORIENTATION LOAD ERROR:",
           err
         );
-
-        /*
-         * IMPORTANT:
-         * Do NOT automatically delete the PPBMS token.
-         *
-         * This allows us to see the actual error
-         * instead of silently redirecting the student
-         * back to the login page.
-         */
 
         setError(
           err?.message ||
@@ -105,9 +321,13 @@ export default function App() {
         );
 
       } finally {
+
         setLoading(false);
+
       }
+
     }
+
 
     loadOrientation();
 
@@ -119,6 +339,7 @@ export default function App() {
   // =====================================================
 
   function logout() {
+
     localStorage.removeItem(
       "ppbms_token"
     );
@@ -133,14 +354,16 @@ export default function App() {
 
     window.top.location.href =
       "/login";
+
   }
 
 
   // =====================================================
-  // LOADING SCREEN
+  // LOADING
   // =====================================================
 
   if (loading) {
+
     return (
       <div className="loading-screen">
 
@@ -156,14 +379,16 @@ export default function App() {
 
       </div>
     );
+
   }
 
 
   // =====================================================
-  // ERROR SCREEN
+  // API ERROR
   // =====================================================
 
   if (error) {
+
     return (
       <div className="loading-screen">
 
@@ -190,18 +415,22 @@ export default function App() {
 
       </div>
     );
+
   }
 
 
   // =====================================================
-  // NO STUDENT PROFILE
+  // NO STUDENT
   // =====================================================
 
   if (!student) {
+
     return (
       <div className="loading-screen">
 
-        <div className="spinner"></div>
+        <div className="loading-logo">
+          PKTAAB
+        </div>
 
         <p>
           Student profile not found.
@@ -209,6 +438,7 @@ export default function App() {
 
       </div>
     );
+
   }
 
 
@@ -216,7 +446,10 @@ export default function App() {
   // COMPLETED
   // =====================================================
 
-  if (page === "completed") {
+  if (
+    page === "completed"
+  ) {
+
     return (
       <Completed
         student={student}
@@ -227,6 +460,7 @@ export default function App() {
         onLogout={logout}
       />
     );
+
   }
 
 
@@ -234,7 +468,10 @@ export default function App() {
   // ORIENTATION
   // =====================================================
 
-  if (page === "orientation") {
+  if (
+    page === "orientation"
+  ) {
+
     return (
       <Orientation
         student={student}
@@ -244,6 +481,7 @@ export default function App() {
         }
       />
     );
+
   }
 
 
@@ -261,4 +499,20 @@ export default function App() {
       onLogout={logout}
     />
   );
+
+}
+
+
+// =====================================================
+// EXPORT WITH ERROR BOUNDARY
+// =====================================================
+
+export default function App() {
+
+  return (
+    <OrientationErrorBoundary>
+      <OrientationApp />
+    </OrientationErrorBoundary>
+  );
+
 }
