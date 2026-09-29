@@ -1538,7 +1538,7 @@ export default function Orientation({
               className="community-join-button"
               onClick={() =>
                 openResource(
-                  "https://chat.whatsapp.com/H9m8mW0Mv2V6x5CxoSZS42"
+                  "https://chat.whatsapp.com/B5ZaFOBac71C7fvJaHmwnz"
                 )
               }
             >
