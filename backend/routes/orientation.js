@@ -877,63 +877,102 @@ router.get(
           .toLowerCase() ===
         "completed";
 
-      return res.json({
+// ============================================================
+// CALCULATE ORIENTATION PROGRESS
+// ============================================================
 
-        success: true,
+const progressItems = [
 
-        status:
-          row[
-            "Orientation Status"
-          ] || "Not Started",
+  row["PPBMS Access"],
 
-        completed,
+  row["System Introduction"],
 
-        progress: {
+  row["Meet the Team"],
 
-          ppbmsAccess:
-            row["PPBMS Access"] ||
-            "Pending",
+  row["AduSiswa Reviewed"],
 
-          systemIntroduction:
-            row[
-              "System Introduction"
-            ] || "Pending",
+  row["Handbook / Forms Reviewed"],
 
-          meetTheTeam:
-            row[
-              "Meet the Team"
-            ] || "Pending",
+  row["WhatsApp Joined"],
 
-          aduSiswa:
-            row[
-              "AduSiswa Reviewed"
-            ] || "Pending",
+  row["Shuttle / Location Reviewed"],
 
-          handbook:
-            row[
-              "Handbook / Forms Reviewed"
-            ] || "Pending",
+  row["Do's & Don'ts Reviewed"],
 
-          whatsapp:
-            row[
-              "WhatsApp Joined"
-            ] || "Pending",
+];
 
-          shuttle:
-            row[
-              "Shuttle / Location Reviewed"
-            ] || "Pending",
+const completedItems =
+  progressItems.filter(
+    value =>
+      String(value || "")
+        .trim()
+        .toLowerCase() === "completed"
+  ).length;
 
-          dosDonts:
-            row[
-              "Do's & Don'ts Reviewed"
-            ] || "Pending",
+const progress =
+  Math.round(
+    (completedItems /
+      progressItems.length) *
+      100
+  );
 
-        },
 
-        tracking: row,
+// ============================================================
+// RETURN STATUS
+// ============================================================
 
-      });
+
+  // IMPORTANT:
+  // progress is now ALWAYS a number.
+  progress,
+
+  // Keep the detailed module information separately.
+  progressDetails: {
+
+    ppbmsAccess:
+      row["PPBMS Access"] ||
+      "Pending",
+
+    systemIntroduction:
+      row[
+        "System Introduction"
+      ] || "Pending",
+
+    meetTheTeam:
+      row[
+        "Meet the Team"
+      ] || "Pending",
+
+    aduSiswa:
+      row[
+        "AduSiswa Reviewed"
+      ] || "Pending",
+
+    handbook:
+      row[
+        "Handbook / Forms Reviewed"
+      ] || "Pending",
+
+    whatsapp:
+      row[
+        "WhatsApp Joined"
+      ] || "Pending",
+
+    shuttle:
+      row[
+        "Shuttle / Location Reviewed"
+      ] || "Pending",
+
+    dosDonts:
+      row[
+        "Do's & Don'ts Reviewed"
+      ] || "Pending",
+
+  },
+
+  tracking: row,
+
+});
 
     } catch (error) {
 
