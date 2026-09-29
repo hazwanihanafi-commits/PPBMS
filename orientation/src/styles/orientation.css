@@ -1557,6 +1557,45 @@ input {
   font-size: 10px;
 }
 
+/* =========================================================
+   PROFESSIONAL APPEARANCE
+   ========================================================= */
+
+.professional-appearance-section {
+  margin-top: 32px;
+}
+
+.professional-appearance-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5dcef;
+  border-radius: 20px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(83, 37, 127, 0.08);
+  overflow: hidden;
+}
+
+.professional-appearance-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+
+  .professional-appearance-card {
+    padding: 6px;
+    border-radius: 14px;
+  }
+
+  .professional-appearance-image {
+    border-radius: 10px;
+  }
+
+}
 
 /* =========================================================
    MOBILE
