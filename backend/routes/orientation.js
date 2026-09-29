@@ -921,70 +921,98 @@ const progress =
 // RETURN STATUS
 // ============================================================
 
+return res.json({
 
-  // IMPORTANT:
-  // progress is now ALWAYS a number.
-  progress,
+        success: true,
 
-  // Keep the detailed module information separately.
-  progressDetails: {
+        status:
 
-    ppbmsAccess:
-      row["PPBMS Access"] ||
-      "Pending",
+          row["Orientation Status"] ||
 
-    systemIntroduction:
-      row[
-        "System Introduction"
-      ] || "Pending",
+          "Not Started",
 
-    meetTheTeam:
-      row[
-        "Meet the Team"
-      ] || "Pending",
+        completed,
 
-    aduSiswa:
-      row[
-        "AduSiswa Reviewed"
-      ] || "Pending",
+        // IMPORTANT:
 
-    handbook:
-      row[
-        "Handbook / Forms Reviewed"
-      ] || "Pending",
+        // This is now a NUMBER, e.g. 12, 25, 100.
 
-    whatsapp:
-      row[
-        "WhatsApp Joined"
-      ] || "Pending",
+        progress,
 
-    shuttle:
-      row[
-        "Shuttle / Location Reviewed"
-      ] || "Pending",
+        // Detailed module status is kept separately.
 
-    dosDonts:
-      row[
-        "Do's & Don'ts Reviewed"
-      ] || "Pending",
+        progressDetails: {
 
-  },
+          ppbmsAccess:
 
-  tracking: row,
+            row["PPBMS Access"] ||
 
-});
+            "Pending",
+
+          systemIntroduction:
+
+            row["System Introduction"] ||
+
+            "Pending",
+
+          meetTheTeam:
+
+            row["Meet the Team"] ||
+
+            "Pending",
+
+          aduSiswa:
+
+            row["AduSiswa Reviewed"] ||
+
+            "Pending",
+
+          handbook:
+
+            row["Handbook / Forms Reviewed"] ||
+
+            "Pending",
+
+          whatsapp:
+
+            row["WhatsApp Joined"] ||
+
+            "Pending",
+
+          shuttle:
+
+            row["Shuttle / Location Reviewed"] ||
+
+            "Pending",
+
+          dosDonts:
+
+            row["Do's & Don'ts Reviewed"] ||
+
+            "Pending",
+
+        },
+
+        tracking: row,
+
+      });
 
     } catch (error) {
 
       console.error(
+
         "Orientation status error:",
+
         error
+
       );
 
       return res.status(500).json({
 
         error:
+
           error.message ||
+
           "Unable to load orientation status",
 
       });
@@ -992,6 +1020,7 @@ const progress =
     }
 
   }
+
 );
 
 
