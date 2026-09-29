@@ -20,7 +20,6 @@ import {
   AlertTriangle,
   Clock,
   FolderOpen,
-  HeartHandshake,
 } from "lucide-react";
 
 import { completeOrientation } from "../api";
@@ -576,62 +575,62 @@ const MODULES = [
      ======================================================= */
 
   {
-    id: 9,
-    number: "09",
-    title: "ADUSISWA",
-    subtitle: "Know Where to Get Help",
-    icon: HeartHandshake,
-    color: "purple",
+  id: 9,
+  number: "09",
+  title: "ADUSISWA",
+  subtitle: "Know Where to Get Help",
+  icon: GraduationCap,
+  color: "purple",
 
-    description:
-      "AduSiswa is part of the USM student support environment. It provides a channel for students who need assistance with student affairs, personal well-being, concerns related to their postgraduate experience, or situations that may require further support or referral. Please note that the AduSiswa system is accessible only when you are connected to the USM campus network.",
+  description:
+    "AduSiswa is part of the USM student support environment. It provides a channel for students who need assistance with student affairs, personal well-being, concerns related to their postgraduate experience, or situations that may require further support or referral. Please note that the AduSiswa system is accessible only when you are connected to the USM campus network.",
 
-    resources: [
-      {
-        label: "AduSiswa / GRAMS — Student Support",
-        url:
-          "https://healthservice.amdi.usm.my/gramsv2/home.php?view=dash",
-        icon: HeartHandshake,
-      },
-      {
-        label: "USM Official Website",
-        url:
-          "https://www.usm.my/",
-        icon: ExternalLink,
-      },
-    ],
+  resources: [
+    {
+      label: "AduSiswa / GRAMS — Student Support",
+      url:
+        "https://healthservice.amdi.usm.my/gramsv2/home.php?view=dash",
+      icon: FolderOpen,
+    },
+    {
+      label: "USM Official Website",
+      url:
+        "https://www.usm.my/",
+      icon: ExternalLink,
+    },
+  ],
 
-    sections: [
-      {
-        heading: "🤝 Having Difficulties with Your Supervisor?",
-        text:
-          "If you experience concerns or difficulties in your supervisory relationship, you do not have to deal with the situation alone. Seek appropriate support and guidance through the relevant USM student support channels.",
-      },
-      {
-        heading: "🧠 Need Psychological or Counselling Support?",
-        text:
-          "If research, academic, personal or other circumstances are affecting your well-being, seek professional psychological or counselling support through the appropriate USM support channel.",
-      },
-      {
-        heading: "❤️ Need Student Welfare Support?",
-        text:
-          "For welfare, student affairs or other student-related concerns, seek assistance through the appropriate USM student support and BHEPA-related channels.",
-      },
-      {
-        heading: "💜 You Don't Have to Face It Alone",
-        text:
-          "If you are unsure who to approach, start by contacting the appropriate student support channel and ask for guidance or referral to the relevant person or unit.",
-      },
-    ],
+  sections: [
+    {
+      heading: "Having Difficulties with Your Supervisor?",
+      text:
+        "If you experience concerns or difficulties in your supervisory relationship, you do not have to deal with the situation alone. Seek appropriate support and guidance through the relevant USM student support channels.",
+    },
+    {
+      heading: "Need Psychological or Counselling Support?",
+      text:
+        "If research, academic, personal or other circumstances are affecting your well-being, seek professional psychological or counselling support through the appropriate USM support channel.",
+    },
+    {
+      heading: "Need Student Welfare Support?",
+      text:
+        "For welfare, student affairs or other student-related concerns, seek assistance through the appropriate USM student support and BHEPA-related channels.",
+    },
+    {
+      heading: "You Don't Have to Face It Alone",
+      text:
+        "If you are unsure who to approach, start by contacting the appropriate student support channel and ask for guidance or referral to the relevant person or unit.",
+    },
+  ],
 
-    checklist: [
-      "Know what AduSiswa / GRAMS is used for",
-      "Know where to seek help if you have difficulties with your supervisor",
-      "Know where to seek psychological or counselling support",
-      "Know where to seek student welfare assistance",
-      "Know the appropriate USM student support channel",
-    ],
-  },
+  checklist: [
+    "Know what AduSiswa / GRAMS is used for",
+    "Know where to seek help if you have difficulties with your supervisor",
+    "Know where to seek psychological or counselling support",
+    "Know where to seek student welfare assistance",
+    "Know the appropriate USM student support channel",
+  ],
+},
 
 
   /* =======================================================
