@@ -518,8 +518,14 @@ input {
 }
 
 .resource-card {
-  border: 1px solid var(--border);
-  background: white;
+  border: 1px solid rgba(255, 183, 3, 0.45);
+
+  background:
+    linear-gradient(
+      135deg,
+      #fffaf0 0%,
+      var(--usm-gold-light) 100%
+    );
 
   border-radius: 16px;
   padding: 17px;
@@ -532,14 +538,22 @@ input {
 
   cursor: pointer;
 
-  box-shadow: var(--shadow);
+  box-shadow:
+    0 8px 24px rgba(255, 183, 3, 0.10);
 
-  transition: 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .resource-card:hover {
-  transform: translateY(-2px);
-  border-color: #cdb7df;
+  transform: translateY(-3px);
+
+  border-color: var(--usm-gold);
+
+  box-shadow:
+    0 12px 30px rgba(255, 183, 3, 0.18);
 }
 
 .resource-icon {
@@ -552,7 +566,7 @@ input {
   align-items: center;
   justify-content: center;
 
-  background: #f3edf8;
+  background: var(--usm-gold);
   color: var(--usm-purple);
 
   flex-shrink: 0;
@@ -576,12 +590,11 @@ input {
   align-items: center;
   gap: 5px;
 
-  color: var(--usm-purple);
+  color: #a66d00;
 
   font-size: 11px;
   font-weight: 700;
 }
-
 
 /* =========================================================
    CONTENT
