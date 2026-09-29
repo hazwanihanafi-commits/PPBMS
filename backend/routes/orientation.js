@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { google } from "googleapis";
 
 import sendEmail from "../services/sendEmail.js";
+import { readMasterTracking } from "../services/googleSheets.js";
 
 const router = express.Router();
 
@@ -31,11 +32,10 @@ function auth(req, res, next) {
 
   try {
 
-    req.user =
-      jwt.verify(
-        token,
-        process.env.JWT_SECRET
-      );
+    req.user = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
 
     next();
 
@@ -75,10 +75,6 @@ function getAuth() {
 }
 
 
-/* =========================================================
-   GET SHEET CLIENT
-========================================================= */
-
 async function getSheetsClient() {
 
   const auth = getAuth();
@@ -95,10 +91,10 @@ async function getSheetsClient() {
 
 
 /* =========================================================
-   READ ORIENTATION SHEET
+   READ ORIENTATION TRACKING
 ========================================================= */
 
-async function getSheetData() {
+async function getOrientationSheet() {
 
   const sheets =
     await getSheetsClient();
@@ -129,47 +125,31 @@ async function getSheetData() {
 
   const headers =
     values[0].map(
-      header =>
-        String(header || "").trim()
+      h => String(h || "").trim()
     );
-
-  const rows =
-    values.slice(1);
 
   return {
     sheets,
     headers,
-    rows
+    rows: values.slice(1)
   };
 
 }
 
 
 /* =========================================================
-   FIND STUDENT ROW BY USM EMAIL
+   FIND EXISTING ORIENTATION ROW
 ========================================================= */
 
 async function findRow(email) {
 
-  const {
-    sheets,
-    headers,
-    rows
-  } =
-    await getSheetData();
+  const data =
+    await getOrientationSheet();
 
-
-  if (!headers.length) {
-
-    return null;
-
-  }
-
-
-  // YOUR SHEET USES "USM Email"
   const emailIndex =
-    headers.indexOf("USM Email");
-
+    data.headers.indexOf(
+      "USM Email"
+    );
 
   if (emailIndex === -1) {
 
@@ -179,7 +159,6 @@ async function findRow(email) {
 
   }
 
-
   const targetEmail =
     String(email || "")
       .trim()
@@ -187,7 +166,7 @@ async function findRow(email) {
 
 
   const rowIndex =
-    rows.findIndex(
+    data.rows.findIndex(
       row =>
         String(
           row[emailIndex] || ""
@@ -205,21 +184,19 @@ async function findRow(email) {
   }
 
 
-  const actualRowNumber =
-    rowIndex + 2;
-
-
   return {
 
-    sheets,
+    sheets:
+      data.sheets,
 
     rowNumber:
-      actualRowNumber,
+      rowIndex + 2,
 
-    headers,
+    headers:
+      data.headers,
 
     values:
-      rows[rowIndex]
+      data.rows[rowIndex]
 
   };
 
@@ -227,7 +204,278 @@ async function findRow(email) {
 
 
 /* =========================================================
-   CONVERT ROW TO OBJECT
+   CREATE ORIENTATION ROW AUTOMATICALLY
+   FROM MASTER TRACKING
+========================================================= */
+
+async function ensureOrientationRow(email) {
+
+  // First check Orientation Tracking
+  const existing =
+    await findRow(email);
+
+  if (existing) {
+
+    return existing;
+
+  }
+
+
+  /*
+   * Student does not have an Orientation row yet.
+   *
+   * Find them in MasterTracking.
+   */
+
+  const masterRows =
+    await readMasterTracking(
+      process.env.SHEET_ID
+    );
+
+
+  const targetEmail =
+    String(email || "")
+      .trim()
+      .toLowerCase();
+
+
+  const student =
+    masterRows.find(
+      row =>
+        String(
+          row["Student's Email"] || ""
+        )
+          .trim()
+          .toLowerCase() ===
+        targetEmail
+    );
+
+
+  if (!student) {
+
+    throw new Error(
+      `Student ${email} was not found in MasterTracking`
+    );
+
+  }
+
+
+  /*
+   * Get current Orientation headers
+   */
+
+  const data =
+    await getOrientationSheet();
+
+
+  const headers =
+    data.headers;
+
+
+  /*
+   * Determine next Index
+   */
+
+  let nextIndex = 1;
+
+
+  const indexColumn =
+    headers.indexOf("Index");
+
+
+  if (indexColumn !== -1) {
+
+    const existingIndexes =
+      data.rows
+        .map(
+          row =>
+            Number(
+              row[indexColumn]
+            )
+        )
+        .filter(
+          value =>
+            !Number.isNaN(value)
+        );
+
+
+    if (existingIndexes.length) {
+
+      nextIndex =
+        Math.max(
+          ...existingIndexes
+        ) + 1;
+
+    }
+
+  }
+
+
+  /*
+   * Create a row based on the exact
+   * ORIENTATION_TRACKING headers.
+   */
+
+  const newRow =
+    headers.map(
+      header => {
+
+        switch (header) {
+
+          case "Index":
+            return nextIndex;
+
+          case "Timestamp":
+            return new Date().toISOString();
+
+          case "Student Name":
+            return (
+              student["Student Name"] ||
+              ""
+            );
+
+          case "USM Email":
+            return (
+              student["Student's Email"] ||
+              email
+            );
+
+          case "Matric No.":
+            return (
+              student["Matric"] ||
+              student["Matric No"] ||
+              ""
+            );
+
+          case "Programme":
+            return (
+              student["Programme"] ||
+              ""
+            );
+
+          case "Student Type":
+            return (
+              student["Student Type"] ||
+              ""
+            );
+
+          case "Orientation Status":
+            return "Not Started";
+
+          case "PPBMS Access":
+            return "Completed";
+
+          case "System Introduction":
+            return "Pending";
+
+          case "Meet the Team":
+            return "Pending";
+
+          case "AduSiswa Reviewed":
+            return "Pending";
+
+          case "Handbook / Forms Reviewed":
+            return "Pending";
+
+          case "WhatsApp Joined":
+            return "Pending";
+
+          case "Shuttle / Location Reviewed":
+            return "Pending";
+
+          case "Do's & Don'ts Reviewed":
+            return "Pending";
+
+          case "Assistance Required":
+            return "No";
+
+          case "Assistance Details":
+            return "";
+
+          case "Completion Date":
+            return "";
+
+          case "BAA Notification":
+            return "Pending";
+
+          case "Remarks":
+            return "Automatically created from MasterTracking";
+
+          default:
+            return "";
+
+        }
+
+      }
+    );
+
+
+  /*
+   * Append the new student
+   */
+
+  await data.sheets.spreadsheets.values.append({
+
+    spreadsheetId:
+      process.env.SHEET_ID,
+
+    range:
+      `${SHEET_NAME}!A:U`,
+
+    valueInputOption:
+      "USER_ENTERED",
+
+    insertDataOption:
+      "INSERT_ROWS",
+
+    requestBody: {
+      values: [
+        newRow
+      ]
+    }
+
+  });
+
+
+  /*
+   * Read the newly-created row
+   * so we have its real row number.
+   */
+
+  const created =
+    await findRow(email);
+
+
+  if (!created) {
+
+    throw new Error(
+      "Orientation row was created but could not be retrieved."
+    );
+
+  }
+
+
+  console.log(
+    "🎓 Orientation row automatically created:",
+    {
+      email,
+      studentName:
+        student["Student Name"],
+      matric:
+        student["Matric"],
+      programme:
+        student["Programme"]
+    }
+  );
+
+
+  return created;
+
+}
+
+
+/* =========================================================
+   ROW → OBJECT
 ========================================================= */
 
 function rowToObject(row) {
@@ -249,7 +497,7 @@ function rowToObject(row) {
 
 
 /* =========================================================
-   GET COLUMN INDEX
+   COLUMN INDEX
 ========================================================= */
 
 function getColumnIndex(
@@ -258,7 +506,9 @@ function getColumnIndex(
 ) {
 
   const index =
-    headers.indexOf(columnName);
+    headers.indexOf(
+      columnName
+    );
 
   if (index === -1) {
 
@@ -274,15 +524,15 @@ function getColumnIndex(
 
 
 /* =========================================================
-   COLUMN NUMBER → LETTER
+   COLUMN INDEX → LETTER
 ========================================================= */
 
-function columnLetter(columnIndex) {
+function columnLetter(
+  columnIndex
+) {
 
   let column = "";
-
-  let n =
-    columnIndex;
+  let n = columnIndex;
 
   while (n >= 0) {
 
@@ -302,7 +552,7 @@ function columnLetter(columnIndex) {
 
 
 /* =========================================================
-   UPDATE ONE CELL
+   UPDATE CELL
 ========================================================= */
 
 async function updateCell(
@@ -348,7 +598,7 @@ async function updateCell(
 
 
 /* =========================================================
-   STATUS
+   GET ORIENTATION STATUS
 ========================================================= */
 
 router.get(
@@ -362,30 +612,16 @@ router.get(
         req.user.email;
 
 
-      const row =
-        await findRow(email);
-
-
       /*
-       * Student has not yet been added
-       * to Orientation Tracking.
+       * ⭐ IMPORTANT:
+       * Automatically create the row
+       * if student is in MasterTracking.
        */
 
-      if (!row) {
-
-        return res.json({
-
-          status:
-            "Not Started",
-
-          progress:
-            0,
-
+      const row =
+        await ensureOrientationRow(
           email
-
-        });
-
-      }
+        );
 
 
       const obj =
@@ -398,8 +634,7 @@ router.get(
 
 
       const progress =
-        orientationStatus ===
-        "Completed"
+        orientationStatus === "Completed"
           ? 100
           : 0;
 
@@ -412,7 +647,6 @@ router.get(
         progress,
 
         email:
-
           obj["USM Email"] ||
           email,
 
@@ -473,6 +707,7 @@ router.get(
       res.status(500).json({
 
         error:
+          error.message ||
           "Unable to retrieve orientation status"
 
       });
@@ -498,25 +733,19 @@ router.post(
         req.user.email;
 
 
-      const row =
-        await findRow(email);
-
-
       /*
-       * Student must already exist
-       * in ORIENTATION_TRACKING.
+       * Automatically create the row
+       * if it somehow does not exist.
        */
 
-      if (!row) {
+      const row =
+        await ensureOrientationRow(
+          email
+        );
 
-        return res.status(404).json({
 
-          error:
-            "Student is not found in ORIENTATION_TRACKING."
-
-        });
-
-      }
+      const sheets =
+        row.sheets;
 
 
       const now =
@@ -524,11 +753,11 @@ router.post(
 
 
       /*
-       * Update required tracking fields
+       * Update completion
        */
 
       await updateCell(
-        row.sheets,
+        sheets,
         row.headers,
         row.rowNumber,
         "Orientation Status",
@@ -537,7 +766,7 @@ router.post(
 
 
       await updateCell(
-        row.sheets,
+        sheets,
         row.headers,
         row.rowNumber,
         "Completion Date",
@@ -545,12 +774,8 @@ router.post(
       );
 
 
-      /*
-       * PPBMS access already confirmed
-       */
-
       await updateCell(
-        row.sheets,
+        sheets,
         row.headers,
         row.rowNumber,
         "PPBMS Access",
@@ -559,16 +784,50 @@ router.post(
 
 
       /*
-       * BAA notification status
+       * Optional data sent from frontend
+       */
+
+      const payload =
+        req.body || {};
+
+
+      if (
+        payload.assistanceRequired
+      ) {
+
+        await updateCell(
+          sheets,
+          row.headers,
+          row.rowNumber,
+          "Assistance Required",
+          payload.assistanceRequired
+        );
+
+      }
+
+
+      if (
+        payload.assistanceDetails
+      ) {
+
+        await updateCell(
+          sheets,
+          row.headers,
+          row.rowNumber,
+          "Assistance Details",
+          payload.assistanceDetails
+        );
+
+      }
+
+
+      /*
+       * Notify BAA / Anis
        */
 
       let emailStatus =
         "Pending";
 
-
-      /*
-       * Notify Anis
-       */
 
       try {
 
@@ -610,7 +869,7 @@ router.post(
 
               <p>
                 The student's orientation record has
-                been updated in ORIENTATION_TRACKING.
+                been updated automatically.
               </p>
 
             </div>
@@ -624,7 +883,7 @@ router.post(
 
 
         await updateCell(
-          row.sheets,
+          sheets,
           row.headers,
           row.rowNumber,
           "BAA Notification",
@@ -647,7 +906,7 @@ router.post(
         try {
 
           await updateCell(
-            row.sheets,
+            sheets,
             row.headers,
             row.rowNumber,
             "BAA Notification",
@@ -665,10 +924,6 @@ router.post(
 
       }
 
-
-      /*
-       * Final response
-       */
 
       res.json({
 
@@ -701,6 +956,7 @@ router.post(
       res.status(500).json({
 
         error:
+          error.message ||
           "Unable to complete orientation"
 
       });
