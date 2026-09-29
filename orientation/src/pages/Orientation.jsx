@@ -690,13 +690,6 @@ const MODULES = [
     resources: [
       {
         label:
-          "PKTAAB Students Association — WhatsApp Community",
-        url:
-          "https://chat.whatsapp.com/H9m8mW0Mv2V6x5CxoSZS42",
-        icon: MessageCircle,
-      },
-      {
-        label:
           "Postgraduate Student Community — WhatsApp",
         url:
           "https://chat.whatsapp.com/B5ZaFOBac71C7fvJaHmwnz",
