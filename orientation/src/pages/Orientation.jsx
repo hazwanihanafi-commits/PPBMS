@@ -252,7 +252,14 @@ const MODULES = [
       {
         label: "25 Academic Home",
         url:
-          "https://academic.amdi.usm.my/academic25",
+          "https://academic.amdi.usm.my/25programmes/25postgraduateresearch",
+        icon: FolderOpen,
+      },
+
+    {
+        label: "25 Academic Home",
+        url:
+          "https://staffusm.sharepoint.com/:b:/s/AkademikIPPT/IQA62w8KLu_pRpL29MaYBJXvAR6Xy1vO2eGqlSQThmqAt1E?e=vysBYr",
         icon: FolderOpen,
       },
       {
