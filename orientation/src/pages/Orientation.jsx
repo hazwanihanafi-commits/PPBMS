@@ -87,7 +87,7 @@ const MODULES = [
   {
     label: "Meet the Team",
     url:
-      "https://youtu.be/Q4ZFzwZpEX4",
+      "https://youtu.be/utrthE_mYng",
     icon: Users,
   },
 ],
@@ -1556,7 +1556,7 @@ export default function Orientation({
               className="community-join-button"
               onClick={() =>
                 openResource(
-                  "https://chat.whatsapp.com/B5ZaFOBac71C7fvJaHmwnz"
+                  "https://chat.whatsapp.com/HQ59QwEDkmKAFp1EDkzAid?s=cl&p=a&mlu=4&ilr=4"
                 )
               }
             >
