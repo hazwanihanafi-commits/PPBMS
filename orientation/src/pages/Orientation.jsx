@@ -565,7 +565,7 @@ const MODULES = [
     color: "purple",
 
     description:
-      "AduSiswa is part of your wider USM student experience. Make sure you know where to access official student-related information and services.",
+      "AduSiswa is part of your wider USM student experience. It provides access to official student-related information and services. Please note that the AduSiswa system is accessible only when you are connected to the USM campus network.",
 
     resources: [
       {
