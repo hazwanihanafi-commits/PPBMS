@@ -31,6 +31,20 @@ const MSC_CHECKLIST = [
   },
 
   {
+    name: "Publication Acceptance",
+    label: "Publication Acceptance",
+    role: "Student Upload",
+    note: "Paste a Google Drive link to the acceptance letter or published article",
+  },
+
+  {
+    name: "Proof of Submission",
+    label: "Proof of Submission",
+    role: "Student Upload",
+    note: "Paste a Google Drive link to the journal submission confirmation",
+  },
+
+  {
     name: "Conference Presentation",
     label: "Conference Presentation",
     role: "Student Upload",
