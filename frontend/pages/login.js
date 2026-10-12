@@ -239,12 +239,10 @@ export default function LoginPage() {
         </p>
 
 
-        <button
+        <<button
   type="button"
   onClick={() => router.push("/forgot-password")}
-  className="block w-full text-sm text-purple-600
-             text-center mt-3 underline
-             hover:text-purple-800"
+  className="block w-full text-sm text-purple-600 text-center mt-3 underline"
 >
   Forgot Password? Reset Here
 </button>
