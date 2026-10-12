@@ -239,9 +239,15 @@ export default function LoginPage() {
         </p>
 
 
-        <p className="text-xs text-purple-600 text-center mt-1">
-          Forgot password? Contact admin.
-        </p>
+        <button
+  type="button"
+  onClick={() => router.push("/forgot-password")}
+  className="block w-full text-sm text-purple-600
+             text-center mt-3 underline
+             hover:text-purple-800"
+>
+  Forgot Password? Reset Here
+</button>
 
 
         <div className="mt-4 text-center">
