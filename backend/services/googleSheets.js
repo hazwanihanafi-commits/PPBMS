@@ -649,3 +649,20 @@ export async function readSUPERVISOR_REMARKS(
       timestamp: ""
     }));
 }
+
+
+export async function updateAuthResetFields({ sheetId, email, tokenHash, expires }) {
+  const auth = getAuth(false);
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: 'v4', auth: client });
+  const response = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'AUTH_USERS!A1:Z' });
+  const [headers, ...rows] = response.data.values || [];
+  if (!headers) throw new Error('AUTH_USERS sheet has no headers');
+  const emailIndex = headers.findIndex(h => String(h).trim().toLowerCase() === 'email');
+  if (emailIndex < 0) throw new Error('Missing Email column');
+  const rowIndex = rows.findIndex(row => String(row[emailIndex] || '').trim().toLowerCase() === email.toLowerCase());
+  if (rowIndex < 0) throw new Error('User not found');
+  await writeSheetCell(sheetId, 'AUTH_USERS', 'ResetTokenHash', rowIndex + 2, tokenHash);
+  await writeSheetCell(sheetId, 'AUTH_USERS', 'ResetTokenExpires', rowIndex + 2, expires);
+}
+
