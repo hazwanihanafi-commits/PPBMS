@@ -124,28 +124,15 @@ export default function SupervisorDashboard() {
   ========================= */
 
   function getStudentCategory(st) {
-
-    if (
-      st.status?.toLowerCase() ===
-        "graduated" ||
-      st.status?.toLowerCase() ===
-        "completed"
-    ) {
-      return "Graduated";
-    }
-
-    const p =
-      calculateProgress(st);
-
-    if (p >= 80) {
-      return "On Track";
-    }
-
-    if (p >= 50) {
-      return "Slightly Late";
-    }
-
-    return "At Risk";
+    if (["graduated", "completed"].includes(st.status?.toLowerCase())) return "Graduated";
+    const timeline = Array.isArray(st.timeline) ? st.timeline : [];
+    const overdue = timeline.filter(t => !t.actual && (
+      ["LATE", "AT_RISK"].includes(t.status?.toUpperCase()) ||
+      (typeof t.remaining_days === "number" && t.remaining_days < 0)
+    ));
+    if (overdue.some(t => Number(t.remaining_days) < -30)) return "At Risk";
+    if (overdue.length) return "Slightly Late";
+    return "On Track";
   }
 
   /* =========================
