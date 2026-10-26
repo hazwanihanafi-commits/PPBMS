@@ -48,11 +48,13 @@ async function request(
 
     if (!response.ok) {
 
-      throw new Error(
+      const error = new Error(
         data.error ||
         data.message ||
         `Server error ${response.status}`
       );
+      error.status = response.status;
+      throw error;
 
     }
 
