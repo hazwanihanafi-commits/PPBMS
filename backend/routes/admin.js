@@ -62,35 +62,25 @@ function calculateProgress(row) {
   );
 }
 
-function getStudentCategory(row) {
+function getStudentCategory(row, timeline = buildTimelineForRow(row)) {
 
-  const status = String(
-    row.Status || ""
-  )
-    .toLowerCase()
-    .trim();
+  const status = String(row.Status || "").toLowerCase().trim();
 
-  // 🎓 graduated
-  if (
-    status === "graduated" ||
-    status === "completed"
-  ) {
+  if (status === "graduated" || status === "completed") {
     return "GRADUATED";
   }
 
-  const progress =
-    calculateProgress(row);
-
-  // ✅ EXACT SUPERVISOR LOGIC
-  if (progress >= 80) {
-    return "ON_TRACK";
+  // Use the same milestone statuses as the student timeline.
+  // Completion percentage alone must not determine delay risk.
+  if (timeline.some(t => t.status === "AT_RISK")) {
+    return "AT_RISK";
   }
 
-  if (progress >= 50) {
+  if (timeline.some(t => t.status === "SLIGHTLY_DELAYED")) {
     return "SLIGHTLY_DELAYED";
   }
 
-  return "AT_RISK";
+  return "ON_TRACK";
 }
 
 function normalizeProgramme(p) {
@@ -155,7 +145,7 @@ function processStudents(rows, programme) {
       buildTimelineForRow(r);
 
     const overall =
-      getStudentCategory(r);
+      getStudentCategory(r, timeline);
 
     result.push({
 
