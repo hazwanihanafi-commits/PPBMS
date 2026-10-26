@@ -1,6 +1,7 @@
 // backend/utils/buildTimeline.js
 
 import dayjs from "dayjs";
+import { parseAcademicDate, academicToday } from "./academicDate.js";
 
 /* =========================================================
    MSc ACTIVITIES
@@ -197,7 +198,7 @@ export const PHD_ACTIVITIES = [
 export function buildExpectedOnly(raw) {
 
   const start =
-    dayjs(raw["Start Date"]);
+    dayjs(parseAcademicDate(raw["Start Date"]));
 
   const programme =
     (
@@ -281,7 +282,7 @@ export function buildExpectedOnly(raw) {
           : o.msc;
 
       const expectedDate =
-        start.isValid()
+        Boolean(parseAcademicDate(raw["Start Date"]))
           ? start
               .add(months, "month")
               .format("YYYY-MM-DD")
@@ -328,9 +329,8 @@ export function buildTimelineForRow(raw) {
       )
       ?.expected;
 
-  const expectedList =
-    expectedFromCache ||
-    buildExpectedOnly(raw);
+  // Always recompute from the current MasterTracking row: a cached date may be stale.
+  const expectedList = buildExpectedOnly(raw);
 
   const timeline =
     expectedList.map(e => {
@@ -366,7 +366,7 @@ export function buildTimelineForRow(raw) {
 
         const rem =
           dayjs(expected)
-            .diff(dayjs(), "day");
+            .diff(dayjs(academicToday()), "day");
 
         remaining_days = rem;
 
