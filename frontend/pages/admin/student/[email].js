@@ -142,20 +142,16 @@ export default function AdminStudentPage() {
     student.status?.toLowerCase() === "completed";
 
   function getCategory() {
-
-    if (isGraduated) {
-      return "Graduated";
-    }
-
-    if (progress >= 80) {
-      return "On Track";
-    }
-
-    if (progress >= 50) {
-      return "Slightly Late";
-    }
-
-    return "At Risk";
+    if (isGraduated) return "Graduated";
+    // Completion percentage is NOT a measure of lateness.
+    const overdue = timeline.filter(t => !t.actual && (
+      t.status?.toUpperCase() === "LATE" ||
+      t.status?.toUpperCase() === "AT_RISK" ||
+      (typeof t.remaining_days === "number" && t.remaining_days < 0)
+    ));
+    if (overdue.some(t => Number(t.remaining_days) < -30)) return "At Risk";
+    if (overdue.length > 0) return "Slightly Late";
+    return "On Track";
   }
 
   const category =
