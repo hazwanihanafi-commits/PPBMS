@@ -340,6 +340,16 @@ function OrientationApp() {
           err
         );
 
+        // Expired/invalid PPBMS session: re-authenticate instead of retrying
+        // the same invalid token indefinitely.
+        if (err?.status === 401) {
+          localStorage.removeItem("ppbms_token");
+          localStorage.removeItem("ppbms_role");
+          localStorage.removeItem("ppbms_email");
+          window.top.location.replace("/login?returnTo=/orientation");
+          return;
+        }
+
         setError(
           err?.message ||
           "Unable to load your orientation."
